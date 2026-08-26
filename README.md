@@ -65,9 +65,3 @@ Acesse em: `http://localhost:5173`
 
 ---
 
-## 🗺️ Roadmap de Desenvolvimento (Próximos Passos)
-
-- [ ] **Efeitos Visuais:** Adicionar rastros de bolhas de água (partículas) emitidos pela cauda da baleia.
-- [ ] **Ameaças Ambientais:** Inserir obstáculos como redes de pesca fantasma, lixo plástico e poluição sonora de barcos.
-- [ ] **Mecânica de Oxigênio:** Adicionar barra de fôlego que exige subir à superfície para respirar.
-- [ ] **Eco-Pontos & Fatos Rápidos:** Mensagens pop-up educativas sobre a migração de baleias e biodiversidade local.
