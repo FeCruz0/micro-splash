@@ -21,3 +21,5 @@ Como o cenário avança horizontalmente, podemos dividir o percurso pelos pontos
 - [ ] **Gradiente de Profundidade:** O fundo do mar pode ir de um azul-turquesa cristalino perto da superfície (com raios de sol penetrando) até um azul bem escuro nas profundezas.
 - [ ] **Canto das Baleias (Som de fundo):** Um áudio de fundo suave com o canto real de baleias jubarte e o som de bolhas de água, criando uma experiência imersiva e relaxante.
 
+### 5. Persistência de Dados e Recorde (High Score)
+- [ ] **Persistência com `localStorage`:** Salvar a maior pontuação (High Score) e a maior distância percorrida no navegador do estande da feira de ciências.

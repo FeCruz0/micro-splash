@@ -1,0 +1,30 @@
+[
+  {
+    "id": "ressurgencia",
+    "title": "Fenômeno da Ressurgência",
+    "location": "Arraial do Cabo",
+    "triggerX": 1500,
+    "description": "Correntes profundas e geladas trazem nutrientes do fundo do oceano, atraindo crustáceos (krill) e tornando a água um banquete para as baleias!"
+  },
+  {
+    "id": "fenda",
+    "title": "Fenda de Nossa Senhora",
+    "location": "Canal da Ilha do Farol",
+    "triggerX": 3000,
+    "description": "Uma rocha de 40 metros de altura dividida ao meio. Um dos pontos mais famosos de Arraial do Cabo onde as jubartes costumam passar!"
+  },
+  {
+    "id": "redes_fantasma",
+    "title": "Ameaça das Redes Fantasma",
+    "location": "Oceano Atlântico",
+    "triggerX": 4500,
+    "description": "Milhares de toneladas de redes de pesca abandonadas flutuam no mar. Elas podem prender mamíferos marinhos como baleias e tartarugas."
+  },
+  {
+    "id": "gruta_azul",
+    "title": "Gruta Azul",
+    "location": "Ilha do Farol",
+    "triggerX": 6000,
+    "description": "Em cavernas profundas, a luz do sol cria um tom azul neon na água. As baleias usam ecolocalização (ondas sonoras) para se orientar no escuro."
+  }
+]
