@@ -7,7 +7,7 @@ export const GAME_CONFIG = {
   PEAK_THRUST: 750,           // Adicional de impulso no pico da batida
   WATER_DRAG: 0.96,           // Resistência da água (atrito por frame)
   ROTATION_SPEED: 40,         // Velocidade de rotação das nadadeiras
-  TRASH_SLOWDOWN: 0.5, // Fator de desaceleração ao atingir lixo plástico (perde 50% da velocidade)
+  TRASH_SLOWDOWN: 0.5,        // Fator de desaceleração ao atingir lixo plástico (perde 50% da velocidade)
 };
 
 export const TAGS = {

@@ -8,6 +8,7 @@ export function createPlayer(k: KaboomCtx) {
     k.area(),
     k.body(),
     k.rotate(0),
+    k.color(255, 255, 255),
     k.anchor("center"),
     TAGS.PLAYER,
   ]);
@@ -17,6 +18,7 @@ export function createPlayer(k: KaboomCtx) {
   let facingRight = true;
   let targetCamOffset = 200;
   let angle = 0;
+  let oxygen = 100;
 
   k.onUpdate(() => {
     // Virar Esquerda / Direita
@@ -72,6 +74,28 @@ export function createPlayer(k: KaboomCtx) {
 
     // Câmera
     k.camPos(k.lerp(k.camPos().x, baleia.pos.x + targetCamOffset, 0.05), k.camPos().y);
+    
+    // se baleia submersa, perde oxigênio
+    if (baleia.pos.y > 80) {
+      oxygen = Math.max(0, oxygen - k.dt() * 4);
+    } else {
+      // na superficie recarrega folego e faz esguicho
+      if (oxygen < 100) {
+        oxygen = 100;
+        k.shake(2); //leve tremor e esguicho
+      }
+    }
+
+    // Transição de cor conforme perda de oxigenio
+    const factor = oxygen / 100;
+    const r = k.lerp(60, 255, factor);
+    const g = k.lerp(80, 255, factor);
+    const b = k.lerp(120, 255, factor);
+
+    baleia.color = k.rgb(r, g, b);
+
+    // debug valor oxygenio
+    k.debug.log(`Fôlego: ${Math.floor(oxygen)}%`);
   });
 
   return {
