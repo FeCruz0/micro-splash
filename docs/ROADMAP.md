@@ -22,4 +22,5 @@ Como o cenário avança horizontalmente, podemos dividir o percurso pelos pontos
 - [ ] **Canto das Baleias (Som de fundo):** Um áudio de fundo suave com o canto real de baleias jubarte e o som de bolhas de água, criando uma experiência imersiva e relaxante.
 
 ### 5. Persistência de Dados e Recorde (High Score)
-- [ ] **Persistência com `localStorage`:** Salvar a maior pontuação (High Score) e a maior distância percorrida no navegador do estande da feira de ciências.
+- [ ] **Persistência com `localStorage`:** Salvar a maior pontuação (High Score) e a maior distância percorrida no navegador.
+- [ ] **Tela de Relatório de Migração (Fim de Fase):** Apresentar a pontuação total, tempo de jogo, krill coletado, lixo colidido e recorde (`localStorage`) em uma tela dedicada ao finalizar a rota.

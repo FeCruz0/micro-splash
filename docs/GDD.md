@@ -26,3 +26,10 @@ O jogador controla uma **baleia-jubarte** que migra das águas frias em direçã
 * **Pontuação (Distância):** Metros percorridos na rota migratória.
 * **High Score:** Persistência do maior recorde via `localStorage`.
 * **Pop-ups Educativos:** Exibição de fatos biológicos e geográficos de Arraial do Cabo ao cruzar coordenadas específicas.
+ 
+---
+
+## 5. Filosofia de Interface (UI/UX)
+* **Design Imersivo (Estilo *Ecco the Dolphin*):** A tela de gameplay permanece 100% limpa de elementos de HUD (sem contadores de metros, pontos ou vida na tela).
+* **Rastreamento Silencioso:** As estatísticas (distância, krill alimentado, lixo colidido e tempo) são contabilizadas em segundo plano pelo estado do jogo sem poluir a visão do mar.
+* **Tela de Relatório de Migração (Fim de Fase):** Ao concluir a rota em Arraial do Cabo, o jogo apresenta um painel completo com o tempo de viagem, total de alimentos, impacto ambiental, pontuação final e o **High Score** salvo no `localStorage`.

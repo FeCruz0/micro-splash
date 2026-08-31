@@ -4,6 +4,7 @@ import { createPlayer } from "./entities/player";
 import { createTrash } from "./entities/trash";
 import { setupCollisions } from "./systems/collisions";
 import { createKrill } from "./entities/krill";
+import { createGameState } from "./systems/state";
 
 const k = kaboom({
   background: [10, 25, 60],
@@ -29,10 +30,13 @@ const teto = k.add([
   k.color(20, 50, 120),
 ]);
 
-// 1. Instancia o Jogador
+// instancia game state
+const gameState = createGameState();
+
+// Instancia o Jogador
 const playerController = createPlayer(k);
 
-// 2. Instancia alguns lixos plásticos no caminho
+// Instancia alguns lixos plásticos no caminho
 createTrash(k, k.vec2(500, 250));
 createTrash(k, k.vec2(800, 300));
 createTrash(k, k.vec2(1200, 200));
@@ -41,10 +45,13 @@ createKrill(k, k.vec2(650, 180));
 createKrill(k, k.vec2(1000, 220));
 createKrill(k, k.vec2(1400, 160));
 
-// 3. Ativa o sistema de colisões
-setupCollisions(k, playerController);
+// Ativa o sistema de colisões
+setupCollisions(k, playerController, gameState);
 
 k.onUpdate(() => {
+  const currentX = playerController.gameObj.pos.x;
+  gameState.update(k.dt(), currentX);
+
   chao.pos.x = k.camPos().x - k.width() / 2;
   teto.pos.x = k.camPos().x - k.width() / 2;
 });
