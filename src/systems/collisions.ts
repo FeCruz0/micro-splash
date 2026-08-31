@@ -2,6 +2,8 @@ import type { KaboomCtx } from "kaboom";
 import { TAGS, GAME_CONFIG } from "../config";
 
 export function setupCollisions(k: KaboomCtx, playerController: any) {
+
+  // colisão com lixo
   k.onCollide(TAGS.PLAYER, TAGS.TRASH, (_player, trash) => {
     // Destrói o lixo plástico colidido
     k.destroy(trash);
@@ -13,4 +15,13 @@ export function setupCollisions(k: KaboomCtx, playerController: any) {
     // Efeito visual rápido de impacto
     k.shake(3);
   });
+
+  // colisão com krill
+  k.onCollide(TAGS.PLAYER, TAGS.KRILL, (_player, krill) => {
+    k.destroy(krill);
+
+    const currentSpeed = playerController.getSpeed();
+    playerController.setSpeed(currentSpeed.scale(GAME_CONFIG.KRILL_BOOST));
+  });
+
 }

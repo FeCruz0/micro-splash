@@ -3,6 +3,7 @@ import { GAME_CONFIG } from "./config";
 import { createPlayer } from "./entities/player";
 import { createTrash } from "./entities/trash";
 import { setupCollisions } from "./systems/collisions";
+import { createKrill } from "./entities/krill";
 
 const k = kaboom({
   background: [10, 25, 60],
@@ -35,6 +36,10 @@ const playerController = createPlayer(k);
 createTrash(k, k.vec2(500, 250));
 createTrash(k, k.vec2(800, 300));
 createTrash(k, k.vec2(1200, 200));
+
+createKrill(k, k.vec2(650, 180));
+createKrill(k, k.vec2(1000, 220));
+createKrill(k, k.vec2(1400, 160));
 
 // 3. Ativa o sistema de colisões
 setupCollisions(k, playerController);
