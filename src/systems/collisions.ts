@@ -13,6 +13,9 @@ export function setupCollisions(k: KaboomCtx, playerController: any, gameState: 
     const currentSpeed = playerController.getSpeed();
     playerController.setSpeed(currentSpeed.scale(GAME_CONFIG.TRASH_SLOWDOWN));
 
+    // penalidade de oxigenio
+    playerController.modifyMaxOxygen(-GAME_CONFIG.TRASH_OXYGEN_PENALTY);
+
     // Efeito visual rápido de impacto
     k.shake(3);
   });
@@ -24,6 +27,9 @@ export function setupCollisions(k: KaboomCtx, playerController: any, gameState: 
 
     const currentSpeed = playerController.getSpeed();
     playerController.setSpeed(currentSpeed.scale(GAME_CONFIG.KRILL_BOOST));
-  });
+
+    // bonus de oxigenio
+    playerController.modifyMaxOxygen(GAME_CONFIG.KRILL_OXYGEN_RESTORE);
+    });
 
 }

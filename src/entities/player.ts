@@ -18,9 +18,21 @@ export function createPlayer(k: KaboomCtx) {
   let facingRight = true;
   let targetCamOffset = 200;
   let angle = 0;
+
+  // sistema de oxygenio
+  let maxOxygen = 100;
   let oxygen = 100;
+  let blackoutTimer = GAME_CONFIG.BLACKOUT_GRACE_TIME;
+  let isFainting = false;
 
   k.onUpdate(() => {
+    // se estiver demaiada
+    if (isFainting) {
+      baleia.color = k.rgb(60, 60, 80); // fica cinza escuro
+      baleia.move(0, GAME_CONFIG.SINK_RATE * 2); // afunda mais rapido
+      return; 
+    }
+
     // Virar Esquerda / Direita
     if (k.isKeyDown("left") || k.isKeyDown("a")) {
       facingRight = false;
@@ -71,28 +83,38 @@ export function createPlayer(k: KaboomCtx) {
     baleia.angle = facingRight ? angle : -angle;
     baleia.move(currentSpeed.x, currentSpeed.y + GAME_CONFIG.SINK_RATE);
     currentSpeed = currentSpeed.scale(GAME_CONFIG.WATER_DRAG);
-
-    // Câmera
-    k.camPos(k.lerp(k.camPos().x, baleia.pos.x + targetCamOffset, 0.05), k.camPos().y);
-    
+   
     // se baleia submersa, perde oxigênio
     if (baleia.pos.y > 80) {
-      oxygen = Math.max(0, oxygen - k.dt() * 4);
+      oxygen = Math.max(0, oxygen - k.dt() * GAME_CONFIG.OXYGEN_DRAIN_RATE);
+
+      if (oxygen === 0) {
+        blackoutTimer -= k.dt();
+        if (blackoutTimer <= 0) {
+          isFainting = true;
+          k.shake(4); // tremor forte quando desmaia
+        }
+      }
+    
     } else {
-      // na superficie recarrega folego e faz esguicho
-      if (oxygen < 100) {
-        oxygen = 100;
+      // na superficie recarrega folego para máximo atual
+      if (oxygen < maxOxygen) {
+        oxygen = maxOxygen;
+        blackoutTimer = GAME_CONFIG.BLACKOUT_GRACE_TIME;
         k.shake(2); //leve tremor e esguicho
       }
     }
 
     // Transição de cor conforme perda de oxigenio
-    const factor = oxygen / 100;
+    const factor = oxygen / maxOxygen;
     const r = k.lerp(60, 255, factor);
     const g = k.lerp(80, 255, factor);
     const b = k.lerp(120, 255, factor);
 
     baleia.color = k.rgb(r, g, b);
+
+     // Câmera
+    k.camPos(k.lerp(k.camPos().x, baleia.pos.x + targetCamOffset, 0.05), k.camPos().y);
 
     // debug valor oxygenio
     k.debug.log(`Fôlego: ${Math.floor(oxygen)}%`);
@@ -102,5 +124,13 @@ export function createPlayer(k: KaboomCtx) {
     gameObj: baleia,
     getSpeed: () => currentSpeed,
     setSpeed: (newSpeed: any) => { currentSpeed = newSpeed; },
+    getOxygen: () => oxygen,
+    getMaxOxygen: () => maxOxygen,
+    isFainting: () => isFainting,
+
+    modifyMaxOxygen: (amount: number) => {
+      maxOxygen = k.clamp(maxOxygen + amount, 30, 100);
+      oxygen = Math.min(oxygen, maxOxygen);
+    },
   };
 }

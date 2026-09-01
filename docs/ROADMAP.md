@@ -3,7 +3,7 @@
 ### 1. Elementos de Consciência Ambiental (Ameaças e Desafios)
 Em vez de inimigos tradicionais, os obstáculos representam os perigos reais que as baleias enfrentam na costa brasileira:
 - [ ] **Redes de Pesca Fantasma (Ghost Nets):** Redes abandonadas flutuando no mar. Se a baleia colidir, ela fica presa temporariamente (sua velocidade cai muito) e o jogador precisa apertar o `Espaço` repetidamente para se libertar. Ocasionalmente, um barco da guarda marítima de Arraial pode vir para remover a rede da baleia.
-- [ ] **Lixo Plástico (Garrafas, Sacolas):** Reduzem a energia ou velocidade da baleia ao colidir.
+- [x] **Lixo Plástico (Garrafas, Sacolas):** Reduzem a energia ou velocidade da baleia ao colidir.
 - [ ] **Poluição Sonora (Navios e Lanchas de Turismo):** Navios grandes geram ondas sonoras na água (representadas por círculos concêntricos piscando). Como as baleias usam a ecolocalização para navegar, entrar nessas áreas de ruído pode desorientar o jogador (inverter temporariamente os controles de cima/baixo) ou drenar fôlego.
 
 ### 2. Integração com os Pontos Turísticos de Arraial do Cabo
@@ -14,6 +14,7 @@ Como o cenário avança horizontalmente, podemos dividir o percurso pelos pontos
   - *Exemplo:* "Você chegou à Fenda de Nossa Senhora! Sabia que a ressurgência (correntes frias profundas cheias de nutrientes) atrai o alimento das baleias aqui em Arraial?"
 
 ### 3. Novas Mecânicas de Jogabilidade
+- [x] **Cardumes de Krill (Alimentação & Boost):** Cardumes flutuantes que concedem ganho instantâneo de velocidade (1.2x) e pontos ao se alimentar.
 - [ ] **Ecolocalização / Canto da Baleia (Tecla Shift ou E):** Ao pressionar a tecla, a baleia emite uma onda de sonar visível. Essa onda revela a silhueta de obstáculos à frente na água turva.
 - [ ] **Mecânica de Termoclinas (Correntes de Ressurgência):** Correntes de água fria sobem do fundo (ressurgência de Arraial). Entrar nessas correntes dá um impulso vertical para cima sem gastar energia, simulando o comportamento real das baleias aproveitando as correntes marítimas.
 
@@ -22,5 +23,5 @@ Como o cenário avança horizontalmente, podemos dividir o percurso pelos pontos
 - [ ] **Canto das Baleias (Som de fundo):** Um áudio de fundo suave com o canto real de baleias jubarte e o som de bolhas de água, criando uma experiência imersiva e relaxante.
 
 ### 5. Persistência de Dados e Recorde (High Score)
-- [ ] **Persistência com `localStorage`:** Salvar a maior pontuação (High Score) e a maior distância percorrida no navegador.
+- [x] **Persistência com `localStorage`:** Salvar a maior pontuação (High Score) e a maior distância percorrida no navegador.
 - [ ] **Tela de Relatório de Migração (Fim de Fase):** Apresentar a pontuação total, tempo de jogo, krill coletado, lixo colidido e recorde (`localStorage`) em uma tela dedicada ao finalizar a rota.
