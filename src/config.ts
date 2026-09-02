@@ -1,7 +1,7 @@
 export const GAME_CONFIG = {
   GRAVITY: 0,
   SINK_RATE: 20,              // Afundamento suave constante da água
-  MAX_SPEED: 240,             // Teto máximo de velocidade acumulada
+  MAX_SPEED: 300,             // Teto máximo de velocidade acumulada
   MAX_STROKE_TIME: 0.5,       // Duração máxima de uma batida de cauda (0.5s)
   BASE_THRUST: 150,           // Impulso inicial mínimo da batida
   PEAK_THRUST: 750,           // Adicional de impulso no pico da batida
