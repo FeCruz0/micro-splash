@@ -18,6 +18,7 @@ export function createPlayer(k: KaboomCtx) {
   let facingRight = true;
   let targetCamOffset = 200;
   let angle = 0;
+  let sonarCooldown = GAME_CONFIG.SONAR_COOLDOWN;
 
   // sistema de oxygenio
   let maxOxygen = 100;
@@ -64,6 +65,63 @@ export function createPlayer(k: KaboomCtx) {
 
     if (k.isKeyReleased("space")) {
       strokeTimer = 0;
+    }
+
+    // SONAR
+    if (sonarCooldown > 0) {
+      sonarCooldown -= k.dt();
+    }
+
+    if ((k.isKeyDown("shift") || k.isKeyDown("e")) && sonarCooldown <=0) {
+      sonarCooldown = GAME_CONFIG.SONAR_COOLDOWN;
+
+      // posição de disparo (testa/melão da baleia)
+      const headPos = baleia.pos.add(k.vec2(facingRight ? 30 : -30, 0));
+
+      // onda visual sonica
+      const pulse = k.add([
+        k.circle(10),
+        k.pos(headPos),
+        k.color(0, 220, 255),
+        k.opacity(0.8),
+        k.z(10),
+      ]);
+
+      pulse.onUpdate(() => {
+        pulse.radius += k.dt() * 350;
+        pulse.opacity -= k.dt() *1.5;
+        if (pulse.opacity <= 0) {
+          k.destroy(pulse);
+        }
+      });
+
+      // busca objetos e krills no mapa
+      const targets = [...k.get(TAGS.TRASH), ...k.get(TAGS.KRILL)];
+
+      targets.forEach((obje: any) => {
+        const dist = headPos.dist(obje.pos);
+        if (dist <= GAME_CONFIG.SONAR_RANGE) {
+          // calcula angulo em direcao ao objeto
+          const dirToObject = obje.pos.sub(headPos);
+          const anguloObjeto = k.rad2deg(Math.atan2(dirToObject.y, dirToObject.x));
+
+          // angulo de visual atual da baleia
+          const baseAngle = facingRight ? angle : (180 - angle);
+          let diff = Math.abs(anguloObjeto - baseAngle) % 360;
+          if (diff > 180) diff = 360 - diff; // Normalização circular
+
+          // Se o objeto estiver dentro do sonar (30º abertura)
+          if (diff <= GAME_CONFIG.SONAR_ANGLE) {
+            obje.opacity =1; // objeto revelado
+
+            // tempo de visibilidade
+            k.wait(3, () => {
+              obje.opacity = 0;
+            });
+          }
+
+        }
+      });
     }
 
     // Rotação (Cima / Baixo)

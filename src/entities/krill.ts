@@ -8,6 +8,7 @@ export function createKrill(k: KaboomCtx, position: Vec2) {
         k.color(255, 180, 50),
         k.area(),
         k.anchor("center"),
+        k.opacity(0),
         TAGS.KRILL,
     ]);
 

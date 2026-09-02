@@ -8,6 +8,7 @@ export function createTrash(k: KaboomCtx, position: Vec2) {
     k.color(220, 50, 50), // Quadrado vermelho representando lixo plástico por enquanto
     k.area(),
     k.anchor("center"),
+    k.opacity(0),
     TAGS.TRASH,
   ]);
 

@@ -14,6 +14,9 @@ export const GAME_CONFIG = {
   TRASH_OXYGEN_PENALTY: 15,   // penalidade de oxygenio por lixo
   KRILL_OXYGEN_RESTORE: 15,   // bonus de oxigenio por krill
   BLACKOUT_GRACE_TIME: 4,     // tempo de tolerancia quando oxygenio é zerado
+  SONAR_RANGE: 450,           // raio do sonar
+  SONAR_ANGLE: 30,            // angulo do feixe do sonar em graus
+  SONAR_COOLDOWN: 1.5,        // tempo entre cada emissao do sonar
 };
 
 export const TAGS = {

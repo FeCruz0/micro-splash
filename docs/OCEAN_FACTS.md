@@ -20,3 +20,9 @@ Este documento reúne a fundamentação científica, biológica e geográfica ap
 * **Redes de Pesca Fantasma:** Redes abandonadas por pesqueiros que continuam capturando acidentalmente baleias, tartarugas e golfinhos (pesca fantasma).
 * **Lixo Plástico:** Garrafas e sacolas são confundidas com alimento ou prejudicam a navegação dos mamíferos marinhos.
 * **Poluição Sonora:** O ruído excessivo de motores de lanchas e navios desorienta o sistema de ecolocalização das baleias.
+
+---
+
+## 📡 4. Ecolocalização e o Órgão "Melão"
+* **O Órgão Melão:** Na testa dos cetáceos existe um órgão composto por tecido adiposo de alta densidade chamado Melão. Ele atua como uma "lente acústica", focando e projetando ondas de ultrassom para a frente em um **feixe cônico direcionado** (ângulo entre 30° e 60°).
+* **Navegação em Águas Turvas:** Ao emitir rajadas de cliques de alta frequência, a baleia percebe o eco refletido na mandíbula inferior, construindo um mapa 3D temporário do ambiente para identificar obstáculos e alimentos no escuro.
