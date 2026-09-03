@@ -17,11 +17,13 @@ export const GAME_CONFIG = {
   SONAR_RANGE: 450,           // raio do sonar
   SONAR_ANGLE: 30,            // angulo do feixe do sonar em graus
   SONAR_COOLDOWN: 1.5,        // tempo entre cada emissao do sonar
+  NET_ESCAPE_COUNT: 5,        // toques no espaço para se soltar da rede
 };
 
 export const TAGS = {
   PLAYER: "baleia",
   TRASH: "lixo_plastico",
   KRILL: "krill",
+  NET: "rede_fantasma",
   OBSTACLE: "obstaculo",
 };

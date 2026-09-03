@@ -30,6 +30,15 @@ export function setupCollisions(k: KaboomCtx, playerController: any, gameState: 
 
     // bonus de oxigenio
     playerController.modifyMaxOxygen(GAME_CONFIG.KRILL_OXYGEN_RESTORE);
-    });
+  });
+
+  // colisao com rede fantasma
+  k.onCollide(TAGS.PLAYER, TAGS.NET, (_player, net) =>{
+    if (!playerController.isTrapped()) {
+      k.destroy(net); // remove rede
+      playerController.trapped(GAME_CONFIG.NET_ESCAPE_COUNT); // prende a baleia
+      k.shake(5);
+    }
+  });
 
 }

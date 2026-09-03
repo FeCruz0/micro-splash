@@ -7,6 +7,7 @@ import { createRescueBoat } from "./entities/boat";
 import { setupCollisions } from "./systems/collisions";
 import { createGameState } from "./systems/state";
 import { showRescueScreen } from "./ui/rescueScreen";
+import { createGhostNet } from "./entities/net";
 
 const k = kaboom({
   background: [10, 25, 60],
@@ -47,6 +48,11 @@ k.scene("game", () => {
   createKrill(k, k.vec2(650, 180));
   createKrill(k, k.vec2(1000, 220));
   createKrill(k, k.vec2(1400, 160));
+
+  // rede fantasma
+  createGhostNet(k, k.vec2(700, 250));
+  createGhostNet(k, k.vec2(1000, 250));
+  createGhostNet(k, k.vec2(1300, 250));  
 
   // 3. Ativa colisões
   setupCollisions(k, playerController, gameState);

@@ -26,12 +26,30 @@ export function createPlayer(k: KaboomCtx) {
   let blackoutTimer = GAME_CONFIG.BLACKOUT_GRACE_TIME;
   let isFainting = false;
 
+  // sistema de rede
+  let isTrapped = false;
+  let escapesNeeded = 0;
+
   k.onUpdate(() => {
     // se estiver demaiada
     if (isFainting) {
       baleia.color = k.rgb(60, 60, 80); // fica cinza escuro
       baleia.move(0, GAME_CONFIG.SINK_RATE * 2); // afunda mais rapido
       return; 
+    }
+
+    // se estiver presa
+    if (isTrapped) {
+      currentSpeed = k.vec2(0, 0); // trava movimento
+      
+      if (k.isKeyPressed("space")) {
+        escapesNeeded--;
+        k.shake(2);
+        if (escapesNeeded <= 0) {
+          isTrapped = false; // se solta
+        }
+      }
+      return; // não permite nadar normalmente enquanto presa
     }
 
     // Virar Esquerda / Direita
@@ -96,7 +114,7 @@ export function createPlayer(k: KaboomCtx) {
       });
 
       // busca objetos e krills no mapa
-      const targets = [...k.get(TAGS.TRASH), ...k.get(TAGS.KRILL)];
+      const targets = [...k.get(TAGS.TRASH), ...k.get(TAGS.KRILL), ...k.get(TAGS.NET)];
 
       targets.forEach((obje: any) => {
         const dist = headPos.dist(obje.pos);
@@ -113,11 +131,6 @@ export function createPlayer(k: KaboomCtx) {
           // Se o objeto estiver dentro do sonar (30º abertura)
           if (diff <= GAME_CONFIG.SONAR_ANGLE) {
             obje.opacity =1; // objeto revelado
-
-            // tempo de visibilidade
-            k.wait(3, () => {
-              obje.opacity = 0;
-            });
           }
 
         }
@@ -190,5 +203,13 @@ export function createPlayer(k: KaboomCtx) {
       maxOxygen = k.clamp(maxOxygen + amount, 30, 100);
       oxygen = Math.min(oxygen, maxOxygen);
     },
+
+    trapped: (count: number) => {
+      isTrapped = true;
+      escapesNeeded = count;
+    },
+
+    isTrapped: () => isTrapped
+
   };
 }

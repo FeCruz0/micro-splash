@@ -17,6 +17,11 @@ export function createTrash(k: KaboomCtx, position: Vec2) {
   k.onUpdate(() => {
     time += k.dt();
     trash.pos.y += Math.sin(time * 3) * 0.3;
+
+    // fade-out
+    if (trash.opacity > 0) {
+      trash.opacity = Math.max(0, trash.opacity - k.dt() * 0.25);
+    }
   });
 
   return trash;
