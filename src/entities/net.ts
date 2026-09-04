@@ -6,7 +6,7 @@ export function createGhostNet(k: KaboomCtx, position: Vec2) {
         k.rect(35, 50, {radius: 3 }),
         k.pos(position),
         k.color(180, 80, 220), // violeta
-        k.opacity(1),
+        k.opacity(0),
         k.area(),
         k.anchor("center"),
         TAGS.NET,

@@ -36,7 +36,7 @@ export function setupCollisions(k: KaboomCtx, playerController: any, gameState: 
   k.onCollide(TAGS.PLAYER, TAGS.NET, (_player, net) =>{
     if (!playerController.isTrapped()) {
       k.destroy(net); // remove rede
-      playerController.trapped(GAME_CONFIG.NET_ESCAPE_COUNT); // prende a baleia
+      playerController.trapInNet(GAME_CONFIG.NET_ESCAPE_COUNT); // prende a baleia
       k.shake(5);
     }
   });

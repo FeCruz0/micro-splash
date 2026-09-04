@@ -18,6 +18,10 @@ export const GAME_CONFIG = {
   SONAR_ANGLE: 30,            // angulo do feixe do sonar em graus
   SONAR_COOLDOWN: 1.5,        // tempo entre cada emissao do sonar
   NET_ESCAPE_COUNT: 5,        // toques no espaço para se soltar da rede
+  UPWELLING_INTERVAL: 18,     // intervalo entre ressurgencias
+  UPWELLING_DURATION: 4,      // duração da ressurgência
+  UPWELLING_PUSH_X: 120,      // força horizontal da ressurgência
+  UPWELLING_PUSH_Y: -150,     // força vertical da ressurgência
 };
 
 export const TAGS = {
@@ -25,5 +29,6 @@ export const TAGS = {
   TRASH: "lixo_plastico",
   KRILL: "krill",
   NET: "rede_fantasma",
+  UPWELLING_STREAM: "jato_ressurgencia",
   OBSTACLE: "obstaculo",
 };

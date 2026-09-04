@@ -48,3 +48,9 @@
 - Schema Versioning: Manage database mutations through numbered SQL migration files under `supabase/migrations/`.
 - Error Boundaries: Implement route-level `error.tsx` and `loading.tsx` boundary handlers to ensure fault-tolerant UI states.
 - Type Safety & Server Validation: Ensure all Server Actions validate incoming payloads using Zod schemas before touching database services.
+
+# 8. NAMING & CLEAN CODE CONVENTIONS
+# ------------------------------------------------------------------------------
+- Use descriptive, explicit, and non-abbreviated variable, function, and parameter names in English (Clean Code standard).
+- Avoid overly short or ambiguous abbreviations (e.g., use `angleInRadians` instead of `rad`, `distanceToObject` instead of `dist`, `targetEntity` instead of `obje`, `deltaTime` instead of `dt`, `playerXPosition` instead of `currentX`).
+- Standard RGB channel color components (`r`, `g`, `b`) may remain as single-letter constants.

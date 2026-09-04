@@ -11,8 +11,10 @@ Este documento reúne a fundamentação científica, biológica e geográfica ap
 ---
 
 ## ⚓ 2. O Fenômeno da Ressurgência em Arraial do Cabo
-* **O que é:** Ventos constantes empurram as águas superficiais quentes, permitindo que águas profundas, extremamente frias (15°C a 18°C) e ricas em nutrientes subam à superfície.
-* **Impacto Ambiental:** A abundância de nutrientes gera uma explosão de fitoplâncton e krill, tornando a costa de Arraial do Cabo um verdadeiro "banquete" para as baleias e a vida marinha.
+* **Física do Fenômeno (Transporte de Ekman):** Ventos constantes de Leste-Nordeste (ENE) soprando paralelos à costa empurram as águas superficiais aquecidas para o oceano aberto (devido à Força de Coriolis e ao Transporte de Ekman).
+* **Origem da Água (ACAS):** Esse deslocamento cria um déficit de massa na costa que puxa a **Água Central do Atlântico Sul (ACAS)** — uma massa de água sub-superficial fria (13°C a 18°C) vinda de 200 a 300 metros de profundidade.
+* **Dinâmica do Fluxo (Pluma Ascendente):** A água não sobe em uma linha reta estática. Ela é canalizada pelos cânions e relevo submarino de Arraial do Cabo (Ilha do Farol / Boqueirão), emergindo como uma **pluma de água turbulenta e ondulante** que se expande em forma de leque à medida que se aproxima da superfície.
+* **Impacto na Cadeia Alimentar:** Ao atingir a zona iluminada pelo sol (zona eufótica), os sais minerais da ACAS promovem a proliferação acelerada de fitoplâncton e **cardumes gigantes de Krill**, transformando a região no maior polo de alimentação da rota migratória das baleias-jubarte na costa do Rio de Janeiro.
 
 ---
 

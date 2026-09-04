@@ -70,8 +70,8 @@ export function createPlayer(k: KaboomCtx) {
         strokeTimer += k.dt();
         const progresso = strokeTimer / GAME_CONFIG.MAX_STROKE_TIME;
         const curvaForca = GAME_CONFIG.BASE_THRUST + (Math.sin(progresso * Math.PI) * GAME_CONFIG.PEAK_THRUST);
-        const rad = k.deg2rad(angle);
-        const direcao = k.vec2(facingRight ? Math.cos(rad) : -Math.cos(rad), Math.sin(rad));
+        const angleInRadians = k.deg2rad(angle);
+        const direcao = k.vec2(facingRight ? Math.cos(angleInRadians) : -Math.cos(angleInRadians), Math.sin(angleInRadians));
 
         currentSpeed = currentSpeed.add(direcao.scale(curvaForca * k.dt()));
 
@@ -116,21 +116,21 @@ export function createPlayer(k: KaboomCtx) {
       // busca objetos e krills no mapa
       const targets = [...k.get(TAGS.TRASH), ...k.get(TAGS.KRILL), ...k.get(TAGS.NET)];
 
-      targets.forEach((obje: any) => {
-        const dist = headPos.dist(obje.pos);
-        if (dist <= GAME_CONFIG.SONAR_RANGE) {
+      targets.forEach((targetEntity: any) => {
+        const distanceToObject = headPos.dist(targetEntity.pos);
+        if (distanceToObject <= GAME_CONFIG.SONAR_RANGE) {
           // calcula angulo em direcao ao objeto
-          const dirToObject = obje.pos.sub(headPos);
+          const dirToObject = targetEntity.pos.sub(headPos);
           const anguloObjeto = k.rad2deg(Math.atan2(dirToObject.y, dirToObject.x));
 
           // angulo de visual atual da baleia
           const baseAngle = facingRight ? angle : (180 - angle);
-          let diff = Math.abs(anguloObjeto - baseAngle) % 360;
-          if (diff > 180) diff = 360 - diff; // Normalização circular
+          let angleDifference = Math.abs(anguloObjeto - baseAngle) % 360;
+          if (angleDifference > 180) angleDifference = 360 - angleDifference; // Normalização circular
 
           // Se o objeto estiver dentro do sonar (30º abertura)
-          if (diff <= GAME_CONFIG.SONAR_ANGLE) {
-            obje.opacity =1; // objeto revelado
+          if (angleDifference <= GAME_CONFIG.SONAR_ANGLE) {
+            targetEntity.opacity = 1; // objeto revelado
           }
 
         }
@@ -177,10 +177,10 @@ export function createPlayer(k: KaboomCtx) {
     }
 
     // Transição de cor conforme perda de oxigenio
-    const factor = oxygen / maxOxygen;
-    const r = k.lerp(60, 255, factor);
-    const g = k.lerp(80, 255, factor);
-    const b = k.lerp(120, 255, factor);
+    const oxygenRatio = oxygen / maxOxygen;
+    const r = k.lerp(60, 255, oxygenRatio);
+    const g = k.lerp(80, 255, oxygenRatio);
+    const b = k.lerp(120, 255, oxygenRatio);
 
     baleia.color = k.rgb(r, g, b);
 
@@ -204,7 +204,7 @@ export function createPlayer(k: KaboomCtx) {
       oxygen = Math.min(oxygen, maxOxygen);
     },
 
-    trapped: (count: number) => {
+    trapInNet: (count: number) => {
       isTrapped = true;
       escapesNeeded = count;
     },

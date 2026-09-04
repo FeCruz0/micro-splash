@@ -62,7 +62,7 @@ export function showRescueScreen(k: KaboomCtx, gameState: any, onRestart: () => 
   ]);
 
   // Mensagem para reiniciar
-  const btnText = k.add([
+  const restartButtonLabel = k.add([
     k.text("Pressione ESPAÇO para Tentar Novamente", { size: 14 }),
     k.pos(k.width() / 2, k.height() / 2 + 130),
     k.color(100, 255, 180),
@@ -73,10 +73,10 @@ export function showRescueScreen(k: KaboomCtx, gameState: any, onRestart: () => 
   ]);
 
   // Animação de piscar a mensagem de reiniciar
-  let time = 0;
-  btnText.onUpdate(() => {
-    time += k.dt() * 4;
-    btnText.opacity = Math.sin(time) > 0 ? 1 : 0.3;
+  let blinkAnimationTime = 0;
+  restartButtonLabel.onUpdate(() => {
+    blinkAnimationTime += k.dt() * 4;
+    restartButtonLabel.opacity = Math.sin(blinkAnimationTime) > 0 ? 1 : 0.3;
   });
 
   // Gatilho de Reinício ao pressionar Espaço (usa .cancel() no Kaboom v3000)

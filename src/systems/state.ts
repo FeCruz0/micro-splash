@@ -29,10 +29,10 @@ export function createGameState() {
         addTrash: () => { trashCount++; },
 
         // atualiza tempo e distancia em segundo plano
-        update: (dt: number, currentX: number) => {
-            elapsedTime += dt;
-            if (currentX > distance) {
-                distance = currentX;
+        update: (deltaTime: number, playerXPosition: number) => {
+            elapsedTime += deltaTime;
+            if (playerXPosition > distance) {
+                distance = playerXPosition;
             }
         },
 
@@ -50,11 +50,11 @@ export function createGameState() {
         },
 
         // checa gatilhos de fatos
-        checkFacts: (currentX: number, onTrigger: (fact: Fact) => void) => {
+        checkFacts: (playerXPosition: number, onFactTriggered: (fact: Fact) => void) => {
             factsData.forEach((fact: Fact) => {
-                if (currentX>= fact.triggerX && !triggeredFacts.has(fact.id)) {
+                if (playerXPosition >= fact.triggerX && !triggeredFacts.has(fact.id)) {
                     triggeredFacts.add(fact.id);
-                    onTrigger(fact);
+                    onFactTriggered(fact);
                 }
             });
         },
