@@ -6,7 +6,7 @@ export function createGhostNet(k: KaboomCtx, position: Vec2) {
         k.rect(35, 50, {radius: 3 }),
         k.pos(position),
         k.color(180, 80, 220), // violeta
-        k.opacity(0),
+        k.opacity(),
         k.area(),
         k.anchor("center"),
         TAGS.NET,
@@ -17,10 +17,10 @@ export function createGhostNet(k: KaboomCtx, position: Vec2) {
         time += k.dt();
         net.pos.y += Math.sin(time * 2) * 0.2; // balanço na correnteza
 
-        // fade out
-        if (net.opacity > 0) {
-            net.opacity = Math.max(0, net.opacity - k.dt() * 0.25);
-        }
+    //     // fade out
+    //     if (net.opacity > 0) {
+    //         net.opacity = Math.max(0, net.opacity - k.dt() * 0.25);
+    //     }
     });
 
     return net;

@@ -64,4 +64,3 @@ docker compose up
 Acesse em: `http://localhost:5173`
 
 ---
-

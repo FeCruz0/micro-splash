@@ -138,18 +138,18 @@ export function createPlayer(k: KaboomCtx) {
     }
 
     // Rotação (Cima / Baixo)
-    const velocidadeAtual = currentSpeed.len();
-    if (velocidadeAtual > 15) {
-      const velocidadeRotacao = GAME_CONFIG.ROTATION_SPEED * k.dt();
+    // const velocidadeAtual = currentSpeed.len();
+    // if (velocidadeAtual > 15) {
+    const velocidadeRotacao = GAME_CONFIG.ROTATION_SPEED * k.dt();
       if (k.isKeyDown("up") || k.isKeyDown("w")) {
         angle = k.clamp(angle - velocidadeRotacao, -45, 45);
       }
       if (k.isKeyDown("down") || k.isKeyDown("s")) {
         angle = k.clamp(angle + velocidadeRotacao, -45, 45);
       }
-    } else {
-      angle = k.lerp(angle, 0, 0.05);
-    }
+    // } else {
+    //   angle = k.lerp(angle, 0, 0.05);
+    // }
 
     baleia.angle = facingRight ? angle : -angle;
     baleia.move(currentSpeed.x, currentSpeed.y + GAME_CONFIG.SINK_RATE);

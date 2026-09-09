@@ -8,7 +8,7 @@ export function createKrill(k: KaboomCtx, position: Vec2) {
         k.color(255, 180, 50),
         k.area(),
         k.anchor("center"),
-        k.opacity(0),
+        k.opacity(1),
         TAGS.KRILL,
     ]);
 
@@ -18,10 +18,10 @@ export function createKrill(k: KaboomCtx, position: Vec2) {
         time += k.dt() *4;
         krill.pos.y += Math.sin(time) * 0.4;
 
-        // fade-out
-    if (krill.opacity > 0) {
-      krill.opacity = Math.max(0, krill.opacity - k.dt() * 0.25);
-    }
+    // fade-out
+    // if (krill.opacity > 0) {
+    //   krill.opacity = Math.max(0, krill.opacity - k.dt() * 0.25);
+    // }
     });
 
     return krill;

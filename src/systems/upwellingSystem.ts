@@ -6,6 +6,7 @@ export function setupUpwellingSystem(k: KaboomCtx, playerController: any) {
     let upwellingTimer = 0;
     let isUpwellingActive = false;
     let upwellingEventTimer = 0;
+    let eventOriginXPosition = 0;
 
     k.onUpdate(() => {
         // só produz ressurgencia se baleia não estiver desmaiando
@@ -18,6 +19,7 @@ export function setupUpwellingSystem(k: KaboomCtx, playerController: any) {
             isUpwellingActive = true;
             upwellingEventTimer = GAME_CONFIG.UPWELLING_DURATION;
             upwellingTimer = 0;
+            eventOriginXPosition = playerController.gameObj.pos.x;
             k.shake(2); // leve tremida na tela
         }
 
@@ -27,8 +29,7 @@ export function setupUpwellingSystem(k: KaboomCtx, playerController: any) {
 
             // fluxo de agua ascendente na diagonal para direita
             if (Math.random() < 0.4) {
-                const playerXPosition = playerController.gameObj.pos.x;
-                const spawnXPosition = playerXPosition + (Math.random() * 400 - 100);
+                const spawnXPosition = eventOriginXPosition + (Math.random() * 400 - 100);
                 const spawnYPosition = k.height() - 40;
 
                 const upwellingStream = k.add([
@@ -37,9 +38,10 @@ export function setupUpwellingSystem(k: KaboomCtx, playerController: any) {
                     k.color(0, 220, 255),
                     k.opacity(0.4),
                     k.rotate(-25), // 25º de inclinação
-                    k.area(),
+                    k.area({ scale: k.vec2(4, 10) }),
                     k.anchor("center"),
                     k.z(-1),
+                    k.outline(3, k.rgb(255, 255, 255)), // Borda branca
                     TAGS.UPWELLING_STREAM,
                 ]);
 
@@ -52,16 +54,15 @@ export function setupUpwellingSystem(k: KaboomCtx, playerController: any) {
                     upwellingStream.pos.x += Math.sin(streamTime * 4) * 0.8 // oscilação
 
                     upwellingStream.opacity -= k.dt() * 0.2;
-                    if (upwellingStream.pos.y <= 40 || upwellingStream.opacity <= 0) {
+                    if (upwellingStream.pos.y <= -50 || upwellingStream.opacity <= 0) {
                         k.destroy(upwellingStream);
                     }
                 });
             }
 
             // gera cardume de krill na area
-            if (Math.random() < 0.05) {
-                const playerXPosition = playerController.gameObj.pos.x;
-                const krillXPosition = playerXPosition + 300 + Math.random() * 200;
+            if (Math.random() < 0.005) {
+                const krillXPosition = eventOriginXPosition + 300 + Math.random() * 200;
                 const krillYPosition = k.height() - 100 - Math.random() * 200;
                 createKrill(k, k.vec2(krillXPosition, krillYPosition));
             }
@@ -77,8 +78,8 @@ export function setupUpwellingSystem(k: KaboomCtx, playerController: any) {
         const currentVelocity = playerController.getSpeed();
         playerController.setSpeed(
             k.vec2(
-                currentVelocity.x + GAME_CONFIG.UPWELLING_PUSH_X * k.dt() * 0.8,
-                currentVelocity.y + GAME_CONFIG.UPWELLING_PUSH_Y * k.dt() * 0.8
+                k.clamp(currentVelocity.x + 10, -GAME_CONFIG.MAX_SPEED, GAME_CONFIG.MAX_SPEED),
+                k.clamp(currentVelocity.y - 14, -GAME_CONFIG.MAX_SPEED, GAME_CONFIG.MAX_SPEED)
             )
         );
     });
