@@ -9,6 +9,7 @@ import { createGameState } from "./systems/state";
 import { showRescueScreen } from "./ui/rescueScreen";
 import { createGhostNet } from "./entities/net";
 import { setupUpwellingSystem } from "./systems/upwellingSystem";
+import { showVictoryScreen } from "./ui/victoryScreen";
 
 const k = kaboom({
   background: [10, 25, 60],
@@ -18,6 +19,7 @@ k.loadSprite("baleia", "https://kaboomjs.com/sprites/bean.png");
 
 // Define a cena do jogo principal
 k.scene("game", () => {
+  let isGameFinished = false;
   k.setGravity(GAME_CONFIG.GRAVITY);
 
   // Limites do mar
@@ -66,10 +68,20 @@ k.scene("game", () => {
   k.onUpdate(() => {
     const playerXPosition = playerController.gameObj.pos.x;
     
+    // checagem de vitória (27000m)
+    if (playerXPosition >= GAME_CONFIG.ROUTE_TOTAL_DISTANCE && !isGameFinished) {
+      isGameFinished = true;
+      k.shake(4);
+      showVictoryScreen(k, gameState, () => {
+        k.go("game"); // reinicia nova partida
+      });
+      return;
+    }
+
     // Se a baleia não desmaiou, atualiza distância normalmente
-    if (!playerController.isFainting()) {
+    if (!isGameFinished &&!playerController.isFainting()) {
       gameState.update(k.dt(), playerXPosition);
-    } else if (!isRescueSequenceStarted) {
+    } else if (playerController.isFainting() && !isRescueSequenceStarted && !isGameFinished) {
       // SE A BALEIA DESMAIOU: Inicia a sequência de resgate da Guarda Marítima!
       isRescueSequenceStarted = true;
 

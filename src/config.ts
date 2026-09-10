@@ -22,6 +22,7 @@ export const GAME_CONFIG = {
   UPWELLING_DURATION: 4,      // duração da ressurgência
   UPWELLING_PUSH_X: 120,      // força horizontal da ressurgência
   UPWELLING_PUSH_Y: -150,     // força vertical da ressurgência
+  ROUTE_TOTAL_DISTANCE: 27000, // distancia total do percurso (27.000m - ~3 a 4 min de partida)
 };
 
 export const TAGS = {
