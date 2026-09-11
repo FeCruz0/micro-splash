@@ -1,27 +1,28 @@
 import kaboom from "kaboom";
+import { GAME_CONFIG } from "../config";
 
 export function setupShipNoiseSystem(k: ReturnType<typeof kaboom>, playerController: any) {
-  const shipPositions = [
-    { x: 13200, y: 35 },
-    { x: 15500, y: 35 },
-    { x: 17800, y: 35 },
+  const ships = [
+    { minX: 12400, maxX: 14400, currentX: 13200, speed: 45, dir: 1 },
+    { minX: 14700, maxX: 16700, currentX: 15500, speed: 50, dir: -1 },
+    { minX: 17000, maxX: 18900, currentX: 17800, speed: 55, dir: 1 },
   ];
 
-  shipPositions.forEach((pos) => {
+  ships.forEach((shipData) => {
     // Casco do Navio Cargueiro
     const ship = k.add([
       k.rect(140, 30, { radius: 8 }),
-      k.pos(pos.x, pos.y),
+      k.pos(shipData.currentX, GAME_CONFIG.SEA_LEVEL),
       k.color(60, 65, 80),
       k.outline(2, k.rgb(180, 50, 50)),
       k.anchor("center"),
       k.z(10),
     ]);
 
-    // Chaminé do Navio
-    k.add([
+    // Chaminé do Navio (adicionada como filha do navio para navegar junto)
+    ship.add([
       k.rect(20, 25),
-      k.pos(pos.x + 30, pos.y - 25),
+      k.pos(30, -25),
       k.color(180, 50, 50),
       k.anchor("center"),
       k.z(9),
@@ -30,6 +31,14 @@ export function setupShipNoiseSystem(k: ReturnType<typeof kaboom>, playerControl
     let noiseTimer = 0;
 
     ship.onUpdate(() => {
+      // Movimento de patrulha (ida e volta pelo setor)
+      ship.pos.x += shipData.speed * shipData.dir * k.dt();
+      if (ship.pos.x >= shipData.maxX) {
+        shipData.dir = -1;
+      } else if (ship.pos.x <= shipData.minX) {
+        shipData.dir = 1;
+      }
+
       noiseTimer += k.dt();
 
       // A cada 2.5 segundos, o navio emite uma onda de ruído sonoro vermelho/alaranjado

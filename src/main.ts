@@ -17,6 +17,7 @@ import { setupIceSurfaceSystem } from "./systems/iceSurface";
 import { setupBackgroundFaunaSystem } from "./systems/backgroundFauna";
 import { setupShipNoiseSystem } from "./systems/shipNoiseSystem";
 import { setupCanyonSystem } from "./systems/canyonSystem";
+import { setupOceanCurrentsSystem } from "./systems/oceanCurrentsSystem";
 
 const k = kaboom({
   background: [8, 16, 32],
@@ -54,13 +55,30 @@ k.scene("game", () => {
     k.color(20, 50, 120),
   ]);
 
-  // Tag da superfície usando TAGS.SURFACE:
-  const waterSurface = k.add([
-    k.rect(k.width(), 40),
-    k.pos(0, 0),
+  // Teto do céu para impedir que a baleia saia da tela por cima
+  const skyCeiling = k.add([
+    k.rect(k.width(), 10),
+    k.pos(0, -10),
     k.area(),
     k.body({ isStatic: true }),
+  ]);
+
+  // Área do céu acima do nível do mar (0px a 80px - área dobrada para céu/nuvens)
+  const skyBand = k.add([
+    k.rect(k.width(), GAME_CONFIG.SEA_LEVEL),
+    k.pos(0, 0),
+    k.color(120, 190, 245),
+    k.z(-10),
+    "sky",
+  ]);
+
+  // Tag da superfície posicionada no nível do mar (80px):
+  const waterSurface = k.add([
+    k.rect(k.width(), 14),
+    k.pos(0, GAME_CONFIG.SEA_LEVEL),
+    k.area(),
     k.color(20, 50, 120),
+    k.z(1),
     TAGS.SURFACE,
   ]);
 
@@ -73,12 +91,30 @@ k.scene("game", () => {
   setupIceSurfaceSystem(k);
   setupBackgroundFaunaSystem(k);
   setupShipNoiseSystem(k, playerController);
+  setupOceanCurrentsSystem(k, playerController);
   setupCanyonSystem(k);
 
-  // 3. Instancia objetos no caminho (Lixo, Krill na Antártida, Redes)
-  createTrash(k, k.vec2(13000, 250));
-  createTrash(k, k.vec2(15000, 300));
-  createTrash(k, k.vec2(17000, 200));
+  // 3. Instancia objetos no caminho (Lixo plástico, Krill na Antártida, Redes fantasmas)
+  // Lixo plástico (Costa Urbana e Área dos Navios: 12.000m - 19.000m)
+  const urbanTrashPositions = [
+    k.vec2(12300, 200),
+    k.vec2(12700, 310),
+    k.vec2(13100, 160),
+    k.vec2(13600, 280),
+    k.vec2(14100, 220),
+    k.vec2(14600, 330),
+    k.vec2(15100, 180),
+    k.vec2(15600, 290),
+    k.vec2(16200, 240),
+    k.vec2(16800, 320),
+    k.vec2(17300, 190),
+    k.vec2(17900, 270),
+    k.vec2(18400, 210),
+    k.vec2(18800, 300),
+  ];
+  urbanTrashPositions.forEach((pos) => {
+    createTrash(k, pos);
+  });
 
   // Cardumes de Krill - Banquete Polar Antártico (25 cardumes entre 300m e 4.800m)
   const antarcticKrillPositions = [
@@ -122,10 +158,72 @@ k.scene("game", () => {
     createKrill(k, pos);
   });
 
-  // Redes fantasmas (Costa Urbana 12000m - 18000m)
-  createGhostNet(k, k.vec2(13500, 250));
-  createGhostNet(k, k.vec2(15800, 250));
-  createGhostNet(k, k.vec2(17500, 250));  
+  // Redes fantasmas (Costa Urbana e Área dos Navios: 12.000m - 19.000m)
+  const ghostNetPositions = [
+    k.vec2(12500, 260),
+    k.vec2(13300, 220),
+    k.vec2(14300, 280),
+    k.vec2(15300, 240),
+    k.vec2(16400, 300),
+    k.vec2(17100, 210),
+    k.vec2(17700, 290),
+    k.vec2(18600, 250),
+  ];
+  ghostNetPositions.forEach((pos) => {
+    createGhostNet(k, pos);
+  });  
+
+  // Lixo plástico (elevado mais 55 pixels)
+  const floorTrashY = k.height() - 220;
+  const oceanFloorTrashPositions = [
+    // Área dos Navios / Costa Urbana (12.000m - 19.000m)
+    k.vec2(12400, floorTrashY),
+    k.vec2(12850, floorTrashY),
+    k.vec2(13400, floorTrashY),
+    k.vec2(13850, floorTrashY),
+    k.vec2(14400, floorTrashY),
+    k.vec2(14900, floorTrashY),
+    k.vec2(15450, floorTrashY),
+    k.vec2(16100, floorTrashY),
+    k.vec2(16650, floorTrashY),
+    k.vec2(17250, floorTrashY),
+    k.vec2(17800, floorTrashY),
+    k.vec2(18350, floorTrashY),
+    k.vec2(18900, floorTrashY),
+
+    // Faixa de Cânions e Sedimentos (19.500m - 24.500m)
+    k.vec2(19600, floorTrashY),
+    k.vec2(20300, floorTrashY),
+    k.vec2(21300, floorTrashY),
+    k.vec2(22400, floorTrashY),
+    k.vec2(23600, floorTrashY),
+    k.vec2(24400, floorTrashY),
+  ];
+  oceanFloorTrashPositions.forEach((pos) => {
+    createTrash(k, pos);
+  });
+
+  // Redes fantasmas (posicionadas 55 pixels acima dos lixos)
+  const floorNetY = floorTrashY - 55;
+  const oceanFloorNetPositions = [
+    // Área dos Navios / Costa Urbana (12.000m - 19.000m)
+    k.vec2(12650, floorNetY),
+    k.vec2(13600, floorNetY),
+    k.vec2(14750, floorNetY),
+    k.vec2(15900, floorNetY),
+    k.vec2(17050, floorNetY),
+    k.vec2(18150, floorNetY),
+    k.vec2(18750, floorNetY),
+
+    // Faixa de Cânions e Costões (19.500m - 24.500m)
+    k.vec2(20100, floorNetY),
+    k.vec2(21500, floorNetY),
+    k.vec2(22800, floorNetY),
+    k.vec2(24100, floorNetY),
+  ];
+  oceanFloorNetPositions.forEach((pos) => {
+    createGhostNet(k, pos);
+  });  
 
   // 4. Ativa colisões e ressurgência
   setupCollisions(k, playerController, gameState);
@@ -170,9 +268,11 @@ k.scene("game", () => {
 
     oceanFloor.pos.x = k.camPos().x - k.width() / 2;
     waterSurface.pos.x = k.camPos().x - k.width() / 2;
+    skyBand.pos.x = k.camPos().x - k.width() / 2;
+    skyCeiling.pos.x = k.camPos().x - k.width() / 2;
     
     // Update ocean colors and debug UI based on distance
-    updateOceanColors(k, playerXPosition, waterSurface, oceanFloor);
+    updateOceanColors(k, playerXPosition, waterSurface, oceanFloor, skyBand);
     debugDistanceUI.update(playerXPosition);
   });
 });

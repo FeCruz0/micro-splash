@@ -44,124 +44,126 @@ export function createPlayer(k: KaboomCtx) {
       return; 
     }
 
-    // se estiver presa
+    // se estiver presa na rede fantasma
     if (isTrapped) {
-      currentSpeed = k.vec2(0, 0); // trava movimento
-      
+      // Apenas o controle de nado fica travado; barra de espaço serve para se soltar
       if (k.isKeyPressed("space")) {
         escapesNeeded--;
         k.shake(2);
         if (escapesNeeded <= 0) {
-          isTrapped = false; // se solta
+          isTrapped = false; // se soltou da rede!
         }
       }
-      return; // não permite nadar normalmente enquanto presa
-    }
-
-    // Virar Esquerda / Direita
-    if (k.isKeyDown("left") || k.isKeyDown("a")) {
-      facingRight = false;
-      targetCamOffset = -200;
-      baleia.flipX = true;
-    }
-    if (k.isKeyDown("right") || k.isKeyDown("d")) {
-      facingRight = true;
-      targetCamOffset = 200;
-      baleia.flipX = false;
-    }
-
-    // Impulso (Espaço)
-    if (k.isKeyDown("space")) {
-      if (strokeTimer < GAME_CONFIG.MAX_STROKE_TIME) {
-        strokeTimer += k.dt();
-        const progresso = strokeTimer / GAME_CONFIG.MAX_STROKE_TIME;
-        const curvaForca = GAME_CONFIG.BASE_THRUST + (Math.sin(progresso * Math.PI) * GAME_CONFIG.PEAK_THRUST);
-        const angleInRadians = k.deg2rad(angle);
-        const direcao = k.vec2(facingRight ? Math.cos(angleInRadians) : -Math.cos(angleInRadians), Math.sin(angleInRadians));
-
-        currentSpeed = currentSpeed.add(direcao.scale(curvaForca * k.dt()));
-
-        const currentMaxSpeed = getMaxSpeed();
-        if (currentSpeed.len() > currentMaxSpeed) {
-          currentSpeed = currentSpeed.unit().scale(currentMaxSpeed);
-        }
-      }
-    }
-
-    if (k.isKeyReleased("space")) {
-      strokeTimer = 0;
-    }
-
-    // SONAR
-    if (sonarCooldown > 0) {
-      sonarCooldown -= k.dt();
-    }
-
-    if ((k.isKeyDown("shift") || k.isKeyDown("e")) && sonarCooldown <=0) {
-      sonarCooldown = GAME_CONFIG.SONAR_COOLDOWN;
-
-      // posição de disparo (testa/melão da baleia)
-      const headPos = baleia.pos.add(k.vec2(facingRight ? 30 : -30, 0));
-
-      // onda visual sonica
-      const pulse = k.add([
-        k.circle(10),
-        k.pos(headPos),
-        k.color(0, 220, 255),
-        k.opacity(0.8),
-        k.z(10),
-      ]);
-
-      pulse.onUpdate(() => {
-        pulse.radius += k.dt() * 350;
-        pulse.opacity -= k.dt() *1.5;
-        if (pulse.opacity <= 0) {
-          k.destroy(pulse);
-        }
-      });
-
-      // busca objetos e krills no mapa
-      const targets = [...k.get(TAGS.TRASH), ...k.get(TAGS.KRILL), ...k.get(TAGS.NET)];
-
-      targets.forEach((targetEntity: any) => {
-        const distanceToObject = headPos.dist(targetEntity.pos);
-        if (distanceToObject <= GAME_CONFIG.SONAR_RANGE) {
-          // calcula angulo em direcao ao objeto
-          const dirToObject = targetEntity.pos.sub(headPos);
-          const anguloObjeto = k.rad2deg(Math.atan2(dirToObject.y, dirToObject.x));
-
-          // angulo de visual atual da baleia
-          const baseAngle = facingRight ? angle : (180 - angle);
-          let angleDifference = Math.abs(anguloObjeto - baseAngle) % 360;
-          if (angleDifference > 180) angleDifference = 360 - angleDifference; // Normalização circular
-
-          // Se o objeto estiver dentro do sonar (30º abertura)
-          if (angleDifference <= GAME_CONFIG.SONAR_ANGLE) {
-            targetEntity.opacity = 1; // objeto revelado
-          }
-
-        }
-      });
-    }
-
-    // Rotação (Cima / Baixo)
-    const velocidadeRotacao = GAME_CONFIG.ROTATION_SPEED * k.dt();
-
-    if (k.isKeyDown("up") || k.isKeyDown("w")) {
-      angle = k.clamp(angle - velocidadeRotacao, -45, 45);
-    } else if (k.isKeyDown("down") || k.isKeyDown("s")) {
-      angle = k.clamp(angle + velocidadeRotacao, -45, 45);
-    } else {
+      // Alinha ângulo suavemente enquanto afunda enroscada
       angle = k.lerp(angle, 0, 0.05);
+    } else {
+      // CONTROLES DO JOGADOR (ativos quando livre)
+      // Virar Esquerda / Direita
+      if (k.isKeyDown("left") || k.isKeyDown("a")) {
+        facingRight = false;
+        targetCamOffset = -200;
+        baleia.flipX = true;
+      }
+      if (k.isKeyDown("right") || k.isKeyDown("d")) {
+        facingRight = true;
+        targetCamOffset = 200;
+        baleia.flipX = false;
+      }
+
+      // Impulso (Espaço)
+      if (k.isKeyDown("space")) {
+        if (strokeTimer < GAME_CONFIG.MAX_STROKE_TIME) {
+          strokeTimer += k.dt();
+          const progresso = strokeTimer / GAME_CONFIG.MAX_STROKE_TIME;
+          const curvaForca = GAME_CONFIG.BASE_THRUST + (Math.sin(progresso * Math.PI) * GAME_CONFIG.PEAK_THRUST);
+          const angleInRadians = k.deg2rad(angle);
+          const direcao = k.vec2(facingRight ? Math.cos(angleInRadians) : -Math.cos(angleInRadians), Math.sin(angleInRadians));
+
+          currentSpeed = currentSpeed.add(direcao.scale(curvaForca * k.dt()));
+
+          const currentMaxSpeed = getMaxSpeed();
+          if (currentSpeed.len() > currentMaxSpeed) {
+            currentSpeed = currentSpeed.unit().scale(currentMaxSpeed);
+          }
+        }
+      }
+
+      if (k.isKeyReleased("space")) {
+        strokeTimer = 0;
+      }
+
+      // SONAR
+      if (sonarCooldown > 0) {
+        sonarCooldown -= k.dt();
+      }
+
+      if ((k.isKeyDown("shift") || k.isKeyDown("e")) && sonarCooldown <= 0) {
+        sonarCooldown = GAME_CONFIG.SONAR_COOLDOWN;
+
+        // posição de disparo (testa/melão da baleia)
+        const headPos = baleia.pos.add(k.vec2(facingRight ? 30 : -30, 0));
+
+        // onda visual sonica
+        const pulse = k.add([
+          k.circle(10),
+          k.pos(headPos),
+          k.color(0, 220, 255),
+          k.opacity(0.8),
+          k.z(10),
+        ]);
+
+        pulse.onUpdate(() => {
+          pulse.radius += k.dt() * 350;
+          pulse.opacity -= k.dt() * 1.5;
+          if (pulse.opacity <= 0) {
+            k.destroy(pulse);
+          }
+        });
+
+        // busca objetos e krills no mapa
+        const targets = [...k.get(TAGS.TRASH), ...k.get(TAGS.KRILL), ...k.get(TAGS.NET)];
+
+        targets.forEach((targetEntity: any) => {
+          const distanceToObject = headPos.dist(targetEntity.pos);
+          if (distanceToObject <= GAME_CONFIG.SONAR_RANGE) {
+            // calcula angulo em direcao ao objeto
+            const dirToObject = targetEntity.pos.sub(headPos);
+            const anguloObjeto = k.rad2deg(Math.atan2(dirToObject.y, dirToObject.x));
+
+            // angulo de visual atual da baleia
+            const baseAngle = facingRight ? angle : (180 - angle);
+            let angleDifference = Math.abs(anguloObjeto - baseAngle) % 360;
+            if (angleDifference > 180) angleDifference = 360 - angleDifference; // Normalização circular
+
+            // Se o objeto estiver dentro do sonar (30º abertura)
+            if (angleDifference <= GAME_CONFIG.SONAR_ANGLE) {
+              targetEntity.opacity = 1; // objeto revelado
+            }
+          }
+        });
+      }
+
+      // Rotação (Cima / Baixo)
+      const velocidadeRotacao = GAME_CONFIG.ROTATION_SPEED * k.dt();
+
+      if (k.isKeyDown("up") || k.isKeyDown("w")) {
+        angle = k.clamp(angle - velocidadeRotacao, -45, 45);
+      } else if (k.isKeyDown("down") || k.isKeyDown("s")) {
+        angle = k.clamp(angle + velocidadeRotacao, -45, 45);
+      } else {
+        angle = k.lerp(angle, 0, 0.05);
+      }
     }
     
 
     baleia.angle = facingRight ? angle : -angle;
-    baleia.move(currentSpeed.x, currentSpeed.y + GAME_CONFIG.SINK_RATE);
+    const inAir = baleia.pos.y < GAME_CONFIG.SEA_LEVEL;
+    const airGravity = inAir ? 120 : 0;
+    baleia.move(currentSpeed.x, currentSpeed.y + GAME_CONFIG.SINK_RATE + airGravity);
     currentSpeed = currentSpeed.scale(GAME_CONFIG.WATER_DRAG);
    
     // se baleia submersa ou bloqueada por gelo na Antártida, perde oxigênio
-    const isAtSurface = baleia.pos.y <= 80;
+    const isAtSurface = baleia.pos.y <= GAME_CONFIG.SEA_LEVEL + 40;
     const canBreathe = isAtSurface && isPositionInIceGap(baleia.pos.x);
 
     if (!canBreathe) {
@@ -184,14 +186,14 @@ export function createPlayer(k: KaboomCtx) {
       }
     }
 
-    // Transição de cor conforme perda de oxigenio
+    // Transição de cor conforme perda de oxigenio e estado de emaranhada
     const currentMaxOx = getMaxOxygen();
     const oxygenRatio = oxygen / currentMaxOx;
     const r = k.lerp(60, 255, oxygenRatio);
     const g = k.lerp(80, 255, oxygenRatio);
     const b = k.lerp(120, 255, oxygenRatio);
 
-    baleia.color = k.rgb(r, g, b);
+    baleia.color = isTrapped ? k.rgb(190, 90, 230) : k.rgb(r, g, b);
 
      // Câmera
     k.camPos(k.lerp(k.camPos().x, baleia.pos.x + targetCamOffset, 0.05), k.camPos().y);
@@ -225,7 +227,14 @@ export function createPlayer(k: KaboomCtx) {
 
     trapInNet: (count: number) => {
       isTrapped = true;
-      escapesNeeded = count;
+      escapesNeeded = Math.max(escapesNeeded, count);
+      currentSpeed = currentSpeed.scale(0.3);
+    },
+
+    addTrapCount: (count: number) => {
+      isTrapped = true;
+      escapesNeeded += count;
+      currentSpeed = currentSpeed.scale(0.5);
     },
 
     isTrapped: () => isTrapped

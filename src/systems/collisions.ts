@@ -30,11 +30,15 @@ export function setupCollisions(k: KaboomCtx, playerController: any, gameState: 
   });
 
   // colisao com rede fantasma
-  k.onCollide(TAGS.PLAYER, TAGS.NET, (_player, net) =>{
+  k.onCollide(TAGS.PLAYER, TAGS.NET, (_player, net) => {
+    k.destroy(net); // remove rede do mapa
     if (!playerController.isTrapped()) {
-      k.destroy(net); // remove rede
       playerController.trapInNet(GAME_CONFIG.NET_ESCAPE_COUNT); // prende a baleia
       k.shake(5);
+    } else {
+      // Se já estiver presa e afundar em outra rede, emaranha mais
+      playerController.addTrapCount(3);
+      k.shake(4);
     }
   });
 

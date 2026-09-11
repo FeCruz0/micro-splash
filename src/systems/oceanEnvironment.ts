@@ -62,24 +62,31 @@ export function getColorsAtDistance(k: ReturnType<typeof kaboom>, distance: numb
   const flG = k.lerp(currentStop.floorColor[1], nextStop.floorColor[1], lerpFactor);
   const flB = k.lerp(currentStop.floorColor[2], nextStop.floorColor[2], lerpFactor);
 
+  // Interpolação RGB para o Céu (acima do nível do mar)
+  const skR = k.lerp(currentStop.skyColor[0], nextStop.skyColor[0], lerpFactor);
+  const skG = k.lerp(currentStop.skyColor[1], nextStop.skyColor[1], lerpFactor);
+  const skB = k.lerp(currentStop.skyColor[2], nextStop.skyColor[2], lerpFactor);
+
   return {
     bgColor: k.rgb(bgR, bgG, bgB),
     surfaceColor: k.rgb(sfR, sfG, sfB),
     floorColor: k.rgb(flR, flG, flB),
+    skyColor: k.rgb(skR, skG, skB),
     currentBiome: currentStop,
   };
 }
 
 /**
- * Atualiza o ambiente marítimo sem realizar consultas custosas na árvore do Kaboom.
+ * Atualiza o ambiente marítimo e o céu sem realizar consultas custosas na árvore do Kaboom.
  */
 export function updateOceanColors(
   k: ReturnType<typeof kaboom>,
   distance: number,
   surfaceObj?: GameObj,
-  floorObj?: GameObj
+  floorObj?: GameObj,
+  skyObj?: GameObj
 ) {
-  const { bgColor, surfaceColor, floorColor } = getColorsAtDistance(k, distance);
+  const { bgColor, surfaceColor, floorColor, skyColor } = getColorsAtDistance(k, distance);
   
   k.setBackground(bgColor);
 
@@ -89,5 +96,9 @@ export function updateOceanColors(
 
   if (floorObj) {
     floorObj.color = floorColor;
+  }
+
+  if (skyObj) {
+    skyObj.color = skyColor;
   }
 }

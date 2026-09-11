@@ -1,5 +1,5 @@
 import kaboom from "kaboom";
-import { TAGS } from "../config";
+import { TAGS, GAME_CONFIG } from "../config";
 
 export interface IceGap {
   start: number;
@@ -29,6 +29,7 @@ export function isPositionInIceGap(x: number): boolean {
  */
 export function setupIceSurfaceSystem(k: ReturnType<typeof kaboom>) {
   const iceHeight = 40;
+  const icePosY = GAME_CONFIG.SEA_LEVEL - 20; // Flutua sobre a linha do mar (80px)
   const totalDistance = 5000;
   let currentX = 0;
 
@@ -44,6 +45,7 @@ export function setupIceSurfaceSystem(k: ReturnType<typeof kaboom>) {
     k.body({ isStatic: true }),
     k.color(150, 195, 235),
     k.opacity(0.95),
+    k.z(10),
     "iceberg_wall",
     TAGS.OBSTACLE,
   ]);
@@ -63,7 +65,7 @@ export function setupIceSurfaceSystem(k: ReturnType<typeof kaboom>) {
       ]),
       k.color(180, 220, 255),
       k.opacity(0.35),
-      k.z(1),
+      k.z(11),
     ]);
 
     // Ridges / Linhas de fratura em brilho de cristal branco-ciano
@@ -75,7 +77,7 @@ export function setupIceSurfaceSystem(k: ReturnType<typeof kaboom>) {
       ]),
       k.color(230, 248, 255),
       k.opacity(0.55),
-      k.z(2),
+      k.z(12),
     ]);
   }
 
@@ -99,7 +101,7 @@ export function setupIceSurfaceSystem(k: ReturnType<typeof kaboom>) {
     k.color(210, 240, 255),
     k.outline(3, k.rgb(120, 180, 230)),
     k.opacity(0.98),
-    k.z(3),
+    k.z(14),
   ]);
 
   ICE_GAPS.forEach((gap) => {
@@ -108,12 +110,13 @@ export function setupIceSurfaceSystem(k: ReturnType<typeof kaboom>) {
       const blockWidth = gap.start - currentX;
       k.add([
         k.rect(blockWidth, iceHeight, { radius: 4 }),
-        k.pos(currentX, 0),
+        k.pos(currentX, icePosY),
         k.area(),
         k.body({ isStatic: true }),
         k.color(210, 235, 255),
-        k.opacity(0.85),
+        k.opacity(0.95),
         k.outline(2, k.rgb(160, 200, 240)),
+        k.z(10),
         "ice_block",
         TAGS.OBSTACLE,
       ]);
@@ -122,10 +125,10 @@ export function setupIceSurfaceSystem(k: ReturnType<typeof kaboom>) {
     // Sinalizador visual de água livre / fenda de ar na fenda
     k.add([
       k.rect(gap.end - gap.start, 6),
-      k.pos(gap.start, iceHeight - 6),
+      k.pos(gap.start, GAME_CONFIG.SEA_LEVEL),
       k.color(0, 220, 255),
-      k.opacity(0.6),
-      k.z(5),
+      k.opacity(0.7),
+      k.z(2),
     ]);
 
     currentX = gap.end;
@@ -136,12 +139,13 @@ export function setupIceSurfaceSystem(k: ReturnType<typeof kaboom>) {
     const blockWidth = totalDistance - currentX;
     k.add([
       k.rect(blockWidth, iceHeight, { radius: 4 }),
-      k.pos(currentX, 0),
+      k.pos(currentX, icePosY),
       k.area(),
       k.body({ isStatic: true }),
       k.color(210, 235, 255),
-      k.opacity(0.85),
+      k.opacity(0.95),
       k.outline(2, k.rgb(160, 200, 240)),
+      k.z(10),
       "ice_block",
       TAGS.OBSTACLE,
     ]);

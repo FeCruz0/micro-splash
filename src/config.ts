@@ -25,6 +25,7 @@ export const GAME_CONFIG = {
   UPWELLING_ZONE_START: 19000, // início da zona de ressurgência em Arraial do Cabo (19.000m)
   UPWELLING_ZONE_END: 25000,   // fim da zona de ressurgência em Arraial do Cabo (25.000m)
   ROUTE_TOTAL_DISTANCE: 27000, // distancia total do percurso (27.000m - ~3 a 4 min de partida)
+  SEA_LEVEL: 80,               // Nível do mar dobrado para 80px para dar espaço visível ao céu
 };
 
 export const TAGS = {
@@ -35,6 +36,7 @@ export const TAGS = {
   UPWELLING_STREAM: "jato_ressurgencia",
   OBSTACLE: "obstaculo",
   SURFACE: "superficie_agua",
+  OPPOSING_CURRENT: "correnteza_contraria",
 };
 
 export interface BiomeColorStop {
@@ -44,6 +46,7 @@ export interface BiomeColorStop {
   bgColor: [number, number, number];
   surfaceColor: [number, number, number];
   floorColor: [number, number, number];
+  skyColor: [number, number, number];
 }
 
 export const BIOME_COLOR_STOPS: BiomeColorStop[] = [
@@ -53,7 +56,8 @@ export const BIOME_COLOR_STOPS: BiomeColorStop[] = [
     distanceEnd: 5400,
     bgColor: [0, 75, 130],
     surfaceColor: [0, 120, 180],
-    floorColor: [0, 50, 95]
+    floorColor: [0, 50, 95],
+    skyColor: [120, 190, 245]
   },
   {
     name: "Subtrópicos",
@@ -61,7 +65,8 @@ export const BIOME_COLOR_STOPS: BiomeColorStop[] = [
     distanceEnd: 10800,
     bgColor: [0, 90, 150],
     surfaceColor: [0, 130, 200],
-    floorColor: [0, 60, 110]
+    floorColor: [0, 60, 110],
+    skyColor: [110, 175, 230]
   },
   {
     name: "Zona Temperada",
@@ -69,7 +74,8 @@ export const BIOME_COLOR_STOPS: BiomeColorStop[] = [
     distanceEnd: 16200,
     bgColor: [10, 75, 110],
     surfaceColor: [20, 100, 150],
-    floorColor: [5, 50, 80]
+    floorColor: [5, 50, 80],
+    skyColor: [100, 155, 210]
   },
   {
     name: "Sub-polar",
@@ -77,7 +83,8 @@ export const BIOME_COLOR_STOPS: BiomeColorStop[] = [
     distanceEnd: 21600,
     bgColor: [25, 45, 75],
     surfaceColor: [45, 75, 105],
-    floorColor: [15, 30, 50]
+    floorColor: [15, 30, 50],
+    skyColor: [85, 130, 180]
   },
   {
     name: "Polar (Antártida)",
@@ -85,7 +92,8 @@ export const BIOME_COLOR_STOPS: BiomeColorStop[] = [
     distanceEnd: 27000,
     bgColor: [15, 30, 45],
     surfaceColor: [70, 95, 115],
-    floorColor: [10, 20, 30]
+    floorColor: [10, 20, 30],
+    skyColor: [60, 95, 140]
   }
 ];
 

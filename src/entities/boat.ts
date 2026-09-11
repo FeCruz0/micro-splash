@@ -1,10 +1,11 @@
 import type { KaboomCtx, Vec2 } from "kaboom";
+import { GAME_CONFIG } from "../config";
 
 export function createRescueBoat(k: KaboomCtx, targetPos: Vec2) {
-  // Barco da Guarda Marítima flutuando no teto
+  // Barco da Guarda Marítima navegando na linha d'água
   const boat = k.add([
     k.rect(90, 30, { radius: 4 }),
-    k.pos(targetPos.x - 300, 20), // Começa um pouco atrás na superfície
+    k.pos(targetPos.x - 300, GAME_CONFIG.SEA_LEVEL + 8), // Flutua na superfície da água
     k.color(240, 240, 240),      // Barco branco
     k.outline(3, k.rgb(220, 50, 50)), // Listra vermelha da Guarda Marítima
     k.anchor("botleft"),
