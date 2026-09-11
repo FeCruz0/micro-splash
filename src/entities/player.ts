@@ -21,8 +21,13 @@ export function createPlayer(k: KaboomCtx) {
   let angle = 0;
   let sonarCooldown = GAME_CONFIG.SONAR_COOLDOWN;
 
-  // sistema de oxygenio
-  let maxOxygen = 100;
+  // sistema de oxigenio e progressao nutricional (Fase 3)
+  let baseMaxOxygen = 100;
+  let krillsEaten = 0;
+
+  const getMaxOxygen = () => baseMaxOxygen + krillsEaten * 1;
+  const getMaxSpeed = () => GAME_CONFIG.MAX_SPEED * (1 + krillsEaten * 0.01);
+
   let oxygen = 100;
   let blackoutTimer = GAME_CONFIG.BLACKOUT_GRACE_TIME;
   let isFainting = false;
@@ -76,8 +81,9 @@ export function createPlayer(k: KaboomCtx) {
 
         currentSpeed = currentSpeed.add(direcao.scale(curvaForca * k.dt()));
 
-        if (currentSpeed.len() > GAME_CONFIG.MAX_SPEED) {
-          currentSpeed = currentSpeed.unit().scale(GAME_CONFIG.MAX_SPEED);
+        const currentMaxSpeed = getMaxSpeed();
+        if (currentSpeed.len() > currentMaxSpeed) {
+          currentSpeed = currentSpeed.unit().scale(currentMaxSpeed);
         }
       }
     }
@@ -170,15 +176,17 @@ export function createPlayer(k: KaboomCtx) {
       }
     } else {
       // na superfície livre de gelo, recarrega fôlego para máximo atual
-      if (oxygen < maxOxygen) {
-        oxygen = maxOxygen;
+      const currentMaxOx = getMaxOxygen();
+      if (oxygen < currentMaxOx) {
+        oxygen = currentMaxOx;
         blackoutTimer = GAME_CONFIG.BLACKOUT_GRACE_TIME;
         k.shake(2); // leve tremor e esguicho
       }
     }
 
     // Transição de cor conforme perda de oxigenio
-    const oxygenRatio = oxygen / maxOxygen;
+    const currentMaxOx = getMaxOxygen();
+    const oxygenRatio = oxygen / currentMaxOx;
     const r = k.lerp(60, 255, oxygenRatio);
     const g = k.lerp(80, 255, oxygenRatio);
     const b = k.lerp(120, 255, oxygenRatio);
@@ -189,7 +197,7 @@ export function createPlayer(k: KaboomCtx) {
     k.camPos(k.lerp(k.camPos().x, baleia.pos.x + targetCamOffset, 0.05), k.camPos().y);
 
     // debug valor oxygenio
-    k.debug.log(`Fôlego: ${Math.floor(oxygen)}%`);
+    k.debug.log(`Fôlego: ${Math.floor(oxygen)}% | Stats: +${krillsEaten}%`);
   });
 
   return {
@@ -197,12 +205,22 @@ export function createPlayer(k: KaboomCtx) {
     getSpeed: () => currentSpeed,
     setSpeed: (newSpeed: any) => { currentSpeed = newSpeed; },
     getOxygen: () => oxygen,
-    getMaxOxygen: () => maxOxygen,
+    getMaxOxygen: () => getMaxOxygen(),
+    getMaxSpeed: () => getMaxSpeed(),
+    getKrillsEaten: () => krillsEaten,
     isFainting: () => isFainting,
 
-    modifyMaxOxygen: (amount: number) => {
-      maxOxygen = k.clamp(maxOxygen + amount, 30, 100);
-      oxygen = Math.min(oxygen, maxOxygen);
+    // Consumo de Krill: +1% permanente em velocidade máxima e oxigênio máximo (sem texto na tela)
+    consumeKrill: () => {
+      krillsEaten++;
+      const newMaxOx = getMaxOxygen();
+      oxygen = Math.min(oxygen + GAME_CONFIG.KRILL_OXYGEN_RESTORE, newMaxOx);
+      currentSpeed = currentSpeed.scale(GAME_CONFIG.KRILL_BOOST);
+    },
+
+    // Penalidade por lixo (perda direta de oxigênio temporário)
+    penalizeTrash: () => {
+      oxygen = Math.max(0, oxygen - GAME_CONFIG.TRASH_OXYGEN_PENALTY);
     },
 
     trapInNet: (count: number) => {

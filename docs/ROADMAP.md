@@ -47,7 +47,7 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
 ## 🦐 FASE 3: Progressão do Jogador & Sistema Nutricional
 *Objetivo: Recompensar a alimentação ativa com evolução permanente de atributos.*
 
-- [ ] **3.1 Crescimento Progressivo de Atributos via Krill:** Cada Krill consumido concede um aumento permanente de ~1% no teto máximo de velocidade (`MAX_SPEED`) e na capacidade máxima de oxigênio (`maxOxygen`), acumulando benefício perceptível ao longo dos 27.000m (ex: 20 krills = +20% de atributos).
+- [x] **3.1 Crescimento Progressivo de Atributos via Krill:** Cada Krill consumido concede um aumento permanente de ~1% no teto máximo de velocidade (`MAX_SPEED`) e na capacidade máxima de oxigênio (`maxOxygen`), acumulando benefício perceptível ao longo dos 27.000m (ex: 20 krills = +20% de atributos).
 
 ---
 

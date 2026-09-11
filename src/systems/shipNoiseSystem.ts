@@ -53,16 +53,17 @@ export function setupShipNoiseSystem(k: ReturnType<typeof kaboom>, playerControl
           noiseRing.radius = ringRadius;
           noiseRing.opacity -= k.dt() * 0.25;
 
-          // Se a baleia estiver dentro do raio da onda de ruído, causa desorientação
+          // Se a baleia estiver dentro do raio da onda de ruído, causa desorientação e a empurra para o fundo
           const distToPlayer = noiseRing.pos.dist(playerController.gameObj.pos);
           if (distToPlayer <= ringRadius && noiseRing.opacity > 0.2) {
             k.shake(1.5);
-            // Aplica vibração/desorientação na velocidade do jogador
             const speed = playerController.getSpeed();
+            const downwardForce = 400 * k.dt(); // Força acústica contínua empurrando a baleia para o fundo
+
             playerController.setSpeed(
               k.vec2(
                 speed.x + (Math.random() * 20 - 10),
-                speed.y + (Math.random() * 20 - 10)
+                k.clamp(speed.y + downwardForce, -300, 300)
               )
             );
           }

@@ -80,11 +80,47 @@ k.scene("game", () => {
   createTrash(k, k.vec2(15000, 300));
   createTrash(k, k.vec2(17000, 200));
 
-  // Cardumes de Krill (Antártida 0m - 5000m)
-  createKrill(k, k.vec2(650, 180));
-  createKrill(k, k.vec2(1800, 220));
-  createKrill(k, k.vec2(3200, 160));
-  createKrill(k, k.vec2(4500, 200));
+  // Cardumes de Krill - Banquete Polar Antártico (25 cardumes entre 300m e 4.800m)
+  const antarcticKrillPositions = [
+    // Primeiro banquete próximo ao início (300m - 1.000m)
+    k.vec2(350, 180),
+    k.vec2(420, 240),
+    k.vec2(500, 160),
+    k.vec2(650, 220),
+    k.vec2(800, 300),
+    k.vec2(950, 180),
+
+    // Segundo aglomerado (1.100m - 2.000m)
+    k.vec2(1150, 260),
+    k.vec2(1280, 190),
+    k.vec2(1450, 320),
+    k.vec2(1600, 210),
+    k.vec2(1750, 280),
+    k.vec2(1900, 170),
+
+    // Terceiro aglomerado (2.100m - 3.200m)
+    k.vec2(2150, 230),
+    k.vec2(2300, 310),
+    k.vec2(2450, 180),
+    k.vec2(2650, 260),
+    k.vec2(2850, 200),
+    k.vec2(3050, 330),
+
+    // Quarto aglomerado (3.300m - 4.200m)
+    k.vec2(3300, 220),
+    k.vec2(3500, 170),
+    k.vec2(3700, 290),
+    k.vec2(3900, 240),
+    k.vec2(4100, 190),
+
+    // Última reserva antes do alto mar (4.300m - 4.800m)
+    k.vec2(4350, 270),
+    k.vec2(4650, 210),
+  ];
+
+  antarcticKrillPositions.forEach((pos) => {
+    createKrill(k, pos);
+  });
 
   // Redes fantasmas (Costa Urbana 12000m - 18000m)
   createGhostNet(k, k.vec2(13500, 250));

@@ -14,22 +14,19 @@ export function setupCollisions(k: KaboomCtx, playerController: any, gameState: 
     playerController.setSpeed(currentSpeed.scale(GAME_CONFIG.TRASH_SLOWDOWN));
 
     // penalidade de oxigenio
-    playerController.modifyMaxOxygen(-GAME_CONFIG.TRASH_OXYGEN_PENALTY);
+    playerController.penalizeTrash();
 
     // Efeito visual rápido de impacto
     k.shake(3);
   });
 
-  // colisão com krill
+  // colisão com krill (Fase 3: Progressão Nutricional)
   k.onCollide(TAGS.PLAYER, TAGS.KRILL, (_player, krill) => {
     k.destroy(krill);
     gameState.addKrill();
 
-    const currentSpeed = playerController.getSpeed();
-    playerController.setSpeed(currentSpeed.scale(GAME_CONFIG.KRILL_BOOST));
-
-    // bonus de oxigenio
-    playerController.modifyMaxOxygen(GAME_CONFIG.KRILL_OXYGEN_RESTORE);
+    // Aplica impulso, restaura fôlego e evolui +1% em velocidade máx e oxigênio máx permanente
+    playerController.consumeKrill();
   });
 
   // colisao com rede fantasma
