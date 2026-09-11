@@ -12,6 +12,17 @@ export function setupUpwellingSystem(k: KaboomCtx, playerController: any) {
         // só produz ressurgencia se baleia não estiver desmaiando
         if (playerController.isFainting()) return;
 
+        const currentXPosition = playerController.gameObj.pos.x;
+        const isInUpwellingZone =
+            currentXPosition >= GAME_CONFIG.UPWELLING_ZONE_START &&
+            currentXPosition <= GAME_CONFIG.UPWELLING_ZONE_END;
+
+        // se estiver fora da zona de ressurgência (19.000m - 25.000m), reseta timer e não inicia novos eventos
+        if (!isInUpwellingZone) {
+            upwellingTimer = 0;
+            return;
+        }
+
         upwellingTimer += k.dt();
 
         // ativa ressurgencia a cada 18 segundos
@@ -19,7 +30,7 @@ export function setupUpwellingSystem(k: KaboomCtx, playerController: any) {
             isUpwellingActive = true;
             upwellingEventTimer = GAME_CONFIG.UPWELLING_DURATION;
             upwellingTimer = 0;
-            eventOriginXPosition = playerController.gameObj.pos.x;
+            eventOriginXPosition = currentXPosition;
             k.shake(2); // leve tremida na tela
         }
 

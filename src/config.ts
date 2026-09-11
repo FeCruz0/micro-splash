@@ -22,6 +22,8 @@ export const GAME_CONFIG = {
   UPWELLING_DURATION: 4,      // duração da ressurgência
   UPWELLING_PUSH_X: 120,      // força horizontal da ressurgência
   UPWELLING_PUSH_Y: -150,     // força vertical da ressurgência
+  UPWELLING_ZONE_START: 19000, // início da zona de ressurgência em Arraial do Cabo (19.000m)
+  UPWELLING_ZONE_END: 25000,   // fim da zona de ressurgência em Arraial do Cabo (25.000m)
   ROUTE_TOTAL_DISTANCE: 27000, // distancia total do percurso (27.000m - ~3 a 4 min de partida)
 };
 
@@ -32,4 +34,58 @@ export const TAGS = {
   NET: "rede_fantasma",
   UPWELLING_STREAM: "jato_ressurgencia",
   OBSTACLE: "obstaculo",
+  SURFACE: "superficie_agua",
 };
+
+export interface BiomeColorStop {
+  name: string;
+  distanceStart: number;
+  distanceEnd: number;
+  bgColor: [number, number, number];
+  surfaceColor: [number, number, number];
+  floorColor: [number, number, number];
+}
+
+export const BIOME_COLOR_STOPS: BiomeColorStop[] = [
+  {
+    name: "Trópicos",
+    distanceStart: 0,
+    distanceEnd: 5400,
+    bgColor: [0, 75, 130],
+    surfaceColor: [0, 120, 180],
+    floorColor: [0, 50, 95]
+  },
+  {
+    name: "Subtrópicos",
+    distanceStart: 5400,
+    distanceEnd: 10800,
+    bgColor: [0, 90, 150],
+    surfaceColor: [0, 130, 200],
+    floorColor: [0, 60, 110]
+  },
+  {
+    name: "Zona Temperada",
+    distanceStart: 10800,
+    distanceEnd: 16200,
+    bgColor: [10, 75, 110],
+    surfaceColor: [20, 100, 150],
+    floorColor: [5, 50, 80]
+  },
+  {
+    name: "Sub-polar",
+    distanceStart: 16200,
+    distanceEnd: 21600,
+    bgColor: [25, 45, 75],
+    surfaceColor: [45, 75, 105],
+    floorColor: [15, 30, 50]
+  },
+  {
+    name: "Polar (Antártida)",
+    distanceStart: 21600,
+    distanceEnd: 27000,
+    bgColor: [15, 30, 45],
+    surfaceColor: [70, 95, 115],
+    floorColor: [10, 20, 30]
+  }
+];
+

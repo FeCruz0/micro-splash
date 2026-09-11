@@ -1,38 +1,59 @@
-## 🗺️ Roadmap de Desenvolvimento (Próximos Passos)
+# 🗺️ Roadmap de Desenvolvimento (Plano em Fases) - Micro Splash
 
-### 1. Elementos de Consciência Ambiental (Ameaças e Desafios)
-Em vez de inimigos tradicionais, os obstáculos representam os perigos reais que as baleias enfrentam na costa brasileira:
-- [x] **Redes de Pesca Fantasma (Ghost Nets):** Redes abandonadas flutuando no mar. Se a baleia colidir, ela fica presa temporariamente (sua velocidade cai muito) e o jogador precisa apertar o `Espaço` repetidamente para se libertar. Ocasionalmente, um barco da guarda marítima de Arraial pode vir para remover a rede da baleia.
-- [x] **Lixo Plástico (Garrafas, Sacolas):** Reduzem a energia ou velocidade da baleia ao colidir.
-- [ ] **Poluição Sonora (Navios e Lanchas de Turismo):** Navios grandes geram ondas sonoras na água (representadas por círculos concêntricos piscando). Como as baleias usam a ecolocalização para navegar, entrar nessas áreas de ruído pode desorientar o jogador (inverter temporariamente os controles de cima/baixo) ou drenar fôlego.
+Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Produção**, alinhadas aos princípios de Game Design Document (GDD) e desenvolvimento iterativo de jogos.
 
-### 2. Integração com a Rota Migratória de 27.000m e Biomas
-Como o cenário avança horizontalmente (0m a 27.000m), o percurso é dividido nos 5 biomas da migração real:
-- [ ] **1. Oceano Antártico (0m - 5.000m):** 
-  - **Teto de Superfície Congelada (Camada de Gelo):** Superfície coberta por gelo com aberturas/fendas específicas onde a baleia pode subir para respirar oxigênio.
-  - **Fundo Polar:** Alta concentração de Krill e silhuetas estéticas de Orcas ao fundo distante (apenas elemento decorativo/narrativo).
-- [ ] **2. Travessia Oceânica (5.000m - 12.000m):** 
-  - **Jejum (Sem Krill):** Mar aberto escuro sem alimentos.
-  - **Baleias-Jubarte Passantes:** Outras jubartes passam ocasionalmente ao fundo emitindo cantos de baixa frequência, iluminando temporariamente o ambiente e revelando obstáculos e caminhos no mar escuro.
-- [ ] **3. Entrada na Costa Urbana (12.000m - 19.000m):** 
-  - **Ameaças:** Concentração pesada de lixo plástico, redes fantasma e ruído motorizado de navios (desorientação de controles).
-  - **Barco de Resgate Patrulheiro:** O Barco da Guarda Marítima navega ativamente na superfície dessa zona e intervém ajudando a baleia se ela estiver retida em redes ou desmaiando nas proximidades.
-- [ ] **4. Faixa de Ressurgência (19.000m - 25.000m):** Jatos de ressurgência ativados exclusivamente nessa faixa, cânions de pedras (Boqueirão / Fenda de N. Sra.) e águas turquesa ricas em nutrientes.
-- [ ] **5. Santuário Marinho de Arraial (25.000m - 27.000m):** Águas cristalinas abrigadas da Ilha do Farol, culminando no Salto Majestoso (Breach) na linha de chegada.
-- [ ] **Placas Informativas (Pop-ups de Eco-Consciência):** Atualizar `data/facts.json` com os novos marcadores distribuídos nos gatilhos `triggerX`: 500m (Antártica), 6.000m (Travessia), 13.000m (Costa Urbana), 19.500m (Ressurgência) e 24.000m (Santuário).
-- [ ] **Transição Dinâmica de Cores do Mar:** Gradiente de fundo alterando suavemente as cores RGB de azul polar escuro para azul turquesa luminoso conforme a posição `X` progride.
+---
 
-### 3. Novas Mecânicas de Jogabilidade
-- [x] **Cardumes de Krill (Alimentação & Boost):** Cardumes flutuantes que concedem ganho instantâneo de velocidade (1.2x) e pontos ao se alimentar.
-- [ ] **Crescimento Progressivo de Atributos via Krill (Nutrição Acumulada):** Cada Krill consumido concede um aumento permanente de ~1% no limite máximo de velocidade (`MAX_SPEED`) e na capacidade máxima de oxigênio da baleia. O ganho individual é sutil, mas o acúmulo (ex: 20 krills = +20% de fôlego e velocidade) recompensa a alimentação constante ao longo dos 27.000m.
-- [x] **Ecolocalização de Baixa Frequência / Canto da Baleia (Tecla Shift ou E):** Ao pressionar a tecla, a baleia emite uma onda sonora de baixa frequência (Mysticeti). Essa onda viaja a longa distância revelando silhuetas de obstáculos, redes e cantos de outras jubartes navegando.
-- [x] **Mecânica de Termoclinas (Correntes de Ressurgência):** Correntes de água fria sobem do fundo (ressurgência de Arraial). Entrar nessas correntes dá um impulso vertical para cima sem gastar energia, simulando o comportamento real das baleias aproveitando as correntes marítimas.
-- [ ] **Restrição Geográfica da Ressurgência (Faixa de Arraial do Cabo):** Ajustar `upwellingSystem.ts` para que os jatos de ressurgência e cardumes dinâmicos de Krill sejam ativados exclusivamente quando a baleia estiver navegando na faixa de Arraial do Cabo (`19.000m <= position.x <= 25.000m`), garantindo fidelidade ao bioma real.
+## ✅ Recursos Já Concluídos e Implementados
+- [x] **Física de Empuxo Senoidal e Atrito:** Nado realista da baleia (`src/entities/player.ts`).
+- [x] **Redes de Pesca Fantasma (Ghost Nets):** Mecânica de emaranhamento e mini-game de libertação no `Espaço`.
+- [x] **Lixo Plástico:** Impactos causam desaceleração de 50% e tremor de tela.
+- [x] **Cardumes de Krill (Alimentação & Boost):** Ganho instantâneo de velocidade (1.2x) e recuperação de fôlego.
+- [x] **Ecolocalização de Baixa Frequência / Sonar (Shift/E):** Emissão de onda acústica de baixa frequência (Mysticeti) revelando objetos no escuro.
+- [x] **Mecânica de Termoclinas (Correntes de Ressurgência):** Jatos de água subindo na diagonal com borda branca e impulso gratuito.
+- [x] **Persistência de Recordes (`localStorage`):** Maior pontuação e maior distância salvas no navegador.
+- [x] **Escala de Rota Ampliada (27.000m):** Rota migratória calibrada para ~3 a 4 minutos de gameplay.
 
-### 4. Ideias para o Visual e Atmosfera
-- [ ] **Gradiente de Profundidade:** O fundo do mar pode ir de um azul-turquesa cristalino perto da superfície (com raios de sol penetrando) até um azul bem escuro nas profundezas.
-- [ ] **Canto das Baleias (Som de fundo):** Um áudio de fundo suave com o canto real de baleias jubarte e o som de bolhas de água, criando uma experiência imersiva e relaxante.
+---
 
-### 5. Persistência de Dados e Recorde (High Score)
-- [x] **Persistência com `localStorage`:** Salvar a maior pontuação (High Score) e a maior distância percorrida no navegador.
-- [ ] **Tela de Relatório de Migração (Fim de Fase):** Apresentar a pontuação total, tempo de jogo, krill coletado, lixo colidido e recorde (`localStorage`) em uma tela dedicada ao finalizar a rota.
+## 🚀 FASE 1: Base do Mapa & Geografia dos 27.000m (Prioridade Máxima)
+*Objetivo: Estabelecer o "esqueleto" do mundo, transição de cores e a sinalização pedagógica ao longo dos 27km.*
+
+- [x] **1.1 Transição Dinâmica de Cores do Mar (`main.ts`):** Gradiente de fundo alterando suavemente as cores RGB de azul polar escuro (`#051c38`) para azul turquesa luminoso (`#1490b8`) conforme a posição `X` progride de 0m a 27.000m.
+- [x] **1.2 Restrição Geográfica da Ressurgência (`upwellingSystem.ts`):** Condicionar os jatos ascensionais e a geração dinâmica de Krill para ocorrerem exclusivamente na faixa de Arraial do Cabo (`19.000m <= position.x <= 25.000m`).
+- [x] **1.3 Redistribuição dos Pop-ups Educativos (`data/facts.json`):** Reposicionar os marcadores `triggerX` em gatilhos estratégicos: 500m (Antártica), 6.000m (Travessia), 13.000m (Costa Urbana), 19.500m (Ressurgência) e 24.000m (Santuário).
+
+---
+
+## ❄️ FASE 2: Biomas Específicos & Perigos (Level Design por Etapa)
+*Objetivo: Construir a identidade de desafio e narrativa ambiental de cada um dos 5 trechos da travessia.*
+
+- [x] **2.1 Etapa 1 - Oceano Antártico (0m - 5.000m):**
+  - **Camada de Gelo na Superfície:** Substituir o teto de água por blocos de gelo congelado com fendas/aberturas de respiração específicas.
+  - **Fundo Polar:** Silhuetas estéticas de Orcas ao fundo distante (sem colisão/ataque).
+- [x] **2.2 Etapa 2 - Travessia Oceânica (5.000m - 12.000m):**
+  - **Jejum Migratório:** Remoção de Krill em mar aberto.
+  - **Jubartes Passantes:** Outras jubartes navegando ao fundo emitindo pulsos de sonar de baixa frequência que iluminam caminhos no mar escuro.
+- [x] **2.3 Etapa 3 - Costa Urbana & Tráfego Marítimo (12.000m - 19.000m):**
+  - **Poluição Sonora:** Navios cargueiros emitindo ondas de ruído motorizado (círculos piscantes) que desorientam os controles.
+  - **Barco de Resgate Patrulheiro:** Barco da Guarda Marítima patrulhando a superfície desta área e intervindo ativamente para libertar a baleia se próxima em moments de perigo.
+- [x] **2.4 Etapa 4 - Faixa de Ressurgência (19.000m - 25.000m):**
+  - **Cânions de Pedra:** Obstáculos rochosos estreitos (Boqueirão / Fenda de N. Sra.) exigindo navegação fina de nadadeiras.
+- [x] **2.5 Etapa 5 - Santuário Marinho (25.000m - 27.000m):**
+  - **Chegada em Águas Calmas:** Transição para o ambiente cristalino abrigado da Ilha do Farol.
+
+---
+
+## 🦐 FASE 3: Progressão do Jogador & Sistema Nutricional
+*Objetivo: Recompensar a alimentação ativa com evolução permanente de atributos.*
+
+- [ ] **3.1 Crescimento Progressivo de Atributos via Krill:** Cada Krill consumido concede um aumento permanente de ~1% no teto máximo de velocidade (`MAX_SPEED`) e na capacidade máxima de oxigênio (`maxOxygen`), acumulando benefício perceptível ao longo dos 27.000m (ex: 20 krills = +20% de atributos).
+
+---
+
+## 🏆 FASE 4: Polimento, Áudio & Clímax Final
+*Objetivo: Elevar o impacto estético e finalizar a experiência do jogador.*
+
+- [ ] **4.1 Evento do Salto Majestoso (Breach):** Convite para salto com a tecla `Espaço` na linha de chegada (27.000m), concedendo bônus de prestígio ecológico.
+- [ ] **4.2 Paisagem Sonora e Áudio Ambiente:** Som de fundo com o canto real de jubartes e borbulhamento do mar.
+- [ ] **4.3 Polimento do Relatório de Migração (`victoryScreen.ts`):** Adicionar indicador de herança cultural/sabedoria ancestral no card final.

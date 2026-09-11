@@ -1,5 +1,5 @@
 import kaboom from "kaboom";
-import { GAME_CONFIG } from "./config";
+import { GAME_CONFIG, TAGS } from "./config";
 import { createPlayer } from "./entities/player";
 import { createTrash } from "./entities/trash";
 import { createKrill } from "./entities/krill";
@@ -10,9 +10,16 @@ import { showRescueScreen } from "./ui/rescueScreen";
 import { createGhostNet } from "./entities/net";
 import { setupUpwellingSystem } from "./systems/upwellingSystem";
 import { showVictoryScreen } from "./ui/victoryScreen";
+import { updateOceanColors } from "./systems/oceanEnvironment";
+import { createDebugDistanceUI } from "./ui/debugDistance";
+import { showFactPopup } from "./ui/factPopup";
+import { setupIceSurfaceSystem } from "./systems/iceSurface";
+import { setupBackgroundFaunaSystem } from "./systems/backgroundFauna";
+import { setupShipNoiseSystem } from "./systems/shipNoiseSystem";
+import { setupCanyonSystem } from "./systems/canyonSystem";
 
 const k = kaboom({
-  background: [10, 25, 60],
+  background: [8, 16, 32],
 });
 
 k.loadSprite("baleia", "https://kaboomjs.com/sprites/bean.png");
@@ -21,6 +28,22 @@ k.loadSprite("baleia", "https://kaboomjs.com/sprites/bean.png");
 k.scene("game", () => {
   let isGameFinished = false;
   k.setGravity(GAME_CONFIG.GRAVITY);
+
+  // Overlay de Fade-In para suavizar a entrada no jogo
+  const fadeOverlay = k.add([
+    k.rect(k.width(), k.height()),
+    k.pos(0, 0),
+    k.color(8, 16, 32),
+    k.opacity(1),
+    k.fixed(),
+    k.z(100),
+  ]);
+
+  k.tween(1, 0, 0.8, (val) => {
+    fadeOverlay.opacity = val;
+  }, k.easings.easeOutQuad).then(() => {
+    k.destroy(fadeOverlay);
+  });
 
   // Limites do mar
   const oceanFloor = k.add([
@@ -31,35 +54,45 @@ k.scene("game", () => {
     k.color(20, 50, 120),
   ]);
 
+  // Tag da superfície usando TAGS.SURFACE:
   const waterSurface = k.add([
     k.rect(k.width(), 40),
     k.pos(0, 0),
     k.area(),
     k.body({ isStatic: true }),
     k.color(20, 50, 120),
+    TAGS.SURFACE,
   ]);
 
-  // 1. Instancia Estado e Jogador
+  // 1. Instancia Estado, Jogador e UI de Debug
   const gameState = createGameState();
   const playerController = createPlayer(k);
+  const debugDistanceUI = createDebugDistanceUI(k);
 
-  // 2. Instancia objetos no caminho
-  createTrash(k, k.vec2(500, 250));
-  createTrash(k, k.vec2(800, 300));
-  createTrash(k, k.vec2(1200, 200));
+  // 2. Inicializa os Sistemas dos 5 Biomas (Fase 2)
+  setupIceSurfaceSystem(k);
+  setupBackgroundFaunaSystem(k);
+  setupShipNoiseSystem(k, playerController);
+  setupCanyonSystem(k);
 
+  // 3. Instancia objetos no caminho (Lixo, Krill na Antártida, Redes)
+  createTrash(k, k.vec2(13000, 250));
+  createTrash(k, k.vec2(15000, 300));
+  createTrash(k, k.vec2(17000, 200));
+
+  // Cardumes de Krill (Antártida 0m - 5000m)
   createKrill(k, k.vec2(650, 180));
-  createKrill(k, k.vec2(1000, 220));
-  createKrill(k, k.vec2(1400, 160));
+  createKrill(k, k.vec2(1800, 220));
+  createKrill(k, k.vec2(3200, 160));
+  createKrill(k, k.vec2(4500, 200));
 
-  // rede fantasma
-  createGhostNet(k, k.vec2(700, 250));
-  createGhostNet(k, k.vec2(1000, 250));
-  createGhostNet(k, k.vec2(1300, 250));  
+  // Redes fantasmas (Costa Urbana 12000m - 18000m)
+  createGhostNet(k, k.vec2(13500, 250));
+  createGhostNet(k, k.vec2(15800, 250));
+  createGhostNet(k, k.vec2(17500, 250));  
 
-  // 3. Ativa colisões
+  // 4. Ativa colisões e ressurgência
   setupCollisions(k, playerController, gameState);
-
   setupUpwellingSystem(k, playerController);
 
   let isRescueSequenceStarted = false;
@@ -78,9 +111,12 @@ k.scene("game", () => {
       return;
     }
 
-    // Se a baleia não desmaiou, atualiza distância normalmente
-    if (!isGameFinished &&!playerController.isFainting()) {
+    // Se a baleia não desmaiou, atualiza distância e verifica gatilhos pedagógicos
+    if (!isGameFinished && !playerController.isFainting()) {
       gameState.update(k.dt(), playerXPosition);
+      gameState.checkFacts(playerXPosition, (fact) => {
+        showFactPopup(k, fact);
+      });
     } else if (playerController.isFainting() && !isRescueSequenceStarted && !isGameFinished) {
       // SE A BALEIA DESMAIOU: Inicia a sequência de resgate da Guarda Marítima!
       isRescueSequenceStarted = true;
@@ -98,6 +134,10 @@ k.scene("game", () => {
 
     oceanFloor.pos.x = k.camPos().x - k.width() / 2;
     waterSurface.pos.x = k.camPos().x - k.width() / 2;
+    
+    // Update ocean colors and debug UI based on distance
+    updateOceanColors(k, playerXPosition, waterSurface, oceanFloor);
+    debugDistanceUI.update(playerXPosition);
   });
 });
 

@@ -83,7 +83,7 @@ export function showVictoryScreen(k: KaboomCtx, gameState: any, onRestart: () =>
 
     // Botão de reinício (Ajustado para Y = +160)
     const restartButtonLabel = k.add([
-        k.text("Pressione ESPAÇO para Jogar Novamente", {
+        k.text("Pressione ENTER para Jogar Novamente", {
             size: 14,
             font: "sans-serif",
         }),
@@ -101,7 +101,7 @@ export function showVictoryScreen(k: KaboomCtx, gameState: any, onRestart: () =>
         restartButtonLabel.opacity = Math.sin(blinkAnimationTime) > 0 ? 1 : 0.3;
     });
 
-    const cancelKeyPress = k.onKeyPress("space", () => {
+    const cancelKeyPress = k.onKeyPress("enter", () => {
         cancelKeyPress.cancel();
         onRestart();
     });

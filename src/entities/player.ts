@@ -1,5 +1,6 @@
 import type { KaboomCtx } from "kaboom";
 import { GAME_CONFIG, TAGS } from "../config";
+import { isPositionInIceGap } from "../systems/iceSurface";
 
 export function createPlayer(k: KaboomCtx) {
   const baleia = k.add([
@@ -153,8 +154,11 @@ export function createPlayer(k: KaboomCtx) {
     baleia.move(currentSpeed.x, currentSpeed.y + GAME_CONFIG.SINK_RATE);
     currentSpeed = currentSpeed.scale(GAME_CONFIG.WATER_DRAG);
    
-    // se baleia submersa, perde oxigênio
-    if (baleia.pos.y > 80) {
+    // se baleia submersa ou bloqueada por gelo na Antártida, perde oxigênio
+    const isAtSurface = baleia.pos.y <= 80;
+    const canBreathe = isAtSurface && isPositionInIceGap(baleia.pos.x);
+
+    if (!canBreathe) {
       oxygen = Math.max(0, oxygen - k.dt() * GAME_CONFIG.OXYGEN_DRAIN_RATE);
 
       if (oxygen === 0) {
@@ -164,13 +168,12 @@ export function createPlayer(k: KaboomCtx) {
           k.shake(4); // tremor forte quando desmaia
         }
       }
-    
     } else {
-      // na superficie recarrega folego para máximo atual
+      // na superfície livre de gelo, recarrega fôlego para máximo atual
       if (oxygen < maxOxygen) {
         oxygen = maxOxygen;
         blackoutTimer = GAME_CONFIG.BLACKOUT_GRACE_TIME;
-        k.shake(2); //leve tremor e esguicho
+        k.shake(2); // leve tremor e esguicho
       }
     }
 
