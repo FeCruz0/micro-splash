@@ -3,10 +3,10 @@ import { GAME_CONFIG, TAGS } from "../config";
 import { isPositionInIceGap } from "../systems/iceSurface";
 import { audioSystem } from "../systems/audioSystem";
 
-export function createPlayer(k: KaboomCtx) {
+export function createPlayer(k: KaboomCtx, initialX: number = 120, isSereneMode: boolean = false) {
   const baleia = k.add([
     k.sprite("baleia"),
-    k.pos(120, 200),
+    k.pos(initialX, 200),
     k.area(),
     k.body(),
     k.rotate(0),
@@ -188,7 +188,11 @@ export function createPlayer(k: KaboomCtx) {
     const isAtSurface = baleia.pos.y <= GAME_CONFIG.SEA_LEVEL + 40;
     const canBreathe = isAtSurface && isPositionInIceGap(baleia.pos.x);
 
-    if (!canBreathe) {
+    if (isSereneMode) {
+      // Modo Navegação Serena: Oxigênio infinito permanente, sem risco de desmaio
+      oxygen = getMaxOxygen();
+      isFainting = false;
+    } else if (!canBreathe) {
       oxygen = Math.max(0, oxygen - k.dt() * GAME_CONFIG.OXYGEN_DRAIN_RATE);
 
       if (oxygen === 0) {
@@ -220,8 +224,12 @@ export function createPlayer(k: KaboomCtx) {
      // Câmera
     k.camPos(k.lerp(k.camPos().x, baleia.pos.x + targetCamOffset, 0.05), k.camPos().y);
 
-    // debug valor oxygenio
-    k.debug.log(`Fôlego: ${Math.floor(oxygen)}% | Stats: +${krillsEaten}%`);
+    // Indicador no HUD
+    if (isSereneMode) {
+      k.debug.log(`Migração Serena 🌸 | Fôlego: ∞ | Nutrição: +${krillsEaten}%`);
+    } else {
+      k.debug.log(`Fôlego: ${Math.floor(oxygen)}% | Nutrição: +${krillsEaten}%`);
+    }
   });
 
   return {
@@ -233,6 +241,7 @@ export function createPlayer(k: KaboomCtx) {
     getMaxSpeed: () => getMaxSpeed(),
     getKrillsEaten: () => krillsEaten,
     isFainting: () => isFainting,
+    isSereneMode: () => isSereneMode,
 
     // Consumo de Krill: +1% permanente em velocidade máxima e oxigênio máximo (sem texto na tela)
     consumeKrill: () => {

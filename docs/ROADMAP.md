@@ -33,27 +33,18 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
 - [x] **5.2 Síntese de Efeitos Sonoros 16-Bit Retrô:** Recriação em síntese FM clássica (2 operadores) para o sonar com eco secundário reflexivo (`playSonarSound`), impulso de nado (`playStrokeThrust`), colisão com lixo (`playTrashThud`), atrito em rede fantasma (`playNetTangle`), splash de reentrada e fanfarra de vitória (`playVictoryFanfare`).
 - [x] **5.3 Trilha Sonora 16-Bit Adaptativa por Bioma:** Motor de sequenciamento musical procedural (`BiomeMusicEngine`) com arpejos gelados na Antártica, atmosfera submarina de mar aberto estilo *Ecco* / *Aquatic Ambiance*, ritmo tenso e industrial na Costa Urbana, e progressão harmônica tropical solar em Arraial do Cabo.
 
+### 🧭 FASE 6: Menu Inicial, Seleção de Modo & Diário de Bordo
+- [x] **6.1 Tela de Menu Principal:** Menu inicial com visual marítimo, partículas bioluminescentes, high score persistente e opções: "Iniciar Migração", "Opções" e "Diário de Bordo (Codex)".
+- [x] **6.2 Fluxo de Início com Escolha do Modo de Jogo:**
+  - **Migração Normal:** Rota migratória clássica completa com dreno de oxigênio, perigos e pontuação no Eco-Score.
+  - **Migração Serena:** Oxigênio infinito (`∞`) e navegação livre sem risco de desmaio, ideal para crianças, novatos e exploração contemplativa.
+  - **Migração Rápida:** Partida cronometrada de 60 segundos com bioma selecionável (Labirinto Polar, Desvio Urbano ou Cânions de Arraial) e tela dedicada de estatísticas da rodada.
+- [x] **6.3 Painel de Opções & Configurações de Áudio:** Ajuste de volume geral (+/-) e botões liga/desliga para música ambiente e efeitos sonoros com persistência em `localStorage`.
+- [x] **6.4 Diário de Bordo da Expedição (Codex no Menu):** Painel categorizado em abas com consulta de espécies marinhas observadas, fatos ecológicos desbloqueados na rota e mensagens de conservação do *Instituto Baleia Jubarte*.
+
 ---
 
 ## 🎯 Próximas Fases (Ordenadas por Prioridade)
-
-### 🧭 FASE 6: Menu Inicial, Seleção de Modo & Diário de Bordo
-*Objetivo: Criar uma porta de entrada profissional ao jogo, permitir escolha direta de modo de jogo e consulta pedagógica.*
-
-- [ ] **6.1 Tela de Menu Principal:**
-  - Menu inicial com visual marítimo e opções:
-    - **"Iniciar Migração"** (leva à seleção de modo)
-    - **"Opções"** (configurações)
-    - **"Diário de Bordo (Codex)"** (fatos e curiosidades da fauna)
-- [ ] **6.2 Fluxo de Início com Escolha do Modo de Jogo:**
-  - Ao clicar em **"Iniciar Migração"**, o jogador escolhe o estilo de partida:
-    - **Modo Padrão (Desafio Real):** Rota migratória clássica com dreno de oxigênio, perigos e pontuação no Eco-Score.
-    - **Modo Navegação Serena (Acessibilidade):** Oxigênio infinito e navegação livre sem risco de desmaio, ideal para crianças ou exploração 100% contemplativa.
-    - **Modo Desafio Rápido de 1 Minuto (Filas na Feira):** Partida rápida focada em um único bioma selecionável (ex: Labirinto de Gelo Polar, Desvio de Navios Urbanos ou Cânions de Arraial), perfeito para feiras de ciências com alta rotatividade de visitantes.
-- [ ] **6.3 Painel de Opções & Configurações de Áudio:**
-  - Ajuste de volume geral e opções de ligar/desligar música ambiente e efeitos sonoros.
-- [ ] **6.4 Diário de Bordo da Expedição (Codex no Menu):**
-  - Tela de consulta dos fatos ecológicos desbloqueados, espécies observadas e mensagens do *Instituto Baleia Jubarte*.
 
 ---
 
@@ -94,11 +85,13 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
 - [ ] **9.1 Mancha de Óleo Pré-Arraial (antes do Boqueirão):**
   - Posicionada estrategicamente no final da Costa Urbana (entre ~17.500m e 18.900m), logo antes da entrada do Boqueirão e do trecho de Arraial do Cabo.
   - Mancha de combustível flutuando na superfície: passar por ela obstrui temporariamente o espiráculo da baleia com óleo, exigindo mergulho rápido para limpar os resíduos antes de conseguir respirar novamente.
-- [ ] **9.2 Nado em Bando com Golfinhos (*Drafting*):**
+- [ ] **9.2 Descarte Ativo de Lixo por Navios Industriais:**
+  - Navios cargueiros e industriais patrulhando a Costa Urbana passam a ejetar resíduos plásticos, caixas e tambores periodicamente em sua esteira, criando perigos dinâmicos móveis que afundam pelo leito marinho.
+- [ ] **9.3 Nado em Bando com Golfinhos (*Drafting*):**
   - Pequenos grupos de golfinhos acompanhantes em mar aberto que concedem bônus hidrodinâmico de velocidade e economia de fôlego ao nadar alinhado a eles.
-- [ ] **9.3 Silhueta de Baleia-Azul ou Cachalote nas Profundezas:**
+- [ ] **9.4 Silhueta de Baleia-Azul ou Cachalote nas Profundezas:**
   - No mar aberto (trecho de travessia oceânica onde ocorre o jejum de krill), passagem majestosa e pacífica de uma criatura abissal gigante ao fundo com vocalização submarina profunda própria.
-- [ ] **9.4 Pinguins de Magalhães Saltando na Saída Antártica:**
+- [ ] **9.5 Pinguins de Magalhães Saltando na Saída Antártica:**
   - Bandos ágeis de pinguins nadando em zigue-zague veloz nas fendas de gelo entre 4.000m e 5.000m, marcando a transição do continente polar para o mar aberto.
 
 ---

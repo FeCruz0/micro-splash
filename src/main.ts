@@ -5,7 +5,7 @@ import { createTrash } from "./entities/trash";
 import { createKrill } from "./entities/krill";
 import { createRescueBoat } from "./entities/boat";
 import { setupCollisions } from "./systems/collisions";
-import { createGameState } from "./systems/state";
+import { createGameState, type GameOptions } from "./systems/state";
 import { showRescueScreen } from "./ui/rescueScreen";
 import { createGhostNet } from "./entities/net";
 import { setupUpwellingSystem } from "./systems/upwellingSystem";
@@ -21,22 +21,66 @@ import { setupOceanCurrentsSystem } from "./systems/oceanCurrentsSystem";
 import { audioSystem } from "./systems/audioSystem";
 import { setupBreachSystem } from "./systems/breachSystem";
 
+// Interfaces da Fase 6: Menu Principal, Seleção de Modo, Opções e Codex
+import { createMainMenu } from "./ui/mainMenu";
+import { showModeSelectScreen } from "./ui/modeSelectScreen";
+import { showOptionsScreen } from "./ui/optionsScreen";
+import { showCodexScreen } from "./ui/codexScreen";
+import { showChallengeEndScreen } from "./ui/challengeEndScreen";
+
 const k = kaboom({
-  background: [8, 16, 32],
+  background: [6, 18, 42],
 });
 
 k.loadSprite("baleia", "https://kaboomjs.com/sprites/bean.png");
 
-// Define a cena do jogo principal
-k.scene("game", () => {
+// =============================================================================
+// CENA DO MENU PRINCIPAL (Fase 6)
+// =============================================================================
+k.scene("menu", () => {
+  createMainMenu(
+    k,
+    // Iniciar Migração -> Abre Seletor de Modo de Jogo
+    (onClose) => {
+      showModeSelectScreen(
+        k,
+        (selectedOptions) => {
+          k.go("game", selectedOptions);
+        },
+        onClose
+      );
+    },
+    // Opções de Áudio
+    (onClose) => {
+      showOptionsScreen(k, onClose);
+    },
+    // Diário de Bordo (Codex)
+    (onClose) => {
+      showCodexScreen(k, onClose);
+    }
+  );
+});
+
+// =============================================================================
+// CENA DO JOGO PRINCIPAL (Fase 1 a 6)
+// =============================================================================
+k.scene("game", (options: GameOptions = { mode: "standard" }) => {
   let isGameFinished = false;
   k.setGravity(GAME_CONFIG.GRAVITY);
+
+  // Posição inicial no mapa com base no modo selecionado
+  let initialX = 120;
+  if (options.mode === "quick_challenge") {
+    if (options.startBiome === 2) initialX = 12200; // Costa Urbana
+    else if (options.startBiome === 3) initialX = 19200; // Arraial do Cabo
+    else initialX = 120; // Antártica
+  }
 
   // Overlay de Fade-In para suavizar a entrada no jogo
   const fadeOverlay = k.add([
     k.rect(k.width(), k.height()),
     k.pos(0, 0),
-    k.color(8, 16, 32),
+    k.color(6, 18, 42),
     k.opacity(1),
     k.fixed(),
     k.z(100),
@@ -65,7 +109,7 @@ k.scene("game", () => {
     k.body({ isStatic: true }),
   ]);
 
-  // Área do céu acima do nível do mar (0px a 80px - área dobrada para céu/nuvens)
+  // Área do céu acima do nível do mar (0px a 80px)
   const skyBand = k.add([
     k.rect(k.width(), GAME_CONFIG.SEA_LEVEL),
     k.pos(0, 0),
@@ -74,7 +118,7 @@ k.scene("game", () => {
     "sky",
   ]);
 
-  // Tag da superfície posicionada no nível do mar (80px):
+  // Tag da superfície posicionada no nível do mar (80px)
   const waterSurface = k.add([
     k.rect(k.width(), 14),
     k.pos(0, GAME_CONFIG.SEA_LEVEL),
@@ -85,19 +129,38 @@ k.scene("game", () => {
   ]);
 
   // 1. Instancia Estado, Jogador e UI de Debug
-  const gameState = createGameState();
-  const playerController = createPlayer(k);
+  const gameState = createGameState(options);
+  const playerController = createPlayer(k, initialX, options.mode === "serene");
   const debugDistanceUI = createDebugDistanceUI(k);
 
-  // 2. Inicializa os Sistemas dos 5 Biomas (Fase 2)
+  // HUD adicional de modo no topo direito
+  let timerUI: any = null;
+  if (options.mode === "quick_challenge") {
+    timerUI = k.add([
+      k.text("⏱️ 60s", { size: 16, font: "sans-serif" }),
+      k.pos(k.width() - 110, 18),
+      k.color(255, 220, 80),
+      k.fixed(),
+      k.z(150),
+    ]);
+  } else if (options.mode === "serene") {
+    k.add([
+      k.text("🌸 Migração Serena (∞)", { size: 14, font: "sans-serif" }),
+      k.pos(k.width() - 190, 18),
+      k.color(140, 255, 200),
+      k.fixed(),
+      k.z(150),
+    ]);
+  }
+
+  // 2. Inicializa os Sistemas dos 5 Biomas
   setupIceSurfaceSystem(k);
   setupBackgroundFaunaSystem(k);
   setupShipNoiseSystem(k, playerController);
   setupOceanCurrentsSystem(k, playerController);
   setupCanyonSystem(k);
 
-  // 3. Instancia objetos no caminho (Lixo plástico, Krill na Antártida, Redes fantasmas)
-  // Lixo plástico (Costa Urbana e Área dos Navios: 12.000m - 19.000m)
+  // 3. Instancia objetos no caminho (Lixo plástico, Krill, Redes fantasmas)
   const urbanTrashPositions = [
     k.vec2(12300, 200),
     k.vec2(12700, 310),
@@ -108,116 +171,41 @@ k.scene("game", () => {
     k.vec2(15100, 180),
     k.vec2(15600, 290),
     k.vec2(16200, 240),
-    k.vec2(16800, 320),
-    k.vec2(17300, 190),
-    k.vec2(17900, 270),
-    k.vec2(18400, 210),
-    k.vec2(18800, 300),
+    k.vec2(16700, 350),
+    k.vec2(17200, 190),
+    k.vec2(17800, 270),
+    k.vec2(18300, 320),
+    k.vec2(18800, 210),
   ];
   urbanTrashPositions.forEach((pos) => {
     createTrash(k, pos);
   });
 
-  // Cardumes de Krill - Banquete Polar Antártico (25 cardumes entre 300m e 4.800m)
   const antarcticKrillPositions = [
-    // Primeiro banquete próximo ao início (300m - 1.000m)
-    k.vec2(350, 180),
-    k.vec2(420, 240),
-    k.vec2(500, 160),
-    k.vec2(650, 220),
-    k.vec2(800, 300),
-    k.vec2(950, 180),
-
-    // Segundo aglomerado (1.100m - 2.000m)
-    k.vec2(1150, 260),
-    k.vec2(1280, 190),
-    k.vec2(1450, 320),
-    k.vec2(1600, 210),
-    k.vec2(1750, 280),
-    k.vec2(1900, 170),
-
-    // Terceiro aglomerado (2.100m - 3.200m)
-    k.vec2(2150, 230),
-    k.vec2(2300, 310),
-    k.vec2(2450, 180),
-    k.vec2(2650, 260),
-    k.vec2(2850, 200),
-    k.vec2(3050, 330),
-
-    // Quarto aglomerado (3.300m - 4.200m)
-    k.vec2(3300, 220),
-    k.vec2(3500, 170),
-    k.vec2(3700, 290),
-    k.vec2(3900, 240),
-    k.vec2(4100, 190),
-
-    // Última reserva antes do alto mar (4.300m - 4.800m)
-    k.vec2(4350, 270),
-    k.vec2(4650, 210),
+    k.vec2(400, 220),
+    k.vec2(900, 310),
+    k.vec2(1400, 180),
+    k.vec2(1900, 260),
+    k.vec2(2400, 340),
+    k.vec2(2900, 200),
+    k.vec2(3400, 280),
+    k.vec2(3900, 160),
+    k.vec2(4400, 320),
+    k.vec2(4800, 240),
   ];
-
   antarcticKrillPositions.forEach((pos) => {
     createKrill(k, pos);
   });
 
-  // Redes fantasmas (Costa Urbana e Área dos Navios: 12.000m - 19.000m)
-  const ghostNetPositions = [
-    k.vec2(12500, 260),
-    k.vec2(13300, 220),
-    k.vec2(14300, 280),
-    k.vec2(15300, 240),
-    k.vec2(16400, 300),
-    k.vec2(17100, 210),
-    k.vec2(17700, 290),
-    k.vec2(18600, 250),
-  ];
-  ghostNetPositions.forEach((pos) => {
-    createGhostNet(k, pos);
-  });  
-
-  // Lixo plástico (elevado mais 55 pixels)
-  const floorTrashY = k.height() - 220;
-  const oceanFloorTrashPositions = [
-    // Área dos Navios / Costa Urbana (12.000m - 19.000m)
-    k.vec2(12400, floorTrashY),
-    k.vec2(12850, floorTrashY),
-    k.vec2(13400, floorTrashY),
-    k.vec2(13850, floorTrashY),
-    k.vec2(14400, floorTrashY),
-    k.vec2(14900, floorTrashY),
-    k.vec2(15450, floorTrashY),
-    k.vec2(16100, floorTrashY),
-    k.vec2(16650, floorTrashY),
-    k.vec2(17250, floorTrashY),
-    k.vec2(17800, floorTrashY),
-    k.vec2(18350, floorTrashY),
-    k.vec2(18900, floorTrashY),
-
-    // Faixa de Cânions e Sedimentos (19.500m - 24.500m)
-    k.vec2(19600, floorTrashY),
-    k.vec2(20300, floorTrashY),
-    k.vec2(21300, floorTrashY),
-    k.vec2(22400, floorTrashY),
-    k.vec2(23600, floorTrashY),
-    k.vec2(24400, floorTrashY),
-  ];
-  oceanFloorTrashPositions.forEach((pos) => {
-    createTrash(k, pos);
-  });
-
-  // Redes fantasmas (posicionadas 55 pixels acima dos lixos)
-  const floorNetY = floorTrashY - 55;
+  const floorNetY = k.height() - 40 - 24;
   const oceanFloorNetPositions = [
-    // Área dos Navios / Costa Urbana (12.000m - 19.000m)
-    k.vec2(12650, floorNetY),
-    k.vec2(13600, floorNetY),
-    k.vec2(14750, floorNetY),
-    k.vec2(15900, floorNetY),
-    k.vec2(17050, floorNetY),
-    k.vec2(18150, floorNetY),
-    k.vec2(18750, floorNetY),
-
-    // Faixa de Cânions e Costões (19.500m - 24.500m)
+    k.vec2(6000, floorNetY),
+    k.vec2(8500, floorNetY),
+    k.vec2(10500, floorNetY),
+    k.vec2(12800, floorNetY),
+    k.vec2(14500, floorNetY),
+    k.vec2(16500, floorNetY),
+    k.vec2(18200, floorNetY),
     k.vec2(20100, floorNetY),
     k.vec2(21500, floorNetY),
     k.vec2(22800, floorNetY),
@@ -227,22 +215,19 @@ k.scene("game", () => {
     createGhostNet(k, pos);
   });  
 
-  // 4. Inicializa o Áudio Procedural na primeira interação do jogador
-  let audioStarted = false;
-  const startAudioOnInteraction = () => {
-    if (!audioStarted) {
-      audioStarted = true;
-      audioSystem.init();
-    }
+  // 4. Inicializa áudio da migração e atalhos
+  audioSystem.startMigrationAudio(initialX);
+
+  const resumeAudioOnInteraction = () => {
     audioSystem.resumeIfSuspended();
   };
 
-  k.onKeyPress(startAudioOnInteraction);
-  k.onMousePress(startAudioOnInteraction);
+  k.onKeyPress(resumeAudioOnInteraction);
+  k.onMousePress(resumeAudioOnInteraction);
 
   // Tecla 'M': Silenciar / Ativar Som
   k.onKeyPress("m", () => {
-    startAudioOnInteraction();
+    resumeAudioOnInteraction();
     audioSystem.toggleMute();
   });
 
@@ -259,8 +244,8 @@ k.scene("game", () => {
         isGameFinished = true;
         audioSystem.pauseAmbient();
         showVictoryScreen(k, gameState, () => {
-          audioSystem.resumeAmbient();
-          k.go("game");
+          audioSystem.stopMigrationAudio();
+          k.go("menu");
         });
       }
     },
@@ -277,9 +262,36 @@ k.scene("game", () => {
       isGameFinished = true;
       audioSystem.pauseAmbient();
       showVictoryScreen(k, gameState, () => {
-        audioSystem.resumeAmbient();
-        k.go("game");
+        audioSystem.stopMigrationAudio();
+        k.go("menu");
       });
+      return;
+    }
+
+    // Atualiza o cronômetro do Desafio de 1 Minuto da Feira
+    if (timerUI && options.mode === "quick_challenge") {
+      const remaining = gameState.getTimeRemaining();
+      timerUI.text = `⏱️ ${remaining}s`;
+      if (remaining <= 10) {
+        timerUI.color = k.rgb(255, 80, 80);
+      }
+    }
+
+    // Verifica término do desafio de 1 minuto
+    if (options.mode === "quick_challenge" && gameState.isTimeUp() && !isGameFinished) {
+      isGameFinished = true;
+      audioSystem.pauseAmbient();
+      showChallengeEndScreen(
+        k,
+        gameState,
+        () => {
+          k.go("game", options);
+        },
+        () => {
+          audioSystem.stopMigrationAudio();
+          k.go("menu");
+        }
+      );
       return;
     }
 
@@ -289,10 +301,10 @@ k.scene("game", () => {
       gameState.checkFacts(playerXPosition, (fact) => {
         showFactPopup(k, fact);
       });
-      // Sincroniza a trilha sonora adaptativa 16-bit com o bioma atual (Fase 5)
+      // Sincroniza a trilha sonora adaptativa 16-bit com o bioma atual
       audioSystem.updateBiomeTrack(playerXPosition);
     } else if (playerController.isFainting() && !isRescueSequenceStarted && !isGameFinished) {
-      // SE A BALEIA DESMAIOU: Inicia a sequência de resgate da Guarda Marítima!
+      // SE A BALEIA DESMAIOU: Inicia a sequência de resgate da Guarda Marítima
       isRescueSequenceStarted = true;
 
       // Interrompe imediatamente os sons ambientes e cantos de baleia ao morrer/desmaiar
@@ -304,8 +316,8 @@ k.scene("game", () => {
       // Espera 3.5 segundos (tempo do barco chegar) e exibe o relatório
       k.wait(3.5, () => {
         showRescueScreen(k, gameState, () => {
-          audioSystem.resumeAmbient();
-          k.go("game"); // Reinicia a cena limpa!
+          audioSystem.stopMigrationAudio();
+          k.go("menu");
         });
       });
     }
@@ -315,11 +327,11 @@ k.scene("game", () => {
     skyBand.pos.x = k.camPos().x - k.width() / 2;
     skyCeiling.pos.x = k.camPos().x - k.width() / 2;
     
-    // Update ocean colors and debug UI based on distance
+    // Atualiza cores do oceano e UI de distância
     updateOceanColors(k, playerXPosition, waterSurface, oceanFloor, skyBand);
     debugDistanceUI.update(playerXPosition);
   });
 });
 
-// Inicia a cena do jogo
-k.go("game");
+// Inicia o jogo no Menu Principal (Fase 6)
+k.go("menu");
