@@ -80,6 +80,10 @@ export function createPlayer(k: KaboomCtx) {
       }
 
       // Impulso (Espaço)
+      if (k.isKeyPressed("space")) {
+        audioSystem.playStrokeThrust();
+      }
+
       if (k.isKeyDown("space")) {
         if (strokeTimer < GAME_CONFIG.MAX_STROKE_TIME) {
           strokeTimer += k.dt();

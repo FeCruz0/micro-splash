@@ -28,25 +28,14 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
 - [x] **4.3 Polimento do Relatório de Migração (`victoryScreen.ts`):** Indicador de Sabedoria Ancestral / Herança Cultural, partículas brilhantes e fanfarra de vitória.
 - [x] **4.4 Silenciamento de Áudio no Fim de Jogo:** Interrupção imediata de sons ambientes e cantos ao desmaiar/morrer e durante a tela de resgate.
 
+### 🎵 FASE 5: Sonoplastia 16-Bit Retrô & Redesenho de SFX
+- [x] **5.1 Redesenho do Som de Alimentação de Krill (Engolida / Sucção):** Som biológico de sucção por cerdas (baleen filter sweep) e deglutição de massa d'água (`playKrillGulp`), eliminando o efeito de moeda.
+- [x] **5.2 Síntese de Efeitos Sonoros 16-Bit Retrô:** Recriação em síntese FM clássica (2 operadores) para o sonar com eco secundário reflexivo (`playSonarSound`), impulso de nado (`playStrokeThrust`), colisão com lixo (`playTrashThud`), atrito em rede fantasma (`playNetTangle`), splash de reentrada e fanfarra de vitória (`playVictoryFanfare`).
+- [x] **5.3 Trilha Sonora 16-Bit Adaptativa por Bioma:** Motor de sequenciamento musical procedural (`BiomeMusicEngine`) com arpejos gelados na Antártica, atmosfera submarina de mar aberto estilo *Ecco* / *Aquatic Ambiance*, ritmo tenso e industrial na Costa Urbana, e progressão harmônica tropical solar em Arraial do Cabo.
+
 ---
 
 ## 🎯 Próximas Fases (Ordenadas por Prioridade)
-
-### 🎵 FASE 5: Sonoplastia 16-Bit Retrô & Redesenho de SFX (Prioridade Máxima de Áudio)
-*Objetivo: Transformar a identidade sonora do jogo para o estilo clássico 16-bit (estilo Mega Drive / SNES / Ecco the Dolphin), com efeitos biológicos mais autênticos.*
-
-- [ ] **5.1 Redesenho do Som de Alimentação de Krill (Engolida / Sucção):**
-  - Substituir o som atual (que soa como moeda de arcade) por um som de **engolida e sucção subaquática biológica**, simulando o abrir de boca e filtração de água por cerdas (baleen).
-- [ ] **5.2 Síntese de Efeitos Sonoros 16-Bit Retrô:**
-  - Recriação dos efeitos (sonar, impulso de nado, colisões e fanfarras) utilizando técnicas de síntese FM e filtros característicos da era 16-bit, conferindo charme vintage e excelente definição sonora.
-- [ ] **5.3 Trilha Sonora 16-Bit Adaptativa por Bioma:**
-  - Temas musicais dinâmicos em síntese 16-bit com variações atmosféricas por trecho:
-    - *Antártica:* Arpejos cristalinos frios e suaves de glockenspiel 16-bit.
-    - *Travessia Oceânica:* Linha de baixo lenta e misteriosa (inspirada em *Aquatic Ambiance* / *Ecco the Dolphin*).
-    - *Costa Urbana:* Pulsos industriais rítmicos com ruídos mecânicos abafados.
-    - *Arraial do Cabo:* Harmonia ensolarada, tropical e comemorativa em FM Synth.
-
----
 
 ### 🧭 FASE 6: Menu Inicial, Seleção de Modo & Diário de Bordo
 *Objetivo: Criar uma porta de entrada profissional ao jogo, permitir escolha direta de modo de jogo e consulta pedagógica.*

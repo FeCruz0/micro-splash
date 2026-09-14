@@ -29,8 +29,8 @@ export function setupCollisions(k: KaboomCtx, playerController: any, gameState: 
     k.destroy(krill);
     gameState.addKrill();
 
-    // Som de sino nutriente de krill
-    audioSystem.playKrillChime();
+    // Som biológico de sucção e deglutição de krill (Fase 5)
+    audioSystem.playKrillGulp();
 
     // Aplica impulso, restaura fôlego e evolui +1% em velocidade máx e oxigênio máx permanente
     playerController.consumeKrill();

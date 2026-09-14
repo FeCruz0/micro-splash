@@ -289,6 +289,8 @@ k.scene("game", () => {
       gameState.checkFacts(playerXPosition, (fact) => {
         showFactPopup(k, fact);
       });
+      // Sincroniza a trilha sonora adaptativa 16-bit com o bioma atual (Fase 5)
+      audioSystem.updateBiomeTrack(playerXPosition);
     } else if (playerController.isFainting() && !isRescueSequenceStarted && !isGameFinished) {
       // SE A BALEIA DESMAIOU: Inicia a sequência de resgate da Guarda Marítima!
       isRescueSequenceStarted = true;
