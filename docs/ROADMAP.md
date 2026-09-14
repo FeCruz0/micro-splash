@@ -4,56 +4,120 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
 
 ---
 
-## ✅ Recursos Já Concluídos e Implementados
-- [x] **Física de Empuxo Senoidal e Atrito:** Nado realista da baleia (`src/entities/player.ts`).
-- [x] **Redes de Pesca Fantasma (Ghost Nets):** Mecânica de emaranhamento e mini-game de libertação no `Espaço`.
-- [x] **Lixo Plástico:** Impactos causam desaceleração de 50% e tremor de tela.
-- [x] **Cardumes de Krill (Alimentação & Boost):** Ganho instantâneo de velocidade (1.2x) e recuperação de fôlego.
-- [x] **Ecolocalização de Baixa Frequência / Sonar (Shift/E):** Emissão de onda acústica de baixa frequência (Mysticeti) revelando objetos no escuro.
-- [x] **Mecânica de Termoclinas (Correntes de Ressurgência):** Jatos de água subindo na diagonal com borda branca e impulso gratuito.
-- [x] **Persistência de Recordes (`localStorage`):** Maior pontuação e maior distância salvas no navegador.
-- [x] **Escala de Rota Ampliada (27.000m):** Rota migratória calibrada para ~3 a 4 minutos de gameplay.
+## ✅ Fases Já Concluídas e Implementadas
+
+### 🚀 FASE 1: Base do Mapa & Geografia dos 27.000m
+- [x] **1.1 Transição Dinâmica de Cores do Mar (`main.ts`):** Gradiente de fundo de azul polar escuro (`#051c38`) a azul turquesa luminoso (`#1490b8`).
+- [x] **1.2 Restrição Geográfica da Ressurgência (`upwellingSystem.ts`):** Jatos ascensionais e geração de Krill exclusivos na faixa de Arraial do Cabo (`19.000m - 25.000m`).
+- [x] **1.3 Redistribuição dos Pop-ups Educativos (`data/facts.json`):** Gatilhos pedagógicos nos 5 biomas da rota.
+
+### ❄️ FASE 2: Biomas Específicos & Perigos (Level Design por Etapa)
+- [x] **2.1 Etapa 1 - Oceano Antártico (0m - 5.000m):** Blocos de gelo na superfície com fendas de respiração e silhuetas de Orcas ao fundo.
+- [x] **2.2 Etapa 2 - Travessia Oceânica (5.000m - 12.000m):** Jejum de Krill e correntes oceânicas contrárias exigindo desvio vertical.
+- [x] **2.3 Etapa 3 - Costa Urbana & Tráfego Marítimo (12.000m - 19.000m):** Navios cargueiros móveis patrulhando em ida e volta, ruído sonoro empurrando para baixo, e lixo/redes em camadas escalonadas.
+- [x] **2.4 Etapa 4 - Faixa de Ressurgência (19.000m - 25.000m):** Cânions rochosos estreitos de pedra (Boqueirão).
+- [x] **2.5 Etapa 5 - Santuário Marinho (25.000m - 27.000m):** Águas cristalinas abrigadas da Ilha do Farol.
+
+### 🦐 FASE 3: Progressão do Jogador & Sistema Nutricional
+- [x] **3.1 Crescimento Progressivo via Krill:** +1% permanente em velocidade máxima e fôlego máximo por cardume consumido.
+- [x] **Mecânica Aprimorada de Rede Fantasma:** Trava apenas controles, permitindo afundamento e perda de fôlego contínuos com colisões ativas.
+
+### 🏆 FASE 4: Polimento, Áudio & Clímax Final
+- [x] **4.1 Evento do Salto Majestoso (Breach):** Salto acrobático no céu de Arraial na linha de chegada (26.700m - 27.000m) com spray de água, tremor de tela e +500 Eco-Pontos.
+- [x] **4.2 Paisagem Sonora e Áudio Ambiente (`audioSystem.ts`):** Web Audio API procedural com borbulhamento marinho, cantos ressonantes de baleia-jubarte e SFX (sonar, krill, lixo, rede, splash e fanfarra).
+- [x] **4.3 Polimento do Relatório de Migração (`victoryScreen.ts`):** Indicador de Sabedoria Ancestral / Herança Cultural, partículas brilhantes e fanfarra de vitória.
+- [x] **4.4 Silenciamento de Áudio no Fim de Jogo:** Interrupção imediata de sons ambientes e cantos ao desmaiar/morrer e durante a tela de resgate.
 
 ---
 
-## 🚀 FASE 1: Base do Mapa & Geografia dos 27.000m (Prioridade Máxima)
-*Objetivo: Estabelecer o "esqueleto" do mundo, transição de cores e a sinalização pedagógica ao longo dos 27km.*
+## 🎯 Próximas Fases (Ordenadas por Prioridade)
 
-- [x] **1.1 Transição Dinâmica de Cores do Mar (`main.ts`):** Gradiente de fundo alterando suavemente as cores RGB de azul polar escuro (`#051c38`) para azul turquesa luminoso (`#1490b8`) conforme a posição `X` progride de 0m a 27.000m.
-- [x] **1.2 Restrição Geográfica da Ressurgência (`upwellingSystem.ts`):** Condicionar os jatos ascensionais e a geração dinâmica de Krill para ocorrerem exclusivamente na faixa de Arraial do Cabo (`19.000m <= position.x <= 25.000m`).
-- [x] **1.3 Redistribuição dos Pop-ups Educativos (`data/facts.json`):** Reposicionar os marcadores `triggerX` em gatilhos estratégicos: 500m (Antártica), 6.000m (Travessia), 13.000m (Costa Urbana), 19.500m (Ressurgência) e 24.000m (Santuário).
+### 🎵 FASE 5: Sonoplastia 16-Bit Retrô & Redesenho de SFX (Prioridade Máxima de Áudio)
+*Objetivo: Transformar a identidade sonora do jogo para o estilo clássico 16-bit (estilo Mega Drive / SNES / Ecco the Dolphin), com efeitos biológicos mais autênticos.*
 
----
-
-## ❄️ FASE 2: Biomas Específicos & Perigos (Level Design por Etapa)
-*Objetivo: Construir a identidade de desafio e narrativa ambiental de cada um dos 5 trechos da travessia.*
-
-- [x] **2.1 Etapa 1 - Oceano Antártico (0m - 5.000m):**
-  - **Camada de Gelo na Superfície:** Substituir o teto de água por blocos de gelo congelado com fendas/aberturas de respiração específicas.
-  - **Fundo Polar:** Silhuetas estéticas de Orcas ao fundo distante (sem colisão/ataque).
-- [x] **2.2 Etapa 2 - Travessia Oceânica (5.000m - 12.000m):**
-  - **Jejum Migratório:** Remoção de Krill em mar aberto.
-  - **Jubartes Passantes:** Outras jubartes navegando ao fundo emitindo pulsos de sonar de baixa frequência que iluminam caminhos no mar escuro.
-- [x] **2.3 Etapa 3 - Costa Urbana & Tráfego Marítimo (12.000m - 19.000m):**
-  - **Poluição Sonora:** Navios cargueiros emitindo ondas de ruído motorizado (círculos piscantes) que desorientam os controles.
-  - **Barco de Resgate Patrulheiro:** Barco da Guarda Marítima patrulhando a superfície desta área e intervindo ativamente para libertar a baleia se próxima em moments de perigo.
-- [x] **2.4 Etapa 4 - Faixa de Ressurgência (19.000m - 25.000m):**
-  - **Cânions de Pedra:** Obstáculos rochosos estreitos (Boqueirão / Fenda de N. Sra.) exigindo navegação fina de nadadeiras.
-- [x] **2.5 Etapa 5 - Santuário Marinho (25.000m - 27.000m):**
-  - **Chegada em Águas Calmas:** Transição para o ambiente cristalino abrigado da Ilha do Farol.
+- [ ] **5.1 Redesenho do Som de Alimentação de Krill (Engolida / Sucção):**
+  - Substituir o som atual (que soa como moeda de arcade) por um som de **engolida e sucção subaquática biológica**, simulando o abrir de boca e filtração de água por cerdas (baleen).
+- [ ] **5.2 Síntese de Efeitos Sonoros 16-Bit Retrô:**
+  - Recriação dos efeitos (sonar, impulso de nado, colisões e fanfarras) utilizando técnicas de síntese FM e filtros característicos da era 16-bit, conferindo charme vintage e excelente definição sonora.
+- [ ] **5.3 Trilha Sonora 16-Bit Adaptativa por Bioma:**
+  - Temas musicais dinâmicos em síntese 16-bit com variações atmosféricas por trecho:
+    - *Antártica:* Arpejos cristalinos frios e suaves de glockenspiel 16-bit.
+    - *Travessia Oceânica:* Linha de baixo lenta e misteriosa (inspirada em *Aquatic Ambiance* / *Ecco the Dolphin*).
+    - *Costa Urbana:* Pulsos industriais rítmicos com ruídos mecânicos abafados.
+    - *Arraial do Cabo:* Harmonia ensolarada, tropical e comemorativa em FM Synth.
 
 ---
 
-## 🦐 FASE 3: Progressão do Jogador & Sistema Nutricional
-*Objetivo: Recompensar a alimentação ativa com evolução permanente de atributos.*
+### 🧭 FASE 6: Menu Inicial, Seleção de Modo & Diário de Bordo
+*Objetivo: Criar uma porta de entrada profissional ao jogo, permitir escolha direta de modo de jogo e consulta pedagógica.*
 
-- [x] **3.1 Crescimento Progressivo de Atributos via Krill:** Cada Krill consumido concede um aumento permanente de ~1% no teto máximo de velocidade (`MAX_SPEED`) e na capacidade máxima de oxigênio (`maxOxygen`), acumulando benefício perceptível ao longo dos 27.000m (ex: 20 krills = +20% de atributos).
+- [ ] **6.1 Tela de Menu Principal:**
+  - Menu inicial com visual marítimo e opções:
+    - **"Iniciar Migração"** (leva à seleção de modo)
+    - **"Opções"** (configurações)
+    - **"Diário de Bordo (Codex)"** (fatos e curiosidades da fauna)
+- [ ] **6.2 Fluxo de Início com Escolha do Modo de Jogo:**
+  - Ao clicar em **"Iniciar Migração"**, o jogador escolhe o estilo de partida:
+    - **Modo Padrão (Desafio Real):** Rota migratória clássica com dreno de oxigênio, perigos e pontuação no Eco-Score.
+    - **Modo Navegação Serena (Acessibilidade):** Oxigênio infinito e navegação livre sem risco de desmaio, ideal para crianças ou exploração 100% contemplativa.
+    - **Modo Desafio Rápido de 1 Minuto (Filas na Feira):** Partida rápida focada em um único bioma selecionável (ex: Labirinto de Gelo Polar, Desvio de Navios Urbanos ou Cânions de Arraial), perfeito para feiras de ciências com alta rotatividade de visitantes.
+- [ ] **6.3 Painel de Opções & Configurações de Áudio:**
+  - Ajuste de volume geral e opções de ligar/desligar música ambiente e efeitos sonoros.
+- [ ] **6.4 Diário de Bordo da Expedição (Codex no Menu):**
+  - Tela de consulta dos fatos ecológicos desbloqueados, espécies observadas e mensagens do *Instituto Baleia Jubarte*.
 
 ---
 
-## 🏆 FASE 4: Polimento, Áudio & Clímax Final
-*Objetivo: Elevar o impacto estético e finalizar a experiência do jogador.*
+### 🐋 FASE 7: Identidade da Jubarte, Habilidades & Feedback Sensorial (Arte & Animação)
+*Objetivo: Substituir o sprite provisório por arte dedicada de alta fidelidade, efeitos vivos de respiração e redesenho do sonar.*
 
-- [ ] **4.1 Evento do Salto Majestoso (Breach):** Convite para salto com a tecla `Espaço` na linha de chegada (27.000m), concedendo bônus de prestígio ecológico.
-- [ ] **4.2 Paisagem Sonora e Áudio Ambiente:** Som de fundo com o canto real de jubartes e borbulhamento do mar.
-- [ ] **4.3 Polimento do Relatório de Migração (`victoryScreen.ts`):** Adicionar indicador de herança cultural/sabedoria ancestral no card final.
+- [ ] **7.1 Sprite Personalizado da Baleia-Jubarte:**
+  - Substituição definitiva do `bean.png` por arte e silhueta anatômica da Jubarte (nadadeiras peitorais longas e tubérculos característicos).
+- [ ] **7.2 Animações Orgânicas de Nado & Alimentação:**
+  - Movimento ondulante da cauda/flukes sincronizado com a batida de cauda (`Espaço`).
+  - Abertura suave da mandíbula de cerdas (baleen) ao sugar cardumes de Krill.
+- [ ] **7.3 Esguicho do Espiráculo (Blowhole Spout):**
+  - Erupção vertical de vapor e borrifo d'água com partículas e som de exalação profunda (*whoosh*) ao romper a superfície para respirar.
+- [ ] **7.4 Sonar Omnidirecional (Varredura de Tela Total) & Revelação Subaquática:**
+  - O sonar deixa de ser direcional (eliminando o cone estreito de 30°) e passa a emitir uma onda acústica expansiva em 360° cobrindo toda a tela.
+  - Outros elementos submersos passam a necessitar do sonar para serem visualizados no escuro/profundezas marinhas:
+    - Outras baleias-jubarte e orcas navegando ao fundo.
+    - Relevos subterrâneos, formações e paredões rochosos dos cânions.
+    - Lixo plástico camuflado e redes fantasmas no leito marinho.
+
+---
+
+### 🌅 FASE 8: Cenários Vivos & Atmosfera em Paralaxe (Profundidade & Luz)
+*Objetivo: Transformar o mar e o céu em um mundo vivo e cinematográfico.*
+
+- [ ] **8.1 Raios de Sol Subaquáticos (*God Rays*) & Caustics:**
+  - Feixes translúcidos de luz solar filtrando da superfície em direção às profundezas nas águas cristalinas de Arraial do Cabo.
+- [ ] **8.2 Céu Vivo em Paralaxe:**
+  - Camadas de nuvens em deriva lenta, aves marinhas (gaivotas e albatrozes) voando no horizonte e silhueta do Farol da Ilha ao fundo.
+- [ ] **8.3 Detalhamento do Fundo Marinho:**
+  - Florestas de algas ondulantes (kelp) na faixa polar e formações de corais nas águas calmas de Arraial do Cabo.
+
+---
+
+### 🌊 FASE 9: Dinâmica Ecológica, Fauna Rara & Perigos Adicionais
+*Objetivo: Enriquecer a variedade de gameplay, biodiversidade marinha e desafios ambientais.*
+
+- [ ] **9.1 Mancha de Óleo Pré-Arraial (antes do Boqueirão):**
+  - Posicionada estrategicamente no final da Costa Urbana (entre ~17.500m e 18.900m), logo antes da entrada do Boqueirão e do trecho de Arraial do Cabo.
+  - Mancha de combustível flutuando na superfície: passar por ela obstrui temporariamente o espiráculo da baleia com óleo, exigindo mergulho rápido para limpar os resíduos antes de conseguir respirar novamente.
+- [ ] **9.2 Nado em Bando com Golfinhos (*Drafting*):**
+  - Pequenos grupos de golfinhos acompanhantes em mar aberto que concedem bônus hidrodinâmico de velocidade e economia de fôlego ao nadar alinhado a eles.
+- [ ] **9.3 Silhueta de Baleia-Azul ou Cachalote nas Profundezas:**
+  - No mar aberto (trecho de travessia oceânica onde ocorre o jejum de krill), passagem majestosa e pacífica de uma criatura abissal gigante ao fundo com vocalização submarina profunda própria.
+- [ ] **9.4 Pinguins de Magalhães Saltando na Saída Antártica:**
+  - Bandos ágeis de pinguins nadando em zigue-zague veloz nas fendas de gelo entre 4.000m e 5.000m, marcando a transição do continente polar para o mar aberto.
+
+---
+
+### 📱 FASE 10: Feira de Ciências & Acessibilidade Mobile
+*Objetivo: Maximizar o engajamento com jurados, visitantes e dispositivos touch.*
+
+- [ ] **10.1 Modo Kiosk (Demonstração Interativa):**
+  - Ativação de um screensaver/demonstração cinematográfica autônoma se o jogo permanecer inativo por 45 segundos no menu, com convite: *"Toque em qualquer tecla para guiar a Jubarte!"*.
+- [ ] **10.2 Controles Virtuais Touch na Tela:**
+  - Suporte a botões virtuais na tela para tablets, celulares e totens interativos na feira de ciências.

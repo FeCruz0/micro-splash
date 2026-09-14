@@ -1,6 +1,7 @@
 import type { KaboomCtx } from "kaboom";
 import { GAME_CONFIG, TAGS } from "../config";
 import { isPositionInIceGap } from "../systems/iceSurface";
+import { audioSystem } from "../systems/audioSystem";
 
 export function createPlayer(k: KaboomCtx) {
   const baleia = k.add([
@@ -32,9 +33,10 @@ export function createPlayer(k: KaboomCtx) {
   let blackoutTimer = GAME_CONFIG.BLACKOUT_GRACE_TIME;
   let isFainting = false;
 
-  // sistema de rede
+  // sistema de rede e salto majestoso
   let isTrapped = false;
   let escapesNeeded = 0;
+  let isBreaching = false;
 
   k.onUpdate(() => {
     // se estiver demaiada
@@ -44,8 +46,15 @@ export function createPlayer(k: KaboomCtx) {
       return; 
     }
 
-    // se estiver presa na rede fantasma
-    if (isTrapped) {
+    // se estiver no Salto Majestoso (Breach)
+    if (isBreaching) {
+      facingRight = true;
+      targetCamOffset = 200;
+      baleia.flipX = false;
+      if (currentSpeed.len() > 10) {
+        angle = k.clamp(k.rad2deg(Math.atan2(currentSpeed.y, currentSpeed.x)), -45, 45);
+      }
+    } else if (isTrapped) {
       // Apenas o controle de nado fica travado; barra de espaço serve para se soltar
       if (k.isKeyPressed("space")) {
         escapesNeeded--;
@@ -99,6 +108,7 @@ export function createPlayer(k: KaboomCtx) {
 
       if ((k.isKeyDown("shift") || k.isKeyDown("e")) && sonarCooldown <= 0) {
         sonarCooldown = GAME_CONFIG.SONAR_COOLDOWN;
+        audioSystem.playSonarSound();
 
         // posição de disparo (testa/melão da baleia)
         const headPos = baleia.pos.add(k.vec2(facingRight ? 30 : -30, 0));
@@ -159,8 +169,16 @@ export function createPlayer(k: KaboomCtx) {
     baleia.angle = facingRight ? angle : -angle;
     const inAir = baleia.pos.y < GAME_CONFIG.SEA_LEVEL;
     const airGravity = inAir ? 120 : 0;
-    baleia.move(currentSpeed.x, currentSpeed.y + GAME_CONFIG.SINK_RATE + airGravity);
-    currentSpeed = currentSpeed.scale(GAME_CONFIG.WATER_DRAG);
+
+    if (isBreaching && inAir) {
+      // Física balística aerodinâmica durante o Salto Majestoso
+      currentSpeed.y += 620 * k.dt(); // gravidade realista no ar
+      currentSpeed.x = currentSpeed.x * 0.996; // arrasto mínimo no ar
+      baleia.move(currentSpeed.x, currentSpeed.y);
+    } else {
+      baleia.move(currentSpeed.x, currentSpeed.y + GAME_CONFIG.SINK_RATE + airGravity);
+      currentSpeed = currentSpeed.scale(GAME_CONFIG.WATER_DRAG);
+    }
    
     // se baleia submersa ou bloqueada por gelo na Antártida, perde oxigênio
     const isAtSurface = baleia.pos.y <= GAME_CONFIG.SEA_LEVEL + 40;
@@ -237,7 +255,14 @@ export function createPlayer(k: KaboomCtx) {
       currentSpeed = currentSpeed.scale(0.5);
     },
 
-    isTrapped: () => isTrapped
+    isTrapped: () => isTrapped,
+
+    startBreach: () => {
+      isBreaching = true;
+      isTrapped = false;
+    },
+
+    isBreaching: () => isBreaching,
 
   };
 }

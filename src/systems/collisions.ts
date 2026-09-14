@@ -1,5 +1,6 @@
 import type { KaboomCtx } from "kaboom";
 import { TAGS, GAME_CONFIG } from "../config";
+import { audioSystem } from "./audioSystem";
 
 export function setupCollisions(k: KaboomCtx, playerController: any, gameState: any) {
 
@@ -8,6 +9,9 @@ export function setupCollisions(k: KaboomCtx, playerController: any, gameState: 
     // Destrói o lixo plástico colidido
     k.destroy(trash);
     gameState.addTrash();
+
+    // Som de impacto no plástico
+    audioSystem.playTrashThud();
 
     // Aplica desaceleração instantânea (perde 50% da velocidade)
     const currentSpeed = playerController.getSpeed();
@@ -25,6 +29,9 @@ export function setupCollisions(k: KaboomCtx, playerController: any, gameState: 
     k.destroy(krill);
     gameState.addKrill();
 
+    // Som de sino nutriente de krill
+    audioSystem.playKrillChime();
+
     // Aplica impulso, restaura fôlego e evolui +1% em velocidade máx e oxigênio máx permanente
     playerController.consumeKrill();
   });
@@ -32,6 +39,8 @@ export function setupCollisions(k: KaboomCtx, playerController: any, gameState: 
   // colisao com rede fantasma
   k.onCollide(TAGS.PLAYER, TAGS.NET, (_player, net) => {
     k.destroy(net); // remove rede do mapa
+    audioSystem.playNetTangle();
+
     if (!playerController.isTrapped()) {
       playerController.trapInNet(GAME_CONFIG.NET_ESCAPE_COUNT); // prende a baleia
       k.shake(5);

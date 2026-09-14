@@ -18,6 +18,8 @@ import { setupBackgroundFaunaSystem } from "./systems/backgroundFauna";
 import { setupShipNoiseSystem } from "./systems/shipNoiseSystem";
 import { setupCanyonSystem } from "./systems/canyonSystem";
 import { setupOceanCurrentsSystem } from "./systems/oceanCurrentsSystem";
+import { audioSystem } from "./systems/audioSystem";
+import { setupBreachSystem } from "./systems/breachSystem";
 
 const k = kaboom({
   background: [8, 16, 32],
@@ -225,22 +227,58 @@ k.scene("game", () => {
     createGhostNet(k, pos);
   });  
 
-  // 4. Ativa colisões e ressurgência
+  // 4. Inicializa o Áudio Procedural na primeira interação do jogador
+  let audioStarted = false;
+  const startAudioOnInteraction = () => {
+    if (!audioStarted) {
+      audioStarted = true;
+      audioSystem.init();
+    }
+    audioSystem.resumeIfSuspended();
+  };
+
+  k.onKeyPress(startAudioOnInteraction);
+  k.onMousePress(startAudioOnInteraction);
+
+  // Tecla 'M': Silenciar / Ativar Som
+  k.onKeyPress("m", () => {
+    startAudioOnInteraction();
+    audioSystem.toggleMute();
+  });
+
+  // 5. Ativa colisões, ressurgência e o clímax do Salto Majestoso (Breach)
   setupCollisions(k, playerController, gameState);
   setupUpwellingSystem(k, playerController);
 
+  setupBreachSystem({
+    k,
+    playerController,
+    gameState,
+    onBreachComplete: () => {
+      if (!isGameFinished) {
+        isGameFinished = true;
+        audioSystem.pauseAmbient();
+        showVictoryScreen(k, gameState, () => {
+          audioSystem.resumeAmbient();
+          k.go("game");
+        });
+      }
+    },
+  });
+
   let isRescueSequenceStarted = false;
 
-  // 4. Loop Principal
+  // 6. Loop Principal
   k.onUpdate(() => {
     const playerXPosition = playerController.gameObj.pos.x;
     
-    // checagem de vitória (27000m)
-    if (playerXPosition >= GAME_CONFIG.ROUTE_TOTAL_DISTANCE && !isGameFinished) {
+    // Fallback de segurança para conclusão caso ultrapasse a rota
+    if (playerXPosition >= GAME_CONFIG.ROUTE_TOTAL_DISTANCE + 200 && !isGameFinished) {
       isGameFinished = true;
-      k.shake(4);
+      audioSystem.pauseAmbient();
       showVictoryScreen(k, gameState, () => {
-        k.go("game"); // reinicia nova partida
+        audioSystem.resumeAmbient();
+        k.go("game");
       });
       return;
     }
@@ -255,12 +293,16 @@ k.scene("game", () => {
       // SE A BALEIA DESMAIOU: Inicia a sequência de resgate da Guarda Marítima!
       isRescueSequenceStarted = true;
 
+      // Interrompe imediatamente os sons ambientes e cantos de baleia ao morrer/desmaiar
+      audioSystem.pauseAmbient();
+
       // Spawna o barco da Guarda Marítima na superfície acima da baleia
       createRescueBoat(k, playerController.gameObj.pos);
 
       // Espera 3.5 segundos (tempo do barco chegar) e exibe o relatório
       k.wait(3.5, () => {
         showRescueScreen(k, gameState, () => {
+          audioSystem.resumeAmbient();
           k.go("game"); // Reinicia a cena limpa!
         });
       });
