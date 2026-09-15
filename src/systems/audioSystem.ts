@@ -570,7 +570,7 @@ class AudioSystem {
   private volume: number = 0.8;
   private musicEnabled: boolean = true;
   private sfxEnabled: boolean = true;
-  private whaleSongTimer: any = null;
+  private lastWhaleSongTime: number = 0;
   private isMigrationAudioRunning: boolean = false;
 
   // Motor musical procedural Aquatic Ambience + 16-Bit Lofi Ocean
@@ -618,10 +618,6 @@ class AudioSystem {
     this.biomeEngine.init(this.ctx, this.masterGain);
     this.biomeEngine.setEnabled(!this.isMuted && this.musicEnabled);
     this.biomeEngine.updatePosition(initialX);
-
-    if (!this.whaleSongTimer && !this.isMuted && this.musicEnabled) {
-      this.scheduleWhaleSong();
-    }
   }
 
   /**
@@ -730,10 +726,6 @@ class AudioSystem {
   }
 
   public pauseAmbient() {
-    if (this.whaleSongTimer) {
-      clearTimeout(this.whaleSongTimer);
-      this.whaleSongTimer = null;
-    }
     if (this.ambientGain && this.ctx) {
       this.ambientGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.15);
     }
@@ -744,9 +736,6 @@ class AudioSystem {
     if (!this.isMigrationAudioRunning || this.isMuted || !this.musicEnabled) return;
     if (this.ambientGain && this.ctx) {
       this.ambientGain.gain.setTargetAtTime(0.22, this.ctx.currentTime, 0.2);
-    }
-    if (!this.whaleSongTimer && this.isInitialized) {
-      this.scheduleWhaleSong();
     }
     this.biomeEngine.resume();
   }
@@ -809,64 +798,210 @@ class AudioSystem {
     this.ambientGain.connect(this.masterGain);
 
     this.ambientNoiseSource.start();
-
-    this.scheduleWhaleSong();
-  }
-
-  private scheduleWhaleSong() {
-    if (this.whaleSongTimer) return;
-    const delay = 11000 + Math.random() * 9000;
-    this.whaleSongTimer = setTimeout(() => {
-      this.whaleSongTimer = null;
-      if (!this.isMuted && this.ctx && this.ctx.state === "running") {
-        this.playWhaleSong();
-      }
-      this.scheduleWhaleSong();
-    }, delay);
   }
 
   /**
-   * Canto Místico de Baleia-Jubarte (Harmonizado com a ambiência de Aquatic Ambience)
+   * Canto Autêntico da Baleia-Jubarte (Síntese 16-bit SNES / Tracker)
+   * Estruturado em 3 Patches principais orquestrados em frases A -> B -> C com eco abissal do oceano:
+   * 1. Canal 1 (Assobio): Onda Sine limpa com ataque lento (1s), relaxamento longo (2s), vibrato constante (LFO),
+   *    pitch bend subindo no 1º compasso e despencando lentamente ("chorando" até o final) - Frase A.
+   * 2. Canal 2 (O Gemido / Cello): Onda Sine + Sawtooth tocadas duas oitavas abaixo, filtro passa-baixa severo
+   *    com pitch sweep descendente lento imitando o tremor gutural da água vibrando - Frase B.
+   * 3. Canal 3 (O Rangido): Onda Square ultragrave (C0) com pitch bend negativo extremo ("efeito zíper" biológico)
+   *    imitando a desaceleração orgânica da baleia fechando a garganta - Frase C.
+   * 4. Eco do SNES / Oceano: Delay de 180ms com alto feedback e filtro passa-baixa abafando agudos na escuridão.
+   *
+   * Disparo: Emitido SOMENTE quando o usuário usa o sonar (Shift/E) ou quando baleias próximas usam o sonar.
    */
-  public playWhaleSong() {
+  public playWhaleSong(volumeScale: number = 1.0, pitchShift: number = 1.0) {
     if (!this.musicEnabled || !this.ctx || !this.masterGain) return;
 
     const now = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    const filter = this.ctx.createBiquadFilter();
+    // Evita sobreposição embolada se acionado em rápida sucessão
+    if (now - this.lastWhaleSongTime < 4.0) return;
+    this.lastWhaleSongTime = now;
 
-    const vibrato = this.ctx.createOscillator();
-    const vibratoGain = this.ctx.createGain();
-    vibrato.frequency.value = 4.2;
-    vibratoGain.gain.value = 9;
-    vibrato.connect(osc.frequency);
-    vibrato.start(now);
-    vibrato.stop(now + 3.4);
+    // =========================================================================
+    // BARRAMENTO DE ECO OCEÂNICO DO SNES (Delay de 180ms com Low-pass de 420Hz)
+    // =========================================================================
+    const delayNode = this.ctx.createDelay(1.0);
+    delayNode.delayTime.setValueAtTime(0.18, now);
 
-    osc.type = "sine";
-    const startFreq = 165 + Math.random() * 30;
-    const peakFreq = startFreq + 85 + Math.random() * 45;
-    const endFreq = startFreq - 25;
+    const feedbackGain = this.ctx.createGain();
+    feedbackGain.gain.setValueAtTime(0.52, now); // Várias repetições com decaimento
 
-    osc.frequency.setValueAtTime(startFreq, now);
-    osc.frequency.exponentialRampToValueAtTime(peakFreq, now + 1.3);
-    osc.frequency.exponentialRampToValueAtTime(endFreq, now + 3.0);
+    const echoFilter = this.ctx.createBiquadFilter();
+    echoFilter.type = "lowpass";
+    echoFilter.frequency.setValueAtTime(420, now); // Corta agudos para se perder no abismo
+    echoFilter.Q.value = 1.2;
 
-    filter.type = "bandpass";
-    filter.frequency.setValueAtTime(260, now);
-    filter.Q.value = 3.2;
+    const delayMasterGain = this.ctx.createGain();
+    delayMasterGain.gain.setValueAtTime(0.25 * volumeScale, now);
 
-    gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(0.26, now + 0.7);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 3.4);
+    // Conexão do loop de eco
+    delayNode.connect(echoFilter);
+    echoFilter.connect(feedbackGain);
+    feedbackGain.connect(delayNode);
+    echoFilter.connect(delayMasterGain);
+    delayMasterGain.connect(this.masterGain);
 
-    osc.connect(filter);
-    filter.connect(gain);
-    gain.connect(this.masterGain);
+    // Ganho seco (dry) da voz
+    const dryGain = this.ctx.createGain();
+    dryGain.gain.setValueAtTime(0.28 * volumeScale, now);
+    dryGain.connect(this.masterGain);
 
-    osc.start(now);
-    osc.stop(now + 3.4);
+    // Barramento de voz que alimenta dry e delay
+    const vocalBus = this.ctx.createGain();
+    vocalBus.gain.setValueAtTime(1.0, now);
+    vocalBus.connect(dryGain);
+    vocalBus.connect(delayNode);
+
+    // =========================================================================
+    // 1. CANAL 1 / FRASE A: LAMENTO LÍMPIDO (Assobio - Sine limpa com vibrato)
+    // Início: t0. Duração: ~3.6s
+    // Nota C4 (~261Hz) subindo suavemente a D4 (~295Hz) e caindo chorando até F3 (~175Hz)
+    // =========================================================================
+    const tA = now;
+    const durA = 3.6;
+
+    const oscA = this.ctx.createOscillator();
+    const vibratoA = this.ctx.createOscillator();
+    const vibratoGainA = this.ctx.createGain();
+    const gainA = this.ctx.createGain();
+    const filterA = this.ctx.createBiquadFilter();
+
+    oscA.type = "sine";
+    const baseFreqA = 261.63 * pitchShift;
+    const peakFreqA = 295.00 * pitchShift;
+    const endFreqA = 175.00 * pitchShift;
+
+    oscA.frequency.setValueAtTime(baseFreqA, tA);
+    oscA.frequency.exponentialRampToValueAtTime(peakFreqA, tA + 0.9);
+    oscA.frequency.exponentialRampToValueAtTime(endFreqA, tA + durA);
+
+    // Vibrato leve constante (LFO de ~4.6Hz)
+    vibratoA.type = "sine";
+    vibratoA.frequency.setValueAtTime(4.6, tA);
+    vibratoGainA.gain.setValueAtTime(7.5, tA);
+    vibratoA.connect(oscA.frequency);
+
+    // Filtro formante aveludado (sem agudos cortantes)
+    filterA.type = "lowpass";
+    filterA.frequency.setValueAtTime(460, tA);
+    filterA.Q.value = 1.6;
+
+    // Ataque lento (1.0s), relaxamento longo (2.0s)
+    gainA.gain.setValueAtTime(0.001, tA);
+    gainA.gain.linearRampToValueAtTime(0.85, tA + 1.0);
+    gainA.gain.exponentialRampToValueAtTime(0.5, tA + 2.0);
+    gainA.gain.exponentialRampToValueAtTime(0.001, tA + durA);
+
+    oscA.connect(filterA);
+    filterA.connect(gainA);
+    gainA.connect(vocalBus);
+
+    vibratoA.start(tA);
+    oscA.start(tA);
+    vibratoA.stop(tA + durA);
+    oscA.stop(tA + durA);
+
+    // =========================================================================
+    // 2. CANAL 2 / FRASE B: O MERGULHO CAVERNOSO (O Gemido / Cello Gutural)
+    // Início: tB = tA + 3.2s. Duração: ~2.8s
+    // Mix de Sine com Sawtooth 2 oitavas abaixo, passa-baixa severo (< 190Hz)
+    // =========================================================================
+    const tB = now + 3.2;
+    const durB = 2.8;
+
+    const oscSineB = this.ctx.createOscillator();
+    const oscSawB = this.ctx.createOscillator();
+    const gainB = this.ctx.createGain();
+    const filterB = this.ctx.createBiquadFilter();
+
+    oscSineB.type = "sine";
+    oscSawB.type = "sawtooth";
+
+    // Nota média-grave (G2 = 98Hz) com pitch sweep descendente lento
+    const baseFreqB = 98.0 * pitchShift;
+    const endFreqB = 54.0 * pitchShift;
+
+    oscSineB.frequency.setValueAtTime(baseFreqB, tB);
+    oscSineB.frequency.exponentialRampToValueAtTime(endFreqB, tB + durB);
+
+    // Sawtooth 1 a 2 oitavas abaixo (~49Hz descendo a 27Hz)
+    oscSawB.frequency.setValueAtTime(baseFreqB * 0.5, tB);
+    oscSawB.frequency.exponentialRampToValueAtTime(endFreqB * 0.5, tB + durB);
+
+    // Filtro passa-baixa severo para tremor gutural abafado e cavernoso da água
+    filterB.type = "lowpass";
+    filterB.frequency.setValueAtTime(190, tB);
+    filterB.frequency.exponentialRampToValueAtTime(70, tB + durB);
+    filterB.Q.value = 2.6;
+
+    gainB.gain.setValueAtTime(0.001, tB);
+    gainB.gain.linearRampToValueAtTime(0.9, tB + 0.45);
+    gainB.gain.exponentialRampToValueAtTime(0.45, tB + 1.8);
+    gainB.gain.exponentialRampToValueAtTime(0.001, tB + durB);
+
+    oscSineB.connect(filterB);
+    oscSawB.connect(filterB);
+    filterB.connect(gainB);
+    gainB.connect(vocalBus);
+
+    oscSineB.start(tB);
+    oscSawB.start(tB);
+    oscSineB.stop(tB + durB);
+    oscSawB.stop(tB + durB);
+
+    // =========================================================================
+    // 3. CANAL 3 / FRASE C: A PERCUSSÃO BIOLÓGICA (O Rangido / Estalos e Zíper)
+    // Início: tC = tB + 2.2s. Sequência de estalos ultragraves desacelerando
+    // =========================================================================
+    const tC = tB + 2.2;
+    const clickIntervals = [0, 0.11, 0.24, 0.40, 0.60];
+
+    clickIntervals.forEach((offset, idx) => {
+      if (!this.ctx) return;
+      const clickTime = tC + offset;
+      const clickDur = 0.07;
+
+      const clickOsc = this.ctx.createOscillator();
+      const clickFilter = this.ctx.createBiquadFilter();
+      const clickGain = this.ctx.createGain();
+
+      clickOsc.type = "square";
+      // Extremo grave (C0) com pitch bend negativo extremo (efeito zíper orgânico)
+      clickOsc.frequency.setValueAtTime(52 * pitchShift, clickTime);
+      clickOsc.frequency.exponentialRampToValueAtTime(14, clickTime + clickDur);
+
+      clickFilter.type = "lowpass";
+      clickFilter.frequency.setValueAtTime(280, clickTime);
+      clickFilter.Q.value = 2.0;
+
+      const clickVol = 0.7 - idx * 0.1;
+      clickGain.gain.setValueAtTime(0.001, clickTime);
+      clickGain.gain.linearRampToValueAtTime(clickVol, clickTime + 0.005);
+      clickGain.gain.exponentialRampToValueAtTime(0.001, clickTime + clickDur);
+
+      clickOsc.connect(clickFilter);
+      clickFilter.connect(clickGain);
+      clickGain.connect(vocalBus);
+
+      clickOsc.start(clickTime);
+      clickOsc.stop(clickTime + clickDur);
+    });
+
+    // Cleanup dos nós de delay após a cauda de reverberação (~10.5s)
+    setTimeout(() => {
+      try {
+        delayNode.disconnect();
+        feedbackGain.disconnect();
+        echoFilter.disconnect();
+        delayMasterGain.disconnect();
+        dryGain.disconnect();
+        vocalBus.disconnect();
+      } catch {}
+    }, 10500);
   }
 
   /**
@@ -919,6 +1054,100 @@ class AudioSystem {
 
     playFmPing(now, 0.32);
     playFmPing(now + 0.11, 0.10);
+  }
+
+  /**
+   * Eco de Retorno do Sonar (Reflexão Acústica de Objetos Detectados)
+   */
+  public playSonarEcho(delayMs: number = 60) {
+    if (!this.sfxEnabled || !this.ctx || !this.masterGain) return;
+
+    const time = this.ctx.currentTime + delayMs / 1000;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    const filter = this.ctx.createBiquadFilter();
+
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(660, time);
+    osc.frequency.exponentialRampToValueAtTime(330, time + 0.15);
+
+    filter.type = "bandpass";
+    filter.frequency.setValueAtTime(600, time);
+    filter.Q.value = 3.5;
+
+    gain.gain.setValueAtTime(0.08, time);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.18);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc.start(time);
+    osc.stop(time + 0.18);
+  }
+
+  /**
+   * Esguicho do Espiráculo (Blowhole Spout)
+   * Síntese procedural de exalação potente e condensação de vapor marinho
+   */
+  public playBlowholeSpout() {
+    if (!this.sfxEnabled || !this.ctx || !this.masterGain) return;
+
+    const now = this.ctx.currentTime;
+    const duration = 0.85;
+
+    // 1. Jato de Ar Pressurizado (Ruído com varredura dinâmica passa-faixa)
+    const bufferSize = Math.floor(this.ctx.sampleRate * duration);
+    const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
+
+    const noiseSource = this.ctx.createBufferSource();
+    noiseSource.buffer = noiseBuffer;
+
+    const noiseFilter = this.ctx.createBiquadFilter();
+    noiseFilter.type = "bandpass";
+    noiseFilter.frequency.setValueAtTime(2200, now);
+    noiseFilter.frequency.exponentialRampToValueAtTime(650, now + 0.45);
+    noiseFilter.Q.value = 2.4;
+
+    const noiseGain = this.ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.001, now);
+    noiseGain.gain.linearRampToValueAtTime(0.35, now + 0.04);
+    noiseGain.gain.exponentialRampToValueAtTime(0.12, now + 0.4);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+    noiseSource.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(this.masterGain);
+
+    // 2. Ressonância Sub-grave da Cavidade Corporal (30 toneladas de massa pulmonar)
+    const subOsc = this.ctx.createOscillator();
+    const subFilter = this.ctx.createBiquadFilter();
+    const subGain = this.ctx.createGain();
+
+    subOsc.type = "sine";
+    subOsc.frequency.setValueAtTime(140, now);
+    subOsc.frequency.exponentialRampToValueAtTime(75, now + 0.5);
+
+    subFilter.type = "lowpass";
+    subFilter.frequency.setValueAtTime(180, now);
+    subFilter.Q.value = 1.8;
+
+    subGain.gain.setValueAtTime(0.001, now);
+    subGain.gain.linearRampToValueAtTime(0.28, now + 0.05);
+    subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+
+    subOsc.connect(subFilter);
+    subFilter.connect(subGain);
+    subGain.connect(this.masterGain);
+
+    noiseSource.start(now);
+    subOsc.start(now);
+    noiseSource.stop(now + duration);
+    subOsc.stop(now + 0.55);
   }
 
   /**

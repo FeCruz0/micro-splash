@@ -42,28 +42,24 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
 - [x] **6.3 Painel de Opções & Configurações de Áudio:** Ajuste de volume geral (+/-) e botões liga/desliga para música ambiente e efeitos sonoros com persistência em `localStorage`.
 - [x] **6.4 Diário de Bordo da Expedição (Codex no Menu):** Painel categorizado em abas com consulta de espécies marinhas observadas, fatos ecológicos desbloqueados na rota e mensagens de conservação do *Instituto Baleia Jubarte*.
 
+### 🐋 FASE 7: Identidade da Jubarte, Habilidades & Feedback Sensorial (Arte & Animação)
+- [x] **7.1 Sprite Personalizado da Baleia-Jubarte:**
+  - Substituição definitiva do `bean.png` por spritesheet dedicado com anatomia real da Jubarte (nadadeiras peitorais longas e brancas, tubérculos no focinho, corcunda e cauda serrilhada).
+- [x] **7.2 Animações Orgânicas de Nado & Alimentação:**
+  - Movimento ondulante da cauda/flukes sincronizado com o impulso de nado (`Espaço`).
+  - Abertura suave da mandíbula de cerdas (baleen) com partículas de sucção ao engolir cardumes de Krill.
+- [x] **7.3 Esguicho do Espiráculo (Blowhole Spout):**
+  - Erupção vertical de vapor e borrifo d'água em formato de V com partículas e som de exalação profunda (*whoosh*) ao romper a superfície para respirar.
+- [x] **7.4 Sonar Omnidirecional (Varredura de Tela Total) & Revelação Subaquática:**
+  - O sonar deixa de ser direcional (eliminando o cone estreito de 30°) e passa a emitir uma onda acústica expansiva em 360° cobrindo toda a tela (raio de 650px).
+  - Redes fantasmas e lixo plástico camuflados nas profundezas acendem com contorno acústico e esmaecem gradualmente, além de ecos nos cânions rochosos.
+- [x] **7.5 Canto da Baleia Retrô 16-Bit em 3 Canais & Barramento de Eco SNES:**
+  - Reconstrução da vocalização (`playWhaleSong`) em 3 canais inspirados em trackers (Assobio LFO, Gemido Cello Sine/Sawtooth submerso e Percussão Zíper em C0) com barramento de eco de 180ms e filtro passa-baixa a 420Hz.
+  - Eliminação de temporizadores aleatórios: a baleia só canta quando o jogador aciona o sonar ou quando baleias próximas emitem pulsos acústicos no mar aberto ou santuário.
+
 ---
 
 ## 🎯 Próximas Fases (Ordenadas por Prioridade)
-
----
-
-### 🐋 FASE 7: Identidade da Jubarte, Habilidades & Feedback Sensorial (Arte & Animação)
-*Objetivo: Substituir o sprite provisório por arte dedicada de alta fidelidade, efeitos vivos de respiração e redesenho do sonar.*
-
-- [ ] **7.1 Sprite Personalizado da Baleia-Jubarte:**
-  - Substituição definitiva do `bean.png` por arte e silhueta anatômica da Jubarte (nadadeiras peitorais longas e tubérculos característicos).
-- [ ] **7.2 Animações Orgânicas de Nado & Alimentação:**
-  - Movimento ondulante da cauda/flukes sincronizado com a batida de cauda (`Espaço`).
-  - Abertura suave da mandíbula de cerdas (baleen) ao sugar cardumes de Krill.
-- [ ] **7.3 Esguicho do Espiráculo (Blowhole Spout):**
-  - Erupção vertical de vapor e borrifo d'água com partículas e som de exalação profunda (*whoosh*) ao romper a superfície para respirar.
-- [ ] **7.4 Sonar Omnidirecional (Varredura de Tela Total) & Revelação Subaquática:**
-  - O sonar deixa de ser direcional (eliminando o cone estreito de 30°) e passa a emitir uma onda acústica expansiva em 360° cobrindo toda a tela.
-  - Outros elementos submersos passam a necessitar do sonar para serem visualizados no escuro/profundezas marinhas:
-    - Outras baleias-jubarte e orcas navegando ao fundo.
-    - Relevos subterrâneos, formações e paredões rochosos dos cânions.
-    - Lixo plástico camuflado e redes fantasmas no leito marinho.
 
 ---
 

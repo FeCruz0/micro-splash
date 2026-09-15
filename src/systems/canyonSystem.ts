@@ -20,7 +20,9 @@ export function setupCanyonSystem(k: ReturnType<typeof kaboom>) {
     const posY = rock.fromBottom ? rock.y - rock.height : rock.y;
     const anchorPt = rock.fromBottom ? "topleft" : "topleft";
 
-    k.add([
+    let revealTimer = 0;
+
+    const rockObj = k.add([
       k.rect(rock.width, rock.height, { radius: 6 }),
       k.pos(rock.x, posY),
       k.area(),
@@ -30,7 +32,28 @@ export function setupCanyonSystem(k: ReturnType<typeof kaboom>) {
       k.anchor(anchorPt),
       TAGS.OBSTACLE,
       "canyon_rock",
+      {
+        reveal() {
+          revealTimer = 5.0;
+        },
+      },
     ]);
+
+    rockObj.onUpdate(() => {
+      if (revealTimer > 0) {
+        revealTimer -= k.dt();
+        const t = Math.min(1, revealTimer / 1.5);
+        rockObj.outline.color = k.rgb(
+          k.lerp(70, 0, t),
+          k.lerp(85, 230, t),
+          k.lerp(100, 255, t)
+        );
+        rockObj.outline.width = k.lerp(3, 4.5, t);
+      } else {
+        rockObj.outline.color = k.rgb(70, 85, 100);
+        rockObj.outline.width = 3;
+      }
+    });
 
     // Textura estática de pedra/musgo marinho no topo/base da rocha
     k.add([

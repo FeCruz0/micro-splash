@@ -14,9 +14,11 @@ export const GAME_CONFIG = {
   TRASH_OXYGEN_PENALTY: 15,   // penalidade de oxygenio por lixo
   KRILL_OXYGEN_RESTORE: 15,   // bonus de oxigenio por krill
   BLACKOUT_GRACE_TIME: 4,     // tempo de tolerancia quando oxygenio é zerado
-  SONAR_RANGE: 450,           // raio do sonar
-  SONAR_ANGLE: 30,            // angulo do feixe do sonar em graus
-  SONAR_COOLDOWN: 1.5,        // tempo entre cada emissao do sonar
+  SONAR_RANGE: 650,           // raio expansivo do sonar em 360°
+  SONAR_ANGLE: 360,           // cobertura omnidirecional total
+  SONAR_COOLDOWN: 2.0,        // tempo de recarga entre emissões do sonar
+  SONAR_REVEAL_DURATION: 5.5, // tempo de iluminação de objetos escaneados no escuro
+  BLOWHOLE_OXYGEN_THRESHOLD: 92, // gatilho do esguicho ao recarregar ar na superfície
   NET_ESCAPE_COUNT: 5,        // toques no espaço para se soltar da rede
   UPWELLING_INTERVAL: 18,     // intervalo entre ressurgencias
   UPWELLING_DURATION: 4,      // duração da ressurgência

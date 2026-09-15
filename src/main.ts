@@ -32,7 +32,17 @@ const k = kaboom({
   background: [6, 18, 42],
 });
 
-k.loadSprite("baleia", "https://kaboomjs.com/sprites/bean.png");
+k.loadSprite("baleia", "/sprites/whale.png", {
+  sliceX: 4,
+  sliceY: 1,
+  anims: {
+    glide: 0,
+    stroke_up: 1,
+    stroke_down: 2,
+    swim: { from: 1, to: 2, loop: true, speed: 6 },
+    feed: 3,
+  },
+});
 
 // =============================================================================
 // CENA DO MENU PRINCIPAL (Fase 6)

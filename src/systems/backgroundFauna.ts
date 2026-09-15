@@ -1,4 +1,6 @@
 import kaboom from "kaboom";
+import { TAGS } from "../config";
+import { audioSystem } from "./audioSystem";
 
 /**
  * Cria elementos estéticos de fauna marinha de fundo (Orcas, Jubartes Passantes e Berçário)
@@ -51,8 +53,8 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
     whaleBg.onUpdate(() => {
       pulseTimer += k.dt();
 
-      // A cada ~4.5 segundos, emite um pulso de sonar azul estético de fundo
-      if (pulseTimer >= 4.5) {
+      // A cada ~7 segundos, emite um pulso de sonar azul e canto se o jogador estiver por perto
+      if (pulseTimer >= 7.5) {
         pulseTimer = 0;
         const ring = k.add([
           k.circle(15),
@@ -70,6 +72,12 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
             k.destroy(ring);
           }
         });
+
+        // Se o jogador estiver em alcance auditivo (< 1500px), a baleia de fundo emite um canto distante
+        const player = k.get(TAGS.PLAYER)[0];
+        if (player && player.pos.dist(whaleBg.pos) < 1500) {
+          audioSystem.playWhaleSong(0.42, 0.88);
+        }
       }
     });
   });
@@ -94,9 +102,35 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
   ]);
 
   let sanctuaryTimer = 0;
+  let motherPulseTimer = 0;
   motherWhale.onUpdate(() => {
     sanctuaryTimer += k.dt();
+    motherPulseTimer += k.dt();
     motherWhale.pos.y = 260 + Math.sin(sanctuaryTimer * 0.8) * 8;
     calfWhale.pos.y = 240 + Math.sin(sanctuaryTimer * 1.2) * 6;
+
+    // Emissão de sonar acolhedor e canto do berçário se o jogador estiver próximo
+    if (motherPulseTimer >= 9.0) {
+      motherPulseTimer = 0;
+      const player = k.get(TAGS.PLAYER)[0];
+      if (player && player.pos.dist(motherWhale.pos) < 1800) {
+        const ring = k.add([
+          k.circle(18),
+          k.pos(motherWhale.pos),
+          k.color(80, 220, 255),
+          k.opacity(0.55),
+          k.anchor("center"),
+          k.z(-3),
+        ]);
+
+        ring.onUpdate(() => {
+          ring.radius += k.dt() * 120;
+          ring.opacity -= k.dt() * 0.3;
+          if (ring.opacity <= 0) k.destroy(ring);
+        });
+
+        audioSystem.playWhaleSong(0.50, 0.95);
+      }
+    }
   });
 }
