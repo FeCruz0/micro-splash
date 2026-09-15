@@ -20,11 +20,13 @@ export function createTrash(k: KaboomCtx, position: Vec2) {
     },
   ]);
 
+  const baseY = position.y;
+
   // Efeito de flutuação suave e decaimento de revelação
   let time = Math.random() * 10;
   trash.onUpdate(() => {
     time += k.dt();
-    trash.pos.y += Math.sin(time * 3) * 0.3;
+    trash.pos.y = baseY + Math.sin(time * 2.2) * 5; // Flutuação senoidal suave ancorada sem deriva
 
     if (revealTimer > 0) {
       revealTimer -= k.dt();

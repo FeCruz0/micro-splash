@@ -51,4 +51,13 @@ export function setupCollisions(k: KaboomCtx, playerController: any, gameState: 
     }
   });
 
+  // Colisão com blocos de gelo: quebra apenas quando atingido por cima ao cair do salto
+  k.onCollide(TAGS.PLAYER, "ice_block", (player, iceBlock: any) => {
+    const vel = playerController.getSpeed();
+    if (player.pos.y <= iceBlock.pos.y + 8 && vel.y >= 0) {
+      if (iceBlock.breakIce) {
+        iceBlock.breakIce();
+      }
+    }
+  });
 }

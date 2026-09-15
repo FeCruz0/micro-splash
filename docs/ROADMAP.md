@@ -64,14 +64,20 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
 ---
 
 ### 🌅 FASE 8: Cenários Vivos & Atmosfera em Paralaxe (Profundidade & Luz)
-*Objetivo: Transformar o mar e o céu em um mundo vivo e cinematográfico.*
+- [x] **8.1 Raios de Sol Subaquáticos (*God Rays*) & Caustics (`lightRaysSystem.ts`):**
+  - Feixes translúcidos de luz solar filtrando dinamicamente da superfície em direção às profundezas, com destaque luminoso dourado e turquesa cintilante em Arraial do Cabo.
+  - Cáusticos de refração luminosa ondulando na sub-superfície acompanhando o movimento das águas.
+- [x] **8.2 Céu Vivo em Paralaxe (`parallaxSkySystem.ts`):**
+  - Nuvens em deriva contínua e velocidade elástica relativa de paralaxe no topo da tela.
+  - Aves marinhas migratórias com batimento de asas em tempo real (Albatrozes na Antártica; Gaivotas e Fragatas na Costa Urbana e Arraial).
+  - Silhueta do Farol da Ilha do Farol no horizonte de Arraial (~25.950m) com torre listrada e feixe cônico rotativo varrendo o céu e o mar.
+- [x] **8.3 Detalhamento do Fundo Marinho Bentônico (`benthicFloorSystem.ts`):**
+  - Florestas de algas gigantes (*kelp*) na Antártica com física de deformação senoidal fluida de ondulação.
+  - Recifes de corais em Arraial do Cabo (corais-cérebro com sulcos, leques de gorgônias e anêmonas fluorescentes) acompanhados de peixes de recife coloridos.
 
-- [ ] **8.1 Raios de Sol Subaquáticos (*God Rays*) & Caustics:**
-  - Feixes translúcidos de luz solar filtrando da superfície em direção às profundezas nas águas cristalinas de Arraial do Cabo.
-- [ ] **8.2 Céu Vivo em Paralaxe:**
-  - Camadas de nuvens em deriva lenta, aves marinhas (gaivotas e albatrozes) voando no horizonte e silhueta do Farol da Ilha ao fundo.
-- [ ] **8.3 Detalhamento do Fundo Marinho:**
-  - Florestas de algas ondulantes (kelp) na faixa polar e formações de corais nas águas calmas de Arraial do Cabo.
+---
+
+## 🎯 Próximas Fases (Ordenadas por Prioridade)
 
 ---
 

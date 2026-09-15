@@ -164,7 +164,7 @@ class BiomeMusicEngine {
   public init(ctx: AudioContext, masterGain: GainNode) {
     this.ctx = ctx;
     this.musicGain = ctx.createGain();
-    this.musicGain.gain.value = 0.35; // Volume envolvente e confortável
+    this.musicGain.gain.value = 0.50; // Volume aprimorado e envolvente
     this.musicGain.connect(masterGain);
 
     this.start();
@@ -567,7 +567,7 @@ class AudioSystem {
   private ambientGain: GainNode | null = null;
   private ambientNoiseSource: AudioBufferSourceNode | null = null;
   private oceanLfo: OscillatorNode | null = null;
-  private volume: number = 0.8;
+  private volume: number = 1.0;
   private musicEnabled: boolean = true;
   private sfxEnabled: boolean = true;
   private lastWhaleSongTime: number = 0;
@@ -587,7 +587,7 @@ class AudioSystem {
 
       this.ctx = new AudioCtxClass();
       this.masterGain = this.ctx.createGain();
-      this.masterGain.gain.value = this.volume * 0.7;
+      this.masterGain.gain.value = this.volume * 1.35;
       this.masterGain.connect(this.ctx.destination);
 
       this.isInitialized = true;
@@ -610,7 +610,7 @@ class AudioSystem {
     if (!this.ambientNoiseSource) {
       this.startAmbientOcean();
     } else if (this.ambientGain) {
-      const targetGain = (!this.isMuted && this.musicEnabled) ? 0.22 : 0;
+      const targetGain = (!this.isMuted && this.musicEnabled) ? 0.30 : 0;
       this.ambientGain.gain.setTargetAtTime(targetGain, this.ctx.currentTime, 0.2);
     }
 
@@ -633,7 +633,7 @@ class AudioSystem {
       const saved = localStorage.getItem("micro_splash_audio_settings");
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (typeof parsed.volume === "number") this.volume = parsed.volume;
+        if (typeof parsed.volume === "number") this.volume = Math.max(1.0, parsed.volume);
         if (typeof parsed.musicEnabled === "boolean") this.musicEnabled = parsed.musicEnabled;
         if (typeof parsed.sfxEnabled === "boolean") this.sfxEnabled = parsed.sfxEnabled;
       }
@@ -653,7 +653,7 @@ class AudioSystem {
   public setVolume(val: number) {
     this.volume = Math.max(0, Math.min(1, val));
     if (this.masterGain && this.ctx) {
-      const targetGain = this.isMuted ? 0 : this.volume * 0.7;
+      const targetGain = this.isMuted ? 0 : this.volume * 1.35;
       this.masterGain.gain.setTargetAtTime(targetGain, this.ctx.currentTime, 0.05);
     }
     this.saveSettings();
@@ -712,7 +712,7 @@ class AudioSystem {
   public toggleMute(): boolean {
     if (!this.masterGain || !this.ctx) return this.isMuted;
     this.isMuted = !this.isMuted;
-    const targetGain = this.isMuted ? 0 : this.volume * 0.7;
+    const targetGain = this.isMuted ? 0 : this.volume * 1.35;
     this.masterGain.gain.setTargetAtTime(targetGain, this.ctx.currentTime, 0.05);
     return this.isMuted;
   }
@@ -1321,50 +1321,142 @@ class AudioSystem {
   }
 
   /**
-   * Reentrada Majestosa na Água (Splashdown)
+   * Reentrada Majestosa na Água (Splashdown 16-Bit Autêntico estilo SNES)
    */
   public playWaterSplash() {
+    this.init();
+    this.resumeIfSuspended();
     if (!this.sfxEnabled || !this.ctx || !this.masterGain) return;
 
     const now = this.ctx.currentTime;
 
-    const subOsc = this.ctx.createOscillator();
-    const subGain = this.ctx.createGain();
-    subOsc.type = "sine";
-    subOsc.frequency.setValueAtTime(95, now);
-    subOsc.frequency.exponentialRampToValueAtTime(32, now + 0.8);
-    subGain.gain.setValueAtTime(0.58, now);
-    subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
-    subOsc.connect(subGain);
-    subGain.connect(this.masterGain);
-    subOsc.start(now);
-    subOsc.stop(now + 0.8);
+    // 1. Corpo ressonante de mergulho aquático (Pitched "Ploosh" em frequências perfeitamente audíveis)
+    const plungeOsc = this.ctx.createOscillator();
+    const plungeGain = this.ctx.createGain();
+    const plungeFilter = this.ctx.createBiquadFilter();
 
-    const bufferSize = this.ctx.sampleRate * 0.8;
+    plungeOsc.type = "triangle";
+    plungeOsc.frequency.setValueAtTime(360, now);
+    plungeOsc.frequency.exponentialRampToValueAtTime(95, now + 0.32);
+
+    plungeFilter.type = "lowpass";
+    plungeFilter.frequency.setValueAtTime(850, now);
+    plungeFilter.frequency.exponentialRampToValueAtTime(180, now + 0.32);
+    plungeFilter.Q.value = 3.2;
+
+    plungeGain.gain.setValueAtTime(1.1, now);
+    plungeGain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+
+    plungeOsc.connect(plungeFilter);
+    plungeFilter.connect(plungeGain);
+    plungeGain.connect(this.masterGain);
+    plungeOsc.start(now);
+    plungeOsc.stop(now + 0.35);
+
+    // 2. Ruído estalado de espuma / borrifo 16-bits (Loud Quantized Noise Burst com filtro dinâmico)
+    const bufferSize = Math.floor(this.ctx.sampleRate * 0.45);
     const splashBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
     const data = splashBuffer.getChannelData(0);
     for (let i = 0; i < bufferSize; i++) {
-      data[i] = Math.random() * 2 - 1;
+      const raw = Math.random() * 2 - 1;
+      const quantized = Math.round(raw * 8) / 8; // Textura quantizada estilo chip de som 16-bit
+      data[i] = quantized * Math.exp(-i / (bufferSize * 0.35));
     }
 
     const noiseSource = this.ctx.createBufferSource();
     noiseSource.buffer = splashBuffer;
 
-    const filter = this.ctx.createBiquadFilter();
-    filter.type = "lowpass";
-    filter.frequency.setValueAtTime(600, now);
-    filter.frequency.linearRampToValueAtTime(180, now + 0.7);
+    const noiseFilter = this.ctx.createBiquadFilter();
+    noiseFilter.type = "lowpass";
+    noiseFilter.frequency.setValueAtTime(2800, now);
+    noiseFilter.frequency.exponentialRampToValueAtTime(450, now + 0.42);
+    noiseFilter.Q.value = 1.8;
 
     const noiseGain = this.ctx.createGain();
-    noiseGain.gain.setValueAtTime(0.48, now);
-    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.8);
+    noiseGain.gain.setValueAtTime(1.0, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+
+    noiseSource.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(this.masterGain);
+    noiseSource.start(now);
+    noiseSource.stop(now + 0.45);
+
+    // 3. Gotículas secundárias aquáticas ("Bloop/Gurgle" característico de 16-bits bem audível)
+    const bloops = [
+      { delay: 0.04, freqStart: 540, freqEnd: 240, gain: 0.65 },
+      { delay: 0.11, freqStart: 440, freqEnd: 200, gain: 0.55 },
+      { delay: 0.19, freqStart: 620, freqEnd: 280, gain: 0.45 },
+    ];
+
+    bloops.forEach((b) => {
+      if (!this.ctx || !this.masterGain) return;
+      const dropTime = now + b.delay;
+      const dropOsc = this.ctx.createOscillator();
+      const dropGain = this.ctx.createGain();
+
+      dropOsc.type = "sine";
+      dropOsc.frequency.setValueAtTime(b.freqStart, dropTime);
+      dropOsc.frequency.exponentialRampToValueAtTime(b.freqEnd, dropTime + 0.14);
+
+      dropGain.gain.setValueAtTime(b.gain, dropTime);
+      dropGain.gain.exponentialRampToValueAtTime(0.01, dropTime + 0.14);
+
+      dropOsc.connect(dropGain);
+      dropGain.connect(this.masterGain);
+      dropOsc.start(dropTime);
+      dropOsc.stop(dropTime + 0.14);
+    });
+  }
+
+  /**
+   * Estilhaçamento de Gelo (Ice Crack / Shatter ao saltar e quebrar a camada)
+   */
+  public playIceCrackSound() {
+    if (!this.sfxEnabled || !this.ctx || !this.masterGain) return;
+
+    const now = this.ctx.currentTime;
+
+    // 1. Estalido agudo de quebra de cristal
+    const crackOsc = this.ctx.createOscillator();
+    const crackGain = this.ctx.createGain();
+    crackOsc.type = "sawtooth";
+    crackOsc.frequency.setValueAtTime(2400, now);
+    crackOsc.frequency.exponentialRampToValueAtTime(320, now + 0.18);
+
+    crackGain.gain.setValueAtTime(0.38, now);
+    crackGain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+    crackOsc.connect(crackGain);
+    crackGain.connect(this.masterGain);
+    crackOsc.start(now);
+    crackOsc.stop(now + 0.18);
+
+    // 2. Ruído de estilhaçamento
+    const bufferSize = Math.floor(this.ctx.sampleRate * 0.25);
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.3));
+    }
+
+    const noiseSource = this.ctx.createBufferSource();
+    noiseSource.buffer = buffer;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.frequency.setValueAtTime(1600, now);
+    filter.frequency.exponentialRampToValueAtTime(500, now + 0.25);
+    filter.Q.value = 2.0;
+
+    const noiseGain = this.ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.42, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
 
     noiseSource.connect(filter);
     filter.connect(noiseGain);
     noiseGain.connect(this.masterGain);
-
     noiseSource.start(now);
-    noiseSource.stop(now + 0.8);
   }
 
   /**

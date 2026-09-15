@@ -33,10 +33,13 @@ micro-splash/
 │   ├── systems/                # Sistemas de simulação de mundo e áudio
 │   │   ├── audioSystem.ts      # Motor de áudio Web Audio API: trilha 16-bit, canto da baleia e SFX
 │   │   ├── backgroundFauna.ts  # Fauna decorativa: orcas, jubartes passantes e berçário mãe/filhote
+│   │   ├── benthicFloorSystem.ts # [Fase 8] Florestas de Kelp (Antártica) e Recifes de Corais (Arraial)
 │   │   ├── biomeSystem.ts      # Gerenciamento de profundidade, cor da água e densidade por bioma
 │   │   ├── canyonSystem.ts     # Geração procedural dos cânions rochosos do Boqueirão
 │   │   ├── collisions.ts       # Detecção e resposta a colisões físicas, dano e salvamento
+│   │   ├── lightRaysSystem.ts  # [Fase 8] Feixes de luz volumétricos (God Rays) e cáusticos de superfície
 │   │   ├── oceanFloorSystem.ts # Topografia e leito oceânico em relevo contínuo
+│   │   ├── parallaxSkySystem.ts # [Fase 8] Nuvens em paralaxe, aves marinhas e Farol de Arraial
 │   │   └── upwellingSystem.ts  # Jatos ascensionais de ressurgência com nutrientes
 │   └── ui/                     # Camada visual de interface, menus e modais
 │       ├── challengeEndScreen.ts # Tela de estatísticas do Desafio Rápido de 60 segundos

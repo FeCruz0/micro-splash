@@ -20,10 +20,12 @@ export function createGhostNet(k: KaboomCtx, position: Vec2) {
     },
   ]);
 
-  let time = Math.random() * 5;
+  const baseY = position.y;
+
+  let time = Math.random() * 10;
   net.onUpdate(() => {
     time += k.dt();
-    net.pos.y += Math.sin(time * 2) * 0.2; // balanço na correnteza
+    net.pos.y = baseY + Math.sin(time * 1.8) * 5; // Balanço suave senoidal ancorado na posição inicial
 
     if (revealTimer > 0) {
       revealTimer -= k.dt();

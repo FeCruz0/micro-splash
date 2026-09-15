@@ -27,8 +27,8 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
     let timer = Math.random() * 10;
     orca.onUpdate(() => {
       timer += k.dt();
-      orca.pos.x += Math.sin(timer * 0.8) * 0.5;
-      orca.pos.y += Math.cos(timer * 0.5) * 0.3;
+      orca.pos.x = pos.x + Math.sin(timer * 0.8) * 12;
+      orca.pos.y = pos.y + Math.cos(timer * 0.5) * 8;
     });
   });
 

@@ -2,6 +2,7 @@ import type { KaboomCtx } from "kaboom";
 import { GAME_CONFIG, TAGS } from "../config";
 import { isPositionInIceGap } from "../systems/iceSurface";
 import { audioSystem } from "../systems/audioSystem";
+import { createWaterSplash } from "../systems/breachSystem";
 
 export function createPlayer(k: KaboomCtx, initialX: number = 120, isSereneMode: boolean = false) {
   const baleia = k.add([
@@ -22,6 +23,7 @@ export function createPlayer(k: KaboomCtx, initialX: number = 120, isSereneMode:
   let angle = 0;
   let sonarCooldown = GAME_CONFIG.SONAR_COOLDOWN;
   let spoutCooldown = 0;
+  let wasInAir = false;
 
   // Animações anatômicas da Jubarte
   let animState: "glide" | "stroke_up" | "stroke_down" | "feed" = "glide";
@@ -31,7 +33,7 @@ export function createPlayer(k: KaboomCtx, initialX: number = 120, isSereneMode:
   function spawnBlowholeSpout(pos: any, isFacingRight: boolean, hSpeed: number) {
     audioSystem.playBlowholeSpout();
 
-    const spoutOrigin = pos.add(k.vec2(isFacingRight ? 18 : -18, -14));
+    const spoutOrigin = pos.add(k.vec2(isFacingRight ? 22 : -22, -13));
 
     // 32 partículas de condensação e vapor marinho em formato de V
     for (let i = 0; i < 32; i++) {
@@ -320,17 +322,45 @@ export function createPlayer(k: KaboomCtx, initialX: number = 120, isSereneMode:
       : 0;
 
     baleia.angle = (facingRight ? angle : -angle) + swimSway;
-    const inAir = baleia.pos.y < GAME_CONFIG.SEA_LEVEL;
-    const airGravity = inAir ? 120 : 0;
+    const inAir = baleia.pos.y < GAME_CONFIG.SEA_LEVEL + 6;
 
-    if (isBreaching && inAir) {
-      // Física balística aerodinâmica durante o Salto Majestoso
-      currentSpeed.y += 620 * k.dt(); // gravidade realista no ar
-      currentSpeed.x = currentSpeed.x * 0.996; // arrasto mínimo no ar
+    if (inAir) {
+      // Voo balístico majestoso pelo ar (fora da água)
+      const gravity = isBreaching ? 620 : 340;
+      currentSpeed.y += gravity * k.dt(); // aceleração gravitacional realista e suave
+      currentSpeed.x = currentSpeed.x * 0.998; // arrasto de ar quase nulo, conserva salto majestoso
       baleia.move(currentSpeed.x, currentSpeed.y);
+
+      // Inclina a baleia organicamente acompanhando a parábola do salto
+      if (currentSpeed.len() > 20) {
+        const trajectoryAngle = k.clamp(k.rad2deg(Math.atan2(currentSpeed.y, Math.abs(currentSpeed.x))), -45, 45);
+        angle = k.lerp(angle, trajectoryAngle, 0.1);
+      }
     } else {
-      baleia.move(currentSpeed.x, currentSpeed.y + GAME_CONFIG.SINK_RATE + airGravity);
+      // Nado hidrodinâmico na água
+      baleia.move(currentSpeed.x, currentSpeed.y + GAME_CONFIG.SINK_RATE);
       currentSpeed = currentSpeed.scale(GAME_CONFIG.WATER_DRAG);
+    }
+
+    // Suavização se subir muito alto no céu (estratosfera), reforça a gravidade para descer em arco gracioso
+    if (baleia.pos.y < -50) {
+      currentSpeed.y += 280 * k.dt();
+    }
+
+    // Efeito de Splashdown ao reentrar na água após o salto (Splash 16-bit visual e sonoro garantido)
+    if (wasInAir && !inAir) {
+      createWaterSplash(k, k.vec2(baleia.pos.x, GAME_CONFIG.SEA_LEVEL), 28);
+      audioSystem.playWaterSplash();
+      k.shake(3.0);
+    }
+    wasInAir = inAir;
+
+    // Fail-Safe de Emergência: se for arremessada para fora do mundo
+    if (baleia.pos.y < -150 || baleia.pos.y > k.height() + 80) {
+      baleia.pos.y = GAME_CONFIG.SEA_LEVEL + 60;
+      currentSpeed = k.vec2(facingRight ? 100 : -100, 30);
+      k.shake(2);
+      audioSystem.playWaterSplash();
     }
    
     // se baleia submersa ou bloqueada por gelo na Antártida, perde oxigênio

@@ -12,16 +12,13 @@ export function createKrill(k: KaboomCtx, position: Vec2) {
         TAGS.KRILL,
     ]);
 
-    // efeito ondulação
-    let time =  Math.random() * 10;
-    k.onUpdate(() => {
-        time += k.dt() *4;
-        krill.pos.y += Math.sin(time) * 0.4;
+    const baseY = position.y;
 
-    // fade-out
-    // if (krill.opacity > 0) {
-    //   krill.opacity = Math.max(0, krill.opacity - k.dt() * 0.25);
-    // }
+    // efeito ondulação
+    let time = Math.random() * 10;
+    k.onUpdate(() => {
+        time += k.dt() * 3;
+        krill.pos.y = baseY + Math.sin(time) * 5;
     });
 
     return krill;
