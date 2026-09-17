@@ -133,4 +133,88 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
       }
     }
   });
+
+  // 4. Silhueta Abissal de Cachalote nas Profundezas (8.000m - 10.800m - Fase 9.4)
+  const leviathan = k.add([
+    k.rect(250, 62, { radius: 22 }),
+    k.pos(8800, 425),
+    k.color(16, 32, 54), // Azul abissal escuro
+    k.opacity(0.42),
+    k.anchor("center"),
+    k.z(-7), // Plano mais distante de fundo
+  ]);
+
+  // Cabeça quadrada maciça característica do Cachalote
+  leviathan.add([
+    k.rect(85, 56, { radius: 16 }),
+    k.pos(90, -2),
+    k.color(18, 36, 60),
+    k.anchor("center"),
+  ]);
+
+  // Mandíbula inferior delgada
+  leviathan.add([
+    k.rect(60, 10, { radius: 3 }),
+    k.pos(95, 24),
+    k.color(14, 28, 48),
+    k.anchor("center"),
+  ]);
+
+  // Olho com brilho marinho suave nas profundezas
+  leviathan.add([
+    k.circle(3),
+    k.pos(55, -4),
+    k.color(80, 210, 255),
+    k.opacity(0.6),
+  ]);
+
+  // Flukes caudais colossais
+  const leviathanFlukes = leviathan.add([
+    k.polygon([k.vec2(0, 0), k.vec2(-35, -28), k.vec2(-28, 0), k.vec2(-35, 28)]),
+    k.pos(-125, 0),
+    k.color(14, 28, 48),
+    k.rotate(0),
+  ]);
+
+  let levTimer = 0;
+  let levCallTimer = 0;
+
+  leviathan.onUpdate(() => {
+    levTimer += k.dt();
+    levCallTimer += k.dt();
+
+    // Nado lento e solene
+    leviathan.pos.x += k.dt() * 16;
+    if (leviathan.pos.x > 10800) {
+      leviathan.pos.x = 8000;
+    }
+    leviathan.pos.y = 425 + Math.sin(levTimer * 0.45) * 12;
+
+    // Ondulação suave da cauda
+    leviathanFlukes.angle = Math.sin(levTimer * 1.2) * 10;
+
+    // A cada ~12 segundos, emite um infrassom oceânico profundo se o jogador estiver por perto
+    if (levCallTimer >= 12.0) {
+      levCallTimer = 0;
+      const player = k.get(TAGS.PLAYER)[0];
+      if (player && player.pos.dist(leviathan.pos) < 1600) {
+        audioSystem.playAbyssalWhaleCall();
+
+        // Onda de choque acústica de baixa frequência
+        const pulse = k.add([
+          k.circle(25),
+          k.pos(leviathan.pos),
+          k.color(60, 180, 240),
+          k.opacity(0.45),
+          k.anchor("center"),
+          k.z(-6),
+        ]);
+        pulse.onUpdate(() => {
+          pulse.radius += k.dt() * 95;
+          pulse.opacity -= k.dt() * 0.15;
+          if (pulse.opacity <= 0) k.destroy(pulse);
+        });
+      }
+    }
+  });
 }

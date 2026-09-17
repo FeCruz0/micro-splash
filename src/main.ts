@@ -23,6 +23,9 @@ import { setupBreachSystem } from "./systems/breachSystem";
 import { setupLightRaysSystem } from "./systems/lightRaysSystem";
 import { setupParallaxSkySystem } from "./systems/parallaxSkySystem";
 import { setupBenthicFloorSystem } from "./systems/benthicFloorSystem";
+import { setupOilSpillSystem } from "./systems/oilSpillSystem";
+import { setupDolphinDraftingSystem } from "./systems/dolphinDraftingSystem";
+import { setupPenguinFlockSystem } from "./systems/penguinFlockSystem";
 
 // Interfaces da Fase 6: Menu Principal, Seleção de Modo, Opções e Codex
 import { createMainMenu } from "./ui/mainMenu";
@@ -168,6 +171,9 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
   setupLightRaysSystem(k);
   setupParallaxSkySystem(k);
   setupBenthicFloorSystem(k);
+  setupOilSpillSystem(k, playerController);
+  setupDolphinDraftingSystem(k, playerController);
+  setupPenguinFlockSystem(k);
 
   // 3. Instancia objetos no caminho (Lixo plástico, Krill, Redes fantasmas)
   // Coordenadas Y calibradas para a coluna d'água navegável (entre 140px e 290px), sem risco de corte pelo chão

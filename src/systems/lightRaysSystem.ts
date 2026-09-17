@@ -6,28 +6,27 @@ import { GAME_CONFIG } from "../config";
  * Traz atmosfera cinematográfica e sensação de profundidade através da luz solar filtrada na água.
  */
 export function setupLightRaysSystem(k: ReturnType<typeof kaboom>) {
-  const rayCount = 10;
+  const rayCount = 15;
   const godRays: GameObj[] = [];
 
-  // Criação dos feixes translúcidos e finos de luz solar
+  // Criação dos feixes ultrafinos e cristalinos de luz solar (1.5px a 3.5px de largura)
   for (let i = 0; i < rayCount; i++) {
-    // Feixes finos e elegantes (5px a 11px de largura)
-    const baseWidth = 5 + (i % 3) * 3;
-    const baseAngle = -16 + (i * 3.6); // Ângulos graduais
+    const baseWidth = 1.5 + (i % 3) * 1.0;
+    const baseAngle = -18 + (i * 2.6); // Ângulos graduais
 
     const ray = k.add([
       k.rect(baseWidth, 420),
       k.pos(0, GAME_CONFIG.SEA_LEVEL),
       k.rotate(baseAngle),
       k.color(210, 245, 255),
-      k.opacity(0.10),
+      k.opacity(0.08),
       k.anchor("top"),
       k.z(-2), // Atrás da baleia, krill e lixo, mas sobre o fundo
       "god_ray",
       {
-        baseXOffset: -80 + i * (k.width() / (rayCount - 1) + 20),
-        pulseSpeed: 0.7 + (i % 4) * 0.25,
-        pulsePhase: i * 0.9,
+        baseXOffset: -60 + i * (k.width() / (rayCount - 1) + 10),
+        pulseSpeed: 0.6 + (i % 5) * 0.2,
+        pulsePhase: i * 0.85,
         angleOffset: baseAngle,
       },
     ]);
@@ -35,16 +34,16 @@ export function setupLightRaysSystem(k: ReturnType<typeof kaboom>) {
     godRays.push(ray);
   }
 
-  // Cáusticos de Superfície: feixes ondulatórios de refração da luz solar sob o nível do mar
-  const causticSegments = 8;
+  // Cáusticos de Superfície: finos feixes ondulatórios de refração da luz solar sob o nível do mar
+  const causticSegments = 10;
   const caustics: GameObj[] = [];
 
   for (let c = 0; c < causticSegments; c++) {
     const caustic = k.add([
-      k.rect(k.width() / causticSegments + 20, 14, { radius: 6 }),
-      k.pos(c * (k.width() / causticSegments), GAME_CONFIG.SEA_LEVEL + 4),
+      k.rect(k.width() / causticSegments + 10, 4, { radius: 2 }),
+      k.pos(c * (k.width() / causticSegments), GAME_CONFIG.SEA_LEVEL + 2),
       k.color(240, 255, 255),
-      k.opacity(0.18),
+      k.opacity(0.14),
       k.z(1),
       "caustic_surface",
       {

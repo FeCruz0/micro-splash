@@ -136,18 +136,26 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
         },
         {
           name: "🦐 Krill Antártico (Euphausia superba)",
-          desc: "Minúsculos crustáceos bioluminescentes que formam a base da cadeia trófica polar, fornecendo o sustento essencial para as jubartes acumularem energia.",
+          desc: "Minúsculos crustáceos bioluminescentes que formam a base da cadeia trófica polar, fornecendo sustento essencial para o acúmulo de energia da migração.",
         },
         {
-          name: "🐬 Golfinhos & Aves Oceânicas",
-          desc: "Navegam ao lado de grandes cetáceos aproveitando esteiras hidrodinâmicas (drafting) e correntes térmicas de ar logo acima da superfície.",
+          name: "🐬 Golfinho-Rotador (Stenella longirostris)",
+          desc: "Nadam em bandos criando esteiras hidrodinâmicas (drafting) que reduzem o arrasto e economizam até 40% do fôlego de cetáceos em navegação cooperativa.",
+        },
+        {
+          name: "🐧 Pinguim-de-Magalhães (Spheniscus magellanicus)",
+          desc: "Mestres do salto em arco (porpoising), migram das colônias austrais rumo ao sudeste brasileiro acompanhando as correntes ricas em nutrientes.",
+        },
+        {
+          name: "🐋 Cachalote (Physeter macrocephalus)",
+          desc: "O gigante abissal com cabeça maciça quadrada e maior cérebro do reino animal. Mergulha a mais de 2.000m nas fossas oceânicas emitindo infrassons profundos.",
         },
       ];
 
       speciesData.forEach((sp, i) => {
-        const itemY = contentBoxY - 120 + i * 75;
+        const itemY = contentBoxY - 144 + i * 50;
         contentElements.push(k.add([
-          k.text(sp.name, { size: 14, font: "sans-serif" }),
+          k.text(sp.name, { size: 12, font: "sans-serif" }),
           k.pos(k.width() / 2 - 340, itemY),
           k.color(120, 240, 255),
           k.anchor("left"),
@@ -155,8 +163,8 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
           k.z(304),
         ]));
         contentElements.push(k.add([
-          k.text(sp.desc, { size: 12, font: "sans-serif", width: 680, lineSpacing: 3 }),
-          k.pos(k.width() / 2 - 340, itemY + 20),
+          k.text(sp.desc, { size: 10.5, font: "sans-serif", width: 680, lineSpacing: 2 }),
+          k.pos(k.width() / 2 - 340, itemY + 16),
           k.color(205, 230, 250),
           k.anchor("left"),
           k.fixed(),

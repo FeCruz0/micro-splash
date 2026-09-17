@@ -77,24 +77,16 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
 
 ---
 
-## 🎯 Próximas Fases (Ordenadas por Prioridade)
+### 🌊 FASE 9: Dinâmica Ecológica, Fauna Rara & Perigos Adicionais
+- [x] **9.1 Mancha de Óleo Pré-Arraial (antes do Boqueirão):** Mancha negra iridescente entre 17.400m e 18.900m que obstrui o espiráculo por lodo e impede a respiração até a realização de mergulho de limpeza em águas profundas.
+- [x] **9.2 Descarte Ativo de Lixo por Navios Industriais:** Navios cargueiros da Costa Urbana ejetam periodicamente tambores tóxicos, engradados de madeira e sacos plásticos em sua esteira que afundam em zigue-zague com colisão ativa.
+- [x] **9.3 Nado em Bando com Golfinhos (*Drafting*):** Bandos de Golfinhos-Rotadores em mar aberto que concedem esteira hidrodinâmica favorável (+25% velocidade e -40% dreno de O₂) com trilha aerodinâmica e cliques 16-bit.
+- [x] **9.4 Silhueta de Cachalote nas Profundezas:** Encontro solene com leviatã abissal colossal de 280px no leito profundo (8.000m - 10.800m) emitindo infrassom oceânico ressonante e ondas de choque acústicas.
+- [x] **9.5 Pinguins-de-Magalhães Saltando na Saída Antártica:** Bandos ágeis realizando *porpoising* (saltos em arco fora d'água) com rastro de bolhas e pios rápidos na transição polar (4.000m - 5.200m).
 
 ---
 
-### 🌊 FASE 9: Dinâmica Ecológica, Fauna Rara & Perigos Adicionais
-*Objetivo: Enriquecer a variedade de gameplay, biodiversidade marinha e desafios ambientais.*
-
-- [ ] **9.1 Mancha de Óleo Pré-Arraial (antes do Boqueirão):**
-  - Posicionada estrategicamente no final da Costa Urbana (entre ~17.500m e 18.900m), logo antes da entrada do Boqueirão e do trecho de Arraial do Cabo.
-  - Mancha de combustível flutuando na superfície: passar por ela obstrui temporariamente o espiráculo da baleia com óleo, exigindo mergulho rápido para limpar os resíduos antes de conseguir respirar novamente.
-- [ ] **9.2 Descarte Ativo de Lixo por Navios Industriais:**
-  - Navios cargueiros e industriais patrulhando a Costa Urbana passam a ejetar resíduos plásticos, caixas e tambores periodicamente em sua esteira, criando perigos dinâmicos móveis que afundam pelo leito marinho.
-- [ ] **9.3 Nado em Bando com Golfinhos (*Drafting*):**
-  - Pequenos grupos de golfinhos acompanhantes em mar aberto que concedem bônus hidrodinâmico de velocidade e economia de fôlego ao nadar alinhado a eles.
-- [ ] **9.4 Silhueta de Baleia-Azul ou Cachalote nas Profundezas:**
-  - No mar aberto (trecho de travessia oceânica onde ocorre o jejum de krill), passagem majestosa e pacífica de uma criatura abissal gigante ao fundo com vocalização submarina profunda própria.
-- [ ] **9.5 Pinguins de Magalhães Saltando na Saída Antártica:**
-  - Bandos ágeis de pinguins nadando em zigue-zague veloz nas fendas de gelo entre 4.000m e 5.000m, marcando a transição do continente polar para o mar aberto.
+## 🎯 Próximas Fases (Ordenadas por Prioridade)
 
 ---
 

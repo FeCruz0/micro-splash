@@ -1,5 +1,5 @@
 import kaboom from "kaboom";
-import { GAME_CONFIG } from "../config";
+import { GAME_CONFIG, TAGS } from "../config";
 
 export function setupShipNoiseSystem(k: ReturnType<typeof kaboom>, playerController: any) {
   const ships = [
@@ -29,6 +29,7 @@ export function setupShipNoiseSystem(k: ReturnType<typeof kaboom>, playerControl
     ]);
 
     let noiseTimer = 0;
+    let trashEjectTimer = 3.0 + Math.random() * 4.0;
 
     ship.onUpdate(() => {
       // Movimento de patrulha (ida e volta pelo setor)
@@ -39,9 +40,8 @@ export function setupShipNoiseSystem(k: ReturnType<typeof kaboom>, playerControl
         shipData.dir = 1;
       }
 
+      // 1. Emissão periódica de ondas acústicas de ruído (ruído submarino)
       noiseTimer += k.dt();
-
-      // A cada 2.5 segundos, o navio emite uma onda de ruído sonoro vermelho/alaranjado
       if (noiseTimer >= 2.5) {
         noiseTimer = 0;
 
@@ -67,7 +67,7 @@ export function setupShipNoiseSystem(k: ReturnType<typeof kaboom>, playerControl
           if (distToPlayer <= ringRadius && noiseRing.opacity > 0.2) {
             k.shake(1.5);
             const speed = playerController.getSpeed();
-            const downwardForce = 400 * k.dt(); // Força acústica contínua empurrando a baleia para o fundo
+            const downwardForce = 400 * k.dt();
 
             playerController.setSpeed(
               k.vec2(
@@ -79,6 +79,86 @@ export function setupShipNoiseSystem(k: ReturnType<typeof kaboom>, playerControl
 
           if (noiseRing.opacity <= 0) {
             k.destroy(noiseRing);
+          }
+        });
+      }
+
+      // 2. Descarte ativo de resíduos industriais pela esteira da popa (Fase 9.2)
+      trashEjectTimer += k.dt();
+      const distToPlayer = playerController.gameObj.pos.dist(ship.pos);
+
+      if (trashEjectTimer >= 8.5 && distToPlayer < 1600) {
+        trashEjectTimer = 0;
+
+        const ejectX = ship.pos.x - (shipData.dir * 65);
+        const ejectY = ship.pos.y + 16;
+        const trashType = Math.floor(Math.random() * 3);
+
+        let trashItem: any;
+        let sinkSpeed = 28 + Math.random() * 14;
+        let swaySpeed = 1.5 + Math.random();
+        let swayAmp = 10 + Math.random() * 8;
+        let tAge = 0;
+
+        if (trashType === 0) {
+          // Tambor de óleo corrosivo / resíduo químico
+          trashItem = k.add([
+            k.rect(18, 24, { radius: 3 }),
+            k.pos(ejectX, ejectY),
+            k.color(150, 70, 40),
+            k.outline(1.5, k.rgb(40, 20, 15)),
+            k.area(),
+            k.anchor("center"),
+            k.z(14),
+            TAGS.TRASH,
+            "ship_ejected_trash",
+          ]);
+          trashItem.add([
+            k.rect(18, 6),
+            k.pos(0, 0),
+            k.color(240, 200, 30),
+            k.anchor("center"),
+          ]);
+          sinkSpeed = 36;
+        } else if (trashType === 1) {
+          // Engradado de madeira industrial
+          trashItem = k.add([
+            k.rect(22, 18, { radius: 2 }),
+            k.pos(ejectX, ejectY),
+            k.color(120, 85, 55),
+            k.outline(1.5, k.rgb(60, 40, 25)),
+            k.area(),
+            k.anchor("center"),
+            k.z(14),
+            TAGS.TRASH,
+            "ship_ejected_trash",
+          ]);
+          sinkSpeed = 22;
+        } else {
+          // Saco plástico de resíduo
+          trashItem = k.add([
+            k.rect(20, 15, { radius: 5 }),
+            k.pos(ejectX, ejectY),
+            k.color(55, 65, 75),
+            k.outline(1.5, k.rgb(25, 30, 40)),
+            k.area(),
+            k.anchor("center"),
+            k.z(14),
+            TAGS.TRASH,
+            "ship_ejected_trash",
+          ]);
+          sinkSpeed = 26;
+        }
+
+        const startX = ejectX;
+        trashItem.onUpdate(() => {
+          tAge += k.dt();
+          trashItem.pos.y += sinkSpeed * k.dt();
+          trashItem.pos.x = startX + Math.sin(tAge * swaySpeed) * swayAmp;
+
+          // Destrói se afundar até o leito ou ficar muito para trás
+          if (trashItem.pos.y > k.height() - 40 || trashItem.pos.x < playerController.gameObj.pos.x - 1200) {
+            k.destroy(trashItem);
           }
         });
       }

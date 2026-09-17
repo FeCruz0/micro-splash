@@ -1499,6 +1499,208 @@ class AudioSystem {
       carrier.stop(noteStart + 1.6);
     });
   }
+
+  /**
+   * Som de obstrução do espiráculo por mancha de óleo (tosse abafada / engasgo)
+   */
+  public playOilChoke() {
+    if (!this.sfxEnabled || !this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    osc.type = "sawtooth";
+    osc.frequency.setValueAtTime(140, now);
+    osc.frequency.exponentialRampToValueAtTime(45, now + 0.35);
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(320, now);
+    filter.frequency.exponentialRampToValueAtTime(120, now + 0.35);
+    filter.Q.value = 3.5;
+
+    const bufferSize = Math.floor(this.ctx.sampleRate * 0.35);
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.sin(i * 0.05);
+    }
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const noiseFilter = this.ctx.createBiquadFilter();
+    noiseFilter.type = "bandpass";
+    noiseFilter.frequency.setValueAtTime(400, now);
+    noiseFilter.Q.value = 4.0;
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.38, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    noise.connect(noiseFilter);
+    noiseFilter.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc.start(now);
+    noise.start(now);
+    osc.stop(now + 0.35);
+    noise.stop(now + 0.35);
+  }
+
+  /**
+   * Som de desobstrução e purificação do espiráculo ao mergulhar fundo
+   */
+  public playPurifyWhoosh() {
+    if (!this.sfxEnabled || !this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(220, now);
+    osc.frequency.exponentialRampToValueAtTime(580, now + 0.45);
+
+    const bufferSize = Math.floor(this.ctx.sampleRate * 0.5);
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.4));
+    }
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.frequency.setValueAtTime(600, now);
+    filter.frequency.exponentialRampToValueAtTime(1400, now + 0.5);
+    filter.Q.value = 3.0;
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.32, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+
+    osc.connect(gain);
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc.start(now);
+    noise.start(now);
+    osc.stop(now + 0.5);
+    noise.stop(now + 0.5);
+  }
+
+  /**
+   * Cliques e assobios agudos bioacústicos de golfinhos (16-bit)
+   */
+  public playDolphinClicks() {
+    if (!this.sfxEnabled || !this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+
+    for (let i = 0; i < 4; i++) {
+      const clickStart = now + i * 0.045;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(2800 + i * 250, clickStart);
+      osc.frequency.exponentialRampToValueAtTime(1600, clickStart + 0.035);
+
+      gain.gain.setValueAtTime(0.18, clickStart);
+      gain.gain.exponentialRampToValueAtTime(0.001, clickStart + 0.035);
+
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+
+      osc.start(clickStart);
+      osc.stop(clickStart + 0.035);
+    }
+
+    const whistleStart = now + 0.18;
+    const wOsc = this.ctx.createOscillator();
+    const wGain = this.ctx.createGain();
+
+    wOsc.type = "triangle";
+    wOsc.frequency.setValueAtTime(2100, whistleStart);
+    wOsc.frequency.exponentialRampToValueAtTime(3200, whistleStart + 0.12);
+    wOsc.frequency.exponentialRampToValueAtTime(2400, whistleStart + 0.28);
+
+    wGain.gain.setValueAtTime(0.16, whistleStart);
+    wGain.gain.exponentialRampToValueAtTime(0.001, whistleStart + 0.30);
+
+    wOsc.connect(wGain);
+    wGain.connect(this.masterGain);
+
+    wOsc.start(whistleStart);
+    wOsc.stop(whistleStart + 0.30);
+  }
+
+  /**
+   * Vocalização abissal ultra-grave de baixa frequência (Cachalote / Baleia-Azul)
+   */
+  public playAbyssalWhaleCall() {
+    if (!this.sfxEnabled || !this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+
+    const carrier = this.ctx.createOscillator();
+    const mod = this.ctx.createOscillator();
+    const modGain = this.ctx.createGain();
+    const filter = this.ctx.createBiquadFilter();
+    const gain = this.ctx.createGain();
+
+    carrier.type = "sine";
+    carrier.frequency.setValueAtTime(70, now);
+    carrier.frequency.exponentialRampToValueAtTime(95, now + 1.2);
+    carrier.frequency.exponentialRampToValueAtTime(55, now + 2.8);
+
+    mod.type = "sine";
+    mod.frequency.setValueAtTime(4.5, now);
+    modGain.gain.setValueAtTime(18, now);
+
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(140, now);
+    filter.Q.value = 2.2;
+
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.35, now + 0.6);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 3.0);
+
+    mod.connect(modGain);
+    modGain.connect(carrier.frequency);
+    carrier.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+
+    mod.start(now);
+    carrier.start(now);
+    mod.stop(now + 3.0);
+    carrier.stop(now + 3.0);
+  }
+
+  /**
+   * Pio curto e alegre de pinguim saltando em arco (porpoising)
+   */
+  public playPenguinChirp() {
+    if (!this.sfxEnabled || !this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(1200, now);
+    osc.frequency.exponentialRampToValueAtTime(2400, now + 0.05);
+    osc.frequency.exponentialRampToValueAtTime(900, now + 0.12);
+
+    gain.gain.setValueAtTime(0.20, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc.start(now);
+    osc.stop(now + 0.12);
+  }
 }
 
 export const audioSystem = new AudioSystem();
