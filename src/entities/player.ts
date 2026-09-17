@@ -25,6 +25,66 @@ export function createPlayer(k: KaboomCtx, initialX: number = 120, isSereneMode:
   let spoutCooldown = 0;
   let wasInAir = false;
 
+  // Estados da Fase 9: Dinâmica Ecológica & Perigos
+  let isOilObstructed = false;
+  let oilCleanTimer = 0;
+  let isDrafting = false;
+
+  // Sistema de partículas de óleo viscoso quando o espiráculo está obstruído
+  function spawnOilSpout(pos: any, isFacingRight: boolean, hSpeed: number) {
+    audioSystem.playOilChoke();
+    const spoutOrigin = pos.add(k.vec2(isFacingRight ? 22 : -22, -13));
+
+    for (let i = 0; i < 24; i++) {
+      const spread = (Math.random() - 0.5) * 0.35;
+      const speed = 110 + Math.random() * 90;
+      const dir = k.vec2(Math.cos(-Math.PI / 2 + spread), Math.sin(-Math.PI / 2 + spread));
+      let vel = dir.scale(speed);
+      vel.x += hSpeed * 0.2;
+
+      const p = k.add([
+        k.circle(1.8 + Math.random() * 2.2),
+        k.pos(spoutOrigin.x + (Math.random() - 0.5) * 6, spoutOrigin.y),
+        k.color(30, 22, 16), // lodo negro oleoso
+        k.opacity(0.9),
+        k.z(15),
+      ]);
+
+      let life = 0.55 + Math.random() * 0.35;
+      const maxLife = life;
+      p.onUpdate(() => {
+        const dt = k.dt();
+        vel.y += 280 * dt;
+        p.pos = p.pos.add(vel.scale(dt));
+        life -= dt;
+        p.opacity = Math.max(0, (life / maxLife) * 0.9);
+        if (life <= 0) k.destroy(p);
+      });
+    }
+  }
+
+  // Bolhas purificadoras ao lavar o espiráculo no fundo
+  function spawnPurifyBubbles(pos: any) {
+    for (let i = 0; i < 35; i++) {
+      const b = k.add([
+        k.circle(2.0 + Math.random() * 2.5),
+        k.pos(pos.x + (Math.random() - 0.5) * 40, pos.y + (Math.random() - 0.5) * 20),
+        k.color(180, 240, 255),
+        k.opacity(0.85),
+        k.z(16),
+      ]);
+      let bLife = 0.8 + Math.random() * 0.5;
+      const vy = -60 - Math.random() * 80;
+      b.onUpdate(() => {
+        const dt = k.dt();
+        b.pos.y += vy * dt;
+        bLife -= dt;
+        b.opacity -= dt * 0.9;
+        if (bLife <= 0 || b.opacity <= 0) k.destroy(b);
+      });
+    }
+  }
+
   // Animações anatômicas da Jubarte
   let animState: "glide" | "stroke_up" | "stroke_down" | "feed" = "glide";
   let feedTimer = 0;
@@ -166,13 +226,14 @@ export function createPlayer(k: KaboomCtx, initialX: number = 120, isSereneMode:
         if (strokeTimer < GAME_CONFIG.MAX_STROKE_TIME) {
           strokeTimer += k.dt();
           const progresso = strokeTimer / GAME_CONFIG.MAX_STROKE_TIME;
-          const curvaForca = GAME_CONFIG.BASE_THRUST + (Math.sin(progresso * Math.PI) * GAME_CONFIG.PEAK_THRUST);
+          const draftBoost = isDrafting ? 1.25 : 1.0;
+          const curvaForca = (GAME_CONFIG.BASE_THRUST + (Math.sin(progresso * Math.PI) * GAME_CONFIG.PEAK_THRUST)) * draftBoost;
           const angleInRadians = k.deg2rad(angle);
           const direcao = k.vec2(facingRight ? Math.cos(angleInRadians) : -Math.cos(angleInRadians), Math.sin(angleInRadians));
 
           currentSpeed = currentSpeed.add(direcao.scale(curvaForca * k.dt()));
 
-          const currentMaxSpeed = getMaxSpeed();
+          const currentMaxSpeed = getMaxSpeed() * draftBoost;
           if (currentSpeed.len() > currentMaxSpeed) {
             currentSpeed = currentSpeed.unit().scale(currentMaxSpeed);
           }
@@ -379,10 +440,21 @@ export function createPlayer(k: KaboomCtx, initialX: number = 120, isSereneMode:
       // Mesmo no modo Serena, permite esguicho estético do espiráculo ao emergir
       if (canBreathe && spoutCooldown <= 0 && baleia.pos.y <= GAME_CONFIG.SEA_LEVEL + 15) {
         spoutCooldown = 2.5;
-        spawnBlowholeSpout(baleia.pos, facingRight, currentSpeed.x);
+        if (isOilObstructed) {
+          spawnOilSpout(baleia.pos, facingRight, currentSpeed.x);
+        } else {
+          spawnBlowholeSpout(baleia.pos, facingRight, currentSpeed.x);
+        }
       }
-    } else if (!canBreathe) {
-      oxygen = Math.max(0, oxygen - k.dt() * GAME_CONFIG.OXYGEN_DRAIN_RATE);
+    } else if (!canBreathe || isOilObstructed) {
+      // Se submersa ou se o espiráculo estiver obstruído por óleo
+      const drainMult = isDrafting ? 0.60 : 1.0;
+      oxygen = Math.max(0, oxygen - k.dt() * GAME_CONFIG.OXYGEN_DRAIN_RATE * drainMult);
+
+      if (isOilObstructed && baleia.pos.y <= GAME_CONFIG.SEA_LEVEL + 15 && spoutCooldown <= 0) {
+        spoutCooldown = 2.0;
+        spawnOilSpout(baleia.pos, facingRight, currentSpeed.x);
+      }
 
       if (oxygen === 0) {
         blackoutTimer -= k.dt();
@@ -392,7 +464,7 @@ export function createPlayer(k: KaboomCtx, initialX: number = 120, isSereneMode:
         }
       }
     } else {
-      // na superfície livre de gelo, recarrega fôlego para máximo atual
+      // na superfície livre de gelo e sem óleo, recarrega fôlego para máximo atual
       const currentMaxOx = getMaxOxygen();
       if (oxygen < currentMaxOx) {
         const hadLowOxygen = oxygen < GAME_CONFIG.BLOWHOLE_OXYGEN_THRESHOLD;
@@ -408,6 +480,40 @@ export function createPlayer(k: KaboomCtx, initialX: number = 120, isSereneMode:
       }
     }
 
+    // Lavagem e purificação do espiráculo por mergulho profundo em águas limpas
+    if (isOilObstructed) {
+      if (baleia.pos.y >= GAME_CONFIG.SEA_LEVEL + 130) {
+        oilCleanTimer += k.dt();
+        if (oilCleanTimer >= 1.8) {
+          isOilObstructed = false;
+          oilCleanTimer = 0;
+          audioSystem.playPurifyWhoosh();
+          spawnPurifyBubbles(baleia.pos);
+          k.shake(2);
+        }
+      } else {
+        oilCleanTimer = Math.max(0, oilCleanTimer - k.dt() * 0.4);
+      }
+    }
+
+    // Efeito visual de esteira hidrodinâmica (slipstream) quando nadando em bando com golfinhos
+    if (isDrafting && Math.random() < 0.35) {
+      const trailX = baleia.pos.x + (facingRight ? -42 : 42);
+      const trailY = baleia.pos.y + (Math.random() - 0.5) * 18;
+      const trail = k.add([
+        k.rect(16 + Math.random() * 14, 1.5),
+        k.pos(trailX, trailY),
+        k.color(140, 240, 255),
+        k.opacity(0.75),
+        k.z(12),
+      ]);
+      trail.onUpdate(() => {
+        trail.pos.x -= (facingRight ? 140 : -140) * k.dt();
+        trail.opacity -= k.dt() * 2.0;
+        if (trail.opacity <= 0) k.destroy(trail);
+      });
+    }
+
     // Transição de cor conforme perda de oxigenio e estado de emaranhada
     const currentMaxOx = getMaxOxygen();
     const oxygenRatio = oxygen / currentMaxOx;
@@ -421,10 +527,12 @@ export function createPlayer(k: KaboomCtx, initialX: number = 120, isSereneMode:
     k.camPos(k.lerp(k.camPos().x, baleia.pos.x + targetCamOffset, 0.05), k.camPos().y);
 
     // Indicador no HUD
+    const draftingTag = isDrafting ? " | 🐬 Vácuo (+25%)" : "";
+    const oilTag = isOilObstructed ? " | ⚠️ ÓLEO NO ESPIRÁCULO! Mergulhe fundo!" : "";
     if (isSereneMode) {
-      k.debug.log(`Migração Serena 🌸 | Fôlego: ∞ | Nutrição: +${krillsEaten}%`);
+      k.debug.log(`Migração Serena 🌸 | Fôlego: ∞ | Nutrição: +${krillsEaten}%${draftingTag}${oilTag}`);
     } else {
-      k.debug.log(`Fôlego: ${Math.floor(oxygen)}% | Nutrição: +${krillsEaten}%`);
+      k.debug.log(`Fôlego: ${Math.floor(oxygen)}% | Nutrição: +${krillsEaten}%${draftingTag}${oilTag}`);
     }
   });
 
@@ -446,7 +554,7 @@ export function createPlayer(k: KaboomCtx, initialX: number = 120, isSereneMode:
       oxygen = Math.min(oxygen + GAME_CONFIG.KRILL_OXYGEN_RESTORE, newMaxOx);
       currentSpeed = currentSpeed.scale(GAME_CONFIG.KRILL_BOOST);
 
-      feedTimer = 0.4;
+      feedTimer = 0.55;
       animState = "feed";
       baleia.play("feed");
       spawnBaleenSuction(baleia.pos, facingRight);
@@ -478,6 +586,20 @@ export function createPlayer(k: KaboomCtx, initialX: number = 120, isSereneMode:
 
     isBreaching: () => isBreaching,
 
+    // Estados da Fase 9
+    setOilObstructed: (obstructed: boolean) => {
+      if (!isOilObstructed && obstructed) {
+        isOilObstructed = true;
+        oilCleanTimer = 0;
+        audioSystem.playOilChoke();
+        k.shake(2);
+      }
+    },
+    isOilObstructed: () => isOilObstructed,
+    setDrafting: (drafting: boolean) => {
+      isDrafting = drafting;
+    },
+    isDrafting: () => isDrafting,
   };
 }
 

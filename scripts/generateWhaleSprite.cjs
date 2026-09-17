@@ -137,10 +137,16 @@ const PALETTE = {
   eyeGlint:      [245, 250, 255, 255],
   blowhole:      [22, 14, 10, 255],
 
-  // Boca e Barbas Filtradoras (Baleen)
-  baleenPlate:   [244, 234, 200, 255],
-  baleenShadow:  [134, 114, 82, 255],
-  mouthGape:     [64, 20, 26, 255],
+  // Boca, Cavidade Oral e Barbas Filtradoras (Baleen - Megaptera novaeangliae)
+  baleenPlate:     [250, 240, 205, 255], // #faf0cd cerdas douradas brilhantes
+  baleenMid:       [225, 205, 165, 255], // #e1cda5 lâmina de queratina marfim-dourada
+  baleenShadow:    [145, 125, 90, 255],  // #917d5a franja e sombra das cerdas
+  mouthGape:       [46, 16, 22, 255],    // #2e1016 cavidade oral profunda / garganta
+  mouthTongue:     [84, 28, 38, 255],    // #541c26 assoalho da boca / língua carnosa
+  mouthStream:     [190, 230, 255, 160], // fluxo translúcido de água entrando na boca
+  krillBody:       [255, 110, 70, 255],  // #ff6e46 corpo do krill coral bioluminescente
+  krillGlow:       [255, 220, 160, 230], // #ffdca0 brilho dourado do krill
+  krillEye:        [24, 16, 14, 255],    // olho minúsculo do krill
 };
 
 function renderWhaleFrame(frameIndex) {
@@ -190,12 +196,16 @@ function renderWhaleFrame(frameIndex) {
     if (lx > 88) {
       // CABEÇA / ROSTRO / BOLSA GULAR ANTERIOR
       const t = (lx - 88) / 26; // 0 em 88, 1 em 114
-      topY = 20.0 + t * 6.5; // de 20.0 a 26.5
-      jawY = 28.5 - t * 0.5; // de 28.5 a 28.0
 
       if (isFeeding) {
-        botY = 41.5 + (1 - t) * 6.5;
+        // ROSTRO SUPERIOR: achatado, típico de baleinídeo
+        topY = 19.5 + t * 4.0;         // 19.5 -> 23.5 (linha reta do dorso superior)
+        jawY = 23.5 + t * 2.5;         // teto do palato (interior): 23.5 -> 26.0
+        // BOLSA GULAR: expansão máxima do engolfamento
+        botY = 57.0 - Math.pow(t, 1.8) * 9.0; // 57.0 -> 48.0 no queixo
       } else {
+        topY = 20.0 + t * 6.5; // de 20.0 a 26.5
+        jawY = 28.5 - t * 0.5; // de 28.5 a 28.0
         botY = 42.0 - Math.pow(t, 1.2) * 12.5; // de 42.0 até 29.5 no queixo
       }
     } else if (lx > 50) {
@@ -210,8 +220,18 @@ function renderWhaleFrame(frameIndex) {
       }
       topY = 18.2 - hump + currentTailY * 0.15;
 
-      const bellyFactor = Math.sin(t * Math.PI * 0.9);
-      botY = 35.5 + bellyFactor * (isFeeding ? 11.5 : 7.5);
+      if (isFeeding) {
+        // BOLSA GULAR: Cresce a partir de lx=54, atingindo ~57px em lx=88
+        if (lx < 54) {
+          botY = 34.0 + (lx - 50) * 0.5;
+        } else {
+          const bt = (lx - 54) / 34; // 0 em 54, 1 em 88
+          botY = 36.0 + Math.pow(bt, 0.7) * 21.0; // 36 -> 57px
+        }
+      } else {
+        const bellyFactor = Math.sin(t * Math.PI * 0.9);
+        botY = 35.5 + bellyFactor * 7.5;
+      }
     } else {
       // PEDÚNCULO CAUDAL COM NÓDULOS DORSAIS
       const t = (lx - 18) / 32;
@@ -229,9 +249,12 @@ function renderWhaleFrame(frameIndex) {
     const colX = offsetX + lx;
     const colH = Math.max(1, botY - topY);
 
-    // Salva os limites da bolsa gular para este lx (lx >= 62 e lx <= 112)
-    if (lx >= 62 && lx <= 112) {
-      const pTop = (lx >= 88) ? (jawY + 0.8) : (topY + colH * 0.56);
+    // Salva os limites da bolsa gular
+    if (lx >= 54 && lx <= 114) {
+      const pTop = (isFeeding && lx >= 88)
+        // Para a cabeça: o topo da bolsa começa abaixo da mandíbula
+        ? (29.0 + Math.pow((lx - 88) / 25, 0.6) * 20.0 + 2.2)
+        : ((lx >= 88) ? (jawY + 0.8) : (topY + (botY - topY) * 0.50));
       pouchBounds[lx] = { top: pTop, bot: botY };
     }
 
@@ -239,18 +262,62 @@ function renderWhaleFrame(frameIndex) {
       const relY = (py - topY) / colH;
 
       if (lx >= 88) {
-        // REGIÃO CEFÁLICA
-        if (py < jawY) {
-          if (py <= topY + 1.2) {
-            setPixel(colX, py, PALETTE.dorsalLight[0], PALETTE.dorsalLight[1], PALETTE.dorsalLight[2]);
+        const t = (lx - 88) / 26;
+
+        if (isFeeding) {
+          const palateY = 23.5 + t * 2.5;  // teto do palato: 23.5 -> 26.0
+          const jawY_f = 29.0 + Math.pow(t, 0.6) * 20.0; // mandíbula: 29.0 -> 49.0
+
+          if (py <= Math.ceil(palateY)) {
+            // MAXILA SUPERIOR (ROSTRO)
+            if (py <= topY + 1.0) {
+              setPixel(colX, py, PALETTE.dorsalDarkest[0], PALETTE.dorsalDarkest[1], PALETTE.dorsalDarkest[2]);
+            } else if (py <= topY + 2.5) {
+              setPixel(colX, py, PALETTE.dorsalLight[0], PALETTE.dorsalLight[1], PALETTE.dorsalLight[2]);
+            } else if (py >= Math.ceil(palateY) - 1) {
+              setPixel(colX, py, PALETTE.dorsalDarkest[0], PALETTE.dorsalDarkest[1], PALETTE.dorsalDarkest[2]);
+            } else {
+              setPixel(colX, py, PALETTE.dorsalDark[0], PALETTE.dorsalDark[1], PALETTE.dorsalDark[2]);
+            }
+          } else if (py < Math.floor(jawY_f)) {
+            // CAVIDADE BUCAL (INTERIOR DA BOCA)
+            const depthT = (py - palateY) / (jawY_f - palateY);
+            if (depthT > 0.70) {
+              setPixel(colX, py, PALETTE.mouthTongue[0], PALETTE.mouthTongue[1], PALETTE.mouthTongue[2]);
+            } else {
+              setPixel(colX, py, PALETTE.mouthGape[0], PALETTE.mouthGape[1], PALETTE.mouthGape[2]);
+            }
+          } else if (py <= Math.ceil(jawY_f) + 2) {
+            // OSSO DA MANDÍBULA INFERIOR
+            setPixel(colX, py, py === Math.floor(jawY_f)
+              ? PALETTE.dorsalDarkest[0] : PALETTE.dorsalDark[0],
+              py === Math.floor(jawY_f)
+              ? PALETTE.dorsalDarkest[1] : PALETTE.dorsalDark[1],
+              py === Math.floor(jawY_f)
+              ? PALETTE.dorsalDarkest[2] : PALETTE.dorsalDark[2]);
           } else {
-            setPixel(colX, py, PALETTE.dorsalDark[0], PALETTE.dorsalDark[1], PALETTE.dorsalDark[2]);
+            // BOLSA GULAR INFLADA ABAIXO DA MANDÍBULA
+            const jawBotY = Math.ceil(jawY_f) + 2;
+            const pouchT = (py - jawBotY) / (botY - jawBotY);
+            if (pouchT < 0.4) {
+              setPixel(colX, py, PALETTE.bellyShade[0], PALETTE.bellyShade[1], PALETTE.bellyShade[2]);
+            } else {
+              setPixel(colX, py, PALETTE.bellyMid[0], PALETTE.bellyMid[1], PALETTE.bellyMid[2]);
+            }
           }
-        } else if (Math.abs(py - jawY) < 1.0) {
-          setPixel(colX, py, PALETTE.dorsalDarkest[0], PALETTE.dorsalDarkest[1], PALETTE.dorsalDarkest[2]);
         } else {
-          // Bolsa gular base marfim
-          setPixel(colX, py, PALETTE.bellyMid[0], PALETTE.bellyMid[1], PALETTE.bellyMid[2]);
+          // REGIÃO CEFÁLICA COM BOCA FECHADA
+          if (py < jawY) {
+            if (py <= topY + 1.2) {
+              setPixel(colX, py, PALETTE.dorsalLight[0], PALETTE.dorsalLight[1], PALETTE.dorsalLight[2]);
+            } else {
+              setPixel(colX, py, PALETTE.dorsalDark[0], PALETTE.dorsalDark[1], PALETTE.dorsalDark[2]);
+            }
+          } else if (Math.abs(py - jawY) < 1.0) {
+            setPixel(colX, py, PALETTE.dorsalDarkest[0], PALETTE.dorsalDarkest[1], PALETTE.dorsalDarkest[2]);
+          } else {
+            setPixel(colX, py, PALETTE.bellyMid[0], PALETTE.bellyMid[1], PALETTE.bellyMid[2]);
+          }
         }
       } else {
         // CORPO MÉDIO E POSTERIOR
@@ -262,7 +329,7 @@ function renderWhaleFrame(frameIndex) {
           setPixel(colX, py, PALETTE.dorsalMid[0], PALETTE.dorsalMid[1], PALETTE.dorsalMid[2]);
         } else {
           // Ventre
-          if (lx >= 46 && lx <= 64 && relY > 0.60) {
+          if (lx >= 46 && lx <= 64 && relY > 0.60 && !isFeeding) {
             setPixel(colX, py, PALETTE.bellyPatch[0], PALETTE.bellyPatch[1], PALETTE.bellyPatch[2]);
           } else if (lx > 64) {
             setPixel(colX, py, PALETTE.bellyMid[0], PALETTE.bellyMid[1], PALETTE.bellyMid[2]);
@@ -277,16 +344,13 @@ function renderWhaleFrame(frameIndex) {
   // ===========================================================================
   // 3. PREGAS GULARES / SULCOS VENTRAIS DISTRIBUÍDAS COM PRECISÃO ANATÔMICA
   // ===========================================================================
-  // Desenha 7 linhas de pregas distribuídas uniformemente na altura da bolsa gular
   {
-    const numGrooves = isFeeding ? 9 : 7;
+    const numGrooves = isFeeding ? 11 : 7;
     for (let g = 0; g < numGrooves; g++) {
-      const frac = (g + 0.5) / numGrooves; // 0.07 a 0.93
+      const frac = (g + 0.5) / numGrooves;
 
-      // Alcance longitudinal: pregas inferiores vão do queixo (lx=112) ao abdômen (lx=62)
-      // Pregas superiores começam um pouco mais atrás no ângulo da mandíbula
-      const startLx = (g < 2) ? 104 : ((g < 4) ? 109 : 112);
-      const endLx = (g < 2) ? 68 : 62;
+      const startLx = isFeeding ? 113 : ((g < 2) ? 104 : ((g < 4) ? 109 : 112));
+      const endLx   = isFeeding ? 54  : ((g < 2) ? 68 : 62);
 
       for (let lx = startLx; lx >= endLx; lx--) {
         const bounds = pouchBounds[lx];
@@ -295,11 +359,11 @@ function renderWhaleFrame(frameIndex) {
         const colX = offsetX + lx;
         const rowY = Math.round(gy);
 
-        // Fenda escura da prega
-        setPixel(colX, rowY, PALETTE.grooveDeep[0], PALETTE.grooveDeep[1], PALETTE.grooveDeep[2]);
-        // Crista iluminada logo acima da fenda (relevo 3D de sanfona)
-        if (rowY - 1 >= Math.floor(bounds.top)) {
-          setPixel(colX, rowY - 1, PALETTE.grooveRidge[0], PALETTE.grooveRidge[1], PALETTE.grooveRidge[2]);
+        if (rowY > bounds.top && rowY < bounds.bot) {
+          setPixel(colX, rowY, PALETTE.grooveDeep[0], PALETTE.grooveDeep[1], PALETTE.grooveDeep[2]);
+          if (rowY - 1 > bounds.top) {
+            setPixel(colX, rowY - 1, PALETTE.grooveRidge[0], PALETTE.grooveRidge[1], PALETTE.grooveRidge[2]);
+          }
         }
       }
     }
@@ -314,7 +378,7 @@ function renderWhaleFrame(frameIndex) {
     let topY;
     if (lx > 88) {
       const t = (lx - 88) / 26;
-      topY = 20.0 + t * 6.5;
+      topY = isFeeding ? (19.5 + t * 4.0) : (20.0 + t * 6.5);
     } else if (lx > 50) {
       let hump = 0;
       if (lx >= 50 && lx <= 66) {
@@ -353,14 +417,56 @@ function renderWhaleFrame(frameIndex) {
   // 6. BOCA, BARBAS FILTRADORAS E MANDÍBULA
   // ===========================================================================
   if (isFeeding) {
-    fillEllipse(offsetX + 104, 33.5, 7.5, 4.5, PALETTE.mouthGape);
-    for (let b = 0; b < 10; b++) {
-      const bx = offsetX + 98 + b * 1.4;
-      const by = 29.0;
-      drawLine(bx, by, bx + 0.6, by + 4.5, 1.2, PALETTE.baleenPlate);
-      setPixel(bx, by + 4.8, PALETTE.baleenShadow[0], PALETTE.baleenShadow[1], PALETTE.baleenShadow[2]);
+    // Linha escura da mandíbula inferior em arco bem pronunciado (29 -> 49px!)
+    drawQuadCurve(offsetX + 113, 49.5, offsetX + 101, 41.0, offsetX + 88, 29.0, 2.2, PALETTE.dorsalDarkest);
+    drawQuadCurve(offsetX + 113, 48.0, offsetX + 101, 39.5, offsetX + 88, 29.5, 1.2, PALETTE.mouthTongue);
+
+    // Borda do palato / maxila superior
+    drawQuadCurve(offsetX + 113, 25.8, offsetX + 101, 24.8, offsetX + 88, 23.5, 1.5, PALETTE.dorsalDarkest);
+
+    // BARBAS FILTRADORAS: pente dourado pendente do palato
+    for (let b = 90; b <= 112; b++) {
+      const t2 = (b - 88) / 26;
+      const palY = 23.5 + t2 * 2.5;
+      const midT = (b - 90) / 22;
+      const hangLen = 3.5 + Math.sin(midT * Math.PI) * 8.5;
+
+      const bx = offsetX + b;
+      for (let py = Math.floor(palY + 1.2); py <= Math.floor(palY + hangLen); py++) {
+        const fracDown = (py - (palY + 1.2)) / (hangLen - 1.2);
+        const isTip = fracDown > 0.85;
+        const isPlate = (b % 2 === 0);
+        if (isTip) {
+          setPixel(bx, py, PALETTE.baleenShadow[0], PALETTE.baleenShadow[1], PALETTE.baleenShadow[2]);
+        } else if (isPlate) {
+          setPixel(bx, py, PALETTE.baleenPlate[0], PALETTE.baleenPlate[1], PALETTE.baleenPlate[2]);
+        } else {
+          setPixel(bx, py, PALETTE.baleenMid[0], PALETTE.baleenMid[1], PALETTE.baleenMid[2]);
+        }
+      }
     }
-    drawQuadCurve(offsetX + 113, 37.5, offsetX + 104, 44.0, offsetX + 92, 36.5, 2.0, PALETTE.dorsalDarkest);
+
+    // Fluxo de água sendo succionada
+    drawLine(offsetX + 112, 32, offsetX + 99, 34, 1.0, PALETTE.mouthStream);
+    drawLine(offsetX + 115, 38, offsetX + 97, 40, 1.2, PALETTE.mouthStream);
+    drawLine(offsetX + 112, 44, offsetX + 95, 41, 0.8, PALETTE.mouthStream);
+
+    // Cardume de Krill sendo engolfado
+    const krillSwarm = [
+      { x: 98,  y: 36 },
+      { x: 105, y: 39 },
+      { x: 111, y: 35 },
+      { x: 116, y: 33 },
+      { x: 114, y: 41 },
+    ];
+
+    for (const kr of krillSwarm) {
+      const kx = offsetX + kr.x;
+      const ky = kr.y;
+      fillCircle(kx, ky, 1.3, PALETTE.krillGlow);
+      setPixel(kx, ky, PALETTE.krillBody[0], PALETTE.krillBody[1], PALETTE.krillBody[2]);
+      setPixel(kx - 1, ky, PALETTE.krillBody[0], PALETTE.krillBody[1], PALETTE.krillBody[2]);
+    }
   } else {
     drawQuadCurve(offsetX + 114, 28.5, offsetX + 103, 31.0, offsetX + 88, 28.5, 1.5, PALETTE.dorsalDarkest);
   }
@@ -368,8 +474,25 @@ function renderWhaleFrame(frameIndex) {
   // ===========================================================================
   // 7. TUBÉRCULOS SENSORIAIS DA CABEÇA E DO QUEIXO (Megaptera)
   // ===========================================================================
-  const tubercles = [
-    // Crista medial do rostro
+  const tubercles = isFeeding ? [
+    // Crista medial do rostro superior
+    { x: 113,   y: 23.5, r: 1.4 },
+    { x: 108,   y: 22.2, r: 1.4 },
+    { x: 102,   y: 21.0, r: 1.4 },
+    { x: 96,    y: 20.2, r: 1.3 },
+    { x: 90,    y: 19.8, r: 1.2 },
+    // Laterais do rostro
+    { x: 106,   y: 24.0, r: 1.2 },
+    { x: 100,   y: 23.0, r: 1.2 },
+    { x: 94,    y: 22.0, r: 1.1 },
+    // Queixo e mandíbula inferior REBAIXADA (em arco)
+    { x: 113.0, y: 50.5, r: 1.7 }, // Grande tubérculo no queixo rebaixado
+    { x: 107.0, y: 46.5, r: 1.4 },
+    { x: 100.0, y: 41.5, r: 1.3 },
+    { x: 93.0,  y: 35.5, r: 1.2 },
+    { x: 88.0,  y: 29.5, r: 1.1 },
+  ] : [
+    // Crista medial do rostro (frame normal)
     { x: 113, y: 27.2, r: 1.4 },
     { x: 108, y: 24.8, r: 1.4 },
     { x: 102, y: 23.2, r: 1.4 },
@@ -380,7 +503,7 @@ function renderWhaleFrame(frameIndex) {
     { x: 100, y: 26.2, r: 1.2 },
     { x: 94,  y: 25.0, r: 1.1 },
     // Queixo e mandíbula inferior (proeminência clássica)
-    { x: 113.5, y: 30.5, r: 1.6 }, // grande tubérculo do queixo
+    { x: 113.5, y: 30.5, r: 1.6 },
     { x: 108,   y: 33.5, r: 1.3 },
     { x: 102,   y: 36.5, r: 1.3 },
     { x: 96,    y: 39.0, r: 1.2 },
@@ -397,7 +520,7 @@ function renderWhaleFrame(frameIndex) {
   // ===========================================================================
   {
     const blowX = offsetX + 86;
-    const blowY = 19.5;
+    const blowY = 19.0;
     fillEllipse(blowX, blowY, 2.6, 1.2, PALETTE.dorsalDarkest);
     setPixel(blowX - 0.8, blowY, PALETTE.blowhole[0], PALETTE.blowhole[1], PALETTE.blowhole[2]);
     setPixel(blowX + 0.8, blowY, PALETTE.blowhole[0], PALETTE.blowhole[1], PALETTE.blowhole[2]);
@@ -408,8 +531,8 @@ function renderWhaleFrame(frameIndex) {
   // 9. OLHO COM ÓRBITA E REFLEXO AQUÁTICO
   // ===========================================================================
   {
-    const eyeX = offsetX + 88.5;
-    const eyeY = 26.5;
+    const eyeX = isFeeding ? offsetX + 83.5 : offsetX + 88.5;
+    const eyeY = isFeeding ? 22.0 : 26.5; // No feeding, olho fica no dorso lateral acima da boca
     fillCircle(eyeX, eyeY, 2.2, PALETTE.eyeRing);
     fillCircle(eyeX, eyeY, 1.4, PALETTE.eyeDark);
     setPixel(eyeX + 0.4, eyeY - 0.4, PALETTE.eyeGlint[0], PALETTE.eyeGlint[1], PALETTE.eyeGlint[2]);
