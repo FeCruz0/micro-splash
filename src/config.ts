@@ -99,3 +99,26 @@ export const BIOME_COLOR_STOPS: BiomeColorStop[] = [
   }
 ];
 
+export const RESOLUTION_PRESETS = {
+  "1080p": { width: 1920, height: 1080, label: "1920x1080 (1080p Full HD) 🖥️✨" },
+  "720p": { width: 1280, height: 720, label: "1280x720 (720p HD) 🖥️" },
+  "540p": { width: 960, height: 540, label: "960x540 (Equilibrado) 📺" },
+  "450p": { width: 800, height: 450, label: "800x450 (Retrô Clássico) 🕹️" },
+} as const;
+
+export type ResolutionKey = keyof typeof RESOLUTION_PRESETS;
+
+export function getSavedResolution(): { width: number; height: number; key: ResolutionKey; label: string } {
+  const saved = (typeof localStorage !== "undefined"
+    ? localStorage.getItem("micro_splash_resolution") || "720p"
+    : "720p") as ResolutionKey;
+
+  const preset = RESOLUTION_PRESETS[saved] || RESOLUTION_PRESETS["720p"];
+  return {
+    width: preset.width,
+    height: preset.height,
+    label: preset.label,
+    key: saved in RESOLUTION_PRESETS ? saved : "720p",
+  };
+}
+

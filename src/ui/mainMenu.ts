@@ -153,11 +153,13 @@ export function createMainMenu(
     });
 
     btn.onClick(() => {
+      resetIdle();
       if (isModalOpen) return;
       audioSystem.playUiClick();
       isModalOpen = true;
       btnData.action(() => {
         isModalOpen = false;
+        resetIdle();
       });
     });
   });
@@ -176,4 +178,29 @@ export function createMainMenu(
     k.fixed(),
     k.z(11),
   ]);
+
+  // =========================================================================
+  // FASE 10: TIMER DE INATIVIDADE PARA MODO KIOSK (45 SEGUNDOS)
+  // =========================================================================
+  let idleTime = 0;
+  const resetIdle = () => {
+    idleTime = 0;
+  };
+
+  k.onKeyPress(resetIdle);
+  k.onMousePress(resetIdle);
+  k.onMouseMove(resetIdle);
+
+  const idleLoop = k.onUpdate(() => {
+    if (!isModalOpen) {
+      idleTime += k.dt();
+      if (idleTime >= 45) {
+        idleLoop.cancel();
+        k.go("kiosk");
+      }
+    } else {
+      idleTime = 0;
+    }
+  });
 }
+

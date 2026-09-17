@@ -1,5 +1,5 @@
 import kaboom from "kaboom";
-import { GAME_CONFIG, TAGS } from "./config";
+import { GAME_CONFIG, TAGS, getSavedResolution } from "./config";
 import { createPlayer } from "./entities/player";
 import { createTrash } from "./entities/trash";
 import { createKrill } from "./entities/krill";
@@ -26,6 +26,8 @@ import { setupBenthicFloorSystem } from "./systems/benthicFloorSystem";
 import { setupOilSpillSystem } from "./systems/oilSpillSystem";
 import { setupDolphinDraftingSystem } from "./systems/dolphinDraftingSystem";
 import { setupPenguinFlockSystem } from "./systems/penguinFlockSystem";
+import { createKioskScene } from "./systems/kioskMode";
+import { setupTouchControls } from "./ui/touchControls";
 
 // Interfaces da Fase 6: Menu Principal, Seleção de Modo, Opções e Codex
 import { createMainMenu } from "./ui/mainMenu";
@@ -34,7 +36,12 @@ import { showOptionsScreen } from "./ui/optionsScreen";
 import { showCodexScreen } from "./ui/codexScreen";
 import { showChallengeEndScreen } from "./ui/challengeEndScreen";
 
+const resolution = getSavedResolution();
+
 const k = kaboom({
+  width: resolution.width,
+  height: resolution.height,
+  letterbox: true,
   background: [6, 18, 42],
 });
 
@@ -78,7 +85,14 @@ k.scene("menu", () => {
 });
 
 // =============================================================================
-// CENA DO JOGO PRINCIPAL (Fase 1 a 6)
+// CENA DO MODO KIOSK (Fase 10: Attract Mode para Feira de Ciências)
+// =============================================================================
+k.scene("kiosk", () => {
+  createKioskScene(k);
+});
+
+// =============================================================================
+// CENA DO JOGO PRINCIPAL (Fase 1 a 10)
 // =============================================================================
 k.scene("game", (options: GameOptions = { mode: "standard" }) => {
   let isGameFinished = false;
@@ -110,18 +124,17 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
 
   // Limites do mar
   const oceanFloor = k.add([
-    k.rect(k.width(), 40),
-    k.pos(0, k.height() - 40),
+    k.rect(k.width() * 2, 60),
+    k.pos(-k.width() / 2, k.height() - 40),
     k.area(),
     k.body({ isStatic: true }),
     k.color(20, 50, 120),
   ]);
 
-
   // Área do céu acima do nível do mar (0px a 80px)
   const skyBand = k.add([
-    k.rect(k.width(), GAME_CONFIG.SEA_LEVEL),
-    k.pos(0, 0),
+    k.rect(k.width() * 2, GAME_CONFIG.SEA_LEVEL),
+    k.pos(-k.width() / 2, 0),
     k.color(120, 190, 245),
     k.z(-10),
     "sky",
@@ -129,18 +142,22 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
 
   // Tag da superfície posicionada no nível do mar (80px)
   const waterSurface = k.add([
-    k.rect(k.width(), 14),
-    k.pos(0, GAME_CONFIG.SEA_LEVEL),
+    k.rect(k.width() * 2, 14),
+    k.pos(-k.width() / 2, GAME_CONFIG.SEA_LEVEL),
     k.area(),
     k.color(20, 50, 120),
     k.z(1),
     TAGS.SURFACE,
   ]);
 
-  // 1. Instancia Estado, Jogador e UI de Debug
+  // 1. Instancia Controles Touch, Estado, Jogador e UI de Debug
+  const touchControls = setupTouchControls(k);
+  k.onSceneLeave(() => {
+    touchControls.destroy();
+  });
   const gameState = createGameState(options);
-  const playerController = createPlayer(k, initialX, options.mode === "serene");
-  const debugDistanceUI = createDebugDistanceUI(k);
+  const playerController = createPlayer(k, initialX, options.mode === "serene", touchControls.state);
+  const debugDistanceUI = createDebugDistanceUI(k, playerController);
 
   // HUD adicional de modo no topo direito
   let timerUI: any = null;
@@ -342,9 +359,10 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
       });
     }
 
-    oceanFloor.pos.x = k.camPos().x - k.width() / 2;
-    waterSurface.pos.x = k.camPos().x - k.width() / 2;
-    skyBand.pos.x = k.camPos().x - k.width() / 2;
+    oceanFloor.pos.x = k.camPos().x - k.width();
+    oceanFloor.pos.y = k.height() - 40;
+    waterSurface.pos.x = k.camPos().x - k.width();
+    skyBand.pos.x = k.camPos().x - k.width();
     
     // Atualiza cores do oceano e UI de distância
     updateOceanColors(k, playerXPosition, waterSurface, oceanFloor, skyBand);

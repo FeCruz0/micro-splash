@@ -108,28 +108,45 @@ export function showVictoryScreen(k: KaboomCtx, gameState: any, onRestart: () =>
         k.z(202),
     ]);
 
-    // Botão de reinício
-    const restartButtonLabel = k.add([
-        k.text("Pressione ENTER para Jogar Novamente", {
-            size: 14,
-            font: "sans-serif",
-        }),
+    // Botão de reinício (suporta toque mobile e clique)
+    const restartButton = k.add([
+        k.rect(340, 38, { radius: 8 }),
         k.pos(k.width() / 2, k.height() / 2 + 185),
-        k.color(100, 255, 180),
-        k.opacity(1),
+        k.color(20, 90, 140),
+        k.outline(2, k.rgb(100, 240, 255)),
         k.anchor("center"),
+        k.area(),
         k.fixed(),
         k.z(202),
     ]);
 
-    let blinkAnimationTime = 0;
-    restartButtonLabel.onUpdate(() => {
-        blinkAnimationTime += k.dt() * 4;
-        restartButtonLabel.opacity = Math.sin(blinkAnimationTime) > 0 ? 1 : 0.3;
-    });
+    k.add([
+        k.text("Jogar Novamente (ou ENTER) 🔄", {
+            size: 13,
+            font: "sans-serif",
+        }),
+        k.pos(k.width() / 2, k.height() / 2 + 185),
+        k.color(255, 255, 255),
+        k.anchor("center"),
+        k.fixed(),
+        k.z(203),
+    ]);
 
-    const cancelKeyPress = k.onKeyPress("enter", () => {
+    let isRestarting = false;
+    const triggerRestart = () => {
+        if (isRestarting) return;
+        isRestarting = true;
         cancelKeyPress.cancel();
         onRestart();
+    };
+
+    restartButton.onHoverUpdate(() => {
+        restartButton.color = k.rgb(30, 140, 200);
     });
+    restartButton.onHoverEnd(() => {
+        restartButton.color = k.rgb(20, 90, 140);
+    });
+    restartButton.onClick(triggerRestart);
+
+    const cancelKeyPress = k.onKeyPress("enter", triggerRestart);
 }

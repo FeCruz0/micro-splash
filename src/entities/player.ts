@@ -3,8 +3,14 @@ import { GAME_CONFIG, TAGS } from "../config";
 import { isPositionInIceGap } from "../systems/iceSurface";
 import { audioSystem } from "../systems/audioSystem";
 import { createWaterSplash } from "../systems/breachSystem";
+import type { TouchControlsState } from "../ui/touchControls";
 
-export function createPlayer(k: KaboomCtx, initialX: number = 120, isSereneMode: boolean = false) {
+export function createPlayer(
+  k: KaboomCtx,
+  initialX: number = 120,
+  isSereneMode: boolean = false,
+  touchState?: TouchControlsState
+) {
   const baleia = k.add([
     k.sprite("baleia", { anim: "glide" }),
     k.pos(initialX, 200),
@@ -193,8 +199,9 @@ export function createPlayer(k: KaboomCtx, initialX: number = 120, isSereneMode:
         angle = k.clamp(k.rad2deg(Math.atan2(currentSpeed.y, currentSpeed.x)), -45, 45);
       }
     } else if (isTrapped) {
-      // Apenas o controle de nado fica travado; barra de espaço serve para se soltar
-      if (k.isKeyPressed("space")) {
+      // Apenas o controle de nado fica travado; barra de espaço ou botão de nado serve para se soltar
+      const isStrokePressedNow = k.isKeyPressed("space") || (touchState && touchState.strokePressed);
+      if (isStrokePressedNow) {
         escapesNeeded--;
         k.shake(2);
         if (escapesNeeded <= 0) {
@@ -206,23 +213,29 @@ export function createPlayer(k: KaboomCtx, initialX: number = 120, isSereneMode:
     } else {
       // CONTROLES DO JOGADOR (ativos quando livre)
       // Virar Esquerda / Direita
-      if (k.isKeyDown("left") || k.isKeyDown("a")) {
+      const isLeftDown = k.isKeyDown("left") || k.isKeyDown("a") || (touchState && touchState.left);
+      const isRightDown = k.isKeyDown("right") || k.isKeyDown("d") || (touchState && touchState.right);
+
+      if (isLeftDown) {
         facingRight = false;
         targetCamOffset = -200;
         baleia.flipX = true;
       }
-      if (k.isKeyDown("right") || k.isKeyDown("d")) {
+      if (isRightDown) {
         facingRight = true;
         targetCamOffset = 200;
         baleia.flipX = false;
       }
 
-      // Impulso (Espaço)
-      if (k.isKeyPressed("space")) {
+      // Impulso (Espaço ou Botão de Nado Touch)
+      const isStrokePressed = k.isKeyPressed("space") || (touchState && touchState.strokePressed);
+      const isStrokeDown = k.isKeyDown("space") || (touchState && touchState.strokeDown);
+
+      if (isStrokePressed) {
         audioSystem.playStrokeThrust();
       }
 
-      if (k.isKeyDown("space")) {
+      if (isStrokeDown) {
         if (strokeTimer < GAME_CONFIG.MAX_STROKE_TIME) {
           strokeTimer += k.dt();
           const progresso = strokeTimer / GAME_CONFIG.MAX_STROKE_TIME;
@@ -240,7 +253,7 @@ export function createPlayer(k: KaboomCtx, initialX: number = 120, isSereneMode:
         }
       }
 
-      if (k.isKeyReleased("space")) {
+      if (k.isKeyReleased("space") || (touchState && !touchState.strokeDown && strokeTimer > 0 && !k.isKeyDown("space"))) {
         strokeTimer = 0;
       }
 
@@ -249,7 +262,11 @@ export function createPlayer(k: KaboomCtx, initialX: number = 120, isSereneMode:
         sonarCooldown -= k.dt();
       }
 
-      if ((k.isKeyDown("shift") || k.isKeyDown("e")) && sonarCooldown <= 0) {
+      const isSonarTriggered =
+        (k.isKeyDown("shift") || k.isKeyDown("e") || (touchState && touchState.sonarPressed)) &&
+        sonarCooldown <= 0;
+
+      if (isSonarTriggered) {
         sonarCooldown = GAME_CONFIG.SONAR_COOLDOWN;
         audioSystem.playSonarSound();
         audioSystem.playWhaleSong(1.0, 1.0); // Baleia emite seu canto sagrado ao usar o biosonar
@@ -344,10 +361,12 @@ export function createPlayer(k: KaboomCtx, initialX: number = 120, isSereneMode:
 
       // Rotação (Cima / Baixo)
       const velocidadeRotacao = GAME_CONFIG.ROTATION_SPEED * k.dt();
+      const isUpDown = k.isKeyDown("up") || k.isKeyDown("w") || (touchState && touchState.up);
+      const isDownDown = k.isKeyDown("down") || k.isKeyDown("s") || (touchState && touchState.down);
 
-      if (k.isKeyDown("up") || k.isKeyDown("w")) {
+      if (isUpDown) {
         angle = k.clamp(angle - velocidadeRotacao, -45, 45);
-      } else if (k.isKeyDown("down") || k.isKeyDown("s")) {
+      } else if (isDownDown) {
         angle = k.clamp(angle + velocidadeRotacao, -45, 45);
       } else {
         angle = k.lerp(angle, 0, 0.05);
@@ -362,7 +381,8 @@ export function createPlayer(k: KaboomCtx, initialX: number = 120, isSereneMode:
         baleia.play("feed");
       }
     } else {
-      if (k.isKeyDown("space") && !isTrapped && !isFainting) {
+      const isStrokeActiveNow = k.isKeyDown("space") || (touchState && touchState.strokeDown);
+      if (isStrokeActiveNow && !isTrapped && !isFainting) {
         const strokePhase = strokeTimer / GAME_CONFIG.MAX_STROKE_TIME;
         const targetAnim = strokePhase < 0.5 ? "stroke_up" : "stroke_down";
         if (animState !== targetAnim) {
@@ -416,12 +436,22 @@ export function createPlayer(k: KaboomCtx, initialX: number = 120, isSereneMode:
     }
     wasInAir = inAir;
 
-    // Fail-Safe de Emergência: se for arremessada para fora do mundo
-    if (baleia.pos.y < -150 || baleia.pos.y > k.height() + 80) {
-      baleia.pos.y = GAME_CONFIG.SEA_LEVEL + 60;
+    // Limite físico do leito marinho: impede afundar além do fundo do oceano
+    const seabedLimit = k.height() - 55;
+    if (baleia.pos.y > seabedLimit) {
+      baleia.pos.y = seabedLimit;
+      if (currentSpeed.y > 0) {
+        currentSpeed.y = 0;
+      }
+    }
+
+    // Fail-Safe de Emergência: apenas se for arremessada para o espaço (-250px) ou cair abaixo do leito
+    if (baleia.pos.y < -250) {
+      baleia.pos.y = GAME_CONFIG.SEA_LEVEL + 40;
       currentSpeed = k.vec2(facingRight ? 100 : -100, 30);
-      k.shake(2);
-      audioSystem.playWaterSplash();
+    } else if (baleia.pos.y > k.height() + 100) {
+      baleia.pos.y = seabedLimit;
+      currentSpeed.y = 0;
     }
    
     // se baleia submersa ou bloqueada por gelo na Antártida, perde oxigênio
@@ -525,15 +555,6 @@ export function createPlayer(k: KaboomCtx, initialX: number = 120, isSereneMode:
 
      // Câmera
     k.camPos(k.lerp(k.camPos().x, baleia.pos.x + targetCamOffset, 0.05), k.camPos().y);
-
-    // Indicador no HUD
-    const draftingTag = isDrafting ? " | 🐬 Vácuo (+25%)" : "";
-    const oilTag = isOilObstructed ? " | ⚠️ ÓLEO NO ESPIRÁCULO! Mergulhe fundo!" : "";
-    if (isSereneMode) {
-      k.debug.log(`Migração Serena 🌸 | Fôlego: ∞ | Nutrição: +${krillsEaten}%${draftingTag}${oilTag}`);
-    } else {
-      k.debug.log(`Fôlego: ${Math.floor(oxygen)}% | Nutrição: +${krillsEaten}%${draftingTag}${oilTag}`);
-    }
   });
 
   return {

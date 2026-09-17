@@ -93,7 +93,7 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
 ### 📱 FASE 10: Feira de Ciências & Acessibilidade Mobile
 *Objetivo: Maximizar o engajamento com jurados, visitantes e dispositivos touch.*
 
-- [ ] **10.1 Modo Kiosk (Demonstração Interativa):**
+- [x] **10.1 Modo Kiosk (Demonstração Interativa):**
   - Ativação de um screensaver/demonstração cinematográfica autônoma se o jogo permanecer inativo por 45 segundos no menu, com convite: *"Toque em qualquer tecla para guiar a Jubarte!"*.
-- [ ] **10.2 Controles Virtuais Touch na Tela:**
+- [x] **10.2 Controles Virtuais Touch na Tela:**
   - Suporte a botões virtuais na tela para tablets, celulares e totens interativos na feira de ciências.
