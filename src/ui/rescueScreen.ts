@@ -1,6 +1,7 @@
 import type { KaboomCtx } from "kaboom";
+import type { GameState } from "../systems/state";
 
-export function showRescueScreen(k: KaboomCtx, gameState: any, onRestart: () => void) {
+export function showRescueScreen(k: KaboomCtx, gameState: GameState, onRestart: () => void) {
   const finalScore = gameState.calculateFinalScore();
   const highScore = gameState.getHighScore();
 

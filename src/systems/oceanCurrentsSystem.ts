@@ -1,5 +1,6 @@
 import kaboom from "kaboom";
 import { TAGS } from "../config";
+import type { PlayerController } from "../entities/player";
 
 export interface CurrentZone {
   startX: number;
@@ -22,7 +23,7 @@ export const OPEN_OCEAN_CURRENTS: CurrentZone[] = [
  * Sistema de Correntezas Contrárias em Alto Mar (5.000m a 12.000m).
  * Empurra a baleia para trás (-X) se entrar na faixa da correnteza.
  */
-export function setupOceanCurrentsSystem(k: ReturnType<typeof kaboom>, playerController: any) {
+export function setupOceanCurrentsSystem(k: ReturnType<typeof kaboom>, playerController: PlayerController) {
   OPEN_OCEAN_CURRENTS.forEach((zone) => {
     const width = zone.endX - zone.startX;
 

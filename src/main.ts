@@ -1,13 +1,11 @@
 import kaboom from "kaboom";
 import { GAME_CONFIG, TAGS, getSavedResolution } from "./config";
 import { createPlayer } from "./entities/player";
-import { createTrash } from "./entities/trash";
-import { createKrill } from "./entities/krill";
 import { createRescueBoat } from "./entities/boat";
 import { setupCollisions } from "./systems/collisions";
 import { createGameState, type GameOptions } from "./systems/state";
 import { showRescueScreen } from "./ui/rescueScreen";
-import { createGhostNet } from "./entities/net";
+import { loadLevelLayout } from "./systems/levelLoader";
 import { setupUpwellingSystem } from "./systems/upwellingSystem";
 import { showVictoryScreen } from "./ui/victoryScreen";
 import { updateOceanColors } from "./systems/oceanEnvironment";
@@ -192,65 +190,8 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
   setupDolphinDraftingSystem(k, playerController);
   setupPenguinFlockSystem(k);
 
-  // 3. Instancia objetos no caminho (Lixo plástico, Krill, Redes fantasmas)
-  // Coordenadas Y calibradas para a coluna d'água navegável (entre 140px e 290px), sem risco de corte pelo chão
-  const urbanTrashPositions = [
-    k.vec2(12300, 180),
-    k.vec2(12700, 260),
-    k.vec2(13100, 150),
-    k.vec2(13600, 240),
-    k.vec2(14100, 190),
-    k.vec2(14600, 270),
-    k.vec2(15100, 160),
-    k.vec2(15600, 250),
-    k.vec2(16200, 210),
-    k.vec2(16700, 280),
-    k.vec2(17200, 170),
-    k.vec2(17800, 240),
-    k.vec2(18300, 270),
-    k.vec2(18800, 190),
-  ];
-  urbanTrashPositions.forEach((pos) => {
-    createTrash(k, pos);
-  });
-
-  const antarcticKrillPositions = [
-    k.vec2(400, 200),
-    k.vec2(900, 270),
-    k.vec2(1400, 170),
-    k.vec2(1900, 240),
-    k.vec2(2400, 280),
-    k.vec2(2900, 190),
-    k.vec2(3400, 250),
-    k.vec2(3900, 160),
-    k.vec2(4400, 270),
-    k.vec2(4800, 220),
-  ];
-  antarcticKrillPositions.forEach((pos) => {
-    createKrill(k, pos);
-  });
-
-  // Redes distribuídas em profundidades variadas (leito marinho e deriva pelágica em meia-água)
-  const floorNetY = Math.max(280, k.height() - 40 - 32); // Descansando limpa sobre o leito marinho
-  const midNetY1 = 200; // Rede em meia-água superior
-  const midNetY2 = 270; // Rede em meia-água intermediária
-
-  const oceanFloorNetPositions = [
-    k.vec2(6000, floorNetY),
-    k.vec2(8500, midNetY1),
-    k.vec2(10500, floorNetY),
-    k.vec2(12800, midNetY2),
-    k.vec2(14500, floorNetY),
-    k.vec2(16500, midNetY1),
-    k.vec2(18200, floorNetY),
-    k.vec2(20100, midNetY2),
-    k.vec2(21500, floorNetY),
-    k.vec2(22800, midNetY1),
-    k.vec2(24100, floorNetY),
-  ];
-  oceanFloorNetPositions.forEach((pos) => {
-    createGhostNet(k, pos);
-  });  
+  // 3. Instancia obstáculos, krill e redes a partir do layout externalizado em data/level_layout.json
+  loadLevelLayout(k);  
 
   // 4. Inicializa áudio da migração e atalhos
   audioSystem.startMigrationAudio(initialX);

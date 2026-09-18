@@ -1,6 +1,7 @@
 import type { KaboomCtx } from "kaboom";
 import { GAME_CONFIG } from "../config";
 import { audioSystem } from "./audioSystem";
+import type { PlayerController } from "../entities/player";
 
 /**
  * Sistema de Cardumes Residentes de Golfinhos-Rotadores em Loop Contínuo (Fase 9.3)
@@ -13,7 +14,7 @@ import { audioSystem } from "./audioSystem";
  * navega até o ponto de retorno, salta fora d'água no meio da rota, realiza mergulho de U-turn 180°
  * e volta para a origem, repetindo o loop indefinidamente sem sumir do cenário.
  */
-export function setupDolphinDraftingSystem(k: KaboomCtx, playerController: any) {
+export function setupDolphinDraftingSystem(k: KaboomCtx, playerController: PlayerController) {
   const POD_ROUTES = [
     {
       name: "Cardume dos Recifes",

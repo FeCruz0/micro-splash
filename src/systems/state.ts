@@ -16,6 +16,8 @@ export interface GameOptions {
     timeLimit?: number;  // 60 segundos padrão para o desafio da feira
 }
 
+export type GameState = ReturnType<typeof createGameState>;
+
 export function createGameState(options: GameOptions = { mode: "standard" }) {
     let distance = 0;
     let krillCount = 0;

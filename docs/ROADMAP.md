@@ -57,12 +57,6 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
   - Reconstrução da vocalização (`playWhaleSong`) em 3 canais inspirados em trackers (Assobio LFO, Gemido Cello Sine/Sawtooth submerso e Percussão Zíper em C0) com barramento de eco de 180ms e filtro passa-baixa a 420Hz.
   - Eliminação de temporizadores aleatórios: a baleia só canta quando o jogador aciona o sonar ou quando baleias próximas emitem pulsos acústicos no mar aberto ou santuário.
 
----
-
-## 🎯 Próximas Fases (Ordenadas por Prioridade)
-
----
-
 ### 🌅 FASE 8: Cenários Vivos & Atmosfera em Paralaxe (Profundidade & Luz)
 - [x] **8.1 Raios de Sol Subaquáticos (*God Rays*) & Caustics (`lightRaysSystem.ts`):**
   - Feixes translúcidos de luz solar filtrando dinamicamente da superfície em direção às profundezas, com destaque luminoso dourado e turquesa cintilante em Arraial do Cabo.
@@ -75,20 +69,12 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
   - Florestas de algas gigantes (*kelp*) na Antártica com física de deformação senoidal fluida de ondulação.
   - Recifes de corais em Arraial do Cabo (corais-cérebro com sulcos, leques de gorgônias e anêmonas fluorescentes) acompanhados de peixes de recife coloridos.
 
----
-
 ### 🌊 FASE 9: Dinâmica Ecológica, Fauna Rara & Perigos Adicionais
 - [x] **9.1 Mancha de Óleo Pré-Arraial (antes do Boqueirão):** Mancha negra iridescente entre 17.400m e 18.900m que obstrui o espiráculo por lodo e impede a respiração até a realização de mergulho de limpeza em águas profundas.
 - [x] **9.2 Descarte Ativo de Lixo por Navios Industriais:** Navios cargueiros da Costa Urbana ejetam periodicamente tambores tóxicos, engradados de madeira e sacos plásticos em sua esteira que afundam em zigue-zague com colisão ativa.
 - [x] **9.3 Nado em Bando com Golfinhos (*Drafting*):** Bandos de Golfinhos-Rotadores em mar aberto que concedem esteira hidrodinâmica favorável (+25% velocidade e -40% dreno de O₂) com trilha aerodinâmica e cliques 16-bit.
 - [x] **9.4 Silhueta de Cachalote nas Profundezas:** Encontro solene com leviatã abissal colossal de 280px no leito profundo (8.000m - 10.800m) emitindo infrassom oceânico ressonante e ondas de choque acústicas.
 - [x] **9.5 Pinguins-de-Magalhães Saltando na Saída Antártica:** Bandos ágeis realizando *porpoising* (saltos em arco fora d'água) com rastro de bolhas e pios rápidos na transição polar (4.000m - 5.200m).
-
----
-
-## 🎯 Próximas Fases (Ordenadas por Prioridade)
-
----
 
 ### 📱 FASE 10: Feira de Ciências & Acessibilidade Mobile
 *Objetivo: Maximizar o engajamento com jurados, visitantes e dispositivos touch.*
@@ -97,3 +83,73 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
   - Ativação de um screensaver/demonstração cinematográfica autônoma se o jogo permanecer inativo por 45 segundos no menu, com convite: *"Toque em qualquer tecla para guiar a Jubarte!"*.
 - [x] **10.2 Controles Virtuais Touch na Tela:**
   - Suporte a botões virtuais na tela para tablets, celulares e totens interativos na feira de ciências.
+
+### 🏗️ FASE 11: Arquitetura & Qualidade de Código (Refatoração & Testes)
+*Objetivo: Desacoplar sistemas monolíticos, eliminar dívidas técnicas e garantir estabilidade através de testes automatizados.*
+
+- [x] **11.1 Modularização de `player.ts` (God Object):**
+  - Decompor o monólito em submódulos especializados: `playerPhysics.ts` (arrasto, gravidade e limites), `playerOxygen.ts` (dreno e recuperação de fôlego), `playerSonar.ts` (eco acústico 360°), `playerParticles.ts` (espiráculo, bolhas e rastros) e `playerControls.ts` (unificação de teclado e touch).
+- [x] **11.2 Tipagem Estrita e Fim do `any` Generalizado:**
+  - Criar e exportar interfaces explícitas `PlayerController`, `GameState` e tipos auxiliares do Kaboom, substituindo tipagens fracas em sistemas de colisões, telas de vitória e resgate.
+- [x] **11.3 Modularização de `audioSystem.ts`:**
+  - Dividir o módulo de áudio em arquivos dedicados: `audioEngine.ts` (contexto Web Audio, master volume e resume), `audioSfx.ts` (efeitos sonoros pontuais), `audioMusic.ts` (trilha adaptativa `BiomeMusicEngine`) e `audioAmbient.ts` (sons de fundo marinho e vocalizações).
+- [x] **11.4 Externalização do Layout de Níveis:**
+  - Mover posições e coordenadas manuais de lixo, krill e redes de `main.ts` para arquivo de configuração `data/level_layout.json` ou sistema de spawn determinístico por bioma.
+- [x] **11.5 Testes Automatizados com Vitest:**
+  - Implementar suíte de testes unitários cobrindo o gerenciador de estado (`createGameState`), persistência de resoluções, detecção de ambiente touch e física essencial da baleia.
+
+---
+
+## 🎯 Próximas Fases (Ordenadas por Prioridade)
+
+---
+
+### 🎮 FASE 12: Gameplay & Mecânicas Novas
+*Objetivo: Enriquecer a dinâmica de navegação e introduzir novas camadas estratégicas durante a migração.*
+
+- [ ] **12.1 Geração Procedural de Obstáculos por Bioma:**
+  - Substituir posições fixas por geração dinâmica de perigos e cardumes com base no avanço horizontal X da baleia, garantindo rejogabilidade única em cada tentativa sem memorização prévia de rota.
+- [ ] **12.2 Filhote de Baleia Acompanhante (Calf Escort):**
+  - No Santuário Marinho de Arraial (25.000m+), a jubarte encontra seu filhote recém-nascido, que a segue em formação via interpolação suave (`lerp`), exigindo que o jogador o proteja de perigos residuais até a chegada.
+- [ ] **12.3 Power-ups Temporários Ambientais:**
+  - Introduzir itens colecionáveis temáticos: *Escudo de Bolhas* (imunidade a uma colisão com lixo), *Corrente Favorável* (+50% de velocidade por 5s), *Bolsão de Ar Submerso* (+30% fôlego instantâneo) e *Bioluminescência* (revelação luminosa de perigos próximos por 8s).
+- [ ] **12.4 Leaderboard Local Top 10 (Ranking Arcade da Feira):**
+  - Expandir o high score único para um ranking Top 10 persistente em `localStorage`, com inserção de iniciais do jogador (estilo arcade de 3 letras), ideal para disputa entre visitantes no estande.
+
+### 🎨 FASE 13: Polimento Visual, Atmosfera & Identidade
+*Objetivo: Elevar o impacto visual e a imersão sensorial com micro-animações e apresentação profissional.*
+
+- [ ] **13.1 Partículas Dinâmicas de Bolhas de Nado:**
+  - Adicionar emissão contínua de rastro de micro-bolhas (2-4px) partindo da cauda da baleia durante a propulsão, com intensidade proporcional à velocidade instantânea.
+- [ ] **13.2 Cardumes de Krill Reactivos (Comportamento de Boids):**
+  - Substituir os blocos estáticos de krill por pequenos enxames orgânicos (8 a 12 micro-entidades) que se dispersam dinamicamente quando a baleia se aproxima.
+- [ ] **13.3 Ciclo Dia/Noite Sutil ao Longo da Rota:**
+  - Implementar transição gradativa da paleta de iluminação ambiente ao longo dos 27.000m: luz polar límpida na Antártica, entardecer alaranjado no Mar Aberto, noite com luzes de navegação na Costa Urbana e amanhecer dourado e radiante em Arraial do Cabo.
+- [ ] **13.4 Tela de Loading / Splash Screen Animada:**
+  - Criar tela de introdução estilizada de 2 a 3 segundos com logo animado emergindo em bolhas, barra de carregamento temática e créditos institucionais para a feira de ciências.
+- [ ] **13.5 Cartão de Vitória / Compartilhamento de Resultado:**
+  - Gerar cartão de resultado exportável em imagem PNG na tela de vitória, contendo nome do jogador, pontuação final, estatísticas da migração, logo do projeto e QR Code.
+
+### 📚 FASE 14: Conteúdo Educativo Expandido & Avaliação
+*Objetivo: Fortalecer o valor pedagógico e a fixação do aprendizado para jurados e público estudantil.*
+
+- [ ] **14.1 Expansão do Acervo de Fatos Científicos (`facts.json`):**
+  - Ampliar de 5 para 12+ fatos ecológicos baseados em dados reais (propagação acústica no canal SOFAR, mortalidade por redes fantasmas, correntes oceânicas e a história da Reserva Extrativista de Arraial do Cabo).
+- [ ] **14.2 Quiz Interativo Pós-Vitória:**
+  - Adicionar mini-desafio opcional ao final da rota com 3 perguntas de múltipla escolha sobre os fatos ecológicos desbloqueados durante a partida, premiando acertos com pontuação extra no Eco-Score.
+
+### ⚡ FASE 15: Otimização & Performance em Baixo Nível
+*Objetivo: Garantir taxa de quadros estável (60 FPS) em dispositivos com hardware modesto (tablets e notebooks da feira).*
+
+- [ ] **15.1 Object Pooling para Partículas e Projéteis:**
+  - Implementar pool de objetos reutilizáveis para bolhas de nado, spray do espiráculo, ecos do sonar e rastros hidrodinâmicos, reduzindo alocações e pausas de Garbage Collection.
+- [ ] **15.2 Ciclo de Vida e Lazy Loading de Sistemas por Bioma:**
+  - Ativar e desativar a execução de sistemas específicos (ex: `iceSurface`, `shipNoise`, `oilSpill`) estritamente dentro de suas faixas de coordenadas X, poupando processamento de CPU.
+
+### 🎪 FASE 16: Engajamento & Ferramentas da Feira de Ciências
+*Objetivo: Fornecer métricas coletivas para o estande e recursos para apresentação da equipe aos avaliadores.*
+
+- [ ] **16.1 Dashboard de Estatísticas Acumuladas da Feira:**
+  - Painel persistente visível no menu principal exibindo contadores coletivos de todos os visitantes (total de migrações tentadas, migrações concluídas com sucesso, krill total coletado, lixo desviado e tempo total acumulado de jogo).
+- [ ] **16.2 Modo Apresentação Guiada (Apoio aos Jurados/Professores):**
+  - Atalho dedicado (`Ctrl+P`) que ativa sobreposição de legendas explicativas e destaques conceituais em tempo real, permitindo aos alunos guiar a banca avaliadora pelos conceitos ecológicos e de programação implementados.

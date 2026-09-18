@@ -1,7 +1,8 @@
 import kaboom from "kaboom";
 import { GAME_CONFIG, TAGS } from "../config";
+import type { PlayerController } from "../entities/player";
 
-export function setupShipNoiseSystem(k: ReturnType<typeof kaboom>, playerController: any) {
+export function setupShipNoiseSystem(k: ReturnType<typeof kaboom>, playerController: PlayerController) {
   const ships = [
     { minX: 12400, maxX: 14400, currentX: 13200, speed: 45, dir: 1 },
     { minX: 14700, maxX: 16700, currentX: 15500, speed: 50, dir: -1 },

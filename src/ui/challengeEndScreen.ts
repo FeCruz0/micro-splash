@@ -1,9 +1,10 @@
 import type { KaboomCtx } from "kaboom";
 import { audioSystem } from "../systems/audioSystem";
+import type { GameState } from "../systems/state";
 
 export function showChallengeEndScreen(
   k: KaboomCtx,
-  gameState: any,
+  gameState: GameState,
   onPlayAgain: () => void,
   onReturnMenu: () => void
 ) {

@@ -1,5 +1,6 @@
 import type { KaboomCtx } from "kaboom";
 import { GAME_CONFIG } from "../config";
+import type { PlayerController } from "../entities/player";
 
 /**
  * Sistema de Mancha de Óleo Pré-Arraial (Fase 9.1)
@@ -9,7 +10,7 @@ import { GAME_CONFIG } from "../config";
  * Respirar ou romper a superfície nessa zona obstrui o espiráculo da baleia,
  * impedindo a recarga de oxigênio até que ela mergulhe fundo em águas limpas.
  */
-export function setupOilSpillSystem(k: KaboomCtx, playerController: any) {
+export function setupOilSpillSystem(k: KaboomCtx, playerController: PlayerController) {
   const SPILL_START = 17400;
   const SPILL_END = 18900;
   const PATCH_WIDTH = 180;

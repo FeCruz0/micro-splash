@@ -1,16 +1,22 @@
-import type { KaboomCtx } from "kaboom";
+import type { KaboomCtx, Vec2 } from "kaboom";
 import { GAME_CONFIG, TAGS } from "../config";
-import { isPositionInIceGap } from "../systems/iceSurface";
 import { audioSystem } from "../systems/audioSystem";
-import { createWaterSplash } from "../systems/breachSystem";
 import type { TouchControlsState } from "../ui/touchControls";
+import type { PlayerController } from "./player/types";
+import { PlayerOxygenManager } from "./player/playerOxygen";
+import { PlayerPhysicsManager } from "./player/playerPhysics";
+import { PlayerSonarManager } from "./player/playerSonar";
+import { PlayerControlsManager } from "./player/playerControls";
+import { spawnBaleenSuction, spawnDraftingTrail } from "./player/playerParticles";
+
+export type { PlayerController } from "./player/types";
 
 export function createPlayer(
   k: KaboomCtx,
   initialX: number = 120,
   isSereneMode: boolean = false,
   touchState?: TouchControlsState
-) {
+): PlayerController {
   const baleia = k.add([
     k.sprite("baleia", { anim: "glide" }),
     k.pos(initialX, 200),
@@ -22,580 +28,190 @@ export function createPlayer(
     TAGS.PLAYER,
   ]);
 
-  let currentSpeed = k.vec2(0, 0);
-  let strokeTimer = 0;
-  let facingRight = true;
-  let targetCamOffset = 200;
-  let angle = 0;
-  let sonarCooldown = GAME_CONFIG.SONAR_COOLDOWN;
-  let spoutCooldown = 0;
-  let wasInAir = false;
+  const oxygenMgr = new PlayerOxygenManager(k);
+  const physicsMgr = new PlayerPhysicsManager(k);
+  const sonarMgr = new PlayerSonarManager(k);
+  const controlsMgr = new PlayerControlsManager(k, touchState);
 
-  // Estados da Fase 9: Dinâmica Ecológica & Perigos
-  let isOilObstructed = false;
-  let oilCleanTimer = 0;
-  let isDrafting = false;
-
-  // Sistema de partículas de óleo viscoso quando o espiráculo está obstruído
-  function spawnOilSpout(pos: any, isFacingRight: boolean, hSpeed: number) {
-    audioSystem.playOilChoke();
-    const spoutOrigin = pos.add(k.vec2(isFacingRight ? 22 : -22, -13));
-
-    for (let i = 0; i < 24; i++) {
-      const spread = (Math.random() - 0.5) * 0.35;
-      const speed = 110 + Math.random() * 90;
-      const dir = k.vec2(Math.cos(-Math.PI / 2 + spread), Math.sin(-Math.PI / 2 + spread));
-      let vel = dir.scale(speed);
-      vel.x += hSpeed * 0.2;
-
-      const p = k.add([
-        k.circle(1.8 + Math.random() * 2.2),
-        k.pos(spoutOrigin.x + (Math.random() - 0.5) * 6, spoutOrigin.y),
-        k.color(30, 22, 16), // lodo negro oleoso
-        k.opacity(0.9),
-        k.z(15),
-      ]);
-
-      let life = 0.55 + Math.random() * 0.35;
-      const maxLife = life;
-      p.onUpdate(() => {
-        const dt = k.dt();
-        vel.y += 280 * dt;
-        p.pos = p.pos.add(vel.scale(dt));
-        life -= dt;
-        p.opacity = Math.max(0, (life / maxLife) * 0.9);
-        if (life <= 0) k.destroy(p);
-      });
-    }
-  }
-
-  // Bolhas purificadoras ao lavar o espiráculo no fundo
-  function spawnPurifyBubbles(pos: any) {
-    for (let i = 0; i < 35; i++) {
-      const b = k.add([
-        k.circle(2.0 + Math.random() * 2.5),
-        k.pos(pos.x + (Math.random() - 0.5) * 40, pos.y + (Math.random() - 0.5) * 20),
-        k.color(180, 240, 255),
-        k.opacity(0.85),
-        k.z(16),
-      ]);
-      let bLife = 0.8 + Math.random() * 0.5;
-      const vy = -60 - Math.random() * 80;
-      b.onUpdate(() => {
-        const dt = k.dt();
-        b.pos.y += vy * dt;
-        bLife -= dt;
-        b.opacity -= dt * 0.9;
-        if (bLife <= 0 || b.opacity <= 0) k.destroy(b);
-      });
-    }
-  }
-
-  // Animações anatômicas da Jubarte
   let animState: "glide" | "stroke_up" | "stroke_down" | "feed" = "glide";
   let feedTimer = 0;
 
-  // Sistema de partículas do espiráculo (Blowhole Spout)
-  function spawnBlowholeSpout(pos: any, isFacingRight: boolean, hSpeed: number) {
-    audioSystem.playBlowholeSpout();
-
-    const spoutOrigin = pos.add(k.vec2(isFacingRight ? 22 : -22, -13));
-
-    // 32 partículas de condensação e vapor marinho em formato de V
-    for (let i = 0; i < 32; i++) {
-      const isRightPlume = i % 2 === 0;
-      // Ângulos das duas plumas em V: esquerda ~ -98° (-1.71 rad), direita ~ -82° (-1.43 rad)
-      const baseAngle = isRightPlume ? -1.45 : -1.69;
-      const spread = (Math.random() - 0.5) * 0.22;
-      const speed = 190 + Math.random() * 170;
-      const dir = k.vec2(Math.cos(baseAngle + spread), Math.sin(baseAngle + spread));
-
-      let vel = dir.scale(speed);
-      vel.x += hSpeed * 0.35; // herda parte do movimento horizontal da baleia
-
-      const particle = k.add([
-        k.circle(1.8 + Math.random() * 2.2),
-        k.pos(spoutOrigin.x + (Math.random() - 0.5) * 6, spoutOrigin.y),
-        k.color(225, 242, 255),
-        k.opacity(0.85),
-        k.z(15),
-      ]);
-
-      let life = 0.65 + Math.random() * 0.45;
-      const maxLife = life;
-
-      particle.onUpdate(() => {
-        const dt = k.dt();
-        vel.y += 240 * dt; // gravidade puxando gotículas de volta ao mar
-        particle.pos = particle.pos.add(vel.scale(dt));
-        particle.radius += dt * 3.2; // expansão de vapor
-        life -= dt;
-        particle.opacity = Math.max(0, (life / maxLife) * 0.85);
-
-        if (life <= 0 || particle.pos.y > GAME_CONFIG.SEA_LEVEL + 35) {
-          k.destroy(particle);
-        }
-      });
-    }
-  }
-
-  // Partículas de sucção convergente ao alimentar-se de Krill
-  function spawnBaleenSuction(pos: any, isFacingRight: boolean) {
-    const mouthPos = pos.add(k.vec2(isFacingRight ? 46 : -46, 2));
-    for (let i = 0; i < 12; i++) {
-      const pAngle = Math.random() * Math.PI * 2;
-      const dist = 22 + Math.random() * 24;
-      const p = k.add([
-        k.circle(1.2 + Math.random() * 1.5),
-        k.pos(mouthPos.x + Math.cos(pAngle) * dist, mouthPos.y + Math.sin(pAngle) * dist),
-        k.color(255, 175, 145),
-        k.opacity(0.85),
-        k.z(20),
-      ]);
-
-      p.onUpdate(() => {
-        const toMouth = mouthPos.sub(p.pos);
-        if (toMouth.len() < 6) {
-          k.destroy(p);
-        } else {
-          p.pos = p.pos.add(toMouth.unit().scale(190 * k.dt()));
-          p.opacity -= k.dt() * 2.4;
-          if (p.opacity <= 0) k.destroy(p);
-        }
-      });
-    }
-  }
-
-  // sistema de oxigenio e progressao nutricional (Fase 3)
-  let baseMaxOxygen = 100;
-  let krillsEaten = 0;
-
-  const getMaxOxygen = () => baseMaxOxygen + krillsEaten * 1;
-  const getMaxSpeed = () => GAME_CONFIG.MAX_SPEED * (1 + krillsEaten * 0.01);
-
-  let oxygen = 100;
-  let blackoutTimer = GAME_CONFIG.BLACKOUT_GRACE_TIME;
-  let isFainting = false;
-
-  // sistema de rede e salto majestoso
   let isTrapped = false;
   let escapesNeeded = 0;
   let isBreaching = false;
+  let isDrafting = false;
 
-  k.onUpdate(() => {
-    // se estiver desmaiada
-    if (isFainting) {
-      baleia.color = k.rgb(60, 60, 80); // fica cinza escuro
-      baleia.move(0, GAME_CONFIG.SINK_RATE * 2); // afunda mais rapido
-      return; 
+  baleia.onUpdate(() => {
+    const dt = k.dt();
+
+    // 1. Se estiver desmaiada (blackout)
+    if (oxygenMgr.isFaintingState()) {
+      baleia.color = k.rgb(60, 60, 80);
+      baleia.move(0, GAME_CONFIG.SINK_RATE * 2);
+      return;
     }
 
-    // se estiver no Salto Majestoso (Breach)
+    // 2. Estado de Salto Majestoso (Breach)
     if (isBreaching) {
-      facingRight = true;
-      targetCamOffset = 200;
+      controlsMgr.setFacingRight(true);
+      controlsMgr.setTargetCamOffset(200);
       baleia.flipX = false;
-      if (currentSpeed.len() > 10) {
-        angle = k.clamp(k.rad2deg(Math.atan2(currentSpeed.y, currentSpeed.x)), -45, 45);
+      if (physicsMgr.getSpeed().len() > 10) {
+        const vel = physicsMgr.getSpeed();
+        controlsMgr.setAngle(k.clamp(k.rad2deg(Math.atan2(vel.y, vel.x)), -45, 45));
       }
     } else if (isTrapped) {
-      // Apenas o controle de nado fica travado; barra de espaço ou botão de nado serve para se soltar
+      // 3. Presa em rede fantasma
       const isStrokePressedNow = k.isKeyPressed("space") || (touchState && touchState.strokePressed);
       if (isStrokePressedNow) {
         escapesNeeded--;
         k.shake(2);
         if (escapesNeeded <= 0) {
-          isTrapped = false; // se soltou da rede!
+          isTrapped = false;
         }
       }
-      // Alinha ângulo suavemente enquanto afunda enroscada
-      angle = k.lerp(angle, 0, 0.05);
+      controlsMgr.setAngle(k.lerp(controlsMgr.getAngle(), 0, 0.05));
     } else {
-      // CONTROLES DO JOGADOR (ativos quando livre)
-      // Virar Esquerda / Direita
-      const isLeftDown = k.isKeyDown("left") || k.isKeyDown("a") || (touchState && touchState.left);
-      const isRightDown = k.isKeyDown("right") || k.isKeyDown("d") || (touchState && touchState.right);
+      // 4. Livre e controlável
+      const inputs = controlsMgr.pollInputs(physicsMgr.getStrokeTimer());
+      controlsMgr.updateOrientation(dt, baleia, inputs, isTrapped);
 
-      if (isLeftDown) {
-        facingRight = false;
-        targetCamOffset = -200;
-        baleia.flipX = true;
-      }
-      if (isRightDown) {
-        facingRight = true;
-        targetCamOffset = 200;
-        baleia.flipX = false;
-      }
-
-      // Impulso (Espaço ou Botão de Nado Touch)
-      const isStrokePressed = k.isKeyPressed("space") || (touchState && touchState.strokePressed);
-      const isStrokeDown = k.isKeyDown("space") || (touchState && touchState.strokeDown);
-
-      if (isStrokePressed) {
+      if (inputs.isStrokePressed) {
         audioSystem.playStrokeThrust();
       }
 
-      if (isStrokeDown) {
-        if (strokeTimer < GAME_CONFIG.MAX_STROKE_TIME) {
-          strokeTimer += k.dt();
-          const progresso = strokeTimer / GAME_CONFIG.MAX_STROKE_TIME;
-          const draftBoost = isDrafting ? 1.25 : 1.0;
-          const curvaForca = (GAME_CONFIG.BASE_THRUST + (Math.sin(progresso * Math.PI) * GAME_CONFIG.PEAK_THRUST)) * draftBoost;
-          const angleInRadians = k.deg2rad(angle);
-          const direcao = k.vec2(facingRight ? Math.cos(angleInRadians) : -Math.cos(angleInRadians), Math.sin(angleInRadians));
-
-          currentSpeed = currentSpeed.add(direcao.scale(curvaForca * k.dt()));
-
-          const currentMaxSpeed = getMaxSpeed() * draftBoost;
-          if (currentSpeed.len() > currentMaxSpeed) {
-            currentSpeed = currentSpeed.unit().scale(currentMaxSpeed);
-          }
-        }
+      if (inputs.isStrokeDown) {
+        const maxSpeed = GAME_CONFIG.MAX_SPEED * (1 + oxygenMgr.getKrillsEaten() * 0.01);
+        physicsMgr.applyThrust(
+          dt,
+          controlsMgr.isFacingRight(),
+          controlsMgr.getAngle(),
+          isDrafting,
+          maxSpeed
+        );
       }
 
-      if (k.isKeyReleased("space") || (touchState && !touchState.strokeDown && strokeTimer > 0 && !k.isKeyDown("space"))) {
-        strokeTimer = 0;
+      if (inputs.isStrokeReleased) {
+        physicsMgr.resetStrokeTimer();
       }
 
-      // SONAR OMNIDIRECIONAL EM 360° (Varredura Total da Tela)
-      if (sonarCooldown > 0) {
-        sonarCooldown -= k.dt();
-      }
-
-      const isSonarTriggered =
-        (k.isKeyDown("shift") || k.isKeyDown("e") || (touchState && touchState.sonarPressed)) &&
-        sonarCooldown <= 0;
-
-      if (isSonarTriggered) {
-        sonarCooldown = GAME_CONFIG.SONAR_COOLDOWN;
-        audioSystem.playSonarSound();
-        audioSystem.playWhaleSong(1.0, 1.0); // Baleia emite seu canto sagrado ao usar o biosonar
-
-        // Posição de disparo (melão / testa da baleia)
-        const headPos = baleia.pos.add(k.vec2(facingRight ? 42 : -42, -4));
-
-        // 1. Onda acústica concêntrica primária (360°)
-        const primaryPulse = k.add([
-          k.circle(15),
-          k.pos(headPos),
-          k.color(0, 230, 255),
-          k.outline(3, k.rgb(180, 255, 255)),
-          k.opacity(0.8),
-          k.z(20),
-        ]);
-
-        primaryPulse.onUpdate(() => {
-          primaryPulse.radius += k.dt() * 520;
-          primaryPulse.opacity -= k.dt() * 0.9;
-          if (primaryPulse.opacity <= 0 || primaryPulse.radius >= GAME_CONFIG.SONAR_RANGE) {
-            k.destroy(primaryPulse);
-          }
-        });
-
-        // 2. Onda secundária (eco sonoplástico concêntrico)
-        k.wait(0.08, () => {
-          const secondaryPulse = k.add([
-            k.circle(10),
-            k.pos(headPos),
-            k.color(0, 160, 240),
-            k.outline(2, k.rgb(120, 220, 255)),
-            k.opacity(0.6),
-            k.z(19),
-          ]);
-
-          secondaryPulse.onUpdate(() => {
-            secondaryPulse.radius += k.dt() * 480;
-            secondaryPulse.opacity -= k.dt() * 0.85;
-            if (secondaryPulse.opacity <= 0 || secondaryPulse.radius >= GAME_CONFIG.SONAR_RANGE) {
-              k.destroy(secondaryPulse);
-            }
-          });
-        });
-
-        // 3. Varredura de 360° de todos os objetos e relevos submersos
-        const targets = [
-          ...k.get(TAGS.TRASH),
-          ...k.get(TAGS.KRILL),
-          ...k.get(TAGS.NET),
-          ...k.get("canyon_rock"),
-        ];
-
-        let echoCount = 0;
-        targets.forEach((targetEntity: any) => {
-          const distanceToObject = headPos.dist(targetEntity.pos);
-          if (distanceToObject <= GAME_CONFIG.SONAR_RANGE) {
-            // Tempo proporcional para a onda de choque acústico atingir o objeto
-            const travelTime = (distanceToObject / 520);
-            k.wait(travelTime, () => {
-              if (targetEntity.reveal) {
-                targetEntity.reveal();
-              } else {
-                targetEntity.opacity = 1;
-              }
-
-              // Anel de reflexão acústica (eco visual no alvo)
-              const echoPing = k.add([
-                k.circle(8),
-                k.pos(targetEntity.pos),
-                k.color(0, 240, 255),
-                k.outline(2, k.rgb(255, 255, 255)),
-                k.opacity(0.9),
-                k.z(22),
-              ]);
-
-              echoPing.onUpdate(() => {
-                echoPing.radius += k.dt() * 45;
-                echoPing.opacity -= k.dt() * 2.8;
-                if (echoPing.opacity <= 0) k.destroy(echoPing);
-              });
-
-              // Eco sonoro no ouvido do jogador
-              if (echoCount < 4) {
-                echoCount++;
-                audioSystem.playSonarEcho(Math.min(280, distanceToObject * 0.35));
-              }
-            });
-          }
-        });
-      }
-
-      // Rotação (Cima / Baixo)
-      const velocidadeRotacao = GAME_CONFIG.ROTATION_SPEED * k.dt();
-      const isUpDown = k.isKeyDown("up") || k.isKeyDown("w") || (touchState && touchState.up);
-      const isDownDown = k.isKeyDown("down") || k.isKeyDown("s") || (touchState && touchState.down);
-
-      if (isUpDown) {
-        angle = k.clamp(angle - velocidadeRotacao, -45, 45);
-      } else if (isDownDown) {
-        angle = k.clamp(angle + velocidadeRotacao, -45, 45);
-      } else {
-        angle = k.lerp(angle, 0, 0.05);
+      sonarMgr.updateCooldown(dt);
+      if (inputs.isSonarTriggered && sonarMgr.canTrigger()) {
+        sonarMgr.triggerSonar(baleia.pos, controlsMgr.isFacingRight());
       }
     }
 
-    // Atualização de animações orgânicas de nado e alimentação
+    // 5. Atualização de animações orgânicas
     if (feedTimer > 0) {
-      feedTimer -= k.dt();
+      feedTimer -= dt;
       if (animState !== "feed") {
         animState = "feed";
         baleia.play("feed");
       }
     } else {
-      const isStrokeActiveNow = k.isKeyDown("space") || (touchState && touchState.strokeDown);
-      if (isStrokeActiveNow && !isTrapped && !isFainting) {
-        const strokePhase = strokeTimer / GAME_CONFIG.MAX_STROKE_TIME;
+      const isStrokeActive = k.isKeyDown("space") || (touchState && touchState.strokeDown);
+      if (isStrokeActive && !isTrapped && !oxygenMgr.isFaintingState()) {
+        const strokePhase = physicsMgr.getStrokeTimer() / GAME_CONFIG.MAX_STROKE_TIME;
         const targetAnim = strokePhase < 0.5 ? "stroke_up" : "stroke_down";
         if (animState !== targetAnim) {
           animState = targetAnim;
           baleia.play(targetAnim);
         }
-      } else {
-        if (animState !== "glide") {
-          animState = "glide";
-          baleia.play("glide");
-        }
+      } else if (animState !== "glide") {
+        animState = "glide";
+        baleia.play("glide");
       }
     }
 
-    // Leve oscilação de cauda orgânica em movimento
-    const swimSway = (currentSpeed.len() > 20 && !isFainting)
-      ? Math.sin(k.time() * 7) * Math.min(2.5, currentSpeed.len() / 80)
-      : 0;
+    // 6. Oscilação orgânica da cauda em movimento
+    const currentSpeed = physicsMgr.getSpeed();
+    const swimSway =
+      currentSpeed.len() > 20 && !oxygenMgr.isFaintingState()
+        ? Math.sin(k.time() * 7) * Math.min(2.5, currentSpeed.len() / 80)
+        : 0;
 
-    baleia.angle = (facingRight ? angle : -angle) + swimSway;
-    const inAir = baleia.pos.y < GAME_CONFIG.SEA_LEVEL + 6;
+    baleia.angle =
+      (controlsMgr.isFacingRight() ? controlsMgr.getAngle() : -controlsMgr.getAngle()) + swimSway;
 
+    // 7. Física e movimento
+    const { inAir, newAngle } = physicsMgr.updateMovement(
+      dt,
+      baleia,
+      controlsMgr.isFacingRight(),
+      controlsMgr.getAngle(),
+      isBreaching
+    );
     if (inAir) {
-      // Voo balístico majestoso pelo ar (fora da água)
-      const gravity = isBreaching ? 620 : 340;
-      currentSpeed.y += gravity * k.dt(); // aceleração gravitacional realista e suave
-      currentSpeed.x = currentSpeed.x * 0.998; // arrasto de ar quase nulo, conserva salto majestoso
-      baleia.move(currentSpeed.x, currentSpeed.y);
-
-      // Inclina a baleia organicamente acompanhando a parábola do salto
-      if (currentSpeed.len() > 20) {
-        const trajectoryAngle = k.clamp(k.rad2deg(Math.atan2(currentSpeed.y, Math.abs(currentSpeed.x))), -45, 45);
-        angle = k.lerp(angle, trajectoryAngle, 0.1);
-      }
-    } else {
-      // Nado hidrodinâmico na água
-      baleia.move(currentSpeed.x, currentSpeed.y + GAME_CONFIG.SINK_RATE);
-      currentSpeed = currentSpeed.scale(GAME_CONFIG.WATER_DRAG);
+      controlsMgr.setAngle(newAngle);
     }
 
-    // Suavização se subir muito alto no céu (estratosfera), reforça a gravidade para descer em arco gracioso
-    if (baleia.pos.y < -50) {
-      currentSpeed.y += 280 * k.dt();
-    }
+    // 8. Respiração e dreno de oxigênio
+    oxygenMgr.update(
+      dt,
+      baleia.pos,
+      currentSpeed.x,
+      controlsMgr.isFacingRight(),
+      isDrafting,
+      isSereneMode
+    );
 
-    // Efeito de Splashdown ao reentrar na água após o salto (Splash 16-bit visual e sonoro garantido)
-    if (wasInAir && !inAir) {
-      createWaterSplash(k, k.vec2(baleia.pos.x, GAME_CONFIG.SEA_LEVEL), 28);
-      audioSystem.playWaterSplash();
-      k.shake(3.0);
-    }
-    wasInAir = inAir;
-
-    // Limite físico do leito marinho: impede afundar além do fundo do oceano
-    const seabedLimit = k.height() - 55;
-    if (baleia.pos.y > seabedLimit) {
-      baleia.pos.y = seabedLimit;
-      if (currentSpeed.y > 0) {
-        currentSpeed.y = 0;
-      }
-    }
-
-    // Fail-Safe de Emergência: apenas se for arremessada para o espaço (-250px) ou cair abaixo do leito
-    if (baleia.pos.y < -250) {
-      baleia.pos.y = GAME_CONFIG.SEA_LEVEL + 40;
-      currentSpeed = k.vec2(facingRight ? 100 : -100, 30);
-    } else if (baleia.pos.y > k.height() + 100) {
-      baleia.pos.y = seabedLimit;
-      currentSpeed.y = 0;
-    }
-   
-    // se baleia submersa ou bloqueada por gelo na Antártida, perde oxigênio
-    const isAtSurface = baleia.pos.y <= GAME_CONFIG.SEA_LEVEL + 40;
-    const canBreathe = isAtSurface && isPositionInIceGap(baleia.pos.x);
-
-    if (spoutCooldown > 0) {
-      spoutCooldown -= k.dt();
-    }
-
-    if (isSereneMode) {
-      // Modo Navegação Serena: Oxigênio infinito permanente, sem risco de desmaio
-      oxygen = getMaxOxygen();
-      isFainting = false;
-
-      // Mesmo no modo Serena, permite esguicho estético do espiráculo ao emergir
-      if (canBreathe && spoutCooldown <= 0 && baleia.pos.y <= GAME_CONFIG.SEA_LEVEL + 15) {
-        spoutCooldown = 2.5;
-        if (isOilObstructed) {
-          spawnOilSpout(baleia.pos, facingRight, currentSpeed.x);
-        } else {
-          spawnBlowholeSpout(baleia.pos, facingRight, currentSpeed.x);
-        }
-      }
-    } else if (!canBreathe || isOilObstructed) {
-      // Se submersa ou se o espiráculo estiver obstruído por óleo
-      const drainMult = isDrafting ? 0.60 : 1.0;
-      oxygen = Math.max(0, oxygen - k.dt() * GAME_CONFIG.OXYGEN_DRAIN_RATE * drainMult);
-
-      if (isOilObstructed && baleia.pos.y <= GAME_CONFIG.SEA_LEVEL + 15 && spoutCooldown <= 0) {
-        spoutCooldown = 2.0;
-        spawnOilSpout(baleia.pos, facingRight, currentSpeed.x);
-      }
-
-      if (oxygen === 0) {
-        blackoutTimer -= k.dt();
-        if (blackoutTimer <= 0) {
-          isFainting = true;
-          k.shake(4); // tremor forte quando desmaia
-        }
-      }
-    } else {
-      // na superfície livre de gelo e sem óleo, recarrega fôlego para máximo atual
-      const currentMaxOx = getMaxOxygen();
-      if (oxygen < currentMaxOx) {
-        const hadLowOxygen = oxygen < GAME_CONFIG.BLOWHOLE_OXYGEN_THRESHOLD;
-        oxygen = currentMaxOx;
-        blackoutTimer = GAME_CONFIG.BLACKOUT_GRACE_TIME;
-        k.shake(2); // leve tremor e esguicho
-
-        // Efeito de Esguicho do Espiráculo (Blowhole Spout)
-        if (hadLowOxygen && spoutCooldown <= 0) {
-          spoutCooldown = 2.0;
-          spawnBlowholeSpout(baleia.pos, facingRight, currentSpeed.x);
-        }
-      }
-    }
-
-    // Lavagem e purificação do espiráculo por mergulho profundo em águas limpas
-    if (isOilObstructed) {
-      if (baleia.pos.y >= GAME_CONFIG.SEA_LEVEL + 130) {
-        oilCleanTimer += k.dt();
-        if (oilCleanTimer >= 1.8) {
-          isOilObstructed = false;
-          oilCleanTimer = 0;
-          audioSystem.playPurifyWhoosh();
-          spawnPurifyBubbles(baleia.pos);
-          k.shake(2);
-        }
-      } else {
-        oilCleanTimer = Math.max(0, oilCleanTimer - k.dt() * 0.4);
-      }
-    }
-
-    // Efeito visual de esteira hidrodinâmica (slipstream) quando nadando em bando com golfinhos
+    // 9. Esteira de drafting com golfinhos
     if (isDrafting && Math.random() < 0.35) {
-      const trailX = baleia.pos.x + (facingRight ? -42 : 42);
-      const trailY = baleia.pos.y + (Math.random() - 0.5) * 18;
-      const trail = k.add([
-        k.rect(16 + Math.random() * 14, 1.5),
-        k.pos(trailX, trailY),
-        k.color(140, 240, 255),
-        k.opacity(0.75),
-        k.z(12),
-      ]);
-      trail.onUpdate(() => {
-        trail.pos.x -= (facingRight ? 140 : -140) * k.dt();
-        trail.opacity -= k.dt() * 2.0;
-        if (trail.opacity <= 0) k.destroy(trail);
-      });
+      spawnDraftingTrail(k, baleia.pos, controlsMgr.isFacingRight());
     }
 
-    // Transição de cor conforme perda de oxigenio e estado de emaranhada
-    const currentMaxOx = getMaxOxygen();
-    const oxygenRatio = oxygen / currentMaxOx;
+    // 10. Cor conforme perda de oxigênio e rede
+    const maxOx = oxygenMgr.getMaxOxygen();
+    const oxygenRatio = oxygenMgr.getOxygen() / maxOx;
     const r = k.lerp(60, 255, oxygenRatio);
     const g = k.lerp(80, 255, oxygenRatio);
     const b = k.lerp(120, 255, oxygenRatio);
 
     baleia.color = isTrapped ? k.rgb(190, 90, 230) : k.rgb(r, g, b);
 
-     // Câmera
-    k.camPos(k.lerp(k.camPos().x, baleia.pos.x + targetCamOffset, 0.05), k.camPos().y);
+    // 11. Câmera fluida
+    k.camPos(
+      k.lerp(k.camPos().x, baleia.pos.x + controlsMgr.getTargetCamOffset(), 0.05),
+      k.camPos().y
+    );
   });
 
   return {
     gameObj: baleia,
-    getSpeed: () => currentSpeed,
-    setSpeed: (newSpeed: any) => { currentSpeed = newSpeed; },
-    getOxygen: () => oxygen,
-    getMaxOxygen: () => getMaxOxygen(),
-    getMaxSpeed: () => getMaxSpeed(),
-    getKrillsEaten: () => krillsEaten,
-    isFainting: () => isFainting,
+    getSpeed: () => physicsMgr.getSpeed(),
+    setSpeed: (newSpeed: Vec2) => {
+      physicsMgr.setSpeed(newSpeed);
+    },
+    getOxygen: () => oxygenMgr.getOxygen(),
+    getMaxOxygen: () => oxygenMgr.getMaxOxygen(),
+    getMaxSpeed: () => GAME_CONFIG.MAX_SPEED * (1 + oxygenMgr.getKrillsEaten() * 0.01),
+    getKrillsEaten: () => oxygenMgr.getKrillsEaten(),
+    isFainting: () => oxygenMgr.isFaintingState(),
     isSereneMode: () => isSereneMode,
 
-    // Consumo de Krill: +1% permanente em velocidade máxima e oxigênio máximo com animação de alimentação
     consumeKrill: () => {
-      krillsEaten++;
-      const newMaxOx = getMaxOxygen();
-      oxygen = Math.min(oxygen + GAME_CONFIG.KRILL_OXYGEN_RESTORE, newMaxOx);
-      currentSpeed = currentSpeed.scale(GAME_CONFIG.KRILL_BOOST);
-
+      oxygenMgr.consumeKrill();
+      physicsMgr.setSpeed(physicsMgr.getSpeed().scale(GAME_CONFIG.KRILL_BOOST));
       feedTimer = 0.55;
       animState = "feed";
       baleia.play("feed");
-      spawnBaleenSuction(baleia.pos, facingRight);
+      spawnBaleenSuction(k, baleia.pos, controlsMgr.isFacingRight());
     },
 
-    // Penalidade por lixo (perda direta de oxigênio temporário)
     penalizeTrash: () => {
-      oxygen = Math.max(0, oxygen - GAME_CONFIG.TRASH_OXYGEN_PENALTY);
+      oxygenMgr.penalizeTrash();
     },
 
     trapInNet: (count: number) => {
       isTrapped = true;
       escapesNeeded = Math.max(escapesNeeded, count);
-      currentSpeed = currentSpeed.scale(0.3);
+      physicsMgr.setSpeed(physicsMgr.getSpeed().scale(0.3));
     },
 
     addTrapCount: (count: number) => {
       isTrapped = true;
       escapesNeeded += count;
-      currentSpeed = currentSpeed.scale(0.5);
+      physicsMgr.setSpeed(physicsMgr.getSpeed().scale(0.5));
     },
 
     isTrapped: () => isTrapped,
@@ -607,20 +223,14 @@ export function createPlayer(
 
     isBreaching: () => isBreaching,
 
-    // Estados da Fase 9
     setOilObstructed: (obstructed: boolean) => {
-      if (!isOilObstructed && obstructed) {
-        isOilObstructed = true;
-        oilCleanTimer = 0;
-        audioSystem.playOilChoke();
-        k.shake(2);
-      }
+      oxygenMgr.setOilObstructed(obstructed);
     },
-    isOilObstructed: () => isOilObstructed,
+    isOilObstructed: () => oxygenMgr.isObstructed(),
+
     setDrafting: (drafting: boolean) => {
       isDrafting = drafting;
     },
     isDrafting: () => isDrafting,
   };
 }
-

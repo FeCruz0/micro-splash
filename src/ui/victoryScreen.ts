@@ -1,8 +1,9 @@
 import type { KaboomCtx } from "kaboom";
 import { GAME_CONFIG } from "../config";
 import { audioSystem } from "../systems/audioSystem";
+import type { GameState } from "../systems/state";
 
-export function showVictoryScreen(k: KaboomCtx, gameState: any, onRestart: () => void) {
+export function showVictoryScreen(k: KaboomCtx, gameState: GameState, onRestart: () => void) {
     const finalScore = gameState.calculateFinalScore();
     const highScore = gameState.getHighScore();
     const hasBreached = gameState.hasBreached();

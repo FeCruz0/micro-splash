@@ -1,8 +1,9 @@
 import type { KaboomCtx } from "kaboom";
 import { GAME_CONFIG } from "../config";
 import { getCurrentBiome } from "../systems/oceanEnvironment";
+import type { PlayerController } from "../entities/player";
 
-export function createDebugDistanceUI(k: KaboomCtx, playerController?: any) {
+export function createDebugDistanceUI(k: KaboomCtx, playerController?: PlayerController) {
   // Proporções adaptativas com base na resolução virtual
   const isHighRes = k.width() >= 1920;
   const isMediumRes = k.width() >= 1280;

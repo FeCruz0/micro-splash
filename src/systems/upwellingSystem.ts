@@ -1,8 +1,9 @@
 import type { KaboomCtx } from "kaboom";
 import { GAME_CONFIG, TAGS } from "../config";
 import { createKrill } from "../entities/krill";
+import type { PlayerController } from "../entities/player";
 
-export function setupUpwellingSystem(k: KaboomCtx, playerController: any) {
+export function setupUpwellingSystem(k: KaboomCtx, playerController: PlayerController) {
     let upwellingTimer = 0;
     let isUpwellingActive = false;
     let upwellingEventTimer = 0;

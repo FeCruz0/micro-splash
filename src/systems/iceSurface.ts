@@ -1,6 +1,7 @@
 import kaboom from "kaboom";
 import { TAGS, GAME_CONFIG } from "../config";
 import { audioSystem } from "./audioSystem";
+import type { PlayerController } from "../entities/player";
 
 export interface IceGap {
   start: number;
@@ -35,7 +36,7 @@ export function isPositionInIceGap(x: number): boolean {
 /**
  * Cria a camada de gelo, o iceberg de parede inicial e as aberturas de respiração no bioma Antártico (0m - 5000m).
  */
-export function setupIceSurfaceSystem(k: ReturnType<typeof kaboom>, playerController?: any) {
+export function setupIceSurfaceSystem(k: ReturnType<typeof kaboom>, playerController?: PlayerController) {
   // Reseta as fendas ativas para a configuração padrão limpa ao iniciar/reiniciar o jogo
   activeIceGaps = DEFAULT_ICE_GAPS.map((gap) => ({ ...gap }));
 

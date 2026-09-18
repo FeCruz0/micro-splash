@@ -1,11 +1,13 @@
 import kaboom from "kaboom";
 import { GAME_CONFIG } from "../config";
 import { audioSystem } from "./audioSystem";
+import type { PlayerController } from "../entities/player";
+import type { GameState } from "./state";
 
 export interface BreachSystemConfig {
   k: ReturnType<typeof kaboom>;
-  playerController: any;
-  gameState: any;
+  playerController: PlayerController;
+  gameState: GameState;
   onBreachComplete: () => void;
 }
 

@@ -1,8 +1,14 @@
 import type { KaboomCtx } from "kaboom";
 import { TAGS, GAME_CONFIG } from "../config";
 import { audioSystem } from "./audioSystem";
+import type { PlayerController } from "../entities/player";
+import type { GameState } from "./state";
 
-export function setupCollisions(k: KaboomCtx, playerController: any, gameState: any) {
+export function setupCollisions(
+  k: KaboomCtx,
+  playerController: PlayerController,
+  gameState: GameState
+) {
 
   // colisão com lixo
   k.onCollide(TAGS.PLAYER, TAGS.TRASH, (_player, trash) => {
