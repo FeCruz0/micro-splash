@@ -2,8 +2,24 @@ import type { KaboomCtx } from "kaboom";
 import { GAME_CONFIG } from "../config";
 import { audioSystem } from "../systems/audioSystem";
 import type { GameState } from "../systems/state";
+import { isTop10Score } from "../systems/leaderboard";
+import { showInitialsInputModal } from "./initialsInputModal";
 
 export function showVictoryScreen(k: KaboomCtx, gameState: GameState, onRestart: () => void) {
+    const finalScore = gameState.calculateFinalScore();
+    const distance = gameState.getDistance();
+    const mode = gameState.getMode();
+
+    if (isTop10Score(finalScore)) {
+        showInitialsInputModal(k, finalScore, distance, mode, () => {
+            renderVictoryContent(k, gameState, onRestart);
+        });
+    } else {
+        renderVictoryContent(k, gameState, onRestart);
+    }
+}
+
+function renderVictoryContent(k: KaboomCtx, gameState: GameState, onRestart: () => void) {
     const finalScore = gameState.calculateFinalScore();
     const highScore = gameState.getHighScore();
     const hasBreached = gameState.hasBreached();
@@ -85,6 +101,7 @@ export function showVictoryScreen(k: KaboomCtx, gameState: GameState, onRestart:
     
     const totalDistanceFormatted = GAME_CONFIG.ROUTE_TOTAL_DISTANCE.toLocaleString("pt-BR");
     const breachText = hasBreached ? "✨ Salto Majestoso (Breach): EXECUTADO (+500 pts)\n" : "";
+    const calfText = gameState.hasEscortedCalf() ? "🐋 Filhote Protegido no Berçário: SUCESSO (+300 pts)\n" : "";
 
     const statsText = 
         `📏 Rota Migratória: 100% Concluída (${totalDistanceFormatted}m)\n` +
@@ -92,6 +109,7 @@ export function showVictoryScreen(k: KaboomCtx, gameState: GameState, onRestart:
         `🦐 Krill Coletado: ${gameState.getKrillCount()}\n` +
         `🗑️ Lixo Colidido: ${gameState.getTrashCount()}\n` +
         breachText +
+        calfText +
         `\n📜 Sabedoria Ancestral: ${ancestralWisdom}\n\n` +
         `⭐ Eco-Score Final: ${finalScore} pts   |   🏆 Recorde: ${highScore} pts\n\n` +
         `🎖️ Classificação: ${rank}`;

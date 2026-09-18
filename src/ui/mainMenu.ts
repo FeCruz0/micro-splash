@@ -5,7 +5,8 @@ export function createMainMenu(
   k: KaboomCtx,
   onStartMigration: (onClose: () => void) => void,
   onOptions: (onClose: () => void) => void,
-  onCodex: (onClose: () => void) => void
+  onCodex: (onClose: () => void) => void,
+  onLeaderboard?: (onClose: () => void) => void
 ) {
   // Inicializa contexto de áudio para cliques da interface, mas sem disparar a trilha de migração
   audioSystem.init();
@@ -50,7 +51,7 @@ export function createMainMenu(
   // Título Sombra
   k.add([
     k.text("MICRO SPLASH", { size: 48, font: "sans-serif" }),
-    k.pos(k.width() / 2 + 3, k.height() / 2 - 160 + 3),
+    k.pos(k.width() / 2 + 3, k.height() / 2 - 165 + 3),
     k.color(2, 8, 20),
     k.anchor("center"),
     k.fixed(),
@@ -60,7 +61,7 @@ export function createMainMenu(
   // Título Principal
   k.add([
     k.text("MICRO SPLASH", { size: 48, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 - 160),
+    k.pos(k.width() / 2, k.height() / 2 - 165),
     k.color(100, 240, 255),
     k.anchor("center"),
     k.fixed(),
@@ -70,7 +71,7 @@ export function createMainMenu(
   // Subtítulo
   k.add([
     k.text("A Grande Migração da Baleia-Jubarte 🐋", { size: 16, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 - 110),
+    k.pos(k.width() / 2, k.height() / 2 - 118),
     k.color(200, 235, 255),
     k.anchor("center"),
     k.fixed(),
@@ -81,8 +82,8 @@ export function createMainMenu(
   const highScore = Number(localStorage.getItem("micro_splash_highscore") || 0);
   if (highScore > 0) {
     k.add([
-      k.text(`🏆 Recorde Histórico: ${highScore} Eco-Pontos`, { size: 13, font: "sans-serif" }),
-      k.pos(k.width() / 2, k.height() / 2 - 75),
+      k.text(`🏆 Recorde Histórico: ${highScore} Eco-Pontos`, { size: 12, font: "sans-serif" }),
+      k.pos(k.width() / 2, k.height() / 2 - 82),
       k.color(255, 215, 80),
       k.anchor("center"),
       k.fixed(),
@@ -96,33 +97,44 @@ export function createMainMenu(
   const menuButtons = [
     {
       label: "🌊 INICIAR MIGRAÇÃO",
-      y: k.height() / 2 - 15,
+      y: k.height() / 2 - 38,
       bg: k.rgb(20, 140, 200),
       hover: k.rgb(35, 175, 240),
       outline: k.rgb(100, 250, 255),
       action: onStartMigration,
     },
     {
-      label: "⚙️ OPÇÕES DE ÁUDIO",
-      y: k.height() / 2 + 55,
+      label: "🏆 RANKING TOP 10",
+      y: k.height() / 2 + 18,
+      bg: k.rgb(26, 85, 150),
+      hover: k.rgb(40, 120, 200),
+      outline: k.rgb(255, 215, 80),
+      action: (onClose: () => void) => {
+        if (onLeaderboard) onLeaderboard(onClose);
+        else onClose();
+      },
+    },
+    {
+      label: "📖 DIÁRIO DE BORDO",
+      y: k.height() / 2 + 74,
+      bg: k.rgb(20, 50, 100),
+      hover: k.rgb(30, 80, 145),
+      outline: k.rgb(180, 220, 255),
+      action: onCodex,
+    },
+    {
+      label: "⚙️ OPÇÕES",
+      y: k.height() / 2 + 130,
       bg: k.rgb(24, 65, 120),
       hover: k.rgb(35, 95, 165),
       outline: k.rgb(80, 180, 240),
       action: onOptions,
     },
-    {
-      label: "📖 DIÁRIO DE BORDO",
-      y: k.height() / 2 + 125,
-      bg: k.rgb(20, 50, 100),
-      hover: k.rgb(30, 80, 145),
-      outline: k.rgb(255, 215, 100),
-      action: onCodex,
-    },
   ];
 
   menuButtons.forEach((btnData) => {
     const btn = k.add([
-      k.rect(340, 50, { radius: 10 }),
+      k.rect(340, 44, { radius: 10 }),
       k.pos(k.width() / 2, btnData.y),
       k.color(btnData.bg),
       k.outline(2, btnData.outline),

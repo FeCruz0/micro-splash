@@ -34,7 +34,7 @@ describe("Layout de Níveis (data/level_layout.json)", () => {
 
     levelLayout.ghostNets.forEach((net) => {
       expect(net.x).toBeGreaterThan(5000);
-      expect(net.x).toBeLessThan(27000);
+      expect(net.x).toBeLessThan(30000);
       expect(validLayers).toContain(net.layer);
     });
   });

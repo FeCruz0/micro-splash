@@ -41,8 +41,94 @@ export function createPlayer(
   let isBreaching = false;
   let isDrafting = false;
 
+  // Power-up States
+  let hasBubbleShield = false;
+  let bubbleShieldVisual: any = null;
+  let speedBoostTimer = 0;
+  let speedBoostMultiplier = 1.0;
+  let bioluminescenceTimer = 0;
+  let bioluminescenceVisual: any = null;
+
+  baleia.onDestroy(() => {
+    if (bubbleShieldVisual) k.destroy(bubbleShieldVisual);
+    if (bioluminescenceVisual) k.destroy(bioluminescenceVisual);
+  });
+
   baleia.onUpdate(() => {
     const dt = k.dt();
+
+    // Atualização de Power-ups
+    if (speedBoostTimer > 0) {
+      speedBoostTimer = Math.max(0, speedBoostTimer - dt);
+      if (Math.random() < 0.35) {
+        const p = k.add([
+          k.circle(k.rand(2, 4)),
+          k.pos(baleia.pos.add(k.vec2(controlsMgr.isFacingRight() ? -55 : 55, k.rand(-10, 10)))),
+          k.color(255, 220, 80),
+          k.opacity(0.8),
+          k.z(19),
+        ]);
+        p.onUpdate(() => {
+          p.opacity -= k.dt() * 2.5;
+          if (p.opacity <= 0) k.destroy(p);
+        });
+      }
+    }
+
+    if (bioluminescenceTimer > 0) {
+      bioluminescenceTimer = Math.max(0, bioluminescenceTimer - dt);
+      if (!bioluminescenceVisual) {
+        bioluminescenceVisual = k.add([
+          k.circle(130),
+          k.pos(baleia.pos),
+          k.color(100, 255, 180),
+          k.opacity(0.16),
+          k.anchor("center"),
+          k.z(19),
+        ]);
+      } else {
+        bioluminescenceVisual.pos = baleia.pos;
+        bioluminescenceVisual.radius = 120 + Math.sin(k.time() * 6) * 12;
+      }
+
+      // Revela perigos e itens automaticamente em raio de 750px
+      const targets = [
+        ...k.get(TAGS.TRASH),
+        ...k.get(TAGS.NET),
+        ...k.get(TAGS.KRILL),
+        ...k.get(TAGS.POWERUP),
+        ...k.get("canyon_rock"),
+      ];
+      targets.forEach((target: any) => {
+        if (baleia.pos.dist(target.pos) <= 750) {
+          if (target.reveal) target.reveal();
+          else target.opacity = 1;
+        }
+      });
+    } else if (bioluminescenceVisual) {
+      k.destroy(bioluminescenceVisual);
+      bioluminescenceVisual = null;
+    }
+
+    if (hasBubbleShield) {
+      if (!bubbleShieldVisual) {
+        bubbleShieldVisual = k.add([
+          k.circle(68),
+          k.pos(baleia.pos),
+          k.color(80, 220, 255),
+          k.outline(2.5, k.rgb(200, 255, 255)),
+          k.opacity(0.35),
+          k.anchor("center"),
+          k.z(21),
+        ]);
+      } else {
+        bubbleShieldVisual.pos = baleia.pos;
+        bubbleShieldVisual.radius = 65 + Math.sin(k.time() * 4) * 4;
+      }
+    } else if (bubbleShieldVisual) {
+      k.destroy(bubbleShieldVisual);
+      bubbleShieldVisual = null;
+    }
 
     // 1. Se estiver desmaiada (blackout)
     if (oxygenMgr.isFaintingState()) {
@@ -82,12 +168,14 @@ export function createPlayer(
 
       if (inputs.isStrokeDown) {
         const maxSpeed = GAME_CONFIG.MAX_SPEED * (1 + oxygenMgr.getKrillsEaten() * 0.01);
+        const currentBoost = speedBoostTimer > 0 ? speedBoostMultiplier : 1.0;
         physicsMgr.applyThrust(
           dt,
           controlsMgr.isFacingRight(),
           controlsMgr.getAngle(),
           isDrafting,
-          maxSpeed
+          maxSpeed,
+          currentBoost
         );
       }
 
@@ -223,6 +311,11 @@ export function createPlayer(
 
     isBreaching: () => isBreaching,
 
+    completeBreach: () => {
+      isBreaching = false;
+      physicsMgr.setSpeed(k.vec2(120, 0));
+    },
+
     setOilObstructed: (obstructed: boolean) => {
       oxygenMgr.setOilObstructed(obstructed);
     },
@@ -232,5 +325,53 @@ export function createPlayer(
       isDrafting = drafting;
     },
     isDrafting: () => isDrafting,
+
+    // Power-ups da Fase 12
+    hasBubbleShield: () => hasBubbleShield,
+    activateBubbleShield: () => {
+      hasBubbleShield = true;
+    },
+    popBubbleShield: () => {
+      if (hasBubbleShield) {
+        hasBubbleShield = false;
+        if (bubbleShieldVisual) {
+          k.destroy(bubbleShieldVisual);
+          bubbleShieldVisual = null;
+        }
+        for (let i = 0; i < 10; i++) {
+          const bp = k.add([
+            k.circle(k.rand(3, 6)),
+            k.pos(baleia.pos.add(k.vec2(k.rand(-25, 25), k.rand(-15, 15)))),
+            k.color(180, 240, 255),
+            k.opacity(0.85),
+            k.z(22),
+          ]);
+          const angle = Math.random() * Math.PI * 2;
+          const speed = k.rand(50, 150);
+          bp.onUpdate(() => {
+            bp.pos.x += Math.cos(angle) * speed * k.dt();
+            bp.pos.y += Math.sin(angle) * speed * k.dt();
+            bp.opacity -= k.dt() * 3;
+            if (bp.opacity <= 0) k.destroy(bp);
+          });
+        }
+        return true;
+      }
+      return false;
+    },
+    applySpeedBoost: (duration: number, multiplier: number = 1.5) => {
+      speedBoostTimer = duration;
+      speedBoostMultiplier = multiplier;
+    },
+    isSpeedBoosted: () => speedBoostTimer > 0,
+    getSpeedBoostTimer: () => speedBoostTimer,
+    restoreOxygen: (amount: number) => {
+      oxygenMgr.restoreOxygen(amount);
+    },
+    activateBioluminescence: (duration: number) => {
+      bioluminescenceTimer = duration;
+    },
+    hasBioluminescence: () => bioluminescenceTimer > 0,
+    getBioluminescenceTimer: () => bioluminescenceTimer,
   };
 }

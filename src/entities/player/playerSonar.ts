@@ -75,6 +75,7 @@ export class PlayerSonarManager {
       ...this.k.get(TAGS.KRILL),
       ...this.k.get(TAGS.NET),
       ...this.k.get("canyon_rock"),
+      ...this.k.get("filhote"),
     ];
 
     let echoCount = 0;

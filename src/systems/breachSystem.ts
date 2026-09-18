@@ -23,6 +23,7 @@ export function setupBreachSystem(config: BreachSystemConfig) {
   let hasLeftWater = false;
   let isBreachFinished = false;
   let bannerAnimTime = 0;
+  let breachTimer = 0;
 
   const triggerDistance = GAME_CONFIG.ROUTE_TOTAL_DISTANCE - 300; // 26.700m
 
@@ -35,7 +36,7 @@ export function setupBreachSystem(config: BreachSystemConfig) {
     if (playerPos.x >= triggerDistance && !isBreachTriggered) {
       if (!promptBanner) {
         promptBanner = k.add([
-          k.text("ÁGUAS CALMAS DE ARRAIAL! 🐋\nPRESSIONE [ESPAÇO] PARA O SALTO MAJESTOSO!", {
+          k.text("ÁGUAS CALMAS DE ARRAIAL! 🐋\nPRESSIONE [ESPAÇO] OU TOQUE PARA O SALTO MAJESTOSO!", {
             size: 15,
             font: "sans-serif",
             align: "center",
@@ -54,14 +55,22 @@ export function setupBreachSystem(config: BreachSystemConfig) {
       bannerAnimTime += k.dt() * 4;
       promptBanner.opacity = 0.7 + Math.sin(bannerAnimTime) * 0.3;
 
-      // Dispara o salto se o jogador pressionar Espaço OU se cruzar a linha final de 27.000m
-      if (k.isKeyPressed("space") || playerPos.x >= GAME_CONFIG.ROUTE_TOTAL_DISTANCE) {
+      // Dispara o salto se o jogador pressionar Espaço, Enter, Toque/Clique OU se cruzar a linha de 27.000m
+      const isInputTriggered =
+        k.isKeyPressed("space") ||
+        k.isKeyPressed("enter") ||
+        k.isMousePressed() ||
+        (k.isTouchStarted && k.isTouchStarted());
+
+      if (isInputTriggered || playerPos.x >= GAME_CONFIG.ROUTE_TOTAL_DISTANCE) {
         startBreachSequence();
       }
     }
 
     // 2. Monitoramento da Trajetória Aérea durante o Salto
     if (isBreachTriggered && !isBreachFinished) {
+      breachTimer += k.dt();
+
       // Verifica se a baleia rompeu a superfície para o céu
       if (playerPos.y < GAME_CONFIG.SEA_LEVEL) {
         hasLeftWater = true;
@@ -83,9 +92,13 @@ export function setupBreachSystem(config: BreachSystemConfig) {
         }
       }
 
-      // 3. Reentrada triunfal na água (Splashdown)
-      if (hasLeftWater && playerPos.y >= GAME_CONFIG.SEA_LEVEL) {
+      // 3. Reentrada triunfal na água (Splashdown) OU Failsafe de tempo (2.5s)
+      const didSplashdown = hasLeftWater && playerPos.y >= GAME_CONFIG.SEA_LEVEL;
+      const isTimeout = breachTimer >= 2.5;
+
+      if (didSplashdown || isTimeout) {
         isBreachFinished = true;
+        playerController.completeBreach();
 
         // Grande estrondo de água e tremor
         audioSystem.playWaterSplash();
@@ -100,8 +113,8 @@ export function setupBreachSystem(config: BreachSystemConfig) {
           promptBanner = null;
         }
 
-        // Aguarda a água acalmar (~1s) e chama a tela de vitória
-        k.wait(1.0, () => {
+        // Aguarda a água acalmar e chama a tela de vitória
+        k.wait(0.6, () => {
           onBreachComplete();
         });
       }

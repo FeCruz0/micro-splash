@@ -3,6 +3,7 @@ import levelLayout from "../../data/level_layout.json";
 import { createTrash } from "../entities/trash";
 import { createKrill } from "../entities/krill";
 import { createGhostNet } from "../entities/net";
+import { spawnProceduralLevel } from "./proceduralObstacles";
 
 export interface LevelLayoutData {
   urbanTrash: Array<{ x: number; y: number }>;
@@ -10,23 +11,31 @@ export interface LevelLayoutData {
   ghostNets: Array<{ x: number; layer: "floor" | "mid1" | "mid2" }>;
 }
 
-export function loadLevelLayout(k: KaboomCtx): void {
+export function loadStaticLevelLayout(k: KaboomCtx): void {
   const data = levelLayout as LevelLayoutData;
 
-  // 1. Lixo Plástico na Costa Urbana
+  const minY = 120;
+  const maxY = Math.max(minY + 120, k.height() - 75);
+  const usableHeight = maxY - minY;
+
+  // 1. Lixo Plástico na Costa Urbana distribuído por toda a profundidade
   data.urbanTrash.forEach((item) => {
-    createTrash(k, k.vec2(item.x, item.y));
+    const normalizedY = (item.y - 150) / (280 - 150);
+    const scaledY = Math.round(minY + normalizedY * usableHeight);
+    createTrash(k, k.vec2(item.x, scaledY));
   });
 
   // 2. Krill Polar na Antártica
   data.antarcticKrill.forEach((item) => {
-    createKrill(k, k.vec2(item.x, item.y));
+    const normalizedY = (item.y - 150) / (280 - 150);
+    const scaledY = Math.round(minY + normalizedY * usableHeight);
+    createKrill(k, k.vec2(item.x, scaledY));
   });
 
   // 3. Redes Fantasmas
-  const floorNetY = Math.max(280, k.height() - 40 - 32);
-  const midNetY1 = 200;
-  const midNetY2 = 270;
+  const floorNetY = Math.round(maxY - 10);
+  const midNetY1 = Math.round(minY + usableHeight * 0.38);
+  const midNetY2 = Math.round(minY + usableHeight * 0.68);
 
   data.ghostNets.forEach((net) => {
     let y = floorNetY;
@@ -37,4 +46,12 @@ export function loadLevelLayout(k: KaboomCtx): void {
     }
     createGhostNet(k, k.vec2(net.x, y));
   });
+}
+
+export function loadLevelLayout(k: KaboomCtx, useProcedural: boolean = true, seed?: number): void {
+  if (useProcedural) {
+    spawnProceduralLevel(k, seed);
+  } else {
+    loadStaticLevelLayout(k);
+  }
 }

@@ -35,12 +35,13 @@ export class PlayerPhysicsManager {
     facingRight: boolean,
     angle: number,
     isDrafting: boolean,
-    maxSpeed: number
+    maxSpeed: number,
+    speedBoostMultiplier: number = 1.0
   ): void {
     if (this.strokeTimer < GAME_CONFIG.MAX_STROKE_TIME) {
       this.strokeTimer += dt;
       const progresso = this.strokeTimer / GAME_CONFIG.MAX_STROKE_TIME;
-      const draftBoost = isDrafting ? 1.25 : 1.0;
+      const draftBoost = (isDrafting ? 1.25 : 1.0) * speedBoostMultiplier;
       const curvaForca =
         (GAME_CONFIG.BASE_THRUST + Math.sin(progresso * Math.PI) * GAME_CONFIG.PEAK_THRUST) *
         draftBoost;
@@ -85,9 +86,20 @@ export class PlayerPhysicsManager {
         newAngle = this.k.lerp(newAngle, trajectoryAngle, 0.1);
       }
     } else {
-      // Nado hidrodinâmico na água
-      baleia.move(this.currentSpeed.x, this.currentSpeed.y + GAME_CONFIG.SINK_RATE);
-      this.currentSpeed = this.currentSpeed.scale(GAME_CONFIG.WATER_DRAG);
+      if (isBreaching) {
+        // Fase de propulsão ascendente do Salto Majestoso até romper a água
+        if (this.currentSpeed.y > -420) {
+          this.currentSpeed.y = -420;
+        }
+        if (this.currentSpeed.x < 260) {
+          this.currentSpeed.x = 260;
+        }
+        baleia.move(this.currentSpeed.x, this.currentSpeed.y);
+      } else {
+        // Nado hidrodinâmico na água
+        baleia.move(this.currentSpeed.x, this.currentSpeed.y + GAME_CONFIG.SINK_RATE);
+        this.currentSpeed = this.currentSpeed.scale(GAME_CONFIG.WATER_DRAG);
+      }
     }
 
     if (baleia.pos.y < -50) {

@@ -88,12 +88,13 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
   });
 
   // ===========================================================================
-  // 2. RECIFES DE CORAIS E ESCOLHOS EM ARRAIAL DO CABO (19.000m a 27.000m)
+  // 2. RECIFES DE CORAIS E ESCOLHOS EM ARRAIAL DO CABO (19.000m a 30.000m)
   // ===========================================================================
   const corals: CoralDetail[] = [];
   const coralSpawnX = [
     19250, 19600, 20100, 20450, 20900, 21350, 21650, 22100,
-    22450, 22950, 23400, 23750, 24150, 24600, 25100, 25550, 26100, 26450
+    22450, 22950, 23400, 23750, 24150, 24600, 25100, 25550, 26100, 26450,
+    26850, 27250, 27650, 28100, 28550, 29000, 29450
   ];
 
   coralSpawnX.forEach((xPos, cIdx) => {

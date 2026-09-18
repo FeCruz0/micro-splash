@@ -24,6 +24,7 @@ import { setupBenthicFloorSystem } from "./systems/benthicFloorSystem";
 import { setupOilSpillSystem } from "./systems/oilSpillSystem";
 import { setupDolphinDraftingSystem } from "./systems/dolphinDraftingSystem";
 import { setupPenguinFlockSystem } from "./systems/penguinFlockSystem";
+import { setupCalfEscortSystem } from "./systems/calfEscortSystem";
 import { createKioskScene } from "./systems/kioskMode";
 import { setupTouchControls } from "./ui/touchControls";
 
@@ -33,6 +34,7 @@ import { showModeSelectScreen } from "./ui/modeSelectScreen";
 import { showOptionsScreen } from "./ui/optionsScreen";
 import { showCodexScreen } from "./ui/codexScreen";
 import { showChallengeEndScreen } from "./ui/challengeEndScreen";
+import { showLeaderboardScreen } from "./ui/leaderboardScreen";
 
 const resolution = getSavedResolution();
 
@@ -71,19 +73,23 @@ k.scene("menu", () => {
         onClose
       );
     },
-    // Opções de Áudio
+    // Opções
     (onClose) => {
       showOptionsScreen(k, onClose);
     },
     // Diário de Bordo (Codex)
     (onClose) => {
       showCodexScreen(k, onClose);
+    },
+    // Ranking Top 10
+    (onClose) => {
+      showLeaderboardScreen(k, onClose);
     }
   );
 });
 
 // =============================================================================
-// CENA DO MODO KIOSK (Fase 10: Attract Mode para Feira de Ciências)
+// CENA DO MODO KIOSK (Fase 10: Attract Mode / Demonstração Autônoma)
 // =============================================================================
 k.scene("kiosk", () => {
   createKioskScene(k);
@@ -189,6 +195,7 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
   setupOilSpillSystem(k, playerController);
   setupDolphinDraftingSystem(k, playerController);
   setupPenguinFlockSystem(k);
+  setupCalfEscortSystem(k, playerController, gameState);
 
   // 3. Instancia obstáculos, krill e redes a partir do layout externalizado em data/level_layout.json
   loadLevelLayout(k);  
@@ -235,8 +242,8 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
   k.onUpdate(() => {
     const playerXPosition = playerController.gameObj.pos.x;
     
-    // Fallback de segurança para conclusão caso ultrapasse a rota
-    if (playerXPosition >= GAME_CONFIG.ROUTE_TOTAL_DISTANCE + 200 && !isGameFinished) {
+    // Fallback de segurança para conclusão caso alcance ou ultrapasse a rota
+    if (playerXPosition >= GAME_CONFIG.ROUTE_TOTAL_DISTANCE && !isGameFinished) {
       isGameFinished = true;
       audioSystem.pauseAmbient();
       showVictoryScreen(k, gameState, () => {
@@ -246,7 +253,7 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
       return;
     }
 
-    // Atualiza o cronômetro do Desafio de 1 Minuto da Feira
+    // Atualiza o cronômetro do Desafio Rápido de 1 Minuto
     if (timerUI && options.mode === "quick_challenge") {
       const remaining = gameState.getTimeRemaining();
       timerUI.text = `⏱️ ${remaining}s`;
@@ -282,6 +289,11 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
       // Sincroniza a trilha sonora adaptativa 16-bit com o bioma atual
       audioSystem.updateBiomeTrack(playerXPosition);
     } else if (playerController.isFainting() && !isRescueSequenceStarted && !isGameFinished) {
+      // Se a baleia já alcançou a enseada final (>= 29.600m) ou está saltando no breach, não inicia resgate de derrota
+      if (playerXPosition >= GAME_CONFIG.ROUTE_TOTAL_DISTANCE - 400 || playerController.isBreaching()) {
+        return;
+      }
+
       // SE A BALEIA DESMAIOU: Inicia a sequência de resgate da Guarda Marítima
       isRescueSequenceStarted = true;
 

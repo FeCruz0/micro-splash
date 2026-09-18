@@ -40,7 +40,7 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
 
   // Título
   elements.push(k.add([
-    k.text("OPÇÕES & CONFIGURAÇÕES ⚙️", { size: 20, font: "sans-serif" }),
+    k.text("OPÇÕES ⚙️", { size: 20, font: "sans-serif" }),
     k.pos(k.width() / 2, k.height() / 2 - 215),
     k.color(255, 230, 100),
     k.anchor("center"),

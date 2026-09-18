@@ -58,6 +58,13 @@ export class PlayerOxygenManager {
     this.oxygen = Math.max(0, this.oxygen - GAME_CONFIG.TRASH_OXYGEN_PENALTY);
   }
 
+  public restoreOxygen(amount: number): void {
+    const max = this.getMaxOxygen();
+    this.oxygen = Math.min(max, this.oxygen + amount);
+    this.blackoutTimer = GAME_CONFIG.BLACKOUT_GRACE_TIME;
+    this.isFainting = false;
+  }
+
   public update(
     dt: number,
     pos: Vec2,
@@ -72,6 +79,16 @@ export class PlayerOxygenManager {
 
     const isAtSurface = pos.y <= GAME_CONFIG.SEA_LEVEL + 40;
     const canBreathe = isAtSurface && isPositionInIceGap(pos.x);
+
+    // Enseada final de Arraial do Cabo (>= 29.600m): refúgio seguro da vitória
+    if (pos.x >= GAME_CONFIG.ROUTE_TOTAL_DISTANCE - 400) {
+      if (this.oxygen < 35) {
+        this.oxygen = 35;
+      }
+      this.blackoutTimer = GAME_CONFIG.BLACKOUT_GRACE_TIME;
+      this.isFainting = false;
+      return;
+    }
 
     if (isSereneMode) {
       this.oxygen = this.getMaxOxygen();

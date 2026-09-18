@@ -76,13 +76,13 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
 - [x] **9.4 Silhueta de Cachalote nas Profundezas:** Encontro solene com leviatã abissal colossal de 280px no leito profundo (8.000m - 10.800m) emitindo infrassom oceânico ressonante e ondas de choque acústicas.
 - [x] **9.5 Pinguins-de-Magalhães Saltando na Saída Antártica:** Bandos ágeis realizando *porpoising* (saltos em arco fora d'água) com rastro de bolhas e pios rápidos na transição polar (4.000m - 5.200m).
 
-### 📱 FASE 10: Feira de Ciências & Acessibilidade Mobile
-*Objetivo: Maximizar o engajamento com jurados, visitantes e dispositivos touch.*
+### 📱 FASE 10: Modo Kiosk & Acessibilidade Mobile
+*Objetivo: Maximizar o engajamento com totens interativos, visitantes e dispositivos touch.*
 
 - [x] **10.1 Modo Kiosk (Demonstração Interativa):**
   - Ativação de um screensaver/demonstração cinematográfica autônoma se o jogo permanecer inativo por 45 segundos no menu, com convite: *"Toque em qualquer tecla para guiar a Jubarte!"*.
 - [x] **10.2 Controles Virtuais Touch na Tela:**
-  - Suporte a botões virtuais na tela para tablets, celulares e totens interativos na feira de ciências.
+  - Suporte a botões virtuais na tela para tablets, celulares e totens interativos.
 
 ### 🏗️ FASE 11: Arquitetura & Qualidade de Código (Refatoração & Testes)
 *Objetivo: Desacoplar sistemas monolíticos, eliminar dívidas técnicas e garantir estabilidade através de testes automatizados.*
@@ -107,14 +107,14 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
 ### 🎮 FASE 12: Gameplay & Mecânicas Novas
 *Objetivo: Enriquecer a dinâmica de navegação e introduzir novas camadas estratégicas durante a migração.*
 
-- [ ] **12.1 Geração Procedural de Obstáculos por Bioma:**
+- [x] **12.1 Geração Procedural de Obstáculos por Bioma:**
   - Substituir posições fixas por geração dinâmica de perigos e cardumes com base no avanço horizontal X da baleia, garantindo rejogabilidade única em cada tentativa sem memorização prévia de rota.
-- [ ] **12.2 Filhote de Baleia Acompanhante (Calf Escort):**
-  - No Santuário Marinho de Arraial (25.000m+), a jubarte encontra seu filhote recém-nascido, que a segue em formação via interpolação suave (`lerp`), exigindo que o jogador o proteja de perigos residuais até a chegada.
-- [ ] **12.3 Power-ups Temporários Ambientais:**
+- [x] **12.2 Filhote de Baleia Acompanhante (Calf Escort) & Rota de 30.000m:**
+  - Expansão da rota final para 30.000m com 5.000m de escolta ativa no berçário (25.000m a 30.000m). O filhote enfrenta perigos residuais (redes fantasmas, lixo e paredões rochosos invisíveis que só aparecem com Biosonar). O jogador pode usar o Biosonar em 360° para cortar redes e libertar o filhote em apuros.
+- [x] **12.3 Power-ups Temporários Ambientais:**
   - Introduzir itens colecionáveis temáticos: *Escudo de Bolhas* (imunidade a uma colisão com lixo), *Corrente Favorável* (+50% de velocidade por 5s), *Bolsão de Ar Submerso* (+30% fôlego instantâneo) e *Bioluminescência* (revelação luminosa de perigos próximos por 8s).
-- [ ] **12.4 Leaderboard Local Top 10 (Ranking Arcade da Feira):**
-  - Expandir o high score único para um ranking Top 10 persistente em `localStorage`, com inserção de iniciais do jogador (estilo arcade de 3 letras), ideal para disputa entre visitantes no estande.
+- [x] **12.4 Leaderboard Local Top 10 (Ranking Arcade):**
+  - Expandir o high score único para um ranking Top 10 persistente em `localStorage`, com inserção de iniciais do jogador (estilo arcade de 3 letras), ideal para disputa entre jogadores.
 
 ### 🎨 FASE 13: Polimento Visual, Atmosfera & Identidade
 *Objetivo: Elevar o impacto visual e a imersão sensorial com micro-animações e apresentação profissional.*
@@ -126,7 +126,7 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
 - [ ] **13.3 Ciclo Dia/Noite Sutil ao Longo da Rota:**
   - Implementar transição gradativa da paleta de iluminação ambiente ao longo dos 27.000m: luz polar límpida na Antártica, entardecer alaranjado no Mar Aberto, noite com luzes de navegação na Costa Urbana e amanhecer dourado e radiante em Arraial do Cabo.
 - [ ] **13.4 Tela de Loading / Splash Screen Animada:**
-  - Criar tela de introdução estilizada de 2 a 3 segundos com logo animado emergindo em bolhas, barra de carregamento temática e créditos institucionais para a feira de ciências.
+  - Criar tela de introdução estilizada de 2 a 3 segundos com logo animado emergindo em bolhas, barra de carregamento temática e créditos institucionais.
 - [ ] **13.5 Cartão de Vitória / Compartilhamento de Resultado:**
   - Gerar cartão de resultado exportável em imagem PNG na tela de vitória, contendo nome do jogador, pontuação final, estatísticas da migração, logo do projeto e QR Code.
 
@@ -139,17 +139,17 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
   - Adicionar mini-desafio opcional ao final da rota com 3 perguntas de múltipla escolha sobre os fatos ecológicos desbloqueados durante a partida, premiando acertos com pontuação extra no Eco-Score.
 
 ### ⚡ FASE 15: Otimização & Performance em Baixo Nível
-*Objetivo: Garantir taxa de quadros estável (60 FPS) em dispositivos com hardware modesto (tablets e notebooks da feira).*
+*Objetivo: Garantir taxa de quadros estável (60 FPS) em dispositivos com hardware modesto (tablets e notebooks).*
 
 - [ ] **15.1 Object Pooling para Partículas e Projéteis:**
   - Implementar pool de objetos reutilizáveis para bolhas de nado, spray do espiráculo, ecos do sonar e rastros hidrodinâmicos, reduzindo alocações e pausas de Garbage Collection.
 - [ ] **15.2 Ciclo de Vida e Lazy Loading de Sistemas por Bioma:**
   - Ativar e desativar a execução de sistemas específicos (ex: `iceSurface`, `shipNoise`, `oilSpill`) estritamente dentro de suas faixas de coordenadas X, poupando processamento de CPU.
 
-### 🎪 FASE 16: Engajamento & Ferramentas da Feira de Ciências
-*Objetivo: Fornecer métricas coletivas para o estande e recursos para apresentação da equipe aos avaliadores.*
+### 🎪 FASE 16: Engajamento & Ferramentas de Apresentação
+*Objetivo: Fornecer métricas coletivas e recursos para apresentação aos avaliadores.*
 
-- [ ] **16.1 Dashboard de Estatísticas Acumuladas da Feira:**
-  - Painel persistente visível no menu principal exibindo contadores coletivos de todos os visitantes (total de migrações tentadas, migrações concluídas com sucesso, krill total coletado, lixo desviado e tempo total acumulado de jogo).
+- [ ] **16.1 Dashboard de Estatísticas Acumuladas:**
+  - Painel persistente visível no menu principal exibindo contadores coletivos de todos os jogadores (total de migrações tentadas, migrações concluídas com sucesso, krill total coletado, lixo desviado e tempo total acumulado de jogo).
 - [ ] **16.2 Modo Apresentação Guiada (Apoio aos Jurados/Professores):**
-  - Atalho dedicado (`Ctrl+P`) que ativa sobreposição de legendas explicativas e destaques conceituais em tempo real, permitindo aos alunos guiar a banca avaliadora pelos conceitos ecológicos e de programação implementados.
+  - Atalho dedicado (`Ctrl+P`) que ativa sobreposição de legendas explicativas e destaques conceituais em tempo real, permitindo aos apresentadores guiar a banca avaliadora pelos conceitos ecológicos e de programação implementados.

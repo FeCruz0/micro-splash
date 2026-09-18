@@ -1,8 +1,29 @@
 import type { KaboomCtx } from "kaboom";
 import { audioSystem } from "../systems/audioSystem";
 import type { GameState } from "../systems/state";
+import { isTop10Score } from "../systems/leaderboard";
+import { showInitialsInputModal } from "./initialsInputModal";
 
 export function showChallengeEndScreen(
+  k: KaboomCtx,
+  gameState: GameState,
+  onPlayAgain: () => void,
+  onReturnMenu: () => void
+) {
+  const score = gameState.calculateFinalScore();
+  const distance = gameState.getDistance();
+  const mode = gameState.getMode();
+
+  if (isTop10Score(score)) {
+    showInitialsInputModal(k, score, distance, mode, () => {
+      renderChallengeEndContent(k, gameState, onPlayAgain, onReturnMenu);
+    });
+  } else {
+    renderChallengeEndContent(k, gameState, onPlayAgain, onReturnMenu);
+  }
+}
+
+function renderChallengeEndContent(
   k: KaboomCtx,
   gameState: GameState,
   onPlayAgain: () => void,
@@ -45,7 +66,7 @@ export function showChallengeEndScreen(
   ]));
 
   elements.push(k.add([
-    k.text("Migração Rápida (60s) - Feira de Ciências", { size: 13, font: "sans-serif" }),
+    k.text("Migração Rápida (Desafio 60s)", { size: 13, font: "sans-serif" }),
     k.pos(k.width() / 2, k.height() / 2 - 135),
     k.color(140, 220, 255),
     k.anchor("center"),
@@ -74,9 +95,9 @@ export function showChallengeEndScreen(
     ]));
   });
 
-  // Mensagem para estandes com filas
+  // Mensagem de encorajamento
   elements.push(k.add([
-    k.text("🎉 Parabéns, biólogo(a) marinho(a)! Próximo da fila pode jogar!", {
+    k.text("🎉 Parabéns, biólogo(a) marinho(a)! Tente superar sua melhor pontuação!", {
       size: 12,
       font: "sans-serif",
     }),

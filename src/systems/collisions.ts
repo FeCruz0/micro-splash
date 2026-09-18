@@ -14,6 +14,15 @@ export function setupCollisions(
   k.onCollide(TAGS.PLAYER, TAGS.TRASH, (_player, trash) => {
     // Destrói o lixo plástico colidido
     k.destroy(trash);
+
+    // Se a baleia estiver protegida pelo Escudo de Bolhas, consome o escudo sem sofrer dano
+    if (playerController.hasBubbleShield()) {
+      playerController.popBubbleShield();
+      audioSystem.playShieldPop();
+      k.shake(1.5);
+      return;
+    }
+
     gameState.addTrash();
 
     // Som de impacto no plástico
@@ -28,6 +37,29 @@ export function setupCollisions(
 
     // Efeito visual rápido de impacto
     k.shake(3);
+  });
+
+  // colisão com power-ups ambientais temporários (Fase 12)
+  k.onCollide(TAGS.PLAYER, TAGS.POWERUP, (_player, powerup: any) => {
+    const type = powerup.powerupType;
+    k.destroy(powerup);
+    audioSystem.playPowerupCollect();
+
+    switch (type) {
+      case "bubble_shield":
+        playerController.activateBubbleShield();
+        break;
+      case "tailwind":
+        audioSystem.playSpeedBoost();
+        playerController.applySpeedBoost(5.0, 1.5);
+        break;
+      case "air_pocket":
+        playerController.restoreOxygen(playerController.getMaxOxygen() * 0.3);
+        break;
+      case "bioluminescence":
+        playerController.activateBioluminescence(8.0);
+        break;
+    }
   });
 
   // colisão com krill (Fase 3: Progressão Nutricional)

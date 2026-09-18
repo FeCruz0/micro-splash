@@ -3,14 +3,14 @@
 ## 1. Visão Geral do Projeto
 * **Nome do Jogo:** Micro Splash
 * **Gênero:** 2D Underwater Physics Navigator / Environmental Adventure
-* **Plataforma:** Web (Navegador Desktop & Totens de Feira)
+* **Plataforma:** Web (Navegador Desktop, Mobile & Totens Interativos)
 * **Tema Principal:** Conscientização Ambiental, Impacto da Poluição Marinha e Rota Migratória das Baleias-Jubarte da Antártica até Arraial do Cabo, RJ.
-* **Público-Alvo:** Visitantes, estudantes e jurados da Feira de Ciências, com modos específicos para crianças e partidas rápidas.
+* **Público-Alvo:** Jogadores casuais, estudantes e entusiastas de vida marinha, com modos adaptados para crianças e partidas rápidas.
 
 ---
 
 ## 2. História e Objetivo
-O jogador assume o controle de uma **baleia-jubarte (*Megaptera novaeangliae*)** fêmea adulta em sua jornada migratória de 27.000 metros (escala condensada representativa dos 4.500 km reais). Partindo dos mares congelados da Antártida, onde acumulou reservas consumindo cardumes de krill, ela deve atravessar as correntes do Atlântico Sul, cruzar os perigos urbanos e industriais da costa brasileira e alcançar as águas abrigadas e cristalinas de **Arraial do Cabo, RJ**, onde filhotes nascem e são amamentados em segurança.
+O jogador assume o controle de uma **baleia-jubarte (*Megaptera novaeangliae*)** fêmea adulta em sua jornada migratória de 30.000 metros (escala condensada representativa dos 4.500 km reais). Partindo dos mares congelados da Antártida, onde acumulou reservas consumindo cardumes de krill, ela deve atravessar as correntes do Atlântico Sul, cruzar os perigos urbanos e industriais da costa brasileira e alcançar as águas abrigadas e cristalinas de **Arraial do Cabo, RJ**, onde encontra seu filhote recém-nascido e o escolta pelo berçário até a enseada final.
 
 ---
 
@@ -48,7 +48,7 @@ O jogador assume o controle de uma **baleia-jubarte (*Megaptera novaeangliae*)**
 
 ## 4. Modos de Jogo
 
-Para atender a múltiplos públicos na Feira de Ciências, o jogo conta com 3 modos de experiência:
+Para atender a múltiplos perfis de jogadores, o jogo conta com 3 modos de experiência:
 
 1. **Migração Normal (Completa):**
    - Rota integral de 27.000 metros através dos 5 biomas.
@@ -59,19 +59,19 @@ Para atender a múltiplos públicos na Feira de Ciências, o jogo conta com 3 mo
 3. **Migração Rápida (Desafio de 60 Segundos):**
    - Partida cronometrada com contagem regressiva visível no topo da tela.
    - **Seletor de Bioma:** Permite iniciar diretamente no Labirinto Polar (Antártica), Desvio Urbano (Costa Urbana) ou Cânions de Arraial (Boqueirão).
-   - Tela dedicada de encerramento (`challengeEndScreen`) com distância percorrida, krill ingerido e pontuação instantânea, perfeita para filas rápidas na feira.
+   - Tela dedicada de encerramento (`challengeEndScreen`) com distância percorrida, krill ingerido e pontuação instantânea.
 
 ---
 
-## 5. Rota dos 27.000m e Biomas
+## 5. Rota dos 30.000m e Biomas
 
 | Trajeto (Metros) | Bioma / Região Real | Tom da Água | Elementos Específicos & Dinâmica |
 | :--- | :--- | :--- | :--- |
 | **0m – 5.000m** | **1. Oceano Antártico (Alimentação Polar)** | Azul Gélido (`#051c38`) | Teto de gelo contínuo com fendas de respiração, fartura de Krill, icebergs e silhuetas de orcas ao fundo. |
 | **5.000m – 12.000m** | **2. Travessia Oceânica (Atlântico Sul)** | Azul Escuro (`#0a2850`) | **Jejum total de Krill**, correntes contrárias e passagem graciosa de outras jubartes cantantes. |
 | **12.000m – 19.000m** | **3. Costa Urbana & Tráfego Marítimo** | Azul Esverdeado (`#0d3c5e`) | Navios industriais, ruído de motores, lixo camuflado, redes fantasmas e patrulha da Guarda Marítima. |
-| **19.000m – 25.000m** | **4. Faixa de Ressurgência (Arraial do Cabo)** | Turquesa Intenso (`#0e668b`) | Jatos d'água ascensionais periódicos impulsionando a baleia, novos cardumes de krill e cânions rochosos estreitos do Boqueirão. |
-| **25.000m – 27.000m** | **5. Santuário de Arraial (Berçário)** | Turquesa Cristalino (`#1490b8`) | Águas calmas, encontro da mãe com filhote e o evento do **Salto Majestoso (Breach)** acrobático na linha de chegada. |
+| **19.000m – 25.000m** | **4. Faixa de Ressurgência (Arraial do Cabo)** | Turquesa Intenso (`#0e668b`) | Jatos d'água ascensionais periódicos impulsionando a baleia, cânions e formações rochosas invisíveis detectáveis apenas por Biosonar. |
+| **25.000m – 30.000m** | **5. Santuário de Arraial (Berçário & Escolta)** | Turquesa Cristalino (`#1490b8`) | Encontro com o filhote, escolta ativa contra redes e detritos, passagens entre arrecifes invisíveis e o **Salto Majestoso (Breach)** aos 29.700m. |
 
 ---
 

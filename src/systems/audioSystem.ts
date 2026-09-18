@@ -1161,6 +1161,89 @@ class AudioSystem {
     osc.start(now);
     osc.stop(now + 0.12);
   }
+
+  /**
+   * Arpejo cristalino de coleta de power-up temporário
+   */
+  public playPowerupCollect() {
+    if (!this.sfxEnabled || !this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+    const notes = [1046.5, 1318.5, 1567.98, 2093.0]; // C6, E6, G6, C7
+
+    notes.forEach((freq, idx) => {
+      if (!this.ctx || !this.masterGain) return;
+      const noteTime = now + idx * 0.05;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, noteTime);
+
+      gain.gain.setValueAtTime(0.18, noteTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.22);
+
+      osc.connect(gain);
+      gain.connect(this.masterGain);
+
+      osc.start(noteTime);
+      osc.stop(noteTime + 0.22);
+    });
+  }
+
+  /**
+   * Estouro do escudo de bolhas ao absorver lixo marinho
+   */
+  public playShieldPop() {
+    if (!this.sfxEnabled || !this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(380, now);
+    osc.frequency.exponentialRampToValueAtTime(85, now + 0.14);
+
+    gain.gain.setValueAtTime(0.35, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc.start(now);
+    osc.stop(now + 0.15);
+  }
+
+  /**
+   * Zunido hidrodinâmico da correnteza favorável (tailwind)
+   */
+  public playSpeedBoost() {
+    if (!this.sfxEnabled || !this.ctx || !this.masterGain) return;
+    const now = this.ctx.currentTime;
+
+    const osc = this.ctx.createOscillator();
+    const filter = this.ctx.createBiquadFilter();
+    const gain = this.ctx.createGain();
+
+    osc.type = "triangle";
+    osc.frequency.setValueAtTime(140, now);
+    osc.frequency.exponentialRampToValueAtTime(420, now + 0.35);
+
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(320, now);
+    filter.frequency.exponentialRampToValueAtTime(850, now + 0.35);
+
+    gain.gain.setValueAtTime(0.01, now);
+    gain.gain.linearRampToValueAtTime(0.28, now + 0.12);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.masterGain);
+
+    osc.start(now);
+    osc.stop(now + 0.45);
+  }
 }
 
 export const audioSystem = new AudioSystem();

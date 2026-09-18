@@ -38,6 +38,10 @@
     { "x": 20100, "layer": "mid2" },
     { "x": 21500, "layer": "floor" },
     { "x": 22800, "layer": "mid1" },
-    { "x": 24100, "layer": "floor" }
+    { "x": 24100, "layer": "floor" },
+    { "x": 25800, "layer": "mid1" },
+    { "x": 26900, "layer": "floor" },
+    { "x": 27900, "layer": "mid2" },
+    { "x": 28900, "layer": "floor" }
   ]
 }

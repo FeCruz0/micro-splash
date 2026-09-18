@@ -243,7 +243,7 @@ export function showModeSelectScreen(
   ]));
 
   elements.push(k.add([
-    k.text("Desafio cronometrado de alta rotatividade para feiras. Escolha o trecho inicial:", {
+    k.text("Desafio cronometrado dinâmico de 1 minuto. Escolha o trecho inicial:", {
       size: 12,
       font: "sans-serif",
     }),

@@ -2,7 +2,7 @@
 
 Um jogo 2D de navegação subaquática, física hidrodinâmica e conscientização ambiental desenvolvido em **TypeScript** com **Kaboom.js**, síntese procedural de áudio **Web Audio API** e **Vite**.
 
-Este projeto foi concebido para uma **Feira de Ciências**, abordando como tema central a **consciência ecológica**, os impactos da poluição marinha e a fantástica rota migratória das **baleias-jubarte (*Megaptera novaeangliae*)** desde as águas polares da Antártica até o berçário de reprodução em **Arraial do Cabo, RJ**.
+Este projeto foi concebido com foco em **educação e consciência ecológica**, abordando os impactos da poluição marinha e a fantástica rota migratória das **baleias-jubarte (*Megaptera novaeangliae*)** desde as águas polares da Antártica até o berçário de reprodução em **Arraial do Cabo, RJ**.
 
 ---
 
@@ -14,7 +14,7 @@ Este projeto foi concebido para uma **Feira de Ciências**, abordando como tema 
 - 🧭 **3 Modos de Jogo Adaptados:**
   - **Migração Normal:** A jornada clássica de 27.000m com gerenciamento de oxigênio, perigos e Eco-Score.
   - **Migração Serena:** Modo de acessibilidade com fôlego infinito (`∞`) e sem desmaios, ideal para crianças e exploração relaxante.
-  - **Migração Rápida (60s):** Desafio dinâmico de 1 minuto para alta rotatividade na feira de ciências, com seletor de bioma e painel de estatísticas da rodada.
+  - **Migração Rápida (60s):** Desafio dinâmico de 1 minuto cronometrado, com seletor de bioma e painel de estatísticas da rodada.
 - 📖 **Diário de Bordo da Expedição (Codex):** Enciclopédia interativa no menu com fichas biológicas das espécies, fatos ecológicos desbloqueados na rota e informações de conservação do *Instituto Baleia Jubarte* e UNESCO.
 - 🎵 **Sonoplastia 16-Bit Retrô em Tempo Real:**
   - Trilha adaptativa inspirada em *Donkey Kong Country: Aquatic Ambiance* (David Wise) a 75 BPM em Dó Menor com baixo *wavetable* aveludado e arpejos híbridos de harpa e coral.

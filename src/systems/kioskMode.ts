@@ -4,7 +4,7 @@ import { setupLightRaysSystem } from "./lightRaysSystem";
 
 /**
  * Modo Kiosk (Attract Mode / Demonstração Cinematográfica Autônoma)
- * Projetado para feiras de ciências, totens interativos e demonstrações em estandes.
+ * Projetado para totens interativos e demonstrações em eventos e exposições.
  */
 export function createKioskScene(k: KaboomCtx) {
   // Prepara áudio ambiente suave e canto de baleia espaçado
@@ -165,7 +165,7 @@ export function createKioskScene(k: KaboomCtx) {
   });
 
   // =========================================================================
-  // OVERLAY DA FEIRA DE CIÊNCIAS & CHAMADA PARA AÇÃO (ATTRACT BANNER)
+  // OVERLAY KIOSK & CHAMADA PARA AÇÃO (ATTRACT BANNER)
   // =========================================================================
   // Faixa Superior
   k.add([
@@ -178,7 +178,7 @@ export function createKioskScene(k: KaboomCtx) {
   ]);
 
   k.add([
-    k.text("🔬 FEIRA DE CIÊNCIAS: A GRANDE MIGRAÇÃO DA BALEIA-JUBARTE 🐋", {
+    k.text("🌊 MICRO SPLASH: A GRANDE MIGRAÇÃO DA BALEIA-JUBARTE 🐋", {
       size: 14,
       font: "sans-serif",
     }),

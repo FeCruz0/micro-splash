@@ -68,4 +68,24 @@ describe("createGameState", () => {
     expect(score).toBe(3000);
     expect(localStorage.getItem("micro_splash_highscore")).toBe("3000");
   });
+
+  it("calcula bônus do filhote (Calf Escort +300 pts) e títulos ancestrais de Arraial", () => {
+    const state = createGameState();
+    state.update(20, 30000);
+    expect(state.hasEscortedCalf()).toBe(false);
+
+    state.triggerCalfEscort();
+    expect(state.hasEscortedCalf()).toBe(true);
+
+    // 30000 + 300 (calf) = 30300
+    expect(state.calculateFinalScore()).toBe(30300);
+
+    state.triggerBreach(); // +500
+    // 30000 + 300 + 500 = 30800
+    expect(state.calculateFinalScore()).toBe(30800);
+    expect(state.getAncestralWisdom()).toContain("Matriarca Protetora");
+
+    state.addCalfRescue(); // +150
+    expect(state.calculateFinalScore()).toBe(30950);
+  });
 });

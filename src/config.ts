@@ -1,10 +1,10 @@
 export const GAME_CONFIG = {
   GRAVITY: 0,
   SINK_RATE: 20,              // Afundamento suave constante da água
-  MAX_SPEED: 300,             // Teto máximo de velocidade acumulada
+  MAX_SPEED: 240,             // Teto máximo de velocidade acumulada (reduzido de 300)
   MAX_STROKE_TIME: 0.5,       // Duração máxima de uma batida de cauda (0.5s)
-  BASE_THRUST: 150,           // Impulso inicial mínimo da batida
-  PEAK_THRUST: 750,           // Adicional de impulso no pico da batida
+  BASE_THRUST: 125,           // Impulso inicial mínimo da batida (reduzido de 150)
+  PEAK_THRUST: 625,           // Adicional de impulso no pico da batida (reduzido de 750)
   WATER_DRAG: 0.96,           // Resistência da água (atrito por frame)
   ROTATION_SPEED: 40,         // Velocidade de rotação das nadadeiras
   TRASH_SLOWDOWN: 0.5,        // Fator de desaceleração ao atingir lixo plástico (perde 50% da velocidade)
@@ -26,7 +26,7 @@ export const GAME_CONFIG = {
   UPWELLING_PUSH_Y: -150,     // força vertical da ressurgência
   UPWELLING_ZONE_START: 19000, // início da zona de ressurgência em Arraial do Cabo (19.000m)
   UPWELLING_ZONE_END: 25000,   // fim da zona de ressurgência em Arraial do Cabo (25.000m)
-  ROUTE_TOTAL_DISTANCE: 27000, // distancia total do percurso (27.000m - ~3 a 4 min de partida)
+  ROUTE_TOTAL_DISTANCE: 30000, // distancia total do percurso (30.000m - ~4 a 5 min de partida)
   SEA_LEVEL: 80,               // Nível do mar dobrado para 80px para dar espaço visível ao céu
 };
 
@@ -39,6 +39,7 @@ export const TAGS = {
   OBSTACLE: "obstaculo",
   SURFACE: "superficie_agua",
   OPPOSING_CURRENT: "correnteza_contraria",
+  POWERUP: "powerup",
 };
 
 export interface BiomeColorStop {
@@ -91,7 +92,7 @@ export const BIOME_COLOR_STOPS: BiomeColorStop[] = [
   {
     name: "Polar (Antártida)",
     distanceStart: 21600,
-    distanceEnd: 27000,
+    distanceEnd: 30000,
     bgColor: [15, 30, 45],
     surfaceColor: [70, 95, 115],
     floorColor: [10, 20, 30],

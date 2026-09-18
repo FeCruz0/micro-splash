@@ -17,8 +17,21 @@ export interface PlayerController {
   isTrapped: () => boolean;
   startBreach: () => void;
   isBreaching: () => boolean;
+  completeBreach: () => void;
   setOilObstructed: (obstructed: boolean) => void;
   isOilObstructed: () => boolean;
   setDrafting: (drafting: boolean) => void;
   isDrafting: () => boolean;
+
+  // Power-ups da Fase 12
+  hasBubbleShield: () => boolean;
+  activateBubbleShield: () => void;
+  popBubbleShield: () => boolean;
+  applySpeedBoost: (duration: number, multiplier?: number) => void;
+  isSpeedBoosted: () => boolean;
+  getSpeedBoostTimer: () => number;
+  restoreOxygen: (amount: number) => void;
+  activateBioluminescence: (duration: number) => void;
+  hasBioluminescence: () => boolean;
+  getBioluminescenceTimer: () => number;
 }
