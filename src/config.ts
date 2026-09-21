@@ -54,50 +54,50 @@ export interface BiomeColorStop {
 
 export const BIOME_COLOR_STOPS: BiomeColorStop[] = [
   {
-    name: "Trópicos",
+    name: "Antártica (Manhã Polar)",
     distanceStart: 0,
-    distanceEnd: 5400,
-    bgColor: [0, 75, 130],
-    surfaceColor: [0, 120, 180],
-    floorColor: [0, 50, 95],
-    skyColor: [120, 190, 245]
+    distanceEnd: 5000,
+    bgColor: [15, 38, 62],
+    surfaceColor: [45, 95, 140],
+    floorColor: [10, 24, 38],
+    skyColor: [160, 205, 240], // Céu límpido azul polar
   },
   {
-    name: "Subtrópicos",
-    distanceStart: 5400,
-    distanceEnd: 10800,
-    bgColor: [0, 90, 150],
-    surfaceColor: [0, 130, 200],
-    floorColor: [0, 60, 110],
-    skyColor: [110, 175, 230]
+    name: "Travessia Pelágica (Pôr do Sol)",
+    distanceStart: 5000,
+    distanceEnd: 12000,
+    bgColor: [18, 48, 88],
+    surfaceColor: [75, 110, 160],
+    floorColor: [12, 30, 55],
+    skyColor: [225, 140, 95], // Céu alaranjado âmbar / golden hour
   },
   {
-    name: "Zona Temperada",
-    distanceStart: 10800,
-    distanceEnd: 16200,
-    bgColor: [10, 75, 110],
-    surfaceColor: [20, 100, 150],
-    floorColor: [5, 50, 80],
-    skyColor: [100, 155, 210]
+    name: "Costa Urbana (Noite Estrelada)",
+    distanceStart: 12000,
+    distanceEnd: 19000,
+    bgColor: [8, 16, 32], // Noite profunda
+    surfaceColor: [20, 42, 70],
+    floorColor: [5, 10, 20],
+    skyColor: [12, 18, 38], // Céu noturno escuro
   },
   {
-    name: "Sub-polar",
-    distanceStart: 16200,
-    distanceEnd: 21600,
-    bgColor: [25, 45, 75],
-    surfaceColor: [45, 75, 105],
-    floorColor: [15, 30, 50],
-    skyColor: [85, 130, 180]
+    name: "Cânions & Ressurgência (Alvorada)",
+    distanceStart: 19000,
+    distanceEnd: 25000,
+    bgColor: [12, 55, 82],
+    surfaceColor: [30, 120, 150],
+    floorColor: [8, 35, 55],
+    skyColor: [125, 140, 205], // Alvorada límpida / lilás
   },
   {
-    name: "Polar (Antártida)",
-    distanceStart: 21600,
+    name: "Santuário de Arraial (Manhã Solar)",
+    distanceStart: 25000,
     distanceEnd: 30000,
-    bgColor: [15, 30, 45],
-    surfaceColor: [70, 95, 115],
-    floorColor: [10, 20, 30],
-    skyColor: [60, 95, 140]
-  }
+    bgColor: [0, 85, 135],
+    surfaceColor: [10, 175, 205], // Turquesa cristalino brilhante
+    floorColor: [0, 60, 100],
+    skyColor: [135, 215, 255], // Céu ensolarado radiante
+  },
 ];
 
 export const RESOLUTION_PRESETS = {

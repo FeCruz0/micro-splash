@@ -119,16 +119,16 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
 ### 🎨 FASE 13: Polimento Visual, Atmosfera & Identidade
 *Objetivo: Elevar o impacto visual e a imersão sensorial com micro-animações e apresentação profissional.*
 
-- [ ] **13.1 Partículas Dinâmicas de Bolhas de Nado:**
+- [x] **13.1 Partículas Dinâmicas de Bolhas de Nado:**
   - Adicionar emissão contínua de rastro de micro-bolhas (2-4px) partindo da cauda da baleia durante a propulsão, com intensidade proporcional à velocidade instantânea.
-- [ ] **13.2 Cardumes de Krill Reactivos (Comportamento de Boids):**
+- [x] **13.2 Cardumes de Krill Reactivos (Comportamento de Boids):**
   - Substituir os blocos estáticos de krill por pequenos enxames orgânicos (8 a 12 micro-entidades) que se dispersam dinamicamente quando a baleia se aproxima.
-- [ ] **13.3 Ciclo Dia/Noite Sutil ao Longo da Rota:**
-  - Implementar transição gradativa da paleta de iluminação ambiente ao longo dos 27.000m: luz polar límpida na Antártica, entardecer alaranjado no Mar Aberto, noite com luzes de navegação na Costa Urbana e amanhecer dourado e radiante em Arraial do Cabo.
-- [ ] **13.4 Tela de Loading / Splash Screen Animada:**
+- [x] **13.3 Ciclo Dia/Noite Sutil ao Longo da Rota:**
+  - Implementar transição gradativa da paleta de iluminação ambiente ao longo dos 30.000m: luz polar límpida na Antártica, entardecer alaranjado no Mar Aberto, noite com luzes de navegação e estrelas na Costa Urbana, alvorada mística nos cânions e amanhecer dourado e radiante em Arraial do Cabo.
+- [x] **13.4 Tela de Loading / Splash Screen Animada:**
   - Criar tela de introdução estilizada de 2 a 3 segundos com logo animado emergindo em bolhas, barra de carregamento temática e créditos institucionais.
-- [ ] **13.5 Cartão de Vitória / Compartilhamento de Resultado:**
-  - Gerar cartão de resultado exportável em imagem PNG na tela de vitória, contendo nome do jogador, pontuação final, estatísticas da migração, logo do projeto e QR Code.
+- [x] **13.5 Cartão de Vitória / Compartilhamento de Resultado:**
+  - Gerar cartão de resultado exportável em imagem PNG na tela de vitória, contendo nome do jogador, pontuação final, estatísticas da migração, logo do projeto e selo digital.
 
 ### 📚 FASE 14: Conteúdo Educativo Expandido & Avaliação
 *Objetivo: Fortalecer o valor pedagógico e a fixação do aprendizado para jurados e público estudantil.*

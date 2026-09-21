@@ -4,6 +4,7 @@ import { audioSystem } from "../systems/audioSystem";
 import type { GameState } from "../systems/state";
 import { isTop10Score } from "../systems/leaderboard";
 import { showInitialsInputModal } from "./initialsInputModal";
+import { extractVictoryCardData, generateAndDownloadVictoryCard } from "./victoryCard";
 
 export function showVictoryScreen(k: KaboomCtx, gameState: GameState, onRestart: () => void) {
     const finalScore = gameState.calculateFinalScore();
@@ -55,9 +56,9 @@ function renderVictoryContent(k: KaboomCtx, gameState: GameState, onRestart: () 
         });
     }
 
-    // Card de vitória (600x440 com borda dourada elegante)
+    // Card de vitória (620x460 com borda dourada elegante)
     k.add([
-        k.rect(600, 440, { radius: 14 }),      
+        k.rect(620, 460, { radius: 14 }),      
         k.pos(k.width() / 2, k.height() / 2),
         k.color(12, 45, 95),
         k.outline(3, k.rgb(255, 215, 0)), // Borda dourada
@@ -127,10 +128,51 @@ function renderVictoryContent(k: KaboomCtx, gameState: GameState, onRestart: () 
         k.z(202),
     ]);
 
-    // Botão de reinício (suporta toque mobile e clique)
+    // 1. Botão de Baixar Certificado PNG
+    const downloadButton = k.add([
+        k.rect(260, 38, { radius: 8 }),
+        k.pos(k.width() / 2 - 145, k.height() / 2 + 195),
+        k.color(15, 105, 75),
+        k.outline(2, k.rgb(120, 255, 180)),
+        k.anchor("center"),
+        k.area(),
+        k.fixed(),
+        k.z(202),
+    ]);
+
+    const downloadLabel = k.add([
+        k.text("Baixar Certificado (PNG) 📥", {
+            size: 13,
+            font: "sans-serif",
+        }),
+        k.pos(k.width() / 2 - 145, k.height() / 2 + 195),
+        k.color(255, 255, 255),
+        k.anchor("center"),
+        k.fixed(),
+        k.z(203),
+    ]);
+
+    downloadButton.onHoverUpdate(() => {
+        downloadButton.color = k.rgb(20, 145, 100);
+    });
+    downloadButton.onHoverEnd(() => {
+        downloadButton.color = k.rgb(15, 105, 75);
+    });
+    downloadButton.onClick(() => {
+        const cardData = extractVictoryCardData(gameState);
+        const success = generateAndDownloadVictoryCard(cardData);
+        if (success) {
+            downloadLabel.text = "Certificado Baixado! ✓";
+            k.wait(2.0, () => {
+                downloadLabel.text = "Baixar Novamente (PNG) 📥";
+            });
+        }
+    });
+
+    // 2. Botão de reinício (suporta toque mobile e clique)
     const restartButton = k.add([
-        k.rect(340, 38, { radius: 8 }),
-        k.pos(k.width() / 2, k.height() / 2 + 185),
+        k.rect(260, 38, { radius: 8 }),
+        k.pos(k.width() / 2 + 145, k.height() / 2 + 195),
         k.color(20, 90, 140),
         k.outline(2, k.rgb(100, 240, 255)),
         k.anchor("center"),
@@ -140,11 +182,11 @@ function renderVictoryContent(k: KaboomCtx, gameState: GameState, onRestart: () 
     ]);
 
     k.add([
-        k.text("Jogar Novamente (ou ENTER) 🔄", {
+        k.text("Jogar Novamente (ENTER) 🔄", {
             size: 13,
             font: "sans-serif",
         }),
-        k.pos(k.width() / 2, k.height() / 2 + 185),
+        k.pos(k.width() / 2 + 145, k.height() / 2 + 195),
         k.color(255, 255, 255),
         k.anchor("center"),
         k.fixed(),

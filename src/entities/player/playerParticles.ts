@@ -140,3 +140,60 @@ export function spawnDraftingTrail(k: KaboomCtx, pos: Vec2, isFacingRight: boole
     if (trail.opacity <= 0) k.destroy(trail);
   });
 }
+
+/**
+ * Emite rastro de micro-bolhas dinâmicas partindo da cauda (flukes) durante a propulsão.
+ * A intensidade e tamanho das bolhas são proporcionais à velocidade instantânea.
+ */
+export function spawnTailBubbleTrail(
+  k: KaboomCtx,
+  pos: Vec2,
+  angleDeg: number,
+  isFacingRight: boolean,
+  speedRatio: number
+) {
+  if (speedRatio <= 0.08) return;
+
+  const count = Math.min(4, Math.max(1, Math.round(speedRatio * 3)));
+  const angleRad = k.deg2rad(angleDeg);
+  // Posição da cauda (atrás do centro da baleia)
+  const tailBaseOffset = k.vec2(isFacingRight ? -46 : 46, 2);
+  const rotatedOffset = k.vec2(
+    tailBaseOffset.x * Math.cos(angleRad) - tailBaseOffset.y * Math.sin(angleRad),
+    tailBaseOffset.x * Math.sin(angleRad) + tailBaseOffset.y * Math.cos(angleRad)
+  );
+  const tailPos = pos.add(rotatedOffset);
+
+  for (let i = 0; i < count; i++) {
+    const radius = 1.6 + Math.random() * (1.8 * Math.min(1.2, speedRatio));
+    const bubble = k.add([
+      k.circle(radius),
+      k.pos(
+        tailPos.x + (Math.random() - 0.5) * 8,
+        tailPos.y + (Math.random() - 0.5) * 10
+      ),
+      k.color(k.choose([k.rgb(190, 240, 255), k.rgb(220, 250, 255), k.rgb(150, 225, 245)])),
+      k.opacity(0.65 + Math.random() * 0.25),
+      k.z(13),
+    ]);
+
+    let life = 0.45 + Math.random() * 0.4;
+    const maxLife = life;
+    const driftX = (isFacingRight ? -1 : 1) * (20 + Math.random() * 35 * speedRatio);
+    const riseY = -25 - Math.random() * 35;
+    let sway = Math.random() * Math.PI * 2;
+
+    bubble.onUpdate(() => {
+      const dt = k.dt();
+      sway += dt * 4;
+      bubble.pos.x += (driftX + Math.sin(sway) * 8) * dt;
+      bubble.pos.y += riseY * dt;
+      life -= dt;
+      bubble.opacity = Math.max(0, (life / maxLife) * 0.8);
+      if (life <= 0 || bubble.opacity <= 0) {
+        k.destroy(bubble);
+      }
+    });
+  }
+}
+

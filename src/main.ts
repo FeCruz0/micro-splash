@@ -35,6 +35,7 @@ import { showOptionsScreen } from "./ui/optionsScreen";
 import { showCodexScreen } from "./ui/codexScreen";
 import { showChallengeEndScreen } from "./ui/challengeEndScreen";
 import { showLeaderboardScreen } from "./ui/leaderboardScreen";
+import { createSplashScreen } from "./ui/splashScreen";
 
 const resolution = getSavedResolution();
 
@@ -55,6 +56,15 @@ k.loadSprite("baleia", "/sprites/whale.png", {
     swim: { from: 1, to: 2, loop: true, speed: 6 },
     feed: 3,
   },
+});
+
+// =============================================================================
+// CENA DE SPLASH SCREEN / INTRODUÇÃO ANIMADA (Fase 13)
+// =============================================================================
+k.scene("splash", () => {
+  createSplashScreen(k, () => {
+    k.go("menu");
+  });
 });
 
 // =============================================================================
@@ -323,5 +333,5 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
   });
 });
 
-// Inicia o jogo no Menu Principal (Fase 6)
-k.go("menu");
+// Inicia o jogo na Splash Screen Animada (Fase 13)
+k.go("splash");

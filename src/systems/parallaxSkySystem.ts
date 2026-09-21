@@ -21,6 +21,13 @@ interface BirdData {
   animOffset: number;
 }
 
+interface StarData {
+  obj: GameObj;
+  baseX: number;
+  baseY: number;
+  blinkPhase: number;
+}
+
 /**
  * Sistema de Céu em Paralaxe: Nuvens em deriva, Aves Marinhas e Silhueta do Farol de Arraial
  * Atua no espaço aéreo acima do nível do mar (0px a 80px) enriquecendo saltos e navegação de superfície.
@@ -53,6 +60,29 @@ export function setupParallaxSkySystem(k: ReturnType<typeof kaboom>) {
       speed,
       parallaxFactor,
       width,
+    });
+  }
+
+  // 1.5. Estrelas Cintilantes na Costa Urbana Noturna (12.000m a 19.000m)
+  const starCount = 28;
+  const stars: StarData[] = [];
+
+  for (let i = 0; i < starCount; i++) {
+    const starY = 8 + (i % 6) * 11;
+    const starObj = k.add([
+      k.rect(1.5, 1.5),
+      k.pos(0, starY),
+      k.color(240, 245, 255),
+      k.opacity(0),
+      k.z(-9),
+      "sky_star",
+    ]);
+
+    stars.push({
+      obj: starObj,
+      baseX: i * (k.width() / starCount * 1.4),
+      baseY: starY,
+      blinkPhase: Math.random() * Math.PI * 2,
     });
   }
 
@@ -197,12 +227,40 @@ export function setupParallaxSkySystem(k: ReturnType<typeof kaboom>) {
       const effectivePos = (c.baseX + drift + camX * c.parallaxFactor) % (k.width() * 1.5);
       c.obj.pos.x = screenLeft - 100 + effectivePos;
 
-      // Mudança de tom de acordo com o bioma (pôr-do-sol dourado em Arraial)
-      if (camX > 19000) {
-        c.obj.color = k.rgb(255, 242, 225); // Nuvem quente dourada
+      // Mudança de tom das nuvens conforme o ciclo dia/noite da rota
+      if (camX < 5000) {
+        c.obj.color = k.rgb(240, 248, 255); // Manhã polar gélida
+        c.obj.opacity = 0.55;
+      } else if (camX < 12000) {
+        c.obj.color = k.rgb(255, 195, 160); // Entardecer / Pôr do sol âmbar
+        c.obj.opacity = 0.65;
+      } else if (camX < 19000) {
+        c.obj.color = k.rgb(75, 85, 115); // Noite urbana (silhuetas azuladas no céu noturno)
+        c.obj.opacity = 0.40;
+      } else if (camX < 25000) {
+        c.obj.color = k.rgb(220, 195, 235); // Alvorada límpida / lilás
+        c.obj.opacity = 0.55;
       } else {
-        c.obj.color = k.rgb(245, 250, 255); // Branca pura / gélida
+        c.obj.color = k.rgb(255, 248, 230); // Manhã solar dourada em Arraial
+        c.obj.opacity = 0.60;
       }
+    });
+
+    // A2. Atualiza Estrelas Cintilantes na Costa Urbana Noturna (12.000m - 19.000m)
+    const nightIntensity =
+      camX >= 11500 && camX <= 19500
+        ? camX < 13000
+          ? (camX - 11500) / 1500
+          : camX > 18000
+          ? (19500 - camX) / 1500
+          : 1.0
+        : 0;
+
+    stars.forEach((s) => {
+      const effPos = (s.baseX + camX * 0.05) % (k.width() * 1.4);
+      s.obj.pos.x = screenLeft - 50 + effPos;
+      const twinkle = Math.sin(time * 3.5 + s.blinkPhase) * 0.35 + 0.65;
+      s.obj.opacity = nightIntensity * twinkle * 0.9;
     });
 
     // B. Atualiza Aves Marinhas (Voo e Bater de Asas)

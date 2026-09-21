@@ -7,7 +7,11 @@ import { PlayerOxygenManager } from "./player/playerOxygen";
 import { PlayerPhysicsManager } from "./player/playerPhysics";
 import { PlayerSonarManager } from "./player/playerSonar";
 import { PlayerControlsManager } from "./player/playerControls";
-import { spawnBaleenSuction, spawnDraftingTrail } from "./player/playerParticles";
+import {
+  spawnBaleenSuction,
+  spawnDraftingTrail,
+  spawnTailBubbleTrail,
+} from "./player/playerParticles";
 
 export type { PlayerController } from "./player/types";
 
@@ -48,6 +52,7 @@ export function createPlayer(
   let speedBoostMultiplier = 1.0;
   let bioluminescenceTimer = 0;
   let bioluminescenceVisual: any = null;
+  let tailBubbleTimer = 0;
 
   baleia.onDestroy(() => {
     if (bubbleShieldVisual) k.destroy(bubbleShieldVisual);
@@ -246,6 +251,25 @@ export function createPlayer(
     // 9. Esteira de drafting com golfinhos
     if (isDrafting && Math.random() < 0.35) {
       spawnDraftingTrail(k, baleia.pos, controlsMgr.isFacingRight());
+    }
+
+    // 10. Rastro de micro-bolhas dinâmicas da cauda em propulsão
+    if (!inAir) {
+      const maxSpeed = GAME_CONFIG.MAX_SPEED * (1 + oxygenMgr.getKrillsEaten() * 0.01);
+      const speedRatio = Math.min(1.5, currentSpeed.len() / maxSpeed);
+      tailBubbleTimer -= dt;
+      const isStrokeActive = k.isKeyDown("space") || (touchState && touchState.strokeDown);
+      const interval = isStrokeActive ? 0.045 : 0.10;
+      if (tailBubbleTimer <= 0 && speedRatio > 0.08) {
+        tailBubbleTimer = interval;
+        spawnTailBubbleTrail(
+          k,
+          baleia.pos,
+          baleia.angle,
+          controlsMgr.isFacingRight(),
+          speedRatio
+        );
+      }
     }
 
     // 10. Cor conforme perda de oxigênio e rede
