@@ -48,9 +48,11 @@ export function loadStaticLevelLayout(k: KaboomCtx): void {
   });
 }
 
-export function loadLevelLayout(k: KaboomCtx, useProcedural: boolean = true, seed?: number): void {
+import type { ProceduralObstacleData } from "./proceduralObstacles";
+
+export function loadLevelLayout(k: KaboomCtx, useProcedural: boolean = true, seed?: number): ProceduralObstacleData | void {
   if (useProcedural) {
-    spawnProceduralLevel(k, seed);
+    return spawnProceduralLevel(k, seed);
   } else {
     loadStaticLevelLayout(k);
   }

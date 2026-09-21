@@ -274,11 +274,11 @@ class AudioSystem {
    * Disparo: Emitido SOMENTE quando o usuário usa o sonar (Shift/E) ou quando baleias próximas usam o sonar.
    */
   public playWhaleSong(volumeScale: number = 1.0, pitchShift: number = 1.0) {
-    if (!this.musicEnabled || !this.ctx || !this.masterGain) return;
+    if ((!this.sfxEnabled && !this.musicEnabled) || !this.ctx || !this.masterGain) return;
 
     const now = this.ctx.currentTime;
-    // Evita sobreposição embolada se acionado em rápida sucessão
-    if (now - this.lastWhaleSongTime < 4.0) return;
+    // Evita sobreposição embolada se acionado em rápida sucessão (alinhado ao cooldown do sonar de 2.0s)
+    if (now - this.lastWhaleSongTime < 1.9) return;
     this.lastWhaleSongTime = now;
 
     // =========================================================================

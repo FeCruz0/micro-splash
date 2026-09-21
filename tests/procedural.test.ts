@@ -4,7 +4,7 @@ import {
   generateProceduralLayout,
 } from "../src/systems/proceduralObstacles";
 
-describe("Procedural Obstacles Generator", () => {
+describe("Procedural Obstacles & Environmental Generator", () => {
   it("gera sequência pseudo-aleatória determinística para a mesma seed", () => {
     const rng1 = createRNG(12345);
     const rng2 = createRNG(12345);
@@ -22,49 +22,57 @@ describe("Procedural Obstacles Generator", () => {
     expect(layoutA.trashPositions).toEqual(layoutB.trashPositions);
     expect(layoutA.krillPositions).toEqual(layoutB.krillPositions);
     expect(layoutA.netPositions).toEqual(layoutB.netPositions);
-    expect(layoutA.powerupPositions).toEqual(layoutB.powerupPositions);
+    expect(layoutA.bubbleVentPositions).toEqual(layoutB.bubbleVentPositions);
+    expect(layoutA.currentZones).toEqual(layoutB.currentZones);
   });
 
-  it("garante a distribuição biológica correta por bioma", () => {
+  it("garante a distribuição ecológica correta por bioma", () => {
     const layout = generateProceduralLayout(42, 360);
 
     // 1. Antártica (0m a 5000m):
-    // Abundância de krill para alimentação, 0 lixo plástico
+    // Abundância de krill para alimentação, 0 lixo plástico, bolsões de ar
     const antarcticKrill = layout.krillPositions.filter((k) => k.x <= 5000);
     const antarcticTrash = layout.trashPositions.filter((t) => t.x <= 5000);
+    const antarcticVents = layout.bubbleVentPositions.filter((v) => v.x <= 5000);
     expect(antarcticKrill.length).toBeGreaterThanOrEqual(8);
     expect(antarcticTrash.length).toBe(0);
+    expect(antarcticVents.length).toBeGreaterThanOrEqual(1);
 
     // 2. Travessia Oceânica (5000m a 12000m):
-    // Presença de redes fantasmas e powerups de alto mar
+    // Presença de redes fantasmas e correntezas (favoráveis e contrárias)
     const oceanNets = layout.netPositions.filter((n) => n.x >= 5000 && n.x <= 12000);
-    const oceanPowerups = layout.powerupPositions.filter((p) => p.x >= 5000 && p.x <= 12000);
+    const oceanCurrents = layout.currentZones.filter((c) => c.startX >= 5000 && c.endX <= 12000);
     expect(oceanNets.length).toBeGreaterThanOrEqual(4);
-    expect(oceanPowerups.length).toBeGreaterThanOrEqual(2);
+    expect(oceanCurrents.length).toBeGreaterThanOrEqual(2);
 
     // 3. Costa Urbana (12000m a 19000m):
-    // Concentração alta de lixo plástico e escudos de bolha
+    // Alta densidade de lixo e bolsões de ar profundos para proteção
     const urbanTrash = layout.trashPositions.filter((t) => t.x >= 12000 && t.x <= 19000);
-    const urbanBubbleShields = layout.powerupPositions.filter(
-      (p) => p.x >= 12000 && p.x <= 19000 && p.type === "bubble_shield"
+    const urbanVents = layout.bubbleVentPositions.filter(
+      (v) => v.x >= 12000 && v.x <= 19000
     );
     expect(urbanTrash.length).toBeGreaterThanOrEqual(18);
-    expect(urbanBubbleShields.length).toBeGreaterThanOrEqual(2);
+    expect(urbanVents.length).toBeGreaterThanOrEqual(2);
 
     // 4. Cânions de Ressurgência (19000m a 25000m):
-    // Presença de redes e bolsões de ar
-    const canyonAirPockets = layout.powerupPositions.filter(
-      (p) => p.x >= 19000 && p.x <= 25000 && p.type === "air_pocket"
+    // Fendas ativas de ressurgência com múltiplos bolsões de ar
+    const canyonVents = layout.bubbleVentPositions.filter(
+      (v) => v.x >= 19000 && v.x <= 25000
     );
-    expect(canyonAirPockets.length).toBeGreaterThanOrEqual(2);
+    expect(canyonVents.length).toBeGreaterThanOrEqual(2);
 
-    // 5. Berçário do Santuário (25000m a 29500m):
-    // Presença de desafios para escolta do filhote (redes, lixo e escudos de bolha)
+    // 5. Santuário de Arraial (25000m a 29500m):
+    // Desafios na aproximação final de Arraial (redes, lixo) e correntes favoráveis
     const nurseryObstacles = [
       ...layout.trashPositions.filter((t) => t.x >= 25000 && t.x <= 29500),
       ...layout.netPositions.filter((n) => n.x >= 25000 && n.x <= 29500),
     ];
     expect(nurseryObstacles.length).toBeGreaterThanOrEqual(15);
+
+    const nurseryFavorableCurrents = layout.currentZones.filter(
+      (c) => c.startX >= 25000 && c.type === "favorable"
+    );
+    expect(nurseryFavorableCurrents.length).toBeGreaterThanOrEqual(1);
 
     // 6. Enseada da Vitória (29500m a 30000m):
     // Livre de perigos para permitir o Salto Majestoso (Breach) e comemoração
@@ -75,7 +83,7 @@ describe("Procedural Obstacles Generator", () => {
     expect(finalArrivalObstacles.length).toBe(0);
   });
 
-  it("mantém todos os obstáculos dentro da profundidade navegável", () => {
+  it("mantém todos os obstáculos e bolsões dentro da profundidade navegável", () => {
     const worldHeight = 360;
     const layout = generateProceduralLayout(777, worldHeight);
 
@@ -83,7 +91,7 @@ describe("Procedural Obstacles Generator", () => {
       ...layout.trashPositions,
       ...layout.krillPositions,
       ...layout.netPositions,
-      ...layout.powerupPositions,
+      ...layout.bubbleVentPositions,
     ];
 
     allPositions.forEach((pos) => {

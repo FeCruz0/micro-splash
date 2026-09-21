@@ -172,18 +172,11 @@ export function createDebugDistanceUI(k: KaboomCtx, playerController?: PlayerCon
           }
         }
 
-        // Badges dos Power-ups Ativos
+        // Badges dos Efeitos Ambientais Ativos
         const badges: string[] = [];
-        if (playerController.hasBubbleShield?.()) {
-          badges.push("🛡️ Escudo");
-        }
         if (playerController.isSpeedBoosted?.()) {
           const t = playerController.getSpeedBoostTimer?.().toFixed(1);
-          badges.push(`⚡ Corrente ${t}s`);
-        }
-        if (playerController.hasBioluminescence?.()) {
-          const t = playerController.getBioluminescenceTimer?.().toFixed(1);
-          badges.push(`🔦 Luz ${t}s`);
+          badges.push(`🌊 Correnteza ${t}s`);
         }
         powerupText.text = badges.length > 0 ? `✨ ${badges.join(" | ")}` : "";
       }

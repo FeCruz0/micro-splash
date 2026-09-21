@@ -2,13 +2,17 @@ import type { KaboomCtx } from "kaboom";
 import { createTrash } from "../entities/trash";
 import { createKrill } from "../entities/krill";
 import { createGhostNet } from "../entities/net";
-import { createPowerUp, type PowerUpType } from "../entities/powerup";
+import { createBubbleVent } from "../entities/bubbleVent";
+import type { CurrentZone } from "./oceanCurrentsSystem";
 
 export interface ProceduralObstacleData {
   trashPositions: Array<{ x: number; y: number }>;
   krillPositions: Array<{ x: number; y: number }>;
   netPositions: Array<{ x: number; y: number }>;
-  powerupPositions: Array<{ x: number; y: number; type: PowerUpType }>;
+  bubbleVentPositions: Array<{ x: number; y: number; height?: number }>;
+  currentZones: CurrentZone[];
+  // Mantido para compatibilidade de tipagem
+  powerupPositions: Array<{ x: number; y: number; type: "air_pocket" | "tailwind" }>;
 }
 
 export function createRNG(seed: number = 42) {
@@ -29,18 +33,16 @@ export function generateProceduralLayout(
   const trashPositions: Array<{ x: number; y: number }> = [];
   const krillPositions: Array<{ x: number; y: number }> = [];
   const netPositions: Array<{ x: number; y: number }> = [];
-  const powerupPositions: Array<{ x: number; y: number; type: PowerUpType }> = [];
+  const bubbleVentPositions: Array<{ x: number; y: number; height?: number }> = [];
+  const currentZones: CurrentZone[] = [];
+  const powerupPositions: Array<{ x: number; y: number; type: "air_pocket" | "tailwind" }> = [];
 
   // Margem segura da superfície (SEA_LEVEL = 80 + 40 = 120) e do leito marinho
   const minY = 120;
   const maxY = Math.max(minY + 120, worldHeight - 75);
   const usableHeight = maxY - minY;
 
-  // 4 Camadas de profundidade bem distribuídas para as redes:
-  // 1. Sub-superfície / Rasa (topo)
-  // 2. Meia-água Superior
-  // 3. Meia-água Profunda
-  // 4. Fundo do Mar (rente ao leito marinho)
+  // 4 Camadas verticais de profundidade bem distribuídas:
   const shallowNetY = Math.round(minY + usableHeight * 0.12);
   const midNetY1 = Math.round(minY + usableHeight * 0.38);
   const midNetY2 = Math.round(minY + usableHeight * 0.66);
@@ -49,7 +51,6 @@ export function generateProceduralLayout(
   // =========================================================================
   // 1. BIOMA 1: ANTÁRTICA (0m - 5.000m)
   // =========================================================================
-  // Berçário polar de krill nutritivo bem espalhado por toda a coluna d'água
   const antarcticKrillCount = 12 + Math.floor(rand() * 4); // 12 a 15
   const krillStep = 4600 / antarcticKrillCount;
   for (let i = 0; i < antarcticKrillCount; i++) {
@@ -58,10 +59,14 @@ export function generateProceduralLayout(
     krillPositions.push({ x, y });
   }
 
+  // Bolsões de Ar polares em fendas rochosas sob o gelo
+  bubbleVentPositions.push({ x: Math.round(2200 + rand() * 200), y: floorNetY, height: 210 });
+  bubbleVentPositions.push({ x: Math.round(4100 + rand() * 200), y: floorNetY, height: 220 });
+
+
   // =========================================================================
-  // 2. BIOMA 2: TRAVESSIA OCEÂNICA (5.000m - 12.000m)
+  // 2. BIOMA 2: TRAVESSIA PELÁGICA (5.000m - 12.000m)
   // =========================================================================
-  // Redes fantasmas alternando entre superfície, meia-água e abismo
   const oceanNetCount = 6 + Math.floor(rand() * 2); // 6 a 7 redes
   const oceanNetStep = 6400 / oceanNetCount;
   const oceanNetLayers = [shallowNetY, floorNetY, midNetY1, midNetY2, shallowNetY, floorNetY, midNetY2];
@@ -71,48 +76,58 @@ export function generateProceduralLayout(
     netPositions.push({ x, y });
   }
 
-  // Cardumes raros na travessia em profundidades variadas
   krillPositions.push({ x: 6800 + Math.round(rand() * 200), y: midNetY2 });
   krillPositions.push({ x: 9200 + Math.round(rand() * 200), y: midNetY1 });
 
-  // Power-ups da Travessia
-  powerupPositions.push({
-    x: Math.round(7200 + rand() * 300),
+  // Correntes procedurais na travessia (alternando contrárias e favoráveis)
+  currentZones.push({
+    startX: Math.round(5700 + (rand() - 0.5) * 150),
+    endX: Math.round(7300 + (rand() - 0.5) * 150),
     y: midNetY1,
-    type: "tailwind",
+    height: 115,
+    force: 170,
+    type: "opposing",
   });
-  powerupPositions.push({
-    x: Math.round(10100 + rand() * 300),
-    y: midNetY2,
-    type: "bioluminescence",
+  currentZones.push({
+    startX: Math.round(7700 + (rand() - 0.5) * 150),
+    endX: Math.round(9300 + (rand() - 0.5) * 150),
+    y: shallowNetY + 15,
+    height: 110,
+    force: 195,
+    type: "favorable",
   });
+  currentZones.push({
+    startX: Math.round(9700 + (rand() - 0.5) * 150),
+    endX: Math.round(11400 + (rand() - 0.5) * 150),
+    y: floorNetY - 60,
+    height: 125,
+    force: 185,
+    type: "opposing",
+  });
+
+  // Bolsões de ar em fendas do oceano aberto
+  bubbleVentPositions.push({ x: Math.round(7100 + rand() * 200), y: floorNetY, height: 230 });
+  bubbleVentPositions.push({ x: Math.round(10300 + rand() * 200), y: midNetY2, height: 180 });
 
   // =========================================================================
   // 3. BIOMA 3: COSTA URBANA (12.000m - 19.000m)
   // =========================================================================
-  // Alta densidade de poluição plástica (24 a 30 itens) amplamente distribuída
-  // por toda a profundidade: superfície (flutuante), meia-água e fundo oceânico
   const urbanTrashCount = 24 + Math.floor(rand() * 6);
   const trashStep = 6400 / urbanTrashCount;
   for (let i = 0; i < urbanTrashCount; i++) {
     const x = Math.round(12200 + i * trashStep + (rand() - 0.5) * 80);
-    // Distribuição balanceada nas 3 faixas de profundidade:
     const zone = i % 3;
     let y = 0;
     if (zone === 0) {
-      // Zona Rasa / Sub-superfície
       y = Math.round(minY + usableHeight * 0.05 + rand() * (usableHeight * 0.28));
     } else if (zone === 1) {
-      // Zona de Meia-água
       y = Math.round(minY + usableHeight * 0.35 + rand() * (usableHeight * 0.32));
     } else {
-      // Zona Profunda / Próxima ao leito
       y = Math.round(minY + usableHeight * 0.70 + rand() * (usableHeight * 0.28));
     }
     trashPositions.push({ x, y });
   }
 
-  // Redes urbanas estrategicamente posicionadas em todas as faixas
   const urbanNetXs = [13000, 14400, 15800, 17200, 18500];
   const urbanNetLayers = [shallowNetY, floorNetY, midNetY1, midNetY2, floorNetY];
   urbanNetXs.forEach((baseX, idx) => {
@@ -121,22 +136,23 @@ export function generateProceduralLayout(
     netPositions.push({ x, y });
   });
 
-  // Power-ups da Costa Urbana (Escudos de Bolhas em diferentes profundidades)
-  powerupPositions.push({
-    x: Math.round(13500 + rand() * 200),
-    y: Math.round(minY + usableHeight * 0.25),
-    type: "bubble_shield",
+  // Correntes na Costa Urbana
+  currentZones.push({
+    startX: Math.round(16600 + (rand() - 0.5) * 150),
+    endX: Math.round(18200 + (rand() - 0.5) * 150),
+    y: midNetY2,
+    height: 120,
+    force: 175,
+    type: "opposing",
   });
-  powerupPositions.push({
-    x: Math.round(16600 + rand() * 200),
-    y: Math.round(minY + usableHeight * 0.65),
-    type: "bubble_shield",
-  });
+
+  // Bolsões de ar profundos para evitar subir na poluição flutuante
+  bubbleVentPositions.push({ x: Math.round(13600 + rand() * 200), y: floorNetY, height: 230 });
+  bubbleVentPositions.push({ x: Math.round(16900 + rand() * 200), y: floorNetY, height: 220 });
 
   // =========================================================================
   // 4. BIOMA 4: CÂNIONS DE RESSURGÊNCIA (19.000m - 25.000m)
   // =========================================================================
-  // Redes distribuídas entre os paredões rochosos do Boqueirão e o fundo abissal
   const canyonNetXs = [19800, 21200, 22600, 23900];
   const canyonNetLayers = [floorNetY, shallowNetY, midNetY2, midNetY1];
   canyonNetXs.forEach((baseX, idx) => {
@@ -145,22 +161,24 @@ export function generateProceduralLayout(
     netPositions.push({ x, y });
   });
 
-  // Bolsões de ar profundo para recarregar o fôlego nos cânions sem subir à superfície
-  powerupPositions.push({
-    x: Math.round(20700 + rand() * 200),
-    y: midNetY2,
-    type: "air_pocket",
-  });
-  powerupPositions.push({
-    x: Math.round(23300 + rand() * 200),
-    y: Math.round(floorNetY - 25),
-    type: "air_pocket",
+  // Fendas ativas emanando colunas de bolhas de ar nos cânions
+  bubbleVentPositions.push({ x: Math.round(20400 + rand() * 200), y: midNetY2, height: 190 });
+  bubbleVentPositions.push({ x: Math.round(22500 + rand() * 200), y: floorNetY, height: 240 });
+  bubbleVentPositions.push({ x: Math.round(24100 + rand() * 200), y: midNetY1, height: 180 });
+
+  // Correntezas nos desfiladeiros dos Cânions
+  currentZones.push({
+    startX: Math.round(19500 + (rand() - 0.5) * 150),
+    endX: Math.round(20900 + (rand() - 0.5) * 150),
+    y: midNetY1,
+    height: 110,
+    force: 180,
+    type: "opposing",
   });
 
   // =========================================================================
-  // 5. BIOMA 5: BERÇÁRIO DE ARRAIAL — ESCOLTA DO FILHOTE (25.000m - 29.500m)
+  // 5. BIOMA 5: SANTUÁRIO DE ARRAIAL DO CABO (25.000m - 29.500m)
   // =========================================================================
-  // Desafios de proteção do filhote: redes residuais, lixo flutuante e escudos protetores
   const nurseryNetXs = [25400, 26300, 27100, 27900, 28700, 29300];
   const nurseryNetLayers = [midNetY1, shallowNetY, floorNetY, midNetY2, shallowNetY, floorNetY];
   nurseryNetXs.forEach((baseX, idx) => {
@@ -182,35 +200,47 @@ export function generateProceduralLayout(
     } else {
       y = Math.round(minY + usableHeight * 0.68 + rand() * (usableHeight * 0.28));
     }
+    // No canal raso do Boqueirão da Ilha do Farol (25.600m a 26.900m), o lixo fica na lâmina d'água superior
+    if (x >= 25600 && x <= 26900) {
+      y = Math.min(y, shallowNetY + 10);
+    }
     trashPositions.push({ x, y });
   }
 
-  // Cardumes de Krill nutritivo no berçário
-  krillPositions.push({ x: Math.round(26000 + rand() * 200), y: midNetY1 });
+  // Cardumes de Krill nutritivo no berçário (no Boqueirão, flutua rente à superfície)
+  krillPositions.push({ x: Math.round(26000 + rand() * 200), y: shallowNetY });
   krillPositions.push({ x: Math.round(27700 + rand() * 200), y: midNetY2 });
   krillPositions.push({ x: Math.round(29100 + rand() * 200), y: Math.round(minY + usableHeight * 0.2) });
 
-  // Escudos de Bolha e Bolsão de Ar no Berçário para proteger a dupla
-  powerupPositions.push({
-    x: Math.round(26700 + rand() * 200),
-    y: Math.round(minY + usableHeight * 0.35),
-    type: "bubble_shield",
+  // Bolsão de Ar sereno no berçário
+  bubbleVentPositions.push({ x: Math.round(27200 + rand() * 200), y: floorNetY, height: 230 });
+
+  // Única correnteza favorável no berçário para a aproximação suave da enseada (na superfície do Boqueirão)
+  currentZones.push({
+    startX: Math.round(26200 + (rand() - 0.5) * 150),
+    endX: Math.round(28200 + (rand() - 0.5) * 150),
+    y: shallowNetY + 10,
+    height: 110,
+    force: 180,
+    type: "favorable",
   });
-  powerupPositions.push({
-    x: Math.round(28400 + rand() * 200),
-    y: midNetY2,
-    type: "bubble_shield",
+
+  // Preenche powerupPositions com referências para manter compatibilidade
+  bubbleVentPositions.forEach((v) => {
+    powerupPositions.push({ x: v.x, y: v.y, type: "air_pocket" });
   });
-  powerupPositions.push({
-    x: Math.round(27300 + rand() * 200),
-    y: floorNetY,
-    type: "air_pocket",
-  });
+  currentZones
+    .filter((c) => c.type === "favorable")
+    .forEach((c) => {
+      powerupPositions.push({ x: (c.startX + c.endX) / 2, y: c.y, type: "tailwind" });
+    });
 
   return {
     trashPositions,
     krillPositions,
     netPositions,
+    bubbleVentPositions,
+    currentZones,
     powerupPositions,
   };
 }
@@ -234,9 +264,9 @@ export function spawnProceduralLevel(k: KaboomCtx, seed?: number): ProceduralObs
     createGhostNet(k, k.vec2(pos.x, pos.y));
   });
 
-  // Instancia Power-ups
-  layout.powerupPositions.forEach((pos) => {
-    createPowerUp(k, k.vec2(pos.x, pos.y), pos.type);
+  // Instancia Colunas de Bolhas Naturais (Bolsões de Ar)
+  layout.bubbleVentPositions.forEach((vent) => {
+    createBubbleVent(k, k.vec2(vent.x, vent.y), vent.height ?? 220);
   });
 
   return layout;

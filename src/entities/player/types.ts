@@ -23,15 +23,14 @@ export interface PlayerController {
   setDrafting: (drafting: boolean) => void;
   isDrafting: () => boolean;
 
-  // Power-ups da Fase 12
-  hasBubbleShield: () => boolean;
-  activateBubbleShield: () => void;
-  popBubbleShield: () => boolean;
+  // Auxílios e Efeitos Ambientais
   applySpeedBoost: (duration: number, multiplier?: number) => void;
   isSpeedBoosted: () => boolean;
   getSpeedBoostTimer: () => number;
   restoreOxygen: (amount: number) => void;
-  activateBioluminescence: (duration: number) => void;
-  hasBioluminescence: () => boolean;
-  getBioluminescenceTimer: () => number;
+
+  // Estado de congelamento (telas de fim de jogo, vitória e pausa)
+  freeze: () => void;
+  unfreeze: () => void;
+  isFrozen: () => boolean;
 }

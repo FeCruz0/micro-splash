@@ -12,16 +12,10 @@ export function setupCollisions(
 
   // colisão com lixo
   k.onCollide(TAGS.PLAYER, TAGS.TRASH, (_player, trash) => {
+    if (playerController.isFrozen()) return;
+
     // Destrói o lixo plástico colidido
     k.destroy(trash);
-
-    // Se a baleia estiver protegida pelo Escudo de Bolhas, consome o escudo sem sofrer dano
-    if (playerController.hasBubbleShield()) {
-      playerController.popBubbleShield();
-      audioSystem.playShieldPop();
-      k.shake(1.5);
-      return;
-    }
 
     gameState.addTrash();
 
@@ -39,31 +33,21 @@ export function setupCollisions(
     k.shake(3);
   });
 
-  // colisão com power-ups ambientais temporários (Fase 12)
-  k.onCollide(TAGS.PLAYER, TAGS.POWERUP, (_player, powerup: any) => {
-    const type = powerup.powerupType;
-    k.destroy(powerup);
-    audioSystem.playPowerupCollect();
+  // Interação com Bolsão de Ar Natural (coluna de micro-bolhas de oxigênio)
+  k.onCollide(TAGS.PLAYER, TAGS.AIR_POCKET, (_player, vent: any) => {
+    if (playerController.isFrozen()) return;
 
-    switch (type) {
-      case "bubble_shield":
-        playerController.activateBubbleShield();
-        break;
-      case "tailwind":
-        audioSystem.playSpeedBoost();
-        playerController.applySpeedBoost(5.0, 1.5);
-        break;
-      case "air_pocket":
-        playerController.restoreOxygen(playerController.getMaxOxygen() * 0.3);
-        break;
-      case "bioluminescence":
-        playerController.activateBioluminescence(8.0);
-        break;
+    if (vent.collectAir && vent.collectAir()) {
+      audioSystem.playPowerupCollect();
+      playerController.restoreOxygen(playerController.getMaxOxygen() * 0.35);
+      k.shake(1.5);
     }
   });
 
   // colisão com krill (Fase 3: Progressão Nutricional)
   k.onCollide(TAGS.PLAYER, TAGS.KRILL, (_player, krill) => {
+    if (playerController.isFrozen()) return;
+
     k.destroy(krill);
     gameState.addKrill();
 
@@ -76,6 +60,8 @@ export function setupCollisions(
 
   // colisao com rede fantasma
   k.onCollide(TAGS.PLAYER, TAGS.NET, (_player, net) => {
+    if (playerController.isFrozen()) return;
+
     k.destroy(net); // remove rede do mapa
     audioSystem.playNetTangle();
 
@@ -91,11 +77,26 @@ export function setupCollisions(
 
   // Colisão com blocos de gelo: quebra apenas quando atingido por cima ao cair do salto
   k.onCollide(TAGS.PLAYER, "ice_block", (player, iceBlock: any) => {
+    if (playerController.isFrozen()) return;
+
     const vel = playerController.getSpeed();
     if (player.pos.y <= iceBlock.pos.y + 8 && vel.y >= 0) {
       if (iceBlock.breakIce) {
         iceBlock.breakIce();
       }
+    }
+  });
+
+  // Colisão com formações rochosas (Ilha do Farol e Fundo Rochoso do Boqueirão)
+  let lastObstacleBumpTime = 0;
+  k.onCollide(TAGS.PLAYER, TAGS.OBSTACLE, () => {
+    if (playerController.isFrozen()) return;
+
+    const now = k.time();
+    if (now - lastObstacleBumpTime > 0.35) {
+      lastObstacleBumpTime = now;
+      audioSystem.playTrashThud(); // Impacto sólido e surdo contra a rocha
+      k.shake(2.0);
     }
   });
 }

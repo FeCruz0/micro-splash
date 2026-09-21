@@ -10,7 +10,6 @@ export interface VictoryCardData {
   krillCount: number;
   trashCount: number;
   hasBreached: boolean;
-  hasEscortedCalf: boolean;
   ancestralWisdom: string;
   rank: string;
   mode: string;
@@ -42,7 +41,6 @@ export function extractVictoryCardData(gameState: GameState, playerName: string 
     krillCount: gameState.getKrillCount(),
     trashCount: gameState.getTrashCount(),
     hasBreached: gameState.hasBreached(),
-    hasEscortedCalf: gameState.hasEscortedCalf(),
     ancestralWisdom: gameState.getAncestralWisdom(),
     rank,
     mode: gameState.getMode(),
@@ -207,8 +205,8 @@ export function generateAndDownloadVictoryCard(data: VictoryCardData): boolean {
 
   // Coluna 2
   ctx.fillText(`🗑️ Resíduos Plásticos Encontrados: ${data.trashCount}`, col2X, gridY + 34);
-  ctx.fillText(`🐋 Filhote Protegido no Berçário: ${data.hasEscortedCalf ? "Sim (+300 pts)" : "Não"}`, col2X, gridY + 65);
-  ctx.fillText(`✨ Salto Majestoso (Breach): ${data.hasBreached ? "Executado (+500 pts)" : "Não"}`, col2X, gridY + 96);
+  ctx.fillText(`✨ Salto Majestoso (Breach): ${data.hasBreached ? "Executado (+500 pts)" : "Não"}`, col2X, gridY + 65);
+  ctx.fillText(`🧭 Modo de Travessia: ${data.mode === "serene" ? "Sereno" : data.mode === "quick_challenge" ? "Rápido (60s)" : "Padrão"}`, col2X, gridY + 96);
 
   // Coluna 3: Selo Digital de Autenticidade
   ctx.strokeStyle = "rgba(100, 220, 255, 0.6)";

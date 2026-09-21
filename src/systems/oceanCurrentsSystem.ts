@@ -1,6 +1,7 @@
-import kaboom from "kaboom";
+import type { KaboomCtx } from "kaboom";
 import { TAGS } from "../config";
 import type { PlayerController } from "../entities/player";
+import { audioSystem } from "./audioSystem";
 
 export interface CurrentZone {
   startX: number;
@@ -8,58 +9,109 @@ export interface CurrentZone {
   y: number;
   height: number;
   force: number;
+  type: "opposing" | "favorable";
 }
 
-export const OPEN_OCEAN_CURRENTS: CurrentZone[] = [
-  // Correnteza 1: Meia-água (obriga a descer fundo ou subir rente à superfície)
-  { startX: 5600, endX: 7200, y: 170, height: 110, force: 160 },
-  // Correnteza 2: Fundo do mar (bloqueia o fundo, exige nadar mais alto)
-  { startX: 7700, endX: 9300, y: 270, height: 120, force: 175 },
-  // Correnteza 3: Superfície intermediária (obriga a mergulhar fundo no escuro)
-  { startX: 9800, endX: 11500, y: 140, height: 120, force: 190 },
+export const DEFAULT_OCEAN_CURRENTS: CurrentZone[] = [
+  // 1. Correnteza Contrária 1 (Travessia inicial - meia água)
+  { startX: 5800, endX: 7400, y: 180, height: 115, force: 170, type: "opposing" },
+  // 2. Correnteza Favorável 1 (Travessia média - canal veloz de superfície)
+  { startX: 7800, endX: 9400, y: 130, height: 110, force: 190, type: "favorable" },
+  // 3. Correnteza Contrária 2 (Travessia profunda - fundo do mar)
+  { startX: 9800, endX: 11400, y: 280, height: 125, force: 185, type: "opposing" },
 ];
 
 /**
- * Sistema de Correntezas Contrárias em Alto Mar (5.000m a 12.000m).
- * Empurra a baleia para trás (-X) se entrar na faixa da correnteza.
+ * Sistema Unificado de Correntezas Oceânicas (Favoráveis e Contrárias).
+ * Cria faixas marinhas fluídas, ricas em filamentos dinâmicos, vórtices
+ * e forças físicas hidrodinâmicas.
  */
-export function setupOceanCurrentsSystem(k: ReturnType<typeof kaboom>, playerController: PlayerController) {
-  OPEN_OCEAN_CURRENTS.forEach((zone) => {
-    const width = zone.endX - zone.startX;
+export function setupOceanCurrentsSystem(
+  k: KaboomCtx,
+  playerController: PlayerController,
+  zones: CurrentZone[] = DEFAULT_OCEAN_CURRENTS
+) {
+  let lastFavorableAudioTime = 0;
 
-    // Faixa visual da correnteza
+  zones.forEach((zone) => {
+    const width = zone.endX - zone.startX;
+    const isFavorable = zone.type === "favorable";
+
+    // 1. Âncora da correnteza (100% natural, sem contorno e sem cor diferente do fundo)
     const currentBox = k.add([
-      k.rect(width, zone.height, { radius: 8 }),
       k.pos(zone.startX, zone.y),
-      k.color(70, 160, 230),
-      k.opacity(0.22),
-      k.outline(2, k.rgb(180, 230, 255)),
       k.z(2),
-      TAGS.OPPOSING_CURRENT,
+      isFavorable ? TAGS.FAVORABLE_CURRENT : TAGS.OPPOSING_CURRENT,
+      "ocean_current",
     ]);
 
-    // Linhas e partículas dinâmicas de água fluindo para a esquerda
-    const particleCount = 8;
-    for (let i = 0; i < particleCount; i++) {
+    // 2. Filamentos e esteiras aquáticas dinâmicas
+    const filamentCount = Math.max(6, Math.min(16, Math.round(width / 180)));
+    for (let i = 0; i < filamentCount; i++) {
+      const filamentWidth = k.rand(40, 95);
+      const filamentHeight = k.rand(2.0, 3.5);
       const offsetX = Math.random() * width;
-      const offsetY = Math.random() * (zone.height - 10);
+      const offsetY = 8 + Math.random() * (zone.height - 16);
+
+      const streamColor = isFavorable
+        ? k.choose([k.rgb(140, 245, 255), k.rgb(255, 230, 140), k.rgb(200, 255, 255)])
+        : k.choose([k.rgb(215, 230, 250), k.rgb(175, 195, 225), k.rgb(240, 245, 255)]);
+
       const streamLine = currentBox.add([
-        k.rect(40 + Math.random() * 30, 3, { radius: 2 }),
+        k.rect(filamentWidth, filamentHeight, { radius: filamentHeight / 2 }),
         k.pos(offsetX, offsetY),
-        k.color(210, 245, 255),
-        k.opacity(0.55),
+        k.color(streamColor),
+        k.opacity(k.rand(0.45, 0.75)),
       ]);
 
-      const streamSpeed = 120 + Math.random() * 60;
+      const streamSpeed = isFavorable ? k.rand(200, 320) : k.rand(150, 230);
+      let sway = Math.random() * Math.PI * 2;
+
       streamLine.onUpdate(() => {
-        streamLine.pos.x -= k.dt() * streamSpeed;
-        if (streamLine.pos.x < -40) {
-          streamLine.pos.x = width;
+        const dt = k.dt();
+        sway += dt * 3;
+
+        if (isFavorable) {
+          streamLine.pos.x += dt * streamSpeed;
+          if (streamLine.pos.x > width + 40) {
+            streamLine.pos.x = -filamentWidth;
+          }
+        } else {
+          streamLine.pos.x -= dt * streamSpeed;
+          if (streamLine.pos.x < -filamentWidth - 20) {
+            streamLine.pos.x = width + 20;
+          }
         }
+
+        // Leve ondulação vertical do filamento
+        streamLine.pos.y = offsetY + Math.sin(sway) * 2;
       });
     }
 
-    // Monitora se o jogador está dentro da correnteza contrária
+    // 3. Vórtices e redemoinhos sutis (para correntes contrárias)
+    if (!isFavorable) {
+      const vortexCount = Math.max(2, Math.round(width / 600));
+      for (let v = 0; v < vortexCount; v++) {
+        const vx = (v + 0.5) * (width / vortexCount);
+        const vy = zone.height * 0.5 + (Math.random() - 0.5) * 25;
+
+        const vortex = currentBox.add([
+          k.circle(k.rand(6, 12)),
+          k.pos(vx, vy),
+          k.color(180, 210, 245),
+          k.opacity(0.25),
+          k.outline(1.5, k.rgb(230, 240, 255)),
+        ]);
+
+        let vAngle = Math.random() * 10;
+        vortex.onUpdate(() => {
+          vAngle -= k.dt() * 4;
+          vortex.opacity = 0.18 + Math.sin(vAngle) * 0.12;
+        });
+      }
+    }
+
+    // 4. Interação física contínua com a baleia
     currentBox.onUpdate(() => {
       const playerPos = playerController.gameObj.pos;
 
@@ -67,18 +119,53 @@ export function setupOceanCurrentsSystem(k: ReturnType<typeof kaboom>, playerCon
       const isInY = playerPos.y >= zone.y && playerPos.y <= zone.y + zone.height;
 
       if (isInX && isInY) {
-        // Empurra a jubarte para trás na horizontal
-        const speed = playerController.getSpeed();
-        playerController.setSpeed(
-          k.vec2(
-            speed.x - zone.force * k.dt(),
-            speed.y
-          )
-        );
+        const dt = k.dt();
+        const currentSpeed = playerController.getSpeed();
 
-        // Leve turbulência na tela
-        if (Math.random() < 0.2) {
-          k.shake(1);
+        if (isFavorable) {
+          // Acelera a jubarte para a frente (+X) com empuxo hidrodinâmico
+          playerController.setSpeed(
+            k.vec2(
+              currentSpeed.x + zone.force * dt,
+              currentSpeed.y
+            )
+          );
+
+          // Áudio de impulso favorável com debounce
+          const now = k.time();
+          if (now - lastFavorableAudioTime > 2.0) {
+            lastFavorableAudioTime = now;
+            audioSystem.playSpeedBoost();
+          }
+
+          // Partículas douradas de fluxo favorável na baleia
+          if (Math.random() < 0.25) {
+            const p = k.add([
+              k.circle(k.rand(2, 3.5)),
+              k.pos(playerPos.x + k.rand(-25, 25), playerPos.y + k.rand(-10, 10)),
+              k.color(255, 235, 140),
+              k.opacity(0.8),
+              k.z(15),
+            ]);
+            p.onUpdate(() => {
+              p.pos.x += 180 * k.dt();
+              p.opacity -= k.dt() * 2.8;
+              if (p.opacity <= 0) k.destroy(p);
+            });
+          }
+        } else {
+          // Empurra a jubarte para trás (-X)
+          playerController.setSpeed(
+            k.vec2(
+              currentSpeed.x - zone.force * dt,
+              currentSpeed.y
+            )
+          );
+
+          // Leve turbulência visual na tela
+          if (Math.random() < 0.15) {
+            k.shake(1.0);
+          }
         }
       }
     });

@@ -24,7 +24,6 @@ export class PlayerSonarManager {
     if (this.sonarCooldown > 0) return;
 
     this.sonarCooldown = GAME_CONFIG.SONAR_COOLDOWN;
-    audioSystem.playSonarSound();
     audioSystem.playWhaleSong(1.0, 1.0);
 
     const headPos = pos.add(this.k.vec2(facingRight ? 42 : -42, -4));
@@ -74,8 +73,10 @@ export class PlayerSonarManager {
       ...this.k.get(TAGS.TRASH),
       ...this.k.get(TAGS.KRILL),
       ...this.k.get(TAGS.NET),
-      ...this.k.get("canyon_rock"),
-      ...this.k.get("filhote"),
+      ...this.k.get("boqueirao_rock"),
+      ...this.k.get("island_cliff"),
+      ...this.k.get("island_cliff_visual"),
+      ...this.k.get("ocean_relief"),
     ];
 
     let echoCount = 0;

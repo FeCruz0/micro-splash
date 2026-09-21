@@ -44,25 +44,27 @@ export function createPlayer(
   let escapesNeeded = 0;
   let isBreaching = false;
   let isDrafting = false;
+  let isFrozen = false;
 
-  // Power-up States
-  let hasBubbleShield = false;
-  let bubbleShieldVisual: any = null;
+  // Efeitos Ambientais
   let speedBoostTimer = 0;
   let speedBoostMultiplier = 1.0;
-  let bioluminescenceTimer = 0;
-  let bioluminescenceVisual: any = null;
   let tailBubbleTimer = 0;
-
-  baleia.onDestroy(() => {
-    if (bubbleShieldVisual) k.destroy(bubbleShieldVisual);
-    if (bioluminescenceVisual) k.destroy(bioluminescenceVisual);
-  });
 
   baleia.onUpdate(() => {
     const dt = k.dt();
 
-    // Atualização de Power-ups
+    // Se o jogador estiver congelado (fim de jogo, modal ou vitória), bloqueia movimentos e controles
+    if (isFrozen) {
+      physicsMgr.setSpeed(k.vec2(0, 0));
+      if (animState !== "glide") {
+        animState = "glide";
+        baleia.play("glide");
+      }
+      return;
+    }
+
+    // Atualização de Impulso de Correnteza / Boost
     if (speedBoostTimer > 0) {
       speedBoostTimer = Math.max(0, speedBoostTimer - dt);
       if (Math.random() < 0.35) {
@@ -78,61 +80,6 @@ export function createPlayer(
           if (p.opacity <= 0) k.destroy(p);
         });
       }
-    }
-
-    if (bioluminescenceTimer > 0) {
-      bioluminescenceTimer = Math.max(0, bioluminescenceTimer - dt);
-      if (!bioluminescenceVisual) {
-        bioluminescenceVisual = k.add([
-          k.circle(130),
-          k.pos(baleia.pos),
-          k.color(100, 255, 180),
-          k.opacity(0.16),
-          k.anchor("center"),
-          k.z(19),
-        ]);
-      } else {
-        bioluminescenceVisual.pos = baleia.pos;
-        bioluminescenceVisual.radius = 120 + Math.sin(k.time() * 6) * 12;
-      }
-
-      // Revela perigos e itens automaticamente em raio de 750px
-      const targets = [
-        ...k.get(TAGS.TRASH),
-        ...k.get(TAGS.NET),
-        ...k.get(TAGS.KRILL),
-        ...k.get(TAGS.POWERUP),
-        ...k.get("canyon_rock"),
-      ];
-      targets.forEach((target: any) => {
-        if (baleia.pos.dist(target.pos) <= 750) {
-          if (target.reveal) target.reveal();
-          else target.opacity = 1;
-        }
-      });
-    } else if (bioluminescenceVisual) {
-      k.destroy(bioluminescenceVisual);
-      bioluminescenceVisual = null;
-    }
-
-    if (hasBubbleShield) {
-      if (!bubbleShieldVisual) {
-        bubbleShieldVisual = k.add([
-          k.circle(68),
-          k.pos(baleia.pos),
-          k.color(80, 220, 255),
-          k.outline(2.5, k.rgb(200, 255, 255)),
-          k.opacity(0.35),
-          k.anchor("center"),
-          k.z(21),
-        ]);
-      } else {
-        bubbleShieldVisual.pos = baleia.pos;
-        bubbleShieldVisual.radius = 65 + Math.sin(k.time() * 4) * 4;
-      }
-    } else if (bubbleShieldVisual) {
-      k.destroy(bubbleShieldVisual);
-      bubbleShieldVisual = null;
     }
 
     // 1. Se estiver desmaiada (blackout)
@@ -164,8 +111,9 @@ export function createPlayer(
       controlsMgr.setAngle(k.lerp(controlsMgr.getAngle(), 0, 0.05));
     } else {
       // 4. Livre e controlável
+      const inAir = baleia.pos.y < GAME_CONFIG.SEA_LEVEL + 6;
       const inputs = controlsMgr.pollInputs(physicsMgr.getStrokeTimer());
-      controlsMgr.updateOrientation(dt, baleia, inputs, isTrapped);
+      controlsMgr.updateOrientation(dt, baleia, inputs, isTrapped, inAir);
 
       if (inputs.isStrokePressed) {
         audioSystem.playStrokeThrust();
@@ -227,22 +175,22 @@ export function createPlayer(
       (controlsMgr.isFacingRight() ? controlsMgr.getAngle() : -controlsMgr.getAngle()) + swimSway;
 
     // 7. Física e movimento
-    const { inAir, newAngle } = physicsMgr.updateMovement(
+    const movementResult = physicsMgr.updateMovement(
       dt,
       baleia,
       controlsMgr.isFacingRight(),
       controlsMgr.getAngle(),
       isBreaching
     );
-    if (inAir) {
-      controlsMgr.setAngle(newAngle);
+    if (movementResult.inAir) {
+      controlsMgr.setAngle(movementResult.newAngle);
     }
 
     // 8. Respiração e dreno de oxigênio
     oxygenMgr.update(
       dt,
       baleia.pos,
-      currentSpeed.x,
+      currentSpeed,
       controlsMgr.isFacingRight(),
       isDrafting,
       isSereneMode
@@ -254,7 +202,7 @@ export function createPlayer(
     }
 
     // 10. Rastro de micro-bolhas dinâmicas da cauda em propulsão
-    if (!inAir) {
+    if (!movementResult.inAir) {
       const maxSpeed = GAME_CONFIG.MAX_SPEED * (1 + oxygenMgr.getKrillsEaten() * 0.01);
       const speedRatio = Math.min(1.5, currentSpeed.len() / maxSpeed);
       tailBubbleTimer -= dt;
@@ -350,39 +298,7 @@ export function createPlayer(
     },
     isDrafting: () => isDrafting,
 
-    // Power-ups da Fase 12
-    hasBubbleShield: () => hasBubbleShield,
-    activateBubbleShield: () => {
-      hasBubbleShield = true;
-    },
-    popBubbleShield: () => {
-      if (hasBubbleShield) {
-        hasBubbleShield = false;
-        if (bubbleShieldVisual) {
-          k.destroy(bubbleShieldVisual);
-          bubbleShieldVisual = null;
-        }
-        for (let i = 0; i < 10; i++) {
-          const bp = k.add([
-            k.circle(k.rand(3, 6)),
-            k.pos(baleia.pos.add(k.vec2(k.rand(-25, 25), k.rand(-15, 15)))),
-            k.color(180, 240, 255),
-            k.opacity(0.85),
-            k.z(22),
-          ]);
-          const angle = Math.random() * Math.PI * 2;
-          const speed = k.rand(50, 150);
-          bp.onUpdate(() => {
-            bp.pos.x += Math.cos(angle) * speed * k.dt();
-            bp.pos.y += Math.sin(angle) * speed * k.dt();
-            bp.opacity -= k.dt() * 3;
-            if (bp.opacity <= 0) k.destroy(bp);
-          });
-        }
-        return true;
-      }
-      return false;
-    },
+    // Auxílios e Efeitos Ambientais
     applySpeedBoost: (duration: number, multiplier: number = 1.5) => {
       speedBoostTimer = duration;
       speedBoostMultiplier = multiplier;
@@ -392,10 +308,19 @@ export function createPlayer(
     restoreOxygen: (amount: number) => {
       oxygenMgr.restoreOxygen(amount);
     },
-    activateBioluminescence: (duration: number) => {
-      bioluminescenceTimer = duration;
+
+    // Estado de congelamento (telas de fim de jogo, vitória e pausa)
+    freeze: () => {
+      isFrozen = true;
+      physicsMgr.setSpeed(k.vec2(0, 0));
+      if (animState !== "glide") {
+        animState = "glide";
+        baleia.play("glide");
+      }
     },
-    hasBioluminescence: () => bioluminescenceTimer > 0,
-    getBioluminescenceTimer: () => bioluminescenceTimer,
+    unfreeze: () => {
+      isFrozen = false;
+    },
+    isFrozen: () => isFrozen,
   };
 }

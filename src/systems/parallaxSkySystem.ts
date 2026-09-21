@@ -1,5 +1,4 @@
 import kaboom, { type GameObj } from "kaboom";
-import { GAME_CONFIG } from "../config";
 
 interface CloudData {
   obj: GameObj;
@@ -144,75 +143,6 @@ export function setupParallaxSkySystem(k: ReturnType<typeof kaboom>) {
     });
   });
 
-  // 3. Farol Histórico da Ilha do Farol (Arraial do Cabo ~25.800m)
-  const lighthouseX = 25950;
-  const lighthouseBaseY = GAME_CONFIG.SEA_LEVEL;
-
-  // Promontório rochoso
-  k.add([
-    k.polygon([
-      k.vec2(0, 0),
-      k.vec2(160, 0),
-      k.vec2(190, 45),
-      k.vec2(-30, 45),
-    ]),
-    k.pos(lighthouseX - 60, lighthouseBaseY - 30),
-    k.color(55, 65, 75),
-    k.z(-7),
-  ]);
-
-  // Torre do Farol
-  k.add([
-    k.rect(26, 68, { radius: 3 }),
-    k.pos(lighthouseX, lighthouseBaseY - 95),
-    k.color(245, 245, 250),
-    k.anchor("top"),
-    k.z(-7),
-  ]);
-
-  // Faixa vermelha da torre
-  k.add([
-    k.rect(26, 16),
-    k.pos(lighthouseX, lighthouseBaseY - 65),
-    k.color(210, 45, 45),
-    k.anchor("top"),
-    k.z(-7),
-  ]);
-
-  // Cúpula / Lanterna do Farol
-  k.add([
-    k.rect(20, 14, { radius: 4 }),
-    k.pos(lighthouseX, lighthouseBaseY - 108),
-    k.color(40, 45, 55),
-    k.anchor("top"),
-    k.z(-7),
-  ]);
-
-  // Lâmpada brilhante da lanterna
-  const lanternGlow = k.add([
-    k.circle(7),
-    k.pos(lighthouseX, lighthouseBaseY - 101),
-    k.color(255, 240, 140),
-    k.opacity(0.9),
-    k.anchor("center"),
-    k.z(-6),
-  ]);
-
-  // Feixe cônico de luz do Farol (varredura angular)
-  const lighthouseBeam = k.add([
-    k.polygon([
-      k.vec2(0, 0),
-      k.vec2(-380, -65),
-      k.vec2(-440, 45),
-    ]),
-    k.pos(lighthouseX, lighthouseBaseY - 101),
-    k.color(255, 245, 180),
-    k.opacity(0.22),
-    k.rotate(0),
-    k.z(-6),
-    "lighthouse_beam",
-  ]);
-
   let time = 0;
 
   k.onUpdate(() => {
@@ -285,12 +215,5 @@ export function setupParallaxSkySystem(k: ReturnType<typeof kaboom>) {
       b.wingRight.angle = wingAngle;
     });
 
-    // C. Atualiza Feixe do Farol de Arraial (Rotação realista)
-    const beamPhase = Math.sin(time * 1.8);
-    // O farol brilha mais intensamente quando o feixe aponta na direção do jogador
-    const beamBrightness = Math.max(0.04, Math.abs(beamPhase) * 0.28);
-    lighthouseBeam.opacity = beamBrightness;
-    lanternGlow.opacity = 0.5 + Math.abs(beamPhase) * 0.5;
-    lighthouseBeam.angle = Math.sin(time * 1.2) * 16;
   });
 }

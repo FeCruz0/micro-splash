@@ -21,10 +21,10 @@ import { setupBreachSystem } from "./systems/breachSystem";
 import { setupLightRaysSystem } from "./systems/lightRaysSystem";
 import { setupParallaxSkySystem } from "./systems/parallaxSkySystem";
 import { setupBenthicFloorSystem } from "./systems/benthicFloorSystem";
+import { setupOceanFloorSystem } from "./systems/oceanFloorSystem";
 import { setupOilSpillSystem } from "./systems/oilSpillSystem";
 import { setupDolphinDraftingSystem } from "./systems/dolphinDraftingSystem";
 import { setupPenguinFlockSystem } from "./systems/penguinFlockSystem";
-import { setupCalfEscortSystem } from "./systems/calfEscortSystem";
 import { createKioskScene } from "./systems/kioskMode";
 import { setupTouchControls } from "./ui/touchControls";
 
@@ -193,22 +193,22 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
     ]);
   }
 
-  // 2. Inicializa os Sistemas dos 5 Biomas & Cenários Vivos da Fase 8
+  // 2. Instancia obstáculos, krill, redes e bolsões de ar procedurais
+  const obstacleData = loadLevelLayout(k);
+
+  // 3. Inicializa os Sistemas dos 5 Biomas e Correntezas Oceânicas Procedurais
   setupIceSurfaceSystem(k, playerController);
   setupBackgroundFaunaSystem(k);
   setupShipNoiseSystem(k, playerController);
-  setupOceanCurrentsSystem(k, playerController);
+  setupOceanCurrentsSystem(k, playerController, obstacleData?.currentZones);
   setupCanyonSystem(k);
+  setupOceanFloorSystem(k);
   setupLightRaysSystem(k);
   setupParallaxSkySystem(k);
   setupBenthicFloorSystem(k);
   setupOilSpillSystem(k, playerController);
   setupDolphinDraftingSystem(k, playerController);
   setupPenguinFlockSystem(k);
-  setupCalfEscortSystem(k, playerController, gameState);
-
-  // 3. Instancia obstáculos, krill e redes a partir do layout externalizado em data/level_layout.json
-  loadLevelLayout(k);  
 
   // 4. Inicializa áudio da migração e atalhos
   audioSystem.startMigrationAudio(initialX);
@@ -237,6 +237,7 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
     onBreachComplete: () => {
       if (!isGameFinished) {
         isGameFinished = true;
+        playerController.freeze();
         audioSystem.pauseAmbient();
         showVictoryScreen(k, gameState, () => {
           audioSystem.stopMigrationAudio();
@@ -250,11 +251,16 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
 
   // 6. Loop Principal
   k.onUpdate(() => {
+    if (isGameFinished) {
+      return;
+    }
+
     const playerXPosition = playerController.gameObj.pos.x;
     
     // Fallback de segurança para conclusão caso alcance ou ultrapasse a rota
-    if (playerXPosition >= GAME_CONFIG.ROUTE_TOTAL_DISTANCE && !isGameFinished) {
+    if (playerXPosition >= GAME_CONFIG.ROUTE_TOTAL_DISTANCE) {
       isGameFinished = true;
+      playerController.freeze();
       audioSystem.pauseAmbient();
       showVictoryScreen(k, gameState, () => {
         audioSystem.stopMigrationAudio();
@@ -273,8 +279,9 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
     }
 
     // Verifica término do desafio de 1 minuto
-    if (options.mode === "quick_challenge" && gameState.isTimeUp() && !isGameFinished) {
+    if (options.mode === "quick_challenge" && gameState.isTimeUp()) {
       isGameFinished = true;
+      playerController.freeze();
       audioSystem.pauseAmbient();
       showChallengeEndScreen(
         k,
@@ -315,6 +322,7 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
 
       // Espera 3.5 segundos (tempo do barco chegar) e exibe o relatório
       k.wait(3.5, () => {
+        playerController.freeze();
         showRescueScreen(k, gameState, () => {
           audioSystem.stopMigrationAudio();
           k.go("menu");

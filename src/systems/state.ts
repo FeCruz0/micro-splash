@@ -33,9 +33,6 @@ export function createGameState(options: GameOptions = { mode: "standard" }) {
     } catch {}
     const triggeredFacts = new Set<string>(storedFacts);
     let didBreach = false;
-    let didEscortCalf = false;
-    let calfRescues = 0;
-    let calfSafetyScore = 100;
 
     return {
         // leitores de estado
@@ -49,17 +46,11 @@ export function createGameState(options: GameOptions = { mode: "standard" }) {
         isTimeUp: () => options.mode === "quick_challenge" && timeRemaining <= 0,
         getHighScore: () => highScore,
         hasBreached: () => didBreach,
-        hasEscortedCalf: () => didEscortCalf,
-        getCalfRescues: () => calfRescues,
-        getCalfSafetyScore: () => calfSafetyScore,
 
         // incrementadores de eventos
         addKrill: () => { krillCount++; },
         addTrash: () => { trashCount++; },
         triggerBreach: () => { didBreach = true; },
-        triggerCalfEscort: () => { didEscortCalf = true; },
-        addCalfRescue: () => { calfRescues++; },
-        setCalfSafetyScore: (score: number) => { calfSafetyScore = score; },
 
         // Sabedoria Ancestral / Herança Cultural da rota
         getAncestralWisdom: () => {
@@ -69,11 +60,7 @@ export function createGameState(options: GameOptions = { mode: "standard" }) {
             if (options.mode === "quick_challenge") {
                 return "⚡ Campeã Veloz dos Oceanos (Desafio 60s)";
             }
-            if (didEscortCalf && didBreach && trashCount === 0) {
-                return "🐋 Matriarca Protetora de Arraial (Berçário Imaculado)";
-            } else if (didEscortCalf && didBreach) {
-                return "🌊 Guardiã do Filhote de Arraial (Salto Duplo Majestoso)";
-            } else if (didBreach && trashCount === 0) {
+            if (didBreach && trashCount === 0) {
                 return "🐋 Matriarca Mística dos Mares (Herança Imaculada)";
             } else if (didBreach && krillCount >= 20) {
                 return "✨ Guardião dos Cânticos Polares (Força Ancestral Máxima)";
@@ -99,8 +86,7 @@ export function createGameState(options: GameOptions = { mode: "standard" }) {
         // calculo de pontuação final
         calculateFinalScore: () => {
             const breachBonus = didBreach ? 500 : 0;
-            const calfBonus = didEscortCalf ? (300 + calfRescues * 150) : 0;
-            const finalScore = Math.floor(distance) + (krillCount * 100) - (trashCount * 150) + breachBonus + calfBonus;
+            const finalScore = Math.floor(distance) + (krillCount * 100) - (trashCount * 150) + breachBonus;
             const score = Math.max(0, finalScore);
 
             if (score > highScore) {

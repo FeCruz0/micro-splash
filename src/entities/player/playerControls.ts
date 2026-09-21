@@ -85,21 +85,30 @@ export class PlayerControlsManager {
     dt: number,
     baleia: GameObj,
     inputs: PlayerInputSnapshot,
-    isTrapped: boolean
+    isTrapped: boolean,
+    inAir: boolean = false
   ): void {
-    if (inputs.isLeftDown) {
-      this.facingRight = false;
-      this.targetCamOffset = -200;
-      baleia.flipX = true;
-    }
-    if (inputs.isRightDown) {
-      this.facingRight = true;
-      this.targetCamOffset = 200;
-      baleia.flipX = false;
+    // A baleia não pode virar horizontalmente enquanto estiver no ar (fora d'água)
+    if (!inAir) {
+      if (inputs.isLeftDown) {
+        this.facingRight = false;
+        this.targetCamOffset = -200;
+        baleia.flipX = true;
+      }
+      if (inputs.isRightDown) {
+        this.facingRight = true;
+        this.targetCamOffset = 200;
+        baleia.flipX = false;
+      }
     }
 
     if (isTrapped) {
       this.angle = this.k.lerp(this.angle, 0, 0.05);
+      return;
+    }
+
+    // Se estiver no ar, a arfagem segue a balística da trajetória
+    if (inAir) {
       return;
     }
 

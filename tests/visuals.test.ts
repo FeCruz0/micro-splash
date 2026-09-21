@@ -79,7 +79,6 @@ describe("Fase 13: Polimento Visual, Atmosfera & Identidade", () => {
       expect(cardData.krillCount).toBe(2);
       expect(cardData.trashCount).toBe(1);
       expect(cardData.hasBreached).toBe(true);
-      expect(cardData.hasEscortedCalf).toBe(false);
       expect(cardData.finalScore).toBeGreaterThan(0);
       expect(cardData.rank).toBeDefined();
       expect(cardData.dateStr).toBeDefined();

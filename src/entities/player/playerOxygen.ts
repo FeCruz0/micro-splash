@@ -65,14 +65,29 @@ export class PlayerOxygenManager {
     this.isFainting = false;
   }
 
+  public calculateDrainMultiplier(speedLen: number, isDrafting: boolean = false): number {
+    const maxSpeed = GAME_CONFIG.MAX_SPEED * (1 + this.krillsEaten * 0.01);
+    const speedRatio = Math.min(1.5, speedLen / maxSpeed);
+    // Em repouso (speed = 0): 0.4x (perde 60% menos fôlego)
+    // Em velocidade de cruzeiro (~50%): 1.0x (taxa padrão de 5 O₂/s)
+    // Em velocidade máxima (100%): 1.6x (perde 60% mais fôlego pelo esforço)
+    // Em velocidade turbo / boost (150%): até 2.2x
+    const speedDrainFactor = 0.4 + speedRatio * 1.2;
+    const draftMult = isDrafting ? 0.60 : 1.0;
+    return speedDrainFactor * draftMult;
+  }
+
   public update(
     dt: number,
     pos: Vec2,
-    currentSpeedX: number,
+    currentSpeed: Vec2 | number,
     facingRight: boolean,
     isDrafting: boolean,
     isSereneMode: boolean
   ): void {
+    const currentSpeedX = typeof currentSpeed === "number" ? currentSpeed : currentSpeed.x;
+    const speedLen = typeof currentSpeed === "number" ? Math.abs(currentSpeed) : currentSpeed.len();
+
     if (this.spoutCooldown > 0) {
       this.spoutCooldown -= dt;
     }
@@ -103,7 +118,7 @@ export class PlayerOxygenManager {
         }
       }
     } else if (!canBreathe || this.isOilObstructed) {
-      const drainMult = isDrafting ? 0.60 : 1.0;
+      const drainMult = this.calculateDrainMultiplier(speedLen, isDrafting);
       this.oxygen = Math.max(0, this.oxygen - dt * GAME_CONFIG.OXYGEN_DRAIN_RATE * drainMult);
 
       if (this.isOilObstructed && pos.y <= GAME_CONFIG.SEA_LEVEL + 15 && this.spoutCooldown <= 0) {
