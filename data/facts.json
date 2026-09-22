@@ -1,37 +1,93 @@
 [
   {
     "id": "antartica",
-    "title": "Verão Polar & Banquete",
-    "location": "Oceano Antártico (500m)",
-    "triggerX": 500,
-    "description": "As jubartes passam o verão nas águas geladas da Antártida acumulando toneladas de gordura ao se alimentar de krill antes da grande migração."
+    "title": "Alimentação Polar & Krill",
+    "location": "Oceano Antártico (600m)",
+    "triggerX": 600,
+    "description": "As jubartes passam o verão polar nas águas geladas da Antártida consumindo até 2 toneladas de krill por dia para acumular reservas de gordura essenciais à migração."
   },
   {
-    "id": "travessia",
-    "title": "Navegação Acústica & SOFAR",
-    "location": "Alto Mar (6.000m)",
-    "triggerX": 6000,
-    "description": "Em alto mar, as jubartes navegam sem ecolocalização ativa, usando a audição passiva e o canal SOFAR para escutar o oceano a milhares de quilômetros."
+    "id": "morainas_gelo",
+    "title": "Banquisa & Fendas de Gelo",
+    "location": "Geleiras Antárticas (2.500m)",
+    "triggerX": 2500,
+    "description": "As camadas congeladas de superfície obrigam as baleias a encontrar fendas naturais no gelo marinho para subir e respirar oxigênio antes que o mar congele."
   },
   {
-    "id": "costa_urbana",
-    "title": "Ameaças Humanas",
+    "id": "pinguins_porpoising",
+    "title": "Saltos em Arco (Porpoising)",
+    "location": "Transição Polar (4.400m)",
+    "triggerX": 4400,
+    "description": "Pinguins-de-Magalhães nadam em disparada alternando mergulhos com saltos no ar (porpoising), técnica que reduz o atrito com a água e economiza energia."
+  },
+  {
+    "id": "canal_sofar",
+    "title": "Canal SOFAR & Acústica",
+    "location": "Mar Aberto (6.200m)",
+    "triggerX": 6200,
+    "description": "O canal SOFAR é uma camada oceânica profunda onde a velocidade do som atinge o mínimo, permitindo que vocalizações e cantos de baleia viajem milhares de quilômetros."
+  },
+  {
+    "id": "cachalote_abissal",
+    "title": "Gigantes das Fossas Abissais",
+    "location": "Bacia Pelágica (8.800m)",
+    "triggerX": 8800,
+    "description": "O cachalote é o maior cetáceo dentado do planeta. Mergulha a mais de 2.000m de profundidade na escuridão total para caçar lulas gigantes usando ecolocalização potente."
+  },
+  {
+    "id": "golfinhos_drafting",
+    "title": "Nado em Esteira (Drafting)",
+    "location": "Atlântico Sul (10.500m)",
+    "triggerX": 10500,
+    "description": "Bandos de golfinhos aproveitam as esteiras hidrodinâmicas geradas uns pelos outros para nadar com até 40% menos esforço energético em travessias longas."
+  },
+  {
+    "id": "poluicao_plastica",
+    "title": "Poluição Plástica nos Oceanos",
     "location": "Costa Urbana (13.000m)",
     "triggerX": 13000,
-    "description": "Na aproximação com a costa, o lixo plástico e as redes de pesca abandonadas (redes fantasma) representam sérios riscos de emalhe e desaceleração."
+    "description": "Estima-se que mais de 8 milhões de toneladas de lixo plástico entrem nos mares anualmente, fragmentando-se em microplásticos que ameaçam toda a teia trófica."
   },
   {
-    "id": "ressurgencia",
-    "title": "Fenômeno da Ressurgência",
-    "location": "Arraial do Cabo (19.500m)",
-    "triggerX": 19500,
-    "description": "Ventos e correntes profundas trazem águas geladas ricas em nutrientes da bacia oceânica para a superfície em Arraial do Cabo, atraindo krill e renovando as energias!"
+    "id": "redes_fantasmas",
+    "title": "Ameaça das Redes Fantasmas",
+    "location": "Costa Industrial (15.500m)",
+    "triggerX": 15500,
+    "description": "Redes de pesca abandonadas continuam capturando peixes, tartarugas e mamíferos marinhos indefinidamente, constituindo uma das maiores causas de mortalidade por emalhe."
   },
   {
-    "id": "santuario",
-    "title": "Santuário das Jubartes",
-    "location": "Santuário de Abrolhos (24.000m)",
-    "triggerX": 24000,
-    "description": "As águas calmas e quentes da costa brasileira são o berçário ideal onde as jubartes acasalam, dão à luz e cuidam dos seus filhotes."
+    "id": "derramamento_oleo",
+    "title": "Impacto de Hidrocarbonetos",
+    "location": "Bacia Petrolífera (17.500m)",
+    "triggerX": 17500,
+    "description": "Manchas de óleo na superfície aderem aos espiráculos dos cetáceos, causando asfixia e intoxicação química severa nos pulmões e mucosas."
+  },
+  {
+    "id": "canyon_ressurgencia",
+    "title": "Cânions & Ressurgência",
+    "location": "Cabo Frio (20.200m)",
+    "triggerX": 20200,
+    "description": "Ventos do quadrante Nordeste afastam as águas quentes superficiais, permitindo que a Corrente Central do Atlântico Sul (ACAS), gelada e fértil, suba pelos cânions submarinos."
+  },
+  {
+    "id": "reserva_arraial",
+    "title": "Reserva Extrativista de Arraial",
+    "location": "Arraial do Cabo (23.500m)",
+    "triggerX": 23500,
+    "description": "Criada em 1997, Arraial do Cabo abriga a primeira RESEX Marinha do Brasil, modelo pioneiro de coexistência sustentável entre pescadores artesanais e conservação ambiental."
+  },
+  {
+    "id": "boqueirao_ilha",
+    "title": "Boqueirão da Ilha do Farol",
+    "location": "Passagem do Boqueirão (26.200m)",
+    "triggerX": 26200,
+    "description": "Uma fenda geológica rasa e rochosa separa a Ilha do Farol do continente, criando um canal de correntes aceleradas e águas turquesas de extrema pureza."
+  },
+  {
+    "id": "salto_breach",
+    "title": "O Salto Majestoso (Breach)",
+    "location": "Santuário de Arraial (28.500m)",
+    "triggerX": 28500,
+    "description": "O salto acrobático da jubarte arremessa até 40 toneladas de peso para fora d'água. Ele serve para comunicação acústica, corte nupcial, desparasitação e demonstração de vitalidade."
   }
 ]

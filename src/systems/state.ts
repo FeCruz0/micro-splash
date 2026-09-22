@@ -33,6 +33,8 @@ export function createGameState(options: GameOptions = { mode: "standard" }) {
     } catch {}
     const triggeredFacts = new Set<string>(storedFacts);
     let didBreach = false;
+    let quizScore = 0;
+    let quizCorrectCount = 0;
 
     return {
         // leitores de estado
@@ -46,11 +48,17 @@ export function createGameState(options: GameOptions = { mode: "standard" }) {
         isTimeUp: () => options.mode === "quick_challenge" && timeRemaining <= 0,
         getHighScore: () => highScore,
         hasBreached: () => didBreach,
+        getQuizScore: () => quizScore,
+        getQuizCorrectCount: () => quizCorrectCount,
 
         // incrementadores de eventos
         addKrill: () => { krillCount++; },
         addTrash: () => { trashCount++; },
         triggerBreach: () => { didBreach = true; },
+        addQuizScore: (points: number, isCorrect: boolean = true) => {
+            quizScore += points;
+            if (isCorrect) quizCorrectCount++;
+        },
 
         // Sabedoria Ancestral / Herança Cultural da rota
         getAncestralWisdom: () => {
@@ -86,7 +94,7 @@ export function createGameState(options: GameOptions = { mode: "standard" }) {
         // calculo de pontuação final
         calculateFinalScore: () => {
             const breachBonus = didBreach ? 500 : 0;
-            const finalScore = Math.floor(distance) + (krillCount * 100) - (trashCount * 150) + breachBonus;
+            const finalScore = Math.floor(distance) + (krillCount * 100) - (trashCount * 150) + breachBonus + quizScore;
             const score = Math.max(0, finalScore);
 
             if (score > highScore) {

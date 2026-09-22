@@ -91,22 +91,62 @@ export class PlayerSonarManager {
             targetEntity.opacity = 1;
           }
 
-          // Anel de reflexão acústica
-          const echoPing = this.k.add([
-            this.k.circle(8),
-            this.k.pos(targetEntity.pos),
-            this.k.color(0, 240, 255),
-            this.k.outline(2, this.k.rgb(255, 255, 255)),
-            this.k.opacity(0.9),
-            this.k.z(22),
-          ]);
+          // Anel de reflexão acústica adaptado ao tipo de objeto
+          const isKrill = targetEntity.is && targetEntity.is(TAGS.KRILL);
 
-          echoPing.onUpdate(() => {
-            const dt = this.k.dt();
-            echoPing.radius += dt * 45;
-            echoPing.opacity -= dt * 2.8;
-            if (echoPing.opacity <= 0) this.k.destroy(echoPing);
-          });
+          if (isKrill) {
+            // Reflexão acústica especial para alimento: anel dourado com halo esmeralda e partículas radiantes
+            const echoPing = this.k.add([
+              this.k.circle(12),
+              this.k.pos(targetEntity.pos),
+              this.k.color(255, 220, 80),
+              this.k.outline(2.5, this.k.rgb(100, 255, 210)),
+              this.k.opacity(0.95),
+              this.k.z(22),
+            ]);
+
+            echoPing.onUpdate(() => {
+              const dt = this.k.dt();
+              echoPing.radius += dt * 65;
+              echoPing.opacity -= dt * 2.2;
+              if (echoPing.opacity <= 0) this.k.destroy(echoPing);
+            });
+
+            // 4 cintilações radiantes em cruz/estrela
+            for (let s = 0; s < 4; s++) {
+              const ang = (s / 4) * Math.PI * 2 + Math.PI / 4;
+              const spark = this.k.add([
+                this.k.circle(2),
+                this.k.pos(targetEntity.pos),
+                this.k.color(255, 235, 120),
+                this.k.opacity(0.9),
+                this.k.z(23),
+              ]);
+              const dir = this.k.vec2(Math.cos(ang) * 55, Math.sin(ang) * 55);
+              spark.onUpdate(() => {
+                const dt = this.k.dt();
+                spark.pos = spark.pos.add(dir.scale(dt));
+                spark.opacity -= dt * 2.5;
+                if (spark.opacity <= 0) this.k.destroy(spark);
+              });
+            }
+          } else {
+            const echoPing = this.k.add([
+              this.k.circle(8),
+              this.k.pos(targetEntity.pos),
+              this.k.color(0, 240, 255),
+              this.k.outline(2, this.k.rgb(255, 255, 255)),
+              this.k.opacity(0.9),
+              this.k.z(22),
+            ]);
+
+            echoPing.onUpdate(() => {
+              const dt = this.k.dt();
+              echoPing.radius += dt * 45;
+              echoPing.opacity -= dt * 2.8;
+              if (echoPing.opacity <= 0) this.k.destroy(echoPing);
+            });
+          }
 
           if (echoCount < 4) {
             echoCount++;

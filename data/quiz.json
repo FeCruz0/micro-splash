@@ -1,0 +1,132 @@
+[
+  {
+    "id": "q_antartica_krill",
+    "factId": "antartica",
+    "question": "Quanto alimento uma baleia-jubarte consome diariamente nas águas da Antártica antes de migrar?",
+    "options": [
+      "Até 50 kg de pequenos moluscos",
+      "Até 2 toneladas de krill para acumular reservas",
+      "Cerca de 200 kg de algas marinhas",
+      "Elas não se alimentam na Antártica"
+    ],
+    "correctIndex": 1,
+    "explanation": "No verão polar, as jubartes ingerem até 2 toneladas diárias de krill, acumulando uma espessa camada de gordura para o jejum migratório."
+  },
+  {
+    "id": "q_canal_sofar",
+    "factId": "canal_sofar",
+    "question": "O que é o Canal SOFAR, fundamental para a comunicação das baleias em alto mar?",
+    "options": [
+      "Uma corrente de água doce vinda do Ártico",
+      "Uma trincheira vulcânica perigosa",
+      "Uma camada oceânica onde o som viaja por milhares de km",
+      "Um grupo de recifes luminosos de coral"
+    ],
+    "correctIndex": 2,
+    "explanation": "O canal SOFAR funciona como um guia de ondas acústico submarino onde os cantos de baixa frequência viajam continentes inteiros sem se dissipar."
+  },
+  {
+    "id": "q_pinguins_porpoising",
+    "factId": "pinguins_porpoising",
+    "question": "Por que os Pinguins-de-Magalhães executam saltos em arco ('porpoising') enquanto nadam?",
+    "options": [
+      "Para fugir de tubarões na superfície",
+      "Para pegar insetos voadores na transição polar",
+      "Apenas para se exibirem para o bando",
+      "Para reduzir o atrito hidrodinâmico e economizar energia"
+    ],
+    "correctIndex": 3,
+    "explanation": "Alternar o nado na água com saltos no ar (porpoising) reduz a resistência do meio em até 4 vezes e permite respirar em alta velocidade."
+  },
+  {
+    "id": "q_cachalote",
+    "factId": "cachalote_abissal",
+    "question": "Qual é a principal presa e profundidade de caça do Cachalote nas fossas oceânicas?",
+    "options": [
+      "Plâncton na superfície até 50 metros",
+      "Lulas gigantes em mergulhos profundos de até 2.000 metros",
+      "Cardumes de sardinha a 300 metros",
+      "Caranguejos nas praias e estuários"
+    ],
+    "correctIndex": 1,
+    "explanation": "O cachalote mergulha a mais de 2.000m nas fossas abissais, caçando lulas colossais na escuridão através de sua ecolocalização ultrassônica."
+  },
+  {
+    "id": "q_golfinhos_drafting",
+    "factId": "golfinhos_drafting",
+    "question": "Qual a grande vantagem do nado em esteira ('drafting') observado em golfinhos e cetáceos?",
+    "options": [
+      "Reduzir o arrasto e economizar até 40% de energia",
+      "Aumentar a temperatura corporal em águas tropicais",
+      "Assustar predadores maiores com barulho",
+      "Manter o grupo sempre em linha reta"
+    ],
+    "correctIndex": 0,
+    "explanation": "A esteira hidrodinâmica gerada pela liderança do bando diminui a resistência da água, poupando até 40% do fôlego dos animais que vêm atrás."
+  },
+  {
+    "id": "q_poluicao_plastica",
+    "factId": "poluicao_plastica",
+    "question": "Quantas toneladas de resíduos plásticos são estimadas entrando nos oceanos a cada ano?",
+    "options": [
+      "Cerca de 100 mil toneladas",
+      "Apenas 500 toneladas no mundo todo",
+      "Mais de 8 milhões de toneladas anuais",
+      "Quase nada, o plástico se dissolve rapidamente"
+    ],
+    "correctIndex": 2,
+    "explanation": "Mais de 8 milhões de toneladas de plástico entram nos oceanos anualmente, fragmentando-se em microplásticos que contaminam toda a vida marinha."
+  },
+  {
+    "id": "q_redes_fantasmas",
+    "factId": "redes_fantasmas",
+    "question": "Por que as 'redes fantasmas' abandonadas no mar são consideradas tão perigosas?",
+    "options": [
+      "Porque atraem predadores venenosos",
+      "Porque impedem o fluxo natural das marés",
+      "Porque aceleram a oxidação das rochas marinhas",
+      "Porque continuam capturando e matando animais por décadas"
+    ],
+    "correctIndex": 3,
+    "explanation": "Feitas de materiais sintéticos resistentes como nylon, as redes abandonadas derivam matando baleias, tartarugas e peixes por emalhe contínuo."
+  },
+  {
+    "id": "q_canyon_ressurgencia",
+    "factId": "canyon_ressurgencia",
+    "question": "Qual fenômeno oceanográfico torna as águas de Arraial do Cabo famosas pela riqueza de vida?",
+    "options": [
+      "A Ressurgência, trazendo água fria profunda rica em nutrientes",
+      "O aquecimento térmico por vulcões submarinos ativos",
+      "O deságue de grandes rios lamacentos da floresta",
+      "Correntes polares que congelam a superfície"
+    ],
+    "correctIndex": 0,
+    "explanation": "A Ressurgência de Cabo Frio é impulsionada pelos ventos NE que trazem a água profunda da ACAS, gerando uma explosão de plâncton e krill."
+  },
+  {
+    "id": "q_reserva_arraial",
+    "factId": "reserva_arraial",
+    "question": "Em que ano foi criada a Reserva Extrativista Marinha de Arraial do Cabo, pioneira no Brasil?",
+    "options": [
+      "1950, durante a construção do primeiro farol",
+      "1997, protegendo a pesca tradicional e a biodiversidade",
+      "2020, como medida contra o turismo em massa",
+      "1888, logo após a abolição da escravatura"
+    ],
+    "correctIndex": 1,
+    "explanation": "Criada em 1997, a RESEX Marinha de Arraial do Cabo foi a primeira do país, conciliando sustento comunitário com preservação dos berçários marinhos."
+  },
+  {
+    "id": "q_salto_breach",
+    "factId": "salto_breach",
+    "question": "Quais são algumas das funções científicas do Salto Majestoso ('Breach') das jubartes?",
+    "options": [
+      "Capturar aves marinhas em pleno voo",
+      "Evaporar a água do corpo para tomar sol",
+      "Comunicação acústica estrondosa, corte e desparasitação",
+      "Apenas exercício aeróbico para perder peso"
+    ],
+    "correctIndex": 2,
+    "explanation": "O impacto do breach emite estrondos que viajam quilômetros debaixo d'água, servindo como sinal acústico, demarcação social e remoção de cracas e piolhos-de-baleia."
+  }
+]

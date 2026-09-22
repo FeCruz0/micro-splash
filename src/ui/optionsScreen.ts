@@ -1,6 +1,13 @@
 import type { KaboomCtx } from "kaboom";
 import { audioSystem } from "../systems/audioSystem";
-import { RESOLUTION_PRESETS, type ResolutionKey, getSavedResolution } from "../config";
+import {
+  RESOLUTION_PRESETS,
+  type ResolutionKey,
+  getSavedResolution,
+  getSavedDisplayMode,
+  setSavedDisplayMode,
+  type DisplayMode,
+} from "../config";
 
 export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   audioSystem.playUiClick();
@@ -10,6 +17,9 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
 
   const initialRes = getSavedResolution();
   let currentResKey: ResolutionKey = initialRes.key;
+
+  const initialDisplayMode = getSavedDisplayMode();
+  let currentDisplayMode: DisplayMode = initialDisplayMode;
 
   // Fundo escuro semitransparente (absorve cliques e bloqueia o menu)
   const backdrop = k.add([
@@ -56,7 +66,7 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
     elements.forEach((el) => {
       try { k.destroy(el); } catch {}
     });
-    if (currentResKey !== initialRes.key && typeof window !== "undefined") {
+    if ((currentResKey !== initialRes.key || currentDisplayMode !== initialDisplayMode) && typeof window !== "undefined") {
       window.location.reload();
       return;
     }
@@ -322,8 +332,8 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   const getResLabel = (key: ResolutionKey) => `Resolução: ${RESOLUTION_PRESETS[key].label}`;
 
   const btnRes = k.add([
-    k.rect(340, 34, { radius: 8 }),
-    k.pos(k.width() / 2, k.height() / 2 + 28),
+    k.rect(340, 32, { radius: 7 }),
+    k.pos(k.width() / 2, k.height() / 2 + 24),
     k.color(24, 80, 135),
     k.outline(1, k.rgb(80, 210, 255)),
     k.scale(1),
@@ -335,8 +345,8 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   elements.push(btnRes);
 
   const resText = k.add([
-    k.text(getResLabel(currentResKey), { size: 12, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 + 28),
+    k.text(getResLabel(currentResKey), { size: 11.5, font: "sans-serif" }),
+    k.pos(k.width() / 2, k.height() / 2 + 24),
     k.color(255, 255, 255),
     k.anchor("center"),
     k.fixed(),
@@ -346,13 +356,21 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
 
   const resHintText = k.add([
     k.text("", { size: 10, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 + 52),
+    k.pos(k.width() / 2, k.height() / 2 + 48),
     k.color(255, 220, 100),
     k.anchor("center"),
     k.fixed(),
     k.z(303),
   ]);
   elements.push(resHintText);
+
+  const updateReloadHint = () => {
+    if (currentResKey !== initialRes.key || currentDisplayMode !== initialDisplayMode) {
+      resHintText.text = "⚠️ A tela será recarregada ao salvar para aplicar as alterações";
+    } else {
+      resHintText.text = "";
+    }
+  };
 
   btnRes.onHoverUpdate(() => {
     btnRes.scale = k.vec2(1.02, 1.02);
@@ -368,17 +386,73 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
     localStorage.setItem("micro_splash_resolution", currentResKey);
     audioSystem.playUiClick();
     resText.text = getResLabel(currentResKey);
-    if (currentResKey !== initialRes.key) {
-      resHintText.text = "⚠️ A tela será recarregada ao salvar para aplicar";
-    } else {
-      resHintText.text = "";
-    }
+    updateReloadHint();
+  });
+
+  // --- MODO DE TELA (SEM BORDAS / PREENCHER) & TELA CHEIA (FULLSCREEN) ---
+  const btnDisplay = k.add([
+    k.rect(195, 30, { radius: 7 }),
+    k.pos(k.width() / 2 - 72, k.height() / 2 + 70),
+    k.color(currentDisplayMode === "stretch" ? k.rgb(18, 105, 80) : k.rgb(50, 65, 85)),
+    k.outline(1, k.rgb(100, 240, 200)),
+    k.anchor("center"),
+    k.area(),
+    k.fixed(),
+    k.z(302),
+  ]);
+  elements.push(btnDisplay);
+
+  const displayText = k.add([
+    k.text(currentDisplayMode === "stretch" ? "Bordas: PREENCHER 🖥️✓" : "Bordas: 16:9 FIXA 📺", { size: 10.5, font: "sans-serif" }),
+    k.pos(k.width() / 2 - 72, k.height() / 2 + 70),
+    k.color(255, 255, 255),
+    k.anchor("center"),
+    k.fixed(),
+    k.z(303),
+  ]);
+  elements.push(displayText);
+
+  btnDisplay.onClick(() => {
+    currentDisplayMode = currentDisplayMode === "stretch" ? "letterbox" : "stretch";
+    setSavedDisplayMode(currentDisplayMode);
+    audioSystem.playUiClick();
+    displayText.text = currentDisplayMode === "stretch" ? "Bordas: PREENCHER 🖥️✓" : "Bordas: 16:9 FIXA 📺";
+    btnDisplay.color = currentDisplayMode === "stretch" ? k.rgb(18, 105, 80) : k.rgb(50, 65, 85);
+    updateReloadHint();
+  });
+
+  const btnFs = k.add([
+    k.rect(135, 30, { radius: 7 }),
+    k.pos(k.width() / 2 + 102, k.height() / 2 + 70),
+    k.color(20, 75, 125),
+    k.outline(1, k.rgb(100, 220, 255)),
+    k.anchor("center"),
+    k.area(),
+    k.fixed(),
+    k.z(302),
+  ]);
+  elements.push(btnFs);
+
+  const fsText = k.add([
+    k.text("Tela Cheia [F11] ⛶", { size: 11, font: "sans-serif" }),
+    k.pos(k.width() / 2 + 102, k.height() / 2 + 70),
+    k.color(255, 255, 255),
+    k.anchor("center"),
+    k.fixed(),
+    k.z(303),
+  ]);
+  elements.push(fsText);
+
+  btnFs.onClick(() => {
+    audioSystem.playUiClick();
+    k.setFullscreen(!k.isFullscreen());
+    fsText.text = k.isFullscreen() ? "Janela 🗗" : "Tela Cheia [F11] ⛶";
   });
 
   // --- GUIA DE CONTROLES ---
   elements.push(k.add([
-    k.rect(480, 80, { radius: 8 }),
-    k.pos(k.width() / 2, k.height() / 2 + 115),
+    k.rect(480, 68, { radius: 8 }),
+    k.pos(k.width() / 2, k.height() / 2 + 128),
     k.color(8, 25, 55),
     k.outline(1, k.rgb(50, 120, 180)),
     k.anchor("center"),

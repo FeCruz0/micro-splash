@@ -133,9 +133,9 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
 ### 📚 FASE 14: Conteúdo Educativo Expandido & Avaliação
 *Objetivo: Fortalecer o valor pedagógico e a fixação do aprendizado para jurados e público estudantil.*
 
-- [ ] **14.1 Expansão do Acervo de Fatos Científicos (`facts.json`):**
+- [x] **14.1 Expansão do Acervo de Fatos Científicos (`facts.json`):**
   - Ampliar de 5 para 12+ fatos ecológicos baseados em dados reais (propagação acústica no canal SOFAR, mortalidade por redes fantasmas, correntes oceânicas e a história da Reserva Extrativista de Arraial do Cabo).
-- [ ] **14.2 Quiz Interativo Pós-Vitória:**
+- [x] **14.2 Quiz Interativo Pós-Vitória:**
   - Adicionar mini-desafio opcional ao final da rota com 3 perguntas de múltipla escolha sobre os fatos ecológicos desbloqueados durante a partida, premiando acertos com pontuação extra no Eco-Score.
 
 ### ⚡ FASE 15: Otimização & Performance em Baixo Nível

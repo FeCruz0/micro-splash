@@ -125,3 +125,17 @@ export function getSavedResolution(): { width: number; height: number; key: Reso
   };
 }
 
+export type DisplayMode = "stretch" | "letterbox";
+
+export function getSavedDisplayMode(): DisplayMode {
+  if (typeof localStorage === "undefined") return "stretch";
+  const saved = localStorage.getItem("micro_splash_display_mode");
+  return saved === "letterbox" ? "letterbox" : "stretch";
+}
+
+export function setSavedDisplayMode(mode: DisplayMode): void {
+  if (typeof localStorage !== "undefined") {
+    localStorage.setItem("micro_splash_display_mode", mode);
+  }
+}
+

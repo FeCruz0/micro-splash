@@ -14,6 +14,8 @@ export interface VictoryCardData {
   rank: string;
   mode: string;
   dateStr?: string;
+  quizScore?: number;
+  quizCorrectCount?: number;
 }
 
 /**
@@ -45,23 +47,25 @@ export function extractVictoryCardData(gameState: GameState, playerName: string 
     rank,
     mode: gameState.getMode(),
     dateStr,
+    quizScore: gameState.getQuizScore(),
+    quizCorrectCount: gameState.getQuizCorrectCount(),
   };
 }
 
 /**
- * Gera um certificado / cartão de vitória em alta resolução (1200x675, 16:9)
- * utilizando a Canvas 2D API e dispara o download como imagem PNG.
+ * Gera o elemento HTMLCanvasElement em alta resolução (1200x675, 16:9)
+ * desenhando todo o conteúdo gráfico e ornamental do certificado.
  */
-export function generateAndDownloadVictoryCard(data: VictoryCardData): boolean {
+export function createVictoryCardCanvas(data: VictoryCardData): HTMLCanvasElement | null {
   if (typeof document === "undefined") {
-    return false;
+    return false as any;
   }
 
   const canvas = document.createElement("canvas");
   canvas.width = 1200;
   canvas.height = 675;
   const ctx = canvas.getContext("2d");
-  if (!ctx) return false;
+  if (!ctx) return null;
 
   // 1. Fundo Oceânico em Gradiente Noturno / Abissal
   const grad = ctx.createLinearGradient(0, 0, 1200, 675);
@@ -206,7 +210,13 @@ export function generateAndDownloadVictoryCard(data: VictoryCardData): boolean {
   // Coluna 2
   ctx.fillText(`🗑️ Resíduos Plásticos Encontrados: ${data.trashCount}`, col2X, gridY + 34);
   ctx.fillText(`✨ Salto Majestoso (Breach): ${data.hasBreached ? "Executado (+500 pts)" : "Não"}`, col2X, gridY + 65);
-  ctx.fillText(`🧭 Modo de Travessia: ${data.mode === "serene" ? "Sereno" : data.mode === "quick_challenge" ? "Rápido (60s)" : "Padrão"}`, col2X, gridY + 96);
+  ctx.fillText(
+    data.quizScore && data.quizScore > 0
+      ? `🧪 Quiz Ecológico: ${data.quizCorrectCount || 0}/3 acertos (+${data.quizScore} pts)`
+      : `🧭 Modo de Travessia: ${data.mode === "serene" ? "Sereno" : data.mode === "quick_challenge" ? "Rápido (60s)" : "Padrão"}`,
+    col2X,
+    gridY + 96
+  );
 
   // Coluna 3: Selo Digital de Autenticidade
   ctx.strokeStyle = "rgba(100, 220, 255, 0.6)";
@@ -254,8 +264,18 @@ export function generateAndDownloadVictoryCard(data: VictoryCardData): boolean {
   );
   ctx.restore();
 
-  // 10. Disparo do Download da Imagem PNG
+  return canvas;
+}
+
+/**
+ * Gera um certificado / cartão de vitória em alta resolução (1200x675, 16:9)
+ * utilizando a Canvas 2D API e dispara o download como imagem PNG.
+ */
+export function generateAndDownloadVictoryCard(data: VictoryCardData): boolean {
   try {
+    const canvas = createVictoryCardCanvas(data);
+    if (!canvas) return false;
+
     const dataUrl = canvas.toDataURL("image/png");
     const link = document.createElement("a");
     link.download = `micro_splash_certificado_${Date.now()}.png`;
@@ -269,3 +289,85 @@ export function generateAndDownloadVictoryCard(data: VictoryCardData): boolean {
     return false;
   }
 }
+
+/**
+ * Converte o certificado renderizado para um Blob PNG para compartilhamento nativo.
+ */
+export function getVictoryCardBlob(data: VictoryCardData): Promise<Blob | null> {
+  return new Promise((resolve) => {
+    try {
+      const canvas = createVictoryCardCanvas(data);
+      if (!canvas) {
+        resolve(null);
+        return;
+      }
+      canvas.toBlob((blob) => resolve(blob), "image/png");
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+/**
+ * Retorna o texto formatado para compartilhamento em redes sociais.
+ */
+export function getShareText(data: VictoryCardData): string {
+  const modeText =
+    data.mode === "quick_challenge"
+      ? "no Desafio Rápido de 60s"
+      : data.mode === "serene"
+      ? "no Modo Sereno"
+      : "na Rota Migratória";
+
+  return (
+    `🐋 Concluí a jornada da baleia-jubarte ${modeText} no jogo Micro-Splash!\n` +
+    `⭐ Eco-Score Final: ${data.finalScore.toLocaleString("pt-BR")} pts\n` +
+    `🎖️ Classificação: ${data.rank}\n` +
+    `🌊 Distância: ${Math.floor(data.distance).toLocaleString("pt-BR")}m | Krill: ${data.krillCount}\n\n` +
+    `Jogue você também e ajude na conservação dos oceanos! 🎮💙\n` +
+    `#MicroSplash #BaleiaJubarte #ConservacaoMarinha #ArraialDoCabo`
+  );
+}
+
+/**
+ * Dispara o compartilhamento nativo (Web Share API) anexando o arquivo PNG do certificado se suportado.
+ */
+export async function shareVictoryCard(data: VictoryCardData): Promise<boolean> {
+  if (typeof navigator === "undefined" || !navigator.share) {
+    return false;
+  }
+
+  const text = getShareText(data);
+  const title = "Certificado Oficial Micro-Splash - Guardião dos Oceanos 🐋";
+
+  try {
+    const blob = await getVictoryCardBlob(data);
+    if (blob && typeof File !== "undefined") {
+      const file = new File([blob], "certificado_micro_splash.png", { type: "image/png" });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title,
+          text,
+          files: [file],
+        });
+        return true;
+      }
+    }
+
+    // Fallback para compartilhamento de texto/url caso o navegador não suporte compartilhamento de arquivos
+    await navigator.share({
+      title,
+      text,
+      url: typeof window !== "undefined" ? window.location.href : undefined,
+    });
+    return true;
+  } catch (err: any) {
+    // Se o usuário cancelou o compartilhamento, não consideramos como erro grave
+    if (err.name === "AbortError") {
+      return false;
+    }
+    console.warn("Falha no compartilhamento nativo:", err);
+    return false;
+  }
+}
+

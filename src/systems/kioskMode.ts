@@ -142,10 +142,9 @@ export function createKioskScene(k: KaboomCtx) {
       audioSystem.playWhaleSong(1.0, 1.0);
     }
 
-    // Biosonar demonstrativo periódico
+    // Biosonar demonstrativo periódico (efeito visual, sem som de radar para deixar apenas o canto da baleia)
     if (sonarTimer <= 0) {
       sonarTimer = 6.0;
-      audioSystem.playSonarSound();
 
       const pulse = k.add([
         k.circle(12),

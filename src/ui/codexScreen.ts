@@ -1,5 +1,7 @@
 import type { KaboomCtx } from "kaboom";
 import { audioSystem } from "../systems/audioSystem";
+import { createGameState } from "../systems/state";
+import { showQuizModal } from "./quizModal";
 import factsData from "../../data/facts.json";
 
 export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
@@ -7,6 +9,7 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
 
   const elements: any[] = [];
   let isClosed = false;
+  let isModalOpen = false;
 
   // Fundo escuro semitransparente (bloqueia cliques na tela de menu abaixo)
   const backdrop = k.add([
@@ -24,9 +27,9 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
   const cardW = 780;
   const cardH = 540;
   const card = k.add([
-    k.rect(cardW, cardH, { radius: 14 }),
+    k.rect(cardW, cardH, { radius: 12 }),
     k.pos(k.width() / 2, k.height() / 2),
-    k.color(10, 32, 68),
+    k.color(10, 28, 58),
     k.outline(3, k.rgb(255, 215, 80)),
     k.anchor("center"),
     k.area(),
@@ -48,7 +51,7 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
   let contentElements: any[] = [];
 
   const close = () => {
-    if (isClosed) return;
+    if (isClosed || isModalOpen) return;
     isClosed = true;
     audioSystem.playUiClick();
     escListener.cancel();
@@ -61,7 +64,9 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
     onBack();
   };
 
-  const escListener = k.onKeyPress("escape", close);
+  const escListener = k.onKeyPress("escape", () => {
+    if (!isModalOpen) close();
+  });
 
   // Botão fechar [X] no canto superior direito do card
   const btnX = k.add([
@@ -101,6 +106,7 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
   } catch {}
 
   let activeTab: "species" | "route" | "conservation" = "species";
+  let routePage = 0;
 
   const renderTabContent = () => {
     contentElements.forEach((el) => {
@@ -172,29 +178,34 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
         ]));
       });
     } else if (activeTab === "route") {
-      // --- ABA FATOS DA ROTA ---
+      // --- ABA FATOS DA ROTA COM PAGINAÇÃO ---
+      const pageSize = 5;
+      const totalPages = Math.ceil(factsData.length / pageSize);
+      const startIndex = routePage * pageSize;
+      const currentFacts = factsData.slice(startIndex, startIndex + pageSize);
+
       const countUnlocked = factsData.filter((f) => unlockedFactIds.includes(f.id)).length;
 
       contentElements.push(k.add([
-        k.text(`Descobertas na Rota: ${countUnlocked} de ${factsData.length} desbloqueadas`, {
-          size: 15,
+        k.text(`Descobertas na Rota: ${countUnlocked} de ${factsData.length} desbloqueadas  •  Página ${routePage + 1} de ${totalPages}`, {
+          size: 13,
           font: "sans-serif",
         }),
-        k.pos(k.width() / 2, contentBoxY - 138),
+        k.pos(k.width() / 2, contentBoxY - 142),
         k.color(255, 215, 100),
         k.anchor("center"),
         k.fixed(),
         k.z(304),
       ]));
 
-      factsData.forEach((fact, i) => {
+      currentFacts.forEach((fact, i) => {
         const isUnlocked = unlockedFactIds.includes(fact.id);
-        const itemY = contentBoxY - 105 + i * 53;
+        const itemY = contentBoxY - 114 + i * 48;
 
         contentElements.push(k.add([
           k.text(
             `${isUnlocked ? "✅" : "🔒"} ${fact.title} (${fact.location})`,
-            { size: 13, font: "sans-serif" }
+            { size: 12.5, font: "sans-serif" }
           ),
           k.pos(k.width() / 2 - 340, itemY),
           k.color(isUnlocked ? k.rgb(100, 240, 200) : k.rgb(140, 150, 170)),
@@ -207,16 +218,76 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
           k.text(
             isUnlocked
               ? fact.description
-              : "Navegue pela rota migratória na migração para desbloquear este conhecimento!",
-            { size: 11, font: "sans-serif", width: 680, lineSpacing: 2 }
+              : "Navegue pela rota migratória na expedição para desbloquear este conhecimento!",
+            { size: 10.5, font: "sans-serif", width: 680, lineSpacing: 2 }
           ),
-          k.pos(k.width() / 2 - 340, itemY + 18),
+          k.pos(k.width() / 2 - 340, itemY + 16),
           k.color(isUnlocked ? k.rgb(205, 230, 250) : k.rgb(120, 135, 150)),
           k.anchor("left"),
           k.fixed(),
           k.z(304),
         ]));
       });
+
+      // Botão Página Anterior
+      if (routePage > 0) {
+        const btnPrev = k.add([
+          k.rect(110, 26, { radius: 6 }),
+          k.pos(k.width() / 2 - 80, contentBoxY + 140),
+          k.color(20, 50, 95),
+          k.outline(1, k.rgb(100, 200, 255)),
+          k.anchor("center"),
+          k.area(),
+          k.fixed(),
+          k.z(305),
+        ]);
+        contentElements.push(btnPrev);
+
+        contentElements.push(k.add([
+          k.text("◀ Anterior", { size: 11, font: "sans-serif" }),
+          k.pos(k.width() / 2 - 80, contentBoxY + 140),
+          k.color(255, 255, 255),
+          k.anchor("center"),
+          k.fixed(),
+          k.z(306),
+        ]));
+
+        btnPrev.onClick(() => {
+          audioSystem.playUiClick();
+          routePage--;
+          renderTabContent();
+        });
+      }
+
+      // Botão Próxima Página
+      if (routePage < totalPages - 1) {
+        const btnNext = k.add([
+          k.rect(110, 26, { radius: 6 }),
+          k.pos(k.width() / 2 + 80, contentBoxY + 140),
+          k.color(20, 50, 95),
+          k.outline(1, k.rgb(100, 200, 255)),
+          k.anchor("center"),
+          k.area(),
+          k.fixed(),
+          k.z(305),
+        ]);
+        contentElements.push(btnNext);
+
+        contentElements.push(k.add([
+          k.text("Próxima ▶", { size: 11, font: "sans-serif" }),
+          k.pos(k.width() / 2 + 80, contentBoxY + 140),
+          k.color(255, 255, 255),
+          k.anchor("center"),
+          k.fixed(),
+          k.z(306),
+        ]));
+
+        btnNext.onClick(() => {
+          audioSystem.playUiClick();
+          routePage++;
+          renderTabContent();
+        });
+      }
     } else if (activeTab === "conservation") {
       // --- ABA CONSERVAÇÃO ---
       contentElements.push(k.add([
@@ -294,6 +365,7 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
     });
 
     btnTab.onClick(() => {
+      if (isModalOpen) return;
       audioSystem.playUiClick();
       activeTab = tb.id;
       tabButtons.forEach((t) => {
@@ -307,11 +379,11 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
 
   renderTabContent();
 
-  // Botão Voltar ao Menu
+  // Botão 1: Voltar ao Menu
   const btnBack = k.add([
-    k.rect(240, 42, { radius: 8 }),
-    k.pos(k.width() / 2, k.height() / 2 + 225),
-    k.color(16, 80, 130),
+    k.rect(220, 38, { radius: 8 }),
+    k.pos(k.width() / 2 - 125, k.height() / 2 + 225),
+    k.color(16, 75, 120),
     k.outline(2, k.rgb(100, 220, 255)),
     k.scale(1),
     k.anchor("center"),
@@ -322,8 +394,8 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
   elements.push(btnBack);
 
   elements.push(k.add([
-    k.text("Voltar ao Menu ↩️", { size: 15, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 + 225),
+    k.text("Voltar ao Menu ↩️", { size: 13.5, font: "sans-serif" }),
+    k.pos(k.width() / 2 - 125, k.height() / 2 + 225),
     k.color(255, 255, 255),
     k.anchor("center"),
     k.fixed(),
@@ -331,13 +403,64 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
   ]));
 
   btnBack.onHoverUpdate(() => {
-    btnBack.color = k.rgb(25, 120, 180);
-    btnBack.scale = k.vec2(1.02, 1.02);
+    if (!isModalOpen) {
+      btnBack.color = k.rgb(25, 115, 175);
+    }
   });
   btnBack.onHoverEnd(() => {
-    btnBack.color = k.rgb(16, 80, 130);
-    btnBack.scale = k.vec2(1, 1);
+    if (!isModalOpen) {
+      btnBack.color = k.rgb(16, 75, 120);
+    }
+  });
+  btnBack.onClick(close);
+
+  // Botão 2: Iniciar Desafio Ecológico (Quiz)
+  const btnQuiz = k.add([
+    k.rect(220, 38, { radius: 8 }),
+    k.pos(k.width() / 2 + 125, k.height() / 2 + 225),
+    k.color(20, 115, 80),
+    k.outline(2, k.rgb(100, 255, 180)),
+    k.scale(1),
+    k.anchor("center"),
+    k.area(),
+    k.fixed(),
+    k.z(305),
+  ]);
+  elements.push(btnQuiz);
+
+  elements.push(k.add([
+    k.text("🧪 Desafio Ecológico (Quiz)", { size: 13.5, font: "sans-serif" }),
+    k.pos(k.width() / 2 + 125, k.height() / 2 + 225),
+    k.color(255, 255, 255),
+    k.anchor("center"),
+    k.fixed(),
+    k.z(306),
+  ]));
+
+  btnQuiz.onHoverUpdate(() => {
+    if (!isModalOpen) {
+      btnQuiz.color = k.rgb(28, 145, 100);
+    }
+  });
+  btnQuiz.onHoverEnd(() => {
+    if (!isModalOpen) {
+      btnQuiz.color = k.rgb(20, 115, 80);
+    }
   });
 
-  btnBack.onClick(close);
+  btnQuiz.onClick(() => {
+    if (isModalOpen) return;
+    isModalOpen = true;
+    const testState = createGameState();
+    showQuizModal(
+      k,
+      testState,
+      () => {
+        isModalOpen = false;
+      },
+      () => {
+        isModalOpen = false;
+      }
+    );
+  });
 }

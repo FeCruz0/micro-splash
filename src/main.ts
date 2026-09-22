@@ -1,5 +1,5 @@
 import kaboom from "kaboom";
-import { GAME_CONFIG, TAGS, getSavedResolution } from "./config";
+import { GAME_CONFIG, TAGS, getSavedResolution, getSavedDisplayMode } from "./config";
 import { createPlayer } from "./entities/player";
 import { createRescueBoat } from "./entities/boat";
 import { setupCollisions } from "./systems/collisions";
@@ -38,12 +38,20 @@ import { showLeaderboardScreen } from "./ui/leaderboardScreen";
 import { createSplashScreen } from "./ui/splashScreen";
 
 const resolution = getSavedResolution();
+const displayMode = getSavedDisplayMode();
+const isLetterbox = displayMode === "letterbox";
 
 const k = kaboom({
   width: resolution.width,
   height: resolution.height,
-  letterbox: true,
+  letterbox: isLetterbox,
+  stretch: !isLetterbox,
   background: [6, 18, 42],
+});
+
+// Suporte global para alternar Tela Cheia com F11
+k.onKeyPress("f11", () => {
+  k.setFullscreen(!k.isFullscreen());
 });
 
 k.loadSprite("baleia", "/sprites/whale.png", {

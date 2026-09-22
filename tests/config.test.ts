@@ -1,7 +1,13 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { RESOLUTION_PRESETS, getSavedResolution, type ResolutionKey } from "../src/config";
+import {
+  RESOLUTION_PRESETS,
+  getSavedResolution,
+  getSavedDisplayMode,
+  setSavedDisplayMode,
+  type ResolutionKey,
+} from "../src/config";
 
-describe("Configuração de Resoluções", () => {
+describe("Configuração de Resoluções e Modo de Tela", () => {
   beforeEach(() => {
     localStorage.clear();
   });
@@ -40,5 +46,17 @@ describe("Configuração de Resoluções", () => {
     expect(res.key).toBe("720p");
     expect(res.width).toBe(1280);
     expect(res.height).toBe(720);
+  });
+
+  it("retorna 'stretch' (sem bordas) como modo de tela padrão", () => {
+    expect(getSavedDisplayMode()).toBe("stretch");
+  });
+
+  it("permite salvar e recuperar o modo de tela letterbox (com bordas)", () => {
+    setSavedDisplayMode("letterbox");
+    expect(getSavedDisplayMode()).toBe("letterbox");
+
+    setSavedDisplayMode("stretch");
+    expect(getSavedDisplayMode()).toBe("stretch");
   });
 });

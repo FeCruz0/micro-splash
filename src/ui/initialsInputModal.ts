@@ -259,7 +259,9 @@ export function showInitialsInputModal(
     });
 
     elements.forEach((el) => k.destroy(el));
-    onSubmitted();
+    k.wait(0.1, () => {
+      onSubmitted();
+    });
   };
 
   btnSubmit.onClick(doSubmit);
