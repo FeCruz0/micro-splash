@@ -7,6 +7,8 @@ import quizData from "../../data/quiz.json";
 export interface QuizQuestion {
   id: string;
   factId: string;
+  biome?: "antartica" | "pelagico" | "costa_urbana" | "canyons" | "arraial";
+  difficulty?: "facil" | "medio" | "dificil";
   question: string;
   options: string[];
   correctIndex: number;
@@ -22,6 +24,48 @@ function shuffleArray<T>(array: T[]): T[] {
   return arr;
 }
 
+function selectQuizQuestions(allQuestions: QuizQuestion[], unlockedFactIds?: string[]): QuizQuestion[] {
+  const unlockedSet = new Set(unlockedFactIds || []);
+
+  const selected: QuizQuestion[] = [];
+  const selectedIds = new Set<string>();
+
+  // Se houver fatos desbloqueados na rota, prioriza até 2 questões relacionadas
+  if (unlockedSet.size > 0) {
+    const matched = shuffleArray(allQuestions.filter((q) => unlockedSet.has(q.factId)));
+    for (const q of matched) {
+      if (selected.length < 2) {
+        selected.push(q);
+        selectedIds.add(q.id);
+      }
+    }
+  }
+
+  // Completa as 3 perguntas priorizando diversidade de dificuldade (fácil, médio, difícil)
+  const difficulties: ("facil" | "medio" | "dificil")[] = ["facil", "medio", "dificil"];
+  for (const diff of difficulties) {
+    if (selected.length >= 3) break;
+    const pool = shuffleArray(allQuestions.filter((q) => q.difficulty === diff && !selectedIds.has(q.id)));
+    if (pool.length > 0) {
+      selected.push(pool[0]);
+      selectedIds.add(pool[0].id);
+    }
+  }
+
+  // Fallback caso ainda não tenha 3 perguntas
+  if (selected.length < 3) {
+    const remaining = shuffleArray(allQuestions.filter((q) => !selectedIds.has(q.id)));
+    for (const q of remaining) {
+      if (selected.length < 3) {
+        selected.push(q);
+        selectedIds.add(q.id);
+      }
+    }
+  }
+
+  return shuffleArray(selected.slice(0, 3));
+}
+
 export function showQuizModal(
   k: KaboomCtx,
   gameState: GameState,
@@ -30,9 +74,9 @@ export function showQuizModal(
 ) {
   audioSystem.playUiClick();
 
-  // Seleciona 3 perguntas pseudo-aleatórias com Fisher-Yates
-  const shuffled = shuffleArray(quizData as QuizQuestion[]);
-  const questions = shuffled.slice(0, 3);
+  // Seleciona 3 perguntas usando seleção inteligente baseada na rota e dificuldades
+  const unlockedFacts = typeof gameState.getUnlockedFactIds === "function" ? gameState.getUnlockedFactIds() : [];
+  const questions = selectQuizQuestions(quizData as QuizQuestion[], unlockedFacts);
 
   let currentQuestionIdx = 0;
   let correctAnswers = 0;
@@ -196,11 +240,31 @@ export function showQuizModal(
 
     const q = questions[currentQuestionIdx];
 
-    // Indicador de Progresso e Pontuação
+    const biomeLabels: Record<string, string> = {
+      antartica: "❄️ Antártica",
+      pelagico: "🌊 Mar Aberto",
+      costa_urbana: "🏭 Costa Urbana",
+      canyons: "🌀 Cânions",
+      arraial: "☀️ Arraial",
+    };
+    const diffLabels: Record<string, string> = {
+      facil: "Fácil",
+      medio: "Médio",
+      dificil: "Desafio",
+    };
+
+    const metaParts = [
+      `Questão ${currentQuestionIdx + 1}/${questions.length}`,
+      q.biome ? biomeLabels[q.biome] || q.biome : "",
+      q.difficulty ? `Nível ${diffLabels[q.difficulty] || q.difficulty}` : "",
+      `Bônus: +${scoreGained} pts`,
+    ].filter(Boolean);
+
+    // Indicador de Progresso e Pontuação com Bioma e Dificuldade
     dynamicElements.push(k.add([
       k.text(
-        `Questão ${currentQuestionIdx + 1} de ${questions.length}  •  Eco-Bônus: +${scoreGained} pts`,
-        { size: 12, font: "sans-serif" }
+        metaParts.join("  •  "),
+        { size: 10.5, font: "sans-serif" }
       ),
       k.pos(cX, cY - cardH / 2 + 56),
       k.color(140, 220, 255),

@@ -204,285 +204,271 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
 
 ## 🔜 Próximas Fases Planejadas
 
-### 🦈 FASE 21: Biologia Ativa & Mecânicas de Ameaça
-*Objetivo: Tornar os ecossistemas marinhos mais vivos e táticos com ameaças animadas por IA procedural e mecânicas de biosonar refinadas.*
+### 📚 FASE 21: Conteúdo Educacional & Acessibilidade Expandida
+*Objetivo: Aprofundar o impacto pedagógico com quiz rico (exclusivo para o final do jogo), narração em voz acessível e onboarding contextual.*
 
-- [ ] **21.1 Orca com IA Ativa (FSM de Predação):**
-  - Substituir as orcas decorativas de fundo por 1 orca com FSM de 4 estados na Antártica: *patrol → alert → chase → retreat*. A jubarte pode se esconder entre blocos de gelo ou usar o Biosonar para desorientá-la temporariamente.
-- [ ] **21.2 Biosonar Direcional Tático (Cone de 90°):**
-  - Além do sonar omnidirecional atual (360°), adicionar um sonar direcional (tecla segurada + direção) que revela apenas um cone frontal de 90° mas com alcance 3× maior — criando uma troca estratégica entre informação ampla vs. informação profunda.
-- [ ] **21.3 Power-ups Biológicos por Desempenho:**
-  - Ao atingir metas durante a partida (velocidade > 230 u/s sustentada, 0 colisões com lixo em um bioma, drafting completo com os 3 cardumes de golfinhos), a baleia desbloqueia temporariamente habilidades passivas:
-    - **Aleta Hidrônica:** +15% de velocidade máxima no glide por 30s
-    - **Pulmão Polar:** Dreno de oxigênio –20% por 20s
-    - **Esteira de Eficiência:** Raio de atração do krill dobrado por 25s
+- [x] **21.1 Banco de Quiz Expandido (50+ Perguntas por Bioma & Dificuldade):**
+  - Expandir o `data/quiz.json` de 10 para 50+ perguntas organizadas por bioma e dificuldade progressiva (fácil → médio → difícil). **Nota de Design Estrita:** O quiz permanece exclusivamente como desafio opcional pós-jogo (na tela de vitória e no Diário de Bordo/Codex no menu), nunca interrompendo a natação durante a migração ativa.
+- [x] **21.2 Narração em Voz via Web Speech API (TTS):**
+  - Usar `SpeechSynthesisUtterance` nativo do browser para narrar os fatos ecológicos em voz neutra em português quando surgem na tela — sem necessidade de arquivos de áudio externos. Configurável nas Opções (ativar/desativar). Torna o jogo acessível para crianças menores que ainda não leem fluentemente.
+- [x] **21.3 Onboarding PWA para Primeira Abertura:**
+  - Na primeira abertura como PWA ou web (detectada via `localStorage`), exibir 3 slides rápidos de contextualização: (1) quem é a jubarte (*Megaptera novaeangliae*), (2) como os controles funcionam (nado, oxigênio e Biosonar), (3) por que ela migra (30.000m até Arraial do Cabo). Essencial para totens onde não há monitor humano explicando o jogo, acessível também a qualquer momento pelo menu.
 
-### 📚 FASE 22: Conteúdo Educacional Expandido
-*Objetivo: Aprofundar o impacto pedagógico com quiz mais rico, narração acessível, onboarding contextual e integração com dados reais de conservação.*
-
-- [ ] **22.1 Banco de Quiz Expandido (50+ Perguntas por Bioma):**
-  - Expandir o `data/quiz.json` de ~15 para 50+ perguntas organizadas por bioma e dificuldade progressiva (fácil → médio → difícil). Perguntas de nível médio e difícil só são exibidas se o fato correspondente já foi desbloqueado na rota, criando coerência pedagógica entre exploração e avaliação.
-- [ ] **22.2 Narração em Voz via Web Speech API (TTS):**
-  - Usar `SpeechSynthesisUtterance` nativo do browser para narrar os fatos ecológicos em voz neutra quando aparecem em jogo — *"você passou por uma área de ressurgência de Cabo Frio..."* — sem arquivos de áudio externos. Configurável nas Opções (ativar/desativar). Torna o jogo acessível para crianças menores que ainda não leem fluentemente.
-- [ ] **22.3 Integração com API de Avistamentos Reais de Baleias:**
-  - Na tela de vitória, buscar (com fallback offline) dados de avistamentos reais próximos a Arraial do Cabo via OBIS (Ocean Biodiversity Information System) ou Instituto Baleia Jubarte — exibindo um registro real recente. Conecta a ficção do jogo à conservação real.
-- [ ] **22.4 Onboarding PWA para Primeira Abertura:**
-  - Na primeira abertura como PWA instalada (detectada via `localStorage`), exibir 3 slides rápidos de contextualização: (1) o que é a jubarte-jubarte, (2) como os controles funcionam, (3) por que ela migra. Essencial para totens onde não há monitor humano explicando o jogo.
-
-### 🏆 FASE 23: Progressão, Competição & Rejogabilidade
+### 🏆 FASE 22: Progressão, Competição & Rejogabilidade
 *Objetivo: Criar motivação para retorno e competição saudável entre jogadores e turmas escolares.*
 
-- [ ] **23.1 Ranking Online Global (Cloudflare Worker + KV):**
+- [ ] **22.1 Ranking Online Global (Cloudflare Worker + KV):**
   - Substituir o ranking local pelo envio de score ao backend (Cloudflare Worker gratuito + KV Store). O nome/iniciais já é coletado pelo `initialsInputModal.ts`. Exibir top 10 global e filtro por escola/turma se aplicável.
-- [ ] **23.2 Desafios Semanais por Semente Procedural:**
+- [ ] **22.2 Desafios Semanais por Semente Procedural:**
   - Usar a data da semana como semente para um layout de obstáculos diferente a cada 7 dias. Ranking semanal separado do ranking padrão. Ao completar, gera um certificado único com a data e a semente. Motivo concreto para retornar toda semana — especialmente forte em contextos escolares.
-- [ ] **23.3 Modo Rota Reversa — De Arraial à Antártica:**
+- [ ] **22.3 Modo Rota Reversa — De Arraial à Antártica:**
   - Modo desbloqueável após completar a migração principal com Breach. A jubarte retorna para a Antártica em sentido oposto, com posicionamento espelhado de obstáculos, correntes invertidas e novos fatos ecológicos sobre a viagem de retorno.
-- [ ] **23.4 Exportação & Assistir Replay de Partida:**
+- [ ] **22.4 Exportação & Assistir Replay de Partida:**
   - Gravar o array de inputs (timestamp, tipo, valor) durante a partida e serializar em `localStorage`. Botão "Assistir Replay" na tela de vitória que reproduz a partida em modo automático via input injection na cena `game`. Feature de showcase ideal para totens — demonstra a migração completa sem ninguém jogando.
 
-### 🔧 FASE 24: Qualidade Técnica & Plataformas
+### 🔧 FASE 23: Qualidade Técnica & Plataformas
 *Objetivo: Reduzir débito técnico, ampliar alcance de plataformas e garantir robustez de longo prazo do projeto.*
 
-- [ ] **24.1 Refatoração Modular do `audioSystem.ts`:**
+- [ ] **23.1 Refatoração Modular do `audioSystem.ts`:**
   - O `audioSystem.ts` possui 1.338 linhas — o maior arquivo do projeto. Quebrar em módulos coesos: `audioEngine.ts` (AudioContext, gain, mute/volume), `audioSFX.ts` (todos os efeitos sonoros), `audioWhale.ts` (síntese dos cantos de baleia em 3 canais) e integração com o `audioMusic.ts` já existente. Viabiliza testes unitários mais focados.
-- [ ] **24.2 Suporte a Gamepad/Joystick (Gamepad API):**
+- [ ] **23.2 Suporte a Gamepad/Joystick (Gamepad API):**
   - Mapear `navigator.getGamepads()` no loop de update: botão A → batida de cauda, analógico esquerdo Y → direção vertical, botão B → Biosonar, botão Start → Pausa. Usar o sistema de `touchControls.ts` como referência de interface. Essencial para totens físicos com joystick dedicado em museus.
-- [ ] **24.3 HUD de Diagnóstico com Histórico de FPS (Expandir F3):**
+- [ ] **23.3 HUD de Diagnóstico com Histórico de FPS (Expandir F3):**
   - Expandir o HUD F3 atual para registrar um histórico de 60 amostras de FPS e plotar um mini-gráfico de barras inline com caracteres unicode (`▁▂▃▄▅▆▇█`). Alertas visuais quando FPS cair abaixo de 45 FPS — útil para identificar gargalos em hardware limitado de totens escolares.
-- [ ] **24.4 Sprite da Jubarte com 8 Frames (vs. 4 Atuais):**
+- [ ] **23.4 Sprite da Jubarte com 8 Frames (vs. 4 Atuais):**
   - Dobrar o spritesheet de 4 para 8 frames adicionando quadros intermediários de transição suave no ciclo de batida de cauda. Requer atualizar apenas `scripts/generateWhaleSprite.cjs` e o mapeamento de animações no `main.ts`. A animação passará de funcional para cinematográfica.
 
-### 🛠️ FASE 25: Developer Experience & Qualidade de Código
+### 🛠️ FASE 24: Developer Experience & Qualidade de Código
 *Objetivo: Estabelecer ferramentas de qualidade, padronização e observabilidade do código que sustentem o crescimento do projeto a longo prazo.*
 
-- [ ] **25.1 ESLint + Prettier — Linting e Formatação Padronizada:**
+- [ ] **24.1 ESLint + Prettier — Linting e Formatação Padronizada:**
   - Configurar `eslint.config.js` com `@typescript-eslint/recommended` e Prettier com regras consistentes (aspas simples, semicolons, trailing comma). Adicionar scripts `"lint": "eslint src tests"` e `"format": "prettier --write ."` ao `package.json`.
-- [ ] **25.2 Husky + lint-staged — Pre-commit Hooks:**
+- [ ] **24.2 Husky + lint-staged — Pre-commit Hooks:**
   - Instalar `husky` + `lint-staged` para executar automaticamente lint e testes unitários antes de cada commit, garantindo que nenhum código mal formatado ou quebrado entre no repositório — especialmente valioso ao receber colaboradores externos.
-- [ ] **25.3 Cobertura de Testes com Relatório Visual (`vitest --coverage`):**
-  - Adicionar `@vitest/coverage-v8` e o script `"coverage": "vitest run --coverage"` com threshold mínimo de 80% de cobertura de branches. O Vitest suporta nativamente, sem dependência extra de runner. Revela pontos cegos como caminhos de erro em `audioSystem.ts` nunca exercitados pelos 114 testes atuais.
-- [ ] **25.4 Versionamento Semântico (`package.json` + `CHANGELOG.md`):**
-  - Renomear `"name": "temp"` para `"name": "micro-splash"` e `"version": "0.0.0"` para `"version": "1.0.0"`. Criar `CHANGELOG.md` com entradas retroativas para as Fases 1–19. Configurar `standard-version` ou `release-it` para automatizar bump de versão via commit convencional (`feat:`, `fix:`, `docs:`).
-- [ ] **25.5 Script de Geração de Assets Unificado (`npm run generate`):**
-  - Adicionar script npm `"generate": "node scripts/generateWhaleSprite.cjs && node scripts/generatePwaIcons.cjs"` e documentar no README. Os 3 scripts atualmente dispersos em `scripts/` são desconhecidos para novos colaboradores.
-- [ ] **25.6 Validação de Schema com Zod para `data/*.json`:**
+- [ ] **24.3 Cobertura de Testes com Relatório Visual (`vitest --coverage`):**
+  - Adicionar `@vitest/coverage-v8` e o script `"coverage": "vitest run --coverage"` com threshold mínimo de 80% de cobertura de branches. O Vitest suporta nativamente, sem dependência extra de runner. Revela pontos cegos como caminhos de erro em `audioSystem.ts` nunca exercitados pelos testes atuais.
+- [ ] **24.4 Versionamento Semântico (`package.json` + `CHANGELOG.md`):**
+  - Renomear `"name": "temp"` para `"name": "micro-splash"` e `"version": "0.0.0"` para `"version": "1.0.0"`. Criar `CHANGELOG.md` com entradas retroativas para as Fases 1–20. Configurar `standard-version` ou `release-it` para automatizar bump de versão via commit convencional (`feat:`, `fix:`, `docs:`).
+- [ ] **24.5 Script de Geração de Assets Unificado (`npm run generate`):**
+  - Adicionar script npm `"generate": "node scripts/generateWhaleSprite.cjs && node scripts/generatePwaIcons.cjs"` e documentar no README. Os scripts atualmente dispersos em `scripts/` são desconhecidos para novos colaboradores.
+- [ ] **24.6 Validação de Schema com Zod para `data/*.json`:**
   - Criar schemas Zod para `facts.json`, `quiz.json` e `level_layout.json` e executar validação no início do build via plugin Vite ou script pre-build. Evita bugs silenciosos quando um professor edita os JSONs e omite um campo obrigatório como `triggerX` — o build falha com mensagem clara em vez de quebrar em runtime.
 
-### 🚀 FASE 26: Infraestrutura, CI/CD & Deploy
+### 🚀 FASE 25: Infraestrutura, CI/CD & Deploy
 *Objetivo: Automatizar o ciclo de integração, testes e publicação do jogo, tornando o deploy nos totens e a URL pública triviais.*
 
-- [ ] **26.1 GitHub Actions — Pipeline de CI Completo:**
+- [ ] **25.1 GitHub Actions — Pipeline de CI Completo:**
   - Criar `.github/workflows/ci.yml` que executa em todo PR e push para `develop`/`main`: checkout + Node 20, `npm ci`, `npm run lint`, `npm test` e `npm run build`. Garante que nenhum PR quebre os testes ou o build de produção. Custo zero no GitHub.
-- [ ] **26.2 GitHub Actions — Deploy Automático para Cloudflare Pages:**
+- [ ] **25.2 GitHub Actions — Deploy Automático para Cloudflare Pages:**
   - Criar workflow `deploy.yml` disparado no merge para `main`: executa `npm run build` e publica `dist/` no Cloudflare Pages — oferece domínio `.pages.dev` gratuito com HTTPS, CDN global e suporte nativo a PWA. URL pública estável para divulgar a escolas e museus.
-- [ ] **26.3 Docker Multi-Stage Build — Imagem de Produção Otimizada:**
+- [ ] **25.3 Docker Multi-Stage Build — Imagem de Produção Otimizada:**
   - Substituir o `Dockerfile` atual (que roda `npm run dev` expondo o Vite dev server) por uma build multi-stage: Stage 1 compila com Node 20 Alpine (`npm run build`), Stage 2 serve `dist/` com Nginx Alpine. A imagem de produção passa de ~900MB para ~25MB, tornando o deploy nos totens muito mais rápido.
-- [ ] **26.4 `docker-compose.prod.yml` para Totens:**
+- [ ] **25.4 `docker-compose.prod.yml` para Totens:**
   - Arquivo separado com imagem de produção (Stage 2), `restart: always` para auto-recuperação após queda de energia, variável `KIOSK_MODE=true` e healthcheck no endpoint `/`. Instalar o jogo em um totem de museu vira um único comando: `docker compose -f docker-compose.prod.yml up -d`.
-- [ ] **26.5 Variáveis de Ambiente com Vite (`.env` files):**
+- [ ] **25.5 Variáveis de Ambiente com Vite (`.env` files):**
   - Criar arquivos `.env.development` e `.env.production` para configurar `VITE_API_URL`, `VITE_KIOSK_MODE` e `VITE_BUILD_VERSION` por ambiente. Exibir a versão no rodapé do menu para diagnóstico fácil em totens sem console.
 
-### 📄 FASE 27: Documentação, Acessibilidade & Compliance
+### 📄 FASE 26: Documentação, Acessibilidade & Compliance
 *Objetivo: Tornar o projeto acessível para colaboradores, educadores, usuários com necessidades especiais e compatível com requisitos legais de ambientes escolares públicos.*
 
-- [ ] **27.1 `CONTRIBUTING.md` — Guia de Contribuição:**
+- [ ] **26.1 `CONTRIBUTING.md` — Guia de Contribuição:**
   - Documentar como configurar o ambiente (Docker vs. Node), convenção de commits (`feat:`, `fix:`, `docs:`, `test:`), como regenerar sprites (`npm run generate`) e como adicionar fatos/perguntas nos arquivos `data/*.json` sem tocar em TypeScript. Essencial para receber contribuições de professores e pesquisadores.
-- [ ] **27.2 `docs/DATA_SCHEMA.md` — Documentação dos Dados Educacionais:**
+- [ ] **26.2 `docs/DATA_SCHEMA.md` — Documentação dos Dados Educacionais:**
   - Documentar os schemas de `facts.json`, `quiz.json` e `level_layout.json` com exemplos e regras de validação. Explicar como educadores e oceanógrafos podem contribuir com conteúdo sem conhecimento de programação.
-- [ ] **27.3 README.md com Screenshots e GIF Demo:**
+- [ ] **26.3 README.md com Screenshots e GIF Demo:**
   - Adicionar ao `README.md`: 1 GIF animado de 5–8s capturando gameplay (breach, sonar, krill), 3 screenshots dos biomas principais, badge de CI (verde/vermelho) e badge de versão. O README atual é puramente textual — sem nenhuma imagem do jogo.
-- [ ] **27.4 Documentação JSDoc nos 10 Sistemas Principais:**
+- [ ] **26.4 Documentação JSDoc nos 10 Sistemas Principais:**
   - Adicionar JSDoc mínimo com `@param`, `@returns` e descrição de propósito nos sistemas mais complexos: `oceanCurrentsSystem`, `breachSystem`, `particlePool`, `weatherSystem`, `dolphinDraftingSystem`, `iceSurface`, `proceduralObstacles`, `penguinFlockSystem`, `canyonSystem` e `biomeLifecycleManager`. Apenas `audioSystem.ts` tem JSDoc atualmente.
-- [ ] **27.5 Navegação por Teclado Completa nos Menus (WCAG 2.1 AA):**
+- [ ] **26.5 Navegação por Teclado Completa nos Menus (WCAG 2.1 AA):**
   - Implementar navegação por `Tab`/`Setas` + `Enter` em todos os modais e menus (Main Menu, Opções, Codex, Quiz, Victory Screen). Atualmente todos dependem exclusivamente de mouse/toque — não conformes com WCAG 2.1 nível AA nem usáveis em totens com teclado.
-- [ ] **27.6 Suporte a `prefers-reduced-motion`:**
+- [ ] **26.6 Suporte a `prefers-reduced-motion`:**
   - Verificar `window.matchMedia('(prefers-reduced-motion: reduce)')` e, quando ativo, desabilitar ou suavizar: partículas do menu principal, animações de entrada de modais, tremores e flashes de impacto. Expor toggle manual nas Opções. Essencial para usuários com epilepsia fotossensível ou distúrbios vestibulares.
-- [ ] **27.7 Tamanho de Fonte Configurável na UI (3 Níveis):**
+- [ ] **26.7 Tamanho de Fonte Configurável na UI (3 Níveis):**
   - Adicionar opção nas Opções para escalonar textos de UI em três níveis (`Pequeno`, `Padrão`, `Grande`), salvo em `localStorage`. Afeta todos os textos de modais, Codex e Quiz via multiplicador global no parâmetro `size` dos `k.text()`. Acessibilidade para baixa visão em totens com telas grandes.
-- [ ] **27.8 `docs/PRIVACIDADE.md` + Botão "Apagar Dados" nas Opções (LGPD):**
+- [ ] **26.8 `docs/PRIVACIDADE.md` + Botão "Apagar Dados" nas Opções (LGPD):**
   - Criar documento descrevendo quais dados são armazenados no `localStorage` (highscore, fatos desbloqueados, stats cumulativas), que nenhum dado é enviado a terceiros e como o usuário pode resetar tudo. Adicionar botão "🗑️ Apagar Todos os Dados" nas Opções. Requisito legal para adoção em redes escolares públicas municipais (LGPD).
 
-### 🌍 FASE 28: Marketing, Analytics, Conteúdo & Internacionalização
+### 🌍 FASE 27: Marketing, Analytics, Conteúdo & Internacionalização
 *Objetivo: Ampliar o alcance do jogo para audiências nacionais e internacionais, obter dados reais de uso e abrir o conteúdo educacional para co-criação institucional.*
 
-- [ ] **28.1 Open Graph e Twitter Cards no `index.html`:**
+- [ ] **27.1 Open Graph e Twitter Cards no `index.html`:**
   - Adicionar meta tags `og:title`, `og:description`, `og:image`, `og:type` e `twitter:card` ao `index.html`. Quando professores compartilharem o link do jogo no WhatsApp, Telegram ou Twitter, o preview exibirá imagem e título em vez de URL crua.
-- [ ] **28.2 Imagem de Preview Social (`public/og-image.png`):**
-  - Criar imagem estática 1200×630px com logo "Micro Splash", silhueta da jubarte e slogan. Gerada via `scripts/generateOgImage.cjs` com canvas puro (mesma técnica do `generatePwaIcons.cjs`). Complemento direto da ideia 28.1.
-- [ ] **28.3 Landing Page Estática (`public/about.html`):**
+- [ ] **27.2 Imagem de Preview Social (`public/og-image.png`):**
+  - Criar imagem estática 1200×630px com logo "Micro Splash", silhueta da jubarte e slogan. Gerada via `scripts/generateOgImage.cjs` com canvas puro (mesma técnica do `generatePwaIcons.cjs`). Complemento direto da ideia 27.1.
+- [ ] **27.3 Landing Page Estática (`public/about.html`):**
   - Página standalone com screenshot/GIF do jogo, botão "Jogar Agora" e "Instalar como App", seção educacional "O que a jubarte ensina?", links para o Instituto Baleia Jubarte e QR Code para instalação PWA em tablets. Ponto de entrada profissional para feiras de ciências e captação de parceiros institucionais.
-- [ ] **28.4 Analytics de Privacidade via Plausible (Self-hosted ou Cloud):**
+- [ ] **27.4 Analytics de Privacidade via Plausible (Self-hosted ou Cloud):**
   - Integrar Plausible Analytics (open-source, sem cookies, LGPD-compliant) com eventos: `game_started`, `migration_completed`, `migration_abandoned`, `biome_reached`, `quiz_taken`, `breach_triggered`. Dados reais sobre onde jogadores desistem — informa ajustes sem suposições.
-- [ ] **28.5 Relatório de Erros com Sentry (Free Tier):**
+- [ ] **27.5 Relatório de Erros com Sentry (Free Tier):**
   - Adicionar `@sentry/browser` com DSN via `VITE_SENTRY_DSN`. Capturar exceções não tratadas e falhas de `AudioContext` nos totens. Sem Sentry, bugs em hardware de totem são completamente invisíveis.
-- [ ] **28.6 Content Security Policy (CSP) via Nginx/Cloudflare Headers:**
-  - Configurar header `Content-Security-Policy` restritivo no `nginx.conf` (Fase 26.3) ou `_headers` do Cloudflare Pages. Previne XSS e injeção de scripts externos — requisito básico de segurança para aplicações em ambiente escolar.
-- [ ] **28.7 Ferramenta de Edição de Conteúdo Educacional (CMS Lite):**
+- [ ] **27.6 Content Security Policy (CSP) via Nginx/Cloudflare Headers:**
+  - Configurar header `Content-Security-Policy` restritivo no `nginx.conf` (Fase 25.3) ou `_headers` do Cloudflare Pages. Previne XSS e injeção de scripts externos — requisito básico de segurança para aplicações em ambiente escolar.
+- [ ] **27.7 Ferramenta de Edição de Conteúdo Educacional (CMS Lite):**
   - Criar `tools/editor.html` — página HTML standalone (sem servidor) com formulários para adicionar/editar fatos em `facts.json` e perguntas em `quiz.json`, com exportação via botão "Baixar JSON". Puramente client-side com `FileReader` + `Blob`. Permite que professores contribuam com conteúdo sem código.
-- [ ] **28.8 Tradução para Inglês (i18n pt-BR / en-US):**
+- [ ] **27.8 Tradução para Inglês (i18n pt-BR / en-US):**
   - Extrair strings de UI para `src/i18n/pt-BR.json` e `src/i18n/en-US.json`. Criar função `t(key)` que lê do locale ativo e adicionar seletor de idioma nas Opções. Habilita uso em escolas internacionais e publicação em plataformas como itch.io.
-- [ ] **28.9 Suporte a Línguas Indígenas Brasileiras (Guarani Nhandewa):**
+- [ ] **27.9 Suporte a Línguas Indígenas Brasileiras (Guarani Nhandewa):**
   - Adicionar tradução para Guarani Nhandewa (`gn`) — língua falada por comunidades costeiras do Sul do Brasil com relação ancestral com o ecossistema marinho e cetáceos migrantes. Diferencial único de acessibilidade cultural com potencial de parceria com FUNAI e universidades indígenas.
 
-### 🐋 FASE 29: Proporcionalidade Biológica & Redesenho de Entidades
+### 🐋 FASE 28: Proporcionalidade Biológica & Redesenho de Entidades
 *Objetivo: Corrigir as proporções de todas as criaturas e objetos em relação à jubarte controlável (108px de referência), tornando o ecossistema visual biologicamente crível e pedagogicamente honesto.*
 
-- [ ] **29.1 Redimensionamento dos Pinguins-de-Magalhães:**
+- [ ] **28.1 Redimensionamento dos Pinguins-de-Magalhães:**
   - Corpo atual: `22×9px` — equivale biologicamente a um pinguim de ~2.9m. Reduzir para `14×5px` com `radius: 2`, compensando o detalhe com cores mais contrastantes (branco ventral vibrante, dorso quase preto). Proporção correta: pinguim real de 70cm vs. jubarte de 14m = razão 1:20 = ~5px de comprimento ideal.
-- [ ] **29.2 Redimensionamento dos Golfinhos-Rotadores:**
+- [ ] **28.2 Redimensionamento dos Golfinhos-Rotadores:**
   - Corpo atual: `46×15px` — equivale a um golfinho de ~5.9m (maior que uma orca real). Reduzir para `28×9px` com `radius: 4`. Golfinho-rotador real: ~1.8m = razão 1:8 = ~14px ideal. A formação de 4 golfinhos permanece legível e muito mais crível em relação à jubarte.
-- [ ] **29.3 Redimensionamento do Cachalote Abissal:**
+- [ ] **28.3 Redimensionamento do Cachalote Abissal:**
   - Corpo atual: `250×62px` — faz o cachalote parecer 2.3× maior que a jubarte. O cachalote real (18m) é apenas 30% maior. Reduzir para `145×40px`. Ainda dominante e imponente no plano abissal, mas proporcional à escala biológica real.
-- [ ] **29.4 Ajuste do Berçário de Mãe e Filhote:**
+- [ ] **28.4 Ajuste do Berçário de Mãe e Filhote:**
   - Mãe atual: `130×45px` — maior que a jubarte jogável (108px), criando conflito visual se aparecerem juntos. Reduzir mãe para `95×32px` (perspectiva de background). Filhote atual: `55×20px` — deveria ser ~40% da mãe (filhote real: 4–5m vs. 14m). Reduzir filhote para `38×13px`.
-- [ ] **29.5 Aumento e Redesenho do Navio Cargueiro:**
+- [ ] **28.5 Aumento e Redesenho do Navio Cargueiro:**
   - Casco atual: `140×30px` — faz o navio parecer do tamanho de um barco de pesca. Um cargueiro real tem 200–300m = 18× a jubarte. Aumentar para `280×50px` (posição `z: -2`, `opacity: 0.85` para indicar distância). Adicionar chaminé proporcional (`35×45px`), janelas de convés (série de `rect 4×3px`) e proa mais pontiaguda.
-- [ ] **29.6 Redesenho do Lixo Plástico — 3 Formas Procedurais:**
+- [ ] **28.6 Redesenho do Lixo Plástico — 3 Formas Procedurais:**
   - Atual: quadrado monótono `22×22px` vermelho sem identidade. Diversificar em 3 tipos intercalados: (1) garrafa PET — `rect 8×20` + tampa `rect 12×5`; (2) sacola plástica — forma trapezoidal ondulante; (3) embalagem esférica amassada — `circle 11px`. Cores realistas: branco translúcido `(200, 220, 230)`, azul PET `(80, 140, 200)`, amarelo desbotado `(220, 200, 60)`.
-- [ ] **29.7 Redesenho da Rede Fantasma — Grade Visual Real:**
+- [ ] **28.7 Redesenho da Rede Fantasma — Grade Visual Real:**
   - Atual: retângulo violeta sólido `38×52px` sem semântica visual de "rede". Redesenhar como grade de linhas finas cruzadas — série de `rect 1×52px` espaçados verticalmente + série de `rect 52×1px` espaçados horizontalmente — em cor verde-translúcida `(80, 200, 120, 0.30)`. Imediatamente reconhecível como rede de pesca mesmo sem texto.
-- [ ] **29.8 Representação Visual dos Bolsões de Ar:**
+- [ ] **28.8 Representação Visual dos Bolsões de Ar:**
   - Atual: colisores de `AIR_POCKET` completamente invisíveis — o jogador percebe o efeito mas não vê o elemento. Adicionar `circle(20–30px)` com preenchimento `(200, 240, 255, 0.12)` e borda brilhante `outline(1.5, rgb(180, 230, 255, 0.6))` oscilando suavemente com `sin(time)`. Imediatamente legível como "bolsão de ar respirável".
 
-### 🌊 FASE 30: Superfície, Céu & Atmosfera
+### 🌊 FASE 29: Superfície, Céu & Atmosfera
 *Objetivo: Transformar a interface visual entre ar e água — o elemento mais visível do jogo — e enriquecer o céu de cada bioma com fenômenos atmosféricos reais e coerentes com a geografia da rota.*
 
-- [ ] **30.1 Linha d'Água Ondulada e Orgânica:**
+- [ ] **29.1 Linha d'Água Ondulada e Orgânica:**
   - Atual: `waterSurface` = `rect(k.width() * 2, 14)` estático e monocromático. Substituir por série de 8–10 segmentos com altura animada individualmente por ondas senoidais desfasadas, criando superfície viva e ondulada. Adicionar borda superior com faixa de espuma branca `(opacity: 0.35)` simulando a interface real água/ar.
-- [ ] **30.2 Reflexo Lunar na Costa Urbana Noturna:**
+- [ ] **29.2 Reflexo Lunar na Costa Urbana Noturna:**
   - Bioma noturno (12.000–19.000m) tem estrelas mas nenhuma lua ou reflexo. Adicionar disco lunar `circle(18px)` branco-amarelado `(245, 240, 210)` no `parallaxSkySystem`, visível somente nessa faixa de distância. Reflexo na água: série de elipses verticais estreitas de opacidade decrescente abaixo do `SEA_LEVEL`, distorcidas por `sin(time)`.
-- [ ] **30.3 Névoa de Profundidade no Horizonte Inferior:**
+- [ ] **29.3 Névoa de Profundidade no Horizonte Inferior:**
   - O fundo oceânico (`z: -5` a `z: -10`) termina abruptamente na borda da tela. Adicionar degradê vertical de 3–4 `rect` com `opacity` decrescente de baixo para cima no limite inferior — o fundo desaparece na névoa azul oceânica em vez de ser cortado geometricamente.
-- [ ] **30.4 Ondas e Espuma Costeira em Arraial do Cabo:**
+- [ ] **29.4 Ondas e Espuma Costeira em Arraial do Cabo:**
   - Ao entrar em 25.000m+, adicionar partículas brancas horizontais (`rect 6×2px`) movendo-se lentamente da direita para a esquerda na superfície, simulando a espuma das ondas características da Praia dos Anjos — fenômeno visual real de Arraial do Cabo.
-- [ ] **30.5 Nuvens Cumuliformes com Forma Realista:**
+- [ ] **29.5 Nuvens Cumuliformes com Forma Realista:**
   - Nuvens atuais = elipses alongadas simples. Criar nuvens compostas por 3–5 círculos sobrepostos de tamanhos diferentes (`circle(20)`, `circle(14)`, `circle(10)`) com deslocamentos relativos — técnica padrão de pixel art para nuvens. Resultado visual incomparavelmente mais rico sem custo de performance.
-- [ ] **30.6 Aurora Austral na Antártica (Lights Australis):**
+- [ ] **29.6 Aurora Austral na Antártica (Lights Australis):**
   - O céu antártico é azul polar uniforme. Adicionar 3–4 faixas verticais de `rect` finos (`4×60px`) em verde-esmeralda e magenta `(80, 220, 160)` com `opacity: 0.12–0.20` e posição Y ondulada por `sin(time)` — aurora austral real. Fenômeno natural documentado no Oceano Antártico e visualmente inesquecível.
-- [ ] **30.7 Pôr do Sol em Camadas na Travessia Pelágica:**
+- [ ] **29.7 Pôr do Sol em Camadas na Travessia Pelágica:**
   - O bioma de travessia tem `skyColor: [225, 140, 95]` — cor sólida. Criar 4–5 faixas horizontais de `rect(k.width(), 14)` com parallax leve e cores progressivas: laranja quente → âmbar → rosa → lilás → azul crepuscular. Pôr do sol realista em camadas estratificadas.
-- [ ] **30.8 Pássaros Marinhos com Anatomia e Identidade de Espécie:**
+- [ ] **29.8 Pássaros Marinhos com Anatomia e Identidade de Espécie:**
   - Pássaros atuais têm forma genérica sem distinção de espécie. Diferenciar por bioma: **Albatroz** (Antártica/Pelágico) — asas longas horizontais de `60px` de envergadura, batendo lentamente; **Fragata-magnífica** (Costa Urbana) — corpo fusiforme com cauda bifurcada em V invertido, vermelho e preto; **Garça-branca** (Arraial) — pescoço longo em S com pernas pendentes no voo.
 
-### 🌿 FASE 31: Fundo Submarino, Iluminação & Identidade dos Obstáculos
+### 🌿 FASE 30: Fundo Submarino, Iluminação & Identidade dos Obstáculos
 *Objetivo: Enriquecer o leito marinho com flora e geologia procedural por bioma, corrigir a iluminação subaquática e dar identidade visual real a cada tipo de obstáculo.*
 
-- [ ] **31.1 Silhuetas Procedurais do Fundo por Tipo Geológico:**
+- [ ] **30.1 Silhuetas Procedurais do Fundo por Tipo Geológico:**
   - Todos os `SUBMARINE_RELIEFS` são retângulos `radius: 4` — moraina, monte submarino e banco de areia têm a mesma forma. Diferenciar: **Moraina** → topo irregular com 3–5 pontos de altura randômica (`polygon`); **Monte Submarino** → forma cônica com `circle` no pico; **Banco de Areia** → ondulação suave com topo plano e declive gradual; **Canyon Ridge** → paredes verticais abruptas.
-- [ ] **31.2 Flora Submarina por Bioma:**
+- [ ] **30.2 Flora Submarina por Bioma:**
   - Fundo sem flora alguma. Adicionar por bioma: **Antártica** → algas vermelhas `kelp` (`rect 2×30px` ondulando com `sin(time)`) em amarelo-amarronzado; **Pelágico** → sem flora (profundidade sem luz); **Costa Urbana** → ervas marinhas cinza-esverdeadas com lixo plástico entranhado; **Arraial** → expandir as algas calcárias rosas `(Lithothamnion)` do `canyonSystem.ts` para toda a topografia da enseada.
-- [ ] **31.3 Neve Marinha nas Profundidades Abissais (Marine Snow):**
+- [ ] **30.3 Neve Marinha nas Profundidades Abissais (Marine Snow):**
   - No bioma Pelágico (5.000–12.000m), gerar 12–16 partículas de sedimento (`circle 1–2px`, `color: 120, 140, 160`, `opacity: 0.3`) flutuando lentamente para baixo em velocidades randômicas — fenômeno oceanográfico real de material orgânico decaído e bactérias marinhas precipitando pelas profundezas.
-- [ ] **31.4 God Rays Mais Largos e Visíveis:**
+- [ ] **30.4 God Rays Mais Largos e Visíveis:**
   - Raios de luz atuais: `1.5–3.5px` de largura — praticamente invisíveis na maioria dos monitores. A técnica correta em jogos 2D usa `6–18px` com opacidade base mais baixa. Aumentar para `8–18px` e reduzir opacidade base de `0.08` para `0.04–0.06`. Resultado: raios perceptíveis sem parecerem tiras sólidas.
-- [ ] **31.5 Escuridão Progressiva com Profundidade:**
+- [ ] **30.5 Escuridão Progressiva com Profundidade:**
   - A profundidade é indicada apenas pela cor de fundo, mas a baleia não fica mais escura ao mergulhar. Sobrepor overlay `rect(k.width(), k.height())` de cor `(0, 10, 25)` com `opacity` proporcional à posição Y do jogador (`player.pos.y / k.height() * 0.4`). Fenômeno físico real: a cada 10m de profundidade, ~90% da luz vermelha é absorvida pela água.
-- [ ] **31.6 Halo de Luz do Espiráculo ao Respirar na Superfície:**
+- [ ] **30.6 Halo de Luz do Espiráculo ao Respirar na Superfície:**
   - Ao romper o `SEA_LEVEL` para respirar, emitir brevemente (0.5s) um `circle(30px)` branco `opacity: 0.20` ao redor do espiráculo — reflexo do sol na superfície perturbada ao romper a água. Detalhe de altíssimo impacto visual com implementação mínima.
-- [ ] **31.7 Mancha de Óleo com Camadas Iridescentes Realistas:**
+- [ ] **30.7 Mancha de Óleo com Camadas Iridescentes Realistas:**
   - Atual: 1 camada escura + 1 película violeta. Adicionar 3 camadas sobrepostas: (1) base densa `(8, 5, 5, 0.9)` — petróleo bruto; (2) película iridescente com shimmer de 3 cores alternando por `sin(time)` — azul/verde/violeta (iridescência química real); (3) gotas de espuma nas bordas `(circle 2–3px, white, 0.3)` — emulsão de contaminação.
-- [ ] **31.8 Gelo Translúcido com Veias Glaciais:**
+- [ ] **30.8 Gelo Translúcido com Veias Glaciais:**
   - Blocos de gelo atuais: `rect` branco sólido `opacity: 0.96` sem nenhuma profundidade visual. Adicionar 3–4 faixas internas de tons ligeiramente diferentes `(180, 215, 255)` e `(230, 248, 255)` com borda translúcida `opacity: 0.4`. Veias diagonais de azul glacial `(30, 80, 140, 0.15)` cruzando cada bloco — translucidez cristalina característica do gelo ártico.
 
-### 🎆 FASE 32: Partículas, Coerência de Bioma & Polimento de Interface
+### 🎆 FASE 31: Partículas, Coerência de Bioma & Polimento de Interface
 *Objetivo: Adicionar efeitos de partículas em momentos dramáticos ausentes, garantir coerência visual consistente entre todos os biomas e refinar a interface HUD.*
 
-- [ ] **32.1 Splash de Reentrada da Baleia após o Breach:**
+- [ ] **31.1 Splash de Reentrada da Baleia após o Breach:**
   - O momento de reentrada na água após o salto majestoso — o clímax do jogo — não tem efeito de splash. Ao cruzar `SEA_LEVEL` com velocidade Y > 200, disparar 16–24 partículas de respingo em arco simétrico (`rect 3×8px` brancos com gravidade) — metade para a esquerda, metade para a direita. O momento mais dramático do jogo precisa do efeito mais impactante.
-- [ ] **32.2 Rastro de Bolhas Caudal após Batida:**
+- [ ] **31.2 Rastro de Bolhas Caudal após Batida:**
   - A cada batida de cauda, emitir 5–8 `circle(2–4px)` de cor `(200, 230, 255, 0.5)` que sobem lentamente (`vel.y = −20` a `−40`) deixando rastro visual de esforço físico — como bolhas de ar expelido pelos músculos ao nadar. Fenômeno real e visualmente comunicativo da cadência de nado.
-- [ ] **32.3 Plâncton Bioluminescente nos Biomas Noturnos:**
+- [ ] **31.3 Plâncton Bioluminescente nos Biomas Noturnos:**
   - Nos biomas noturno e de ressurgência (12.000–25.000m), distribuir 20–30 `circle(1–2px)` estáticos de cor verde-azulada `(60, 200, 180)` com pulsação `sin(time + phase) * 0.4` de opacidade — dinoflagelados bioluminescentes, presença massiva e real documentada nas águas de Arraial do Cabo e Costa dos Corais do Brasil.
-- [ ] **32.4 Paleta de Obstáculos Contextualizada por Bioma:**
+- [ ] **31.4 Paleta de Obstáculos Contextualizada por Bioma:**
   - Lixo e redes têm cores uniformes em todos os biomas, quebrando a coerência visual. Variar por contexto: **Antártica** → lixo acinzentado congelado `(180, 60, 60)`, redes em verde-cinza glacial; **Pelágico** → lixo translúcido azulado `(60, 100, 200)` — aspecto de plástico submerso; **Costa** → lixo vermelho saturado + grafite industrial agressivo; **Arraial** → lixo alaranjado `(220, 140, 50)` — plástico desbotado pelo sol tropical.
-- [ ] **32.5 Transições Suaves de Flora e Partículas entre Biomas:**
+- [ ] **31.5 Transições Suaves de Flora e Partículas entre Biomas:**
   - Elementos como flora e partículas atmosféricas mudam abruptamente ao cruzar fronteiras de bioma. Criar zonas de "easing" de 200–400m nos limites (5.000m, 12.000m, 19.000m, 25.000m) onde os elementos do bioma anterior fazem fade-out enquanto os do próximo fazem fade-in — reutilizando o padrão já implementado no `calculateWeatherAtDistance()` do `weatherSystem.ts`.
-- [ ] **32.6 Partículas do Menu Principal Temáticas:**
+- [ ] **31.6 Partículas do Menu Principal Temáticas:**
   - Partículas do menu atual: `circle(1.5–3.5px)` genéricas em azul/verde/amarelo. Substituir por 3 tipos temáticos intercalados: bolhas de ar subindo `(circle 1–2px ciano)`; plâncton luminescente `(rect 2×6px rotacionado 45°)`; medusas miniatura `(circle 4px com borda branca tênue ondulante)`. Identidade oceânica desde a tela inicial.
-- [ ] **32.7 HUD de Distância com Indicador de Bioma:**
+- [ ] **31.7 HUD de Distância com Indicador de Bioma:**
   - HUD atual usa `text` simples sem estilo visual definido. Substituir por caixa com background translúcido, borda oceânica e indicador do bioma atual com ícone emoji correspondente: ❄️ Antártica, 🌊 Pelágico, 🏭 Costa Urbana, 🌀 Cânions, ☀️ Arraial do Cabo.
-- [ ] **32.8 Barra de Oxigênio com 3 Estados Visuais de Urgência:**
+- [ ] **31.8 Barra de Oxigênio com 3 Estados Visuais de Urgência:**
   - Implementar estados visuais distintos da barra de oxigênio: **>50%** → azul calmo pulsando suavemente; **20–50%** → âmbar com pulsação acelerada e leve tremor; **<20%** → vermelho pulsando rapidamente + borda da tela com vinheta escurecida e tremulante — comunicando urgência crescente sem texto.
-- [ ] **32.9 Cursor do Mouse com Identidade Visual Oceânica:**
+- [ ] **31.9 Cursor do Mouse com Identidade Visual Oceânica:**
   - Cursor padrão do browser quebra a imersão. Substituir via CSS `cursor: url(...)` por bolha oceânica `(circle 12px turquesa com borda branca)` no estado normal e âncora ou anzol no estado `hover` sobre botões — identidade oceânica mantida desde antes de clicar no primeiro botão.
-### 🖋️ FASE 33: Tipografia, Texto & Hierarquia Visual
+
+### 🖋️ FASE 32: Tipografia, Texto & Hierarquia Visual
 *Objetivo: Substituir a fonte padrão do browser por tipografia oceânica consistente, corrigir hierarquias textuais entre telas e garantir legibilidade em todas as resoluções suportadas.*
 
-- [ ] **33.1 Fonte Customizada — Carregar Google Font via `index.html`:**
+- [ ] **32.1 Fonte Customizada — Carregar Google Font via `index.html`:**
   - Todo texto do jogo usa `font: "sans-serif"` — a fonte padrão do browser, que varia entre sistemas operacionais (Helvetica no macOS, Arial no Windows, DejaVu no Linux). Carregar `Orbitron` (títulos e HUD — estilo técnico/científico) + `Inter` (textos corridos, modais, quiz) via `<link>` no `index.html`. Passar o nome da fonte para todos os `k.text()` via constante `FONT_TITLE` e `FONT_BODY` em `config.ts`.
-- [ ] **33.2 Hierarquia Tipográfica Consistente entre Telas:**
+- [ ] **32.2 Hierarquia Tipográfica Consistente entre Telas:**
   - Cada tela usa tamanhos de texto definidos ad-hoc sem sistema: `splashScreen.ts` usa 48/16/12px, `modeSelectScreen.ts` usa 22/18/14px, `rescueScreen.ts` usa 18/14/12px, `victoryScreen.ts` usa 16/14/12px. Criar escala tipográfica única em `config.ts`:
     - `TEXT_SIZE_DISPLAY` = 44px (logo, splash)
     - `TEXT_SIZE_H1` = 24px (títulos de tela)
     - `TEXT_SIZE_H2` = 18px (subtítulos de modal)
     - `TEXT_SIZE_BODY` = 14px (texto de leitura)
     - `TEXT_SIZE_CAPTION` = 11px (labels, hints, dicas)
-- [ ] **33.3 Texto das Telas de UI com Sombra de Legibilidade:**
+- [ ] **32.3 Texto das Telas de UI com Sombra de Legibilidade:**
   - Nenhum texto de UI tem sombra — textos claros sobre fundos oceânicos claros tornam-se ilegíveis em determinadas seções. Adicionar sombra offscreen (1–2px offset, cor escura `opacity: 0.6`) em todos os textos com tamanho > 14px, usando a técnica já presente na `splashScreen.ts` linha 78 mas ausente nas demais telas.
-- [ ] **33.4 Texto dos Fatos Educativos com Quebra de Linha Adaptativa:**
+- [ ] **32.4 Texto dos Fatos Educativos com Quebra de Linha Adaptativa:**
   - Os fatos do `facts.json` aparecem em modais com `width` fixo. Em resoluções baixas (450p = 800×450px) o texto pode transbordar. Calcular `width: Math.min(500, k.width() - 80)` dinamicamente em todos os `k.text()` de conteúdo educacional.
-- [ ] **33.5 Distância Exibida com Formatação de Milhas Náuticas:**
+- [ ] **32.5 Distância Exibida com Formatação de Milhas Náuticas:**
   - A distância atual é exibida em metros (ex.: "14.238m") — unidade pouco intuitiva para crianças e não é a unidade usada em navegação marinha real. Exibir em paralelo: `"14.238m • 7,7 mn"` (milhas náuticas, onde 1mn = 1.852m). Implementar função `toNauticalMiles(meters: number)` em utilitário auxiliar.
-- [ ] **33.6 Nome do Bioma Atual Exibido no HUD:**
+- [ ] **32.6 Nome do Bioma Atual Exibido no HUD:**
   - O HUD atual mostra distância mas não o nome do bioma atual, deixando o jogador sem contexto geográfico. Adicionar linha secundária ao HUD com o nome do bioma (`"❄️ Oceano Antártico"`, `"🌊 Travessia Pelágica"`, etc.) atualizado a cada mudança de `BIOME_COLOR_STOPS`.
-- [ ] **33.7 Textos da Tela de Resgate com Tom Narrativo:**
+- [ ] **32.7 Textos da Tela de Resgate com Tom Narrativo:**
   - A tela de resgate exibe estatísticas como linha plana de debug (`"📏 Distância Navegada: 14238m"`). Reformular com linguagem narrativa imersiva: `"A jubarte avançou 14.238 metros de sua jornada..."` — mantendo os dados mas embalados em contexto de história, mais adequado ao público infantil.
-- [ ] **33.8 Texto de Teclas de Controle com Ícones de Teclado:**
+- [ ] **32.8 Texto de Teclas de Controle com Ícones de Teclado:**
   - Instruções de controle como `"Pressione ESPAÇO"` são textuais genéricas. Substituir por representação visual de tecla: `[ESPAÇO]`, `[↑]`, `[↓]` usando `rect` com `border-radius` e `outline` — visual de "tecla física". Padrão amplamente reconhecido em jogos modernos.
 
-### 🖥️ FASE 34: Sistema de Resoluções, Modos de Tela & Responsividade
+### 🖥️ FASE 33: Sistema de Resoluções, Modos de Tela & Responsividade
 *Objetivo: Expandir os presets de resolução para cobrir monitores 4K, ultrawide e tablets, corrigir o modo letterbox para funcionar corretamente e adicionar modo automático baseado na resolução nativa do dispositivo.*
 
-- [ ] **34.1 Adicionar Preset 1440p (2K) e 4K (2160p):**
+- [ ] **33.1 Adicionar Preset 1440p (2K) e 4K (2160p):**
   - Presets atuais: `450p`, `540p`, `720p`, `1080p`. Faltam monitores modernos usados em museus e totens: `"1440p": { width: 2560, height: 1440 }` e `"4K": { width: 3840, height: 2160 }`. Sprites procedurais em Kaboom escalam via GPU sem perda de qualidade — não há risco de borramento.
-- [ ] **34.2 Preset Automático — Detectar Resolução Nativa do Dispositivo:**
+- [ ] **33.2 Preset Automático — Detectar Resolução Nativa do Dispositivo:**
   - Adicionar opção `"auto"` que usa `window.screen.width × window.screen.height` (ou `window.devicePixelRatio × window.innerWidth/Height` para Retina/HiDPI). Exibir como `"Auto (Detectado: 1920×1080) 🔍"` nas Opções. Evita que o usuário precise configurar manualmente.
-- [ ] **34.3 Suporte a Proporção Ultrawide (21:9 e 32:9):**
+- [ ] **33.3 Suporte a Proporção Ultrawide (21:9 e 32:9):**
   - Presets atuais assumem proporção 16:9. Totens de museu e monitores ultrawide (3440×1440, 5120×1440) ficam com barras laterais ou distorção. Adicionar presets `"ultrawide21": { width: 3440, height: 1440 }` e `"ultrawide32": { width: 5120, height: 1440 }` com lógica de rendering que expande o fundo e os céu/chão lateralmente mas mantém a área de gameplay centralizada.
-- [ ] **34.4 Modo Letterbox Funcionando Corretamente com Barras Escuras:**
+- [ ] **33.4 Modo Letterbox Funcionando Corretamente com Barras Escuras:**
   - O modo `letterbox` está implementado em `getSavedDisplayMode()` mas a renderização das barras pretas laterais/superior/inferior não é visível em código — pode estar incompleta. Garantir que o modo letterbox renderize `rect` pretos nas bordas com `z: 999` cobrindo o overflow de conteúdo. Adicionar opção de cor da borda: preto, azul oceânico (`#06122a`) ou personalizada.
-- [ ] **34.5 Modo Retrato (Portrait) para Tablets Verticais:**
+- [ ] **33.5 Modo Retrato (Portrait) para Tablets Verticais:**
   - Em tablets como iPad (768×1024 no orientação portrait), o jogo atual fica comprimido horizontalmente. Adicionar preset `"tablet_portrait": { width: 768, height: 1024 }` com layout vertical onde o oceano ocupa 85% da tela e o HUD fica em painel inferior — viável pois a câmera do Kaboom pode ser reconfigurada.
-- [ ] **34.6 Persistência de Resolução por Dispositivo:**
+- [ ] **33.6 Persistência de Resolução por Dispositivo:**
   - A resolução salva em `localStorage` é global. Se o jogo for aberto em dois dispositivos diferentes (computador do professor + tablet do aluno), a resolução salva pode ser inadequada. Salvar como `"micro_splash_resolution_${screen.width}x${screen.height}"` para cada resolução de tela nativa diferente.
-- [ ] **34.7 Preview de Resolução em Tempo Real nas Opções:**
+- [ ] **33.7 Preview de Resolução em Tempo Real nas Opções:**
   - Ao selecionar uma resolução nas Opções, não há feedback visual de como a tela mudará. Adicionar um mini-preview retangular proporcional abaixo do seletor mostrando a relação de aspecto selecionada vs. a tela atual — triângulo de comparação visual antes de confirmar a mudança.
-- [ ] **34.8 Indicador de Resolução Atual no HUD F3:**
+- [ ] **33.8 Indicador de Resolução Atual no HUD F3:**
   - O HUD de diagnóstico F3 atual lista FPS mas não a resolução em uso. Adicionar linha `"Resolução: 1920×1080 (720p)"` ao painel F3 — útil para diagnóstico remoto de problemas em totens.
 
-### 🎬 FASE 35: Telas de Jogo — Visual & Polimento de UI
+### 🎬 FASE 34: Telas de Jogo — Visual & Polimento de UI
 *Objetivo: Elevar todas as telas de interface (splash, menu, vitória, resgate, opções, modo) ao mesmo nível visual cinematográfico, com animações de entrada, identidade oceânica e estado de hover comunicativo.*
 
-- [ ] **35.1 Animação de Entrada em Todos os Modais:**
+- [ ] **34.1 Animação de Entrada em Todos os Modais:**
   - Nenhum modal tem animação de entrada — aparecem instantaneamente. Implementar `k.tween` de escala (`0.85 → 1.0`) + opacity (`0 → 1`) em 0.25s com easing `k.easings.easeOutBack` para todos os cards de modal. Feedback visual imediato de abertura.
-- [ ] **35.2 Tela de Splash com Logo Animado e Subtítulo Melhorado:**
+- [ ] **34.2 Tela de Splash com Logo Animado e Subtítulo Melhorado:**
   - O logo "MICRO-SPLASH" aparece em `k.text()` simples em `size: 48`. Redesenhar com duas cores intercaladas por letra (alternando azul-turquesa e branco) e animação de entrada letter-by-letter via delay de `k.wait`. O subtítulo atual `"A JORNADA DA BALEIA-JUBARTE"` poderia ser enriquecido com ícones laterais de âncora e cauda de baleia.
-- [ ] **35.3 Barco de Resgate com Detalhes Visuais:**
+- [ ] **34.3 Barco de Resgate com Detalhes Visuais:**
   - O barco de resgate (`boat.ts`) tem: casco `90×30px` + cabine `30×20px` + luz piscante. Sem ondas de scia, sem mastro, sem número identificador. Adicionar: mastro vertical (`rect 3×40px`), bandeira (`polygon triangular` verde), esteira de scia (2–3 partículas brancas atrás) e uma faixa diagonal laranja característica da Guarda Marítima Brasileira.
-- [ ] **35.4 Tela de Vitória com Partículas Temáticas de Confete:**
+- [ ] **34.4 Tela de Vitória com Partículas Temáticas de Confete:**
   - A tela de vitória (`victoryScreen.ts` com 613 linhas) não tem partículas visuais de celebração. Adicionar 40–60 partículas de confete em cores oceânicas (turquesa, dourado, branco) com `rect 4×8px` rotacionados aleatoriamente e física de gravidade suave. Disparar apenas 1× ao entrar na tela.
-- [ ] **35.5 Botões com Estado Hover Visual Consistente:**
+- [ ] **34.5 Botões com Estado Hover Visual Consistente:**
   - `onHoverUpdate` está implementado apenas na tela de resgate (`rescueScreen.ts` linha 94). Nos outros modais (Opções, Modo, Vitória, Codex), os botões não têm feedback de hover. Padronizar: hover = cor base + 30% mais clara, cursor pointer, leve expansão de escala (`1.0 → 1.04` via `k.tween`).
-- [ ] **35.6 Tela de Seleção de Modo com Cards Visuais por Modo:**
+- [ ] **34.6 Tela de Seleção de Modo com Cards Visuais por Modo:**
   - `modeSelectScreen.ts` lista os modos em texto puro. Transformar em cards com: ícone grande do modo (🏊 migração, ⚡ challenge, 🎭 apresentação), fundo de cor diferente por modo e um preview textual de "O que esperar" em 2 linhas. Padrão visual de seleção de personagem/modo de jogos AAA.
-- [ ] **35.7 Tela do Codex com Ícones de Bioma e Barra de Progresso:**
+- [ ] **34.7 Tela do Codex com Ícones de Bioma e Barra de Progresso:**
   - O Codex exibe fatos desbloqueados em lista simples. Adicionar: ícone emoji do bioma à esquerda de cada fato, indicador `"3/4 desbloqueados"` por bioma, e barra de progresso horizontal de 100% representando a rota completa com marcadores nos pontos de fato.
-- [ ] **35.8 Loading Overlay ao Trocar de Resolução:**
+- [ ] **34.8 Loading Overlay ao Trocar de Resolução:**
   - Ao confirmar mudança de resolução nas Opções, a tela reconfigura instantaneamente — pode causar flash visual. Adicionar fade-out de 0.3s (`rect` preto em `z: 9999`) antes do `window.location.reload()` que aplica a nova resolução.
 
-### 🐬 FASE 36: Polimento Visual dos Sistemas Ausentes
+### 🐬 FASE 35: Polimento Visual dos Sistemas Ausentes
 *Objetivo: Cobrir elementos visuais não tratados nas fases anteriores — ressurgência, kelp/corais bentônicos, ventos térmicos e correntes oceânicas visíveis.*
 
-- [ ] **36.1 Jatos de Ressurgência com Mais Detalhes Visuais:**
+- [ ] **35.1 Jatos de Ressurgência com Mais Detalhes Visuais:**
   - Jatos atuais: `rect(30, 80, radius: 10)` azul `(0, 220, 255, 0.4)` com `outline: 3` branco (`upwellingSystem.ts` linha 48). Parecem cápsulas rígidas. Redesenhar como feixes de linhas finas (`rect 4×80px`) em leque de 5–7 ângulos ligeiramente diferentes, sem border rígido, com gradiente de opacity (mais denso na base, mais transparente no topo) — visual de corrente d'água subindo, não de objeto sólido.
-- [ ] **36.2 Kelp com Gradiente de Cor por Altura:**
+- [ ] **35.2 Kelp com Gradiente de Cor por Altura:**
   - O kelp no `benthicFloorSystem.ts` usa cor uniforme por planta. O kelp real tem base marrom-escura e folhas dourado-esverdeadas no topo (por exposição à luz). Aplicar cor progressiva por segmento: base `(55, 35, 15)` → topo `(110, 130, 40)` — usando o índice `s` do loop de segmentos.
-- [ ] **36.3 Corais com Animação de Abertura/Fechamento:**
+- [ ] **35.3 Corais com Animação de Abertura/Fechamento:**
   - Corais no `benthicFloorSystem.ts` têm tipos `"brain"`, `"fan"`, `"anemone"`. Os tipos `fan` e `anemone` são ideais para animação de pulsação — anêmonas abrem e fecham os tentáculos com `sin(time)`. Implementar variação de escala Y `(0.85–1.15)` em ciclo de 2–3s nos corais do tipo `anemone`.
-- [ ] **36.4 Correntes Oceânicas Visíveis (Favoráveis e Contrárias):**
-  - O sistema de correntes contrárias empurra fisicamente a baleia mas é completamente invisível — o jogador percebe o efeito mas não vê o elemento. Representar com 4–6 linhas de traço horizonais (`rect 40×2px`) em azul-cinza `(100, 150, 200, 0.25)` se movendo na direção da corrente — setas de fluxo animadas como em mapas oceanográficos.
-- [ ] **36.5 Barco de Pesca Realista no Bioma da Costa Urbana:**
+- [ ] **35.4 Correntes Oceânicas Visíveis (Favoráveis e Contrárias):**
+  - O sistema de correntes contrárias empurra fisicamente a baleia mas é completamente invisível — o jogador percebe o efeito mas não vê o elemento. Representar com 4–6 linhas de traço horizontais (`rect 40×2px`) em azul-cinza `(100, 150, 200, 0.25)` se movendo na direção da corrente — setas de fluxo animadas como em mapas oceanográficos.
+- [ ] **35.5 Barco de Pesca Realista no Bioma da Costa Urbana:**
   - Além dos navios cargueiros, o bioma urbano deveria ter embarcações pesqueiras menores (traineiras/arrastradores) que despejam redes — seria o `ghostNet` com origem visual clara em vez de aparecer do nada. Um barco de pesca `60×20px` estacionado com rede visível sendo lançada por ele daria contexto narrativo ao perigo.
-- [ ] **36.6 Refluxo de Espuma nos Blocos de Gelo ao Serem Quebrados:**
+- [ ] **35.6 Refluxo de Espuma nos Blocos de Gelo ao Serem Quebrados:**
   - Ao quebrar um bloco de gelo, os estilhaços são retangulares. Adicionar 6–8 partículas circulares brancas `(circle 3–6px)` em adição aos estilhaços quadrados, simulando espuma de água gelada espirrada pelo impacto — diferente das partículas de gelo em forma de shard.

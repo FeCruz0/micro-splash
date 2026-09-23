@@ -46,6 +46,7 @@ import { showCodexScreen } from "./ui/codexScreen";
 import { showChallengeEndScreen } from "./ui/challengeEndScreen";
 import { showLeaderboardScreen } from "./ui/leaderboardScreen";
 import { createSplashScreen } from "./ui/splashScreen";
+import { hasSeenOnboarding, showOnboardingModal } from "./ui/onboardingModal";
 
 const resolution = getSavedResolution();
 const displayMode = getSavedDisplayMode();
@@ -116,6 +117,11 @@ k.scene("menu", () => {
       showLeaderboardScreen(k, onClose);
     }
   );
+
+  // Fase 21: Se for a primeira inicialização do jogo (totens ou novos jogadores), exibe o onboarding contextual
+  if (!hasSeenOnboarding()) {
+    showOnboardingModal(k, () => {});
+  }
 });
 
 // =============================================================================

@@ -2,6 +2,7 @@ import type { KaboomCtx } from "kaboom";
 import { audioSystem } from "../systems/audioSystem";
 import { createGameState } from "../systems/state";
 import { showQuizModal } from "./quizModal";
+import { showOnboardingModal } from "./onboardingModal";
 import factsData from "../../data/facts.json";
 
 export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
@@ -381,8 +382,8 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
 
   // Botão 1: Voltar ao Menu
   const btnBack = k.add([
-    k.rect(220, 38, { radius: 8 }),
-    k.pos(k.width() / 2 - 125, k.height() / 2 + 225),
+    k.rect(190, 38, { radius: 8 }),
+    k.pos(k.width() / 2 - 235, k.height() / 2 + 225),
     k.color(16, 75, 120),
     k.outline(2, k.rgb(100, 220, 255)),
     k.scale(1),
@@ -394,8 +395,8 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
   elements.push(btnBack);
 
   elements.push(k.add([
-    k.text("Voltar ao Menu ↩️", { size: 13.5, font: "sans-serif" }),
-    k.pos(k.width() / 2 - 125, k.height() / 2 + 225),
+    k.text("Voltar ao Menu ↩️", { size: 12.5, font: "sans-serif" }),
+    k.pos(k.width() / 2 - 235, k.height() / 2 + 225),
     k.color(255, 255, 255),
     k.anchor("center"),
     k.fixed(),
@@ -414,10 +415,52 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
   });
   btnBack.onClick(close);
 
-  // Botão 2: Iniciar Desafio Ecológico (Quiz)
+  // Botão 2: Tutorial / Guia da Espécie e Controles
+  const btnTutorial = k.add([
+    k.rect(190, 38, { radius: 8 }),
+    k.pos(k.width() / 2, k.height() / 2 + 225),
+    k.color(20, 85, 135),
+    k.outline(2, k.rgb(90, 220, 255)),
+    k.scale(1),
+    k.anchor("center"),
+    k.area(),
+    k.fixed(),
+    k.z(305),
+  ]);
+  elements.push(btnTutorial);
+
+  elements.push(k.add([
+    k.text("🎓 Tutorial / Guia", { size: 12.5, font: "sans-serif" }),
+    k.pos(k.width() / 2, k.height() / 2 + 225),
+    k.color(255, 255, 255),
+    k.anchor("center"),
+    k.fixed(),
+    k.z(306),
+  ]));
+
+  btnTutorial.onHoverUpdate(() => {
+    if (!isModalOpen) {
+      btnTutorial.color = k.rgb(28, 120, 180);
+    }
+  });
+  btnTutorial.onHoverEnd(() => {
+    if (!isModalOpen) {
+      btnTutorial.color = k.rgb(20, 85, 135);
+    }
+  });
+
+  btnTutorial.onClick(() => {
+    if (isModalOpen) return;
+    isModalOpen = true;
+    showOnboardingModal(k, () => {
+      isModalOpen = false;
+    });
+  });
+
+  // Botão 3: Iniciar Desafio Ecológico (Quiz)
   const btnQuiz = k.add([
-    k.rect(220, 38, { radius: 8 }),
-    k.pos(k.width() / 2 + 125, k.height() / 2 + 225),
+    k.rect(210, 38, { radius: 8 }),
+    k.pos(k.width() / 2 + 235, k.height() / 2 + 225),
     k.color(20, 115, 80),
     k.outline(2, k.rgb(100, 255, 180)),
     k.scale(1),
@@ -429,8 +472,8 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
   elements.push(btnQuiz);
 
   elements.push(k.add([
-    k.text("🧪 Desafio Ecológico (Quiz)", { size: 13.5, font: "sans-serif" }),
-    k.pos(k.width() / 2 + 125, k.height() / 2 + 225),
+    k.text("🧪 Desafio Ecológico (Quiz)", { size: 12.5, font: "sans-serif" }),
+    k.pos(k.width() / 2 + 235, k.height() / 2 + 225),
     k.color(255, 255, 255),
     k.anchor("center"),
     k.fixed(),

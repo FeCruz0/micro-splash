@@ -1,11 +1,15 @@
 import kaboom from "kaboom";
 import { type Fact } from "../systems/state";
+import { ttsSystem } from "../systems/ttsSystem";
 
 export function showFactPopup(k: ReturnType<typeof kaboom>, fact: Fact) {
   const width = Math.min(k.width() - 40, 520);
   const height = 110;
   const startY = k.height() + 20;
   const targetY = k.height() - height - 30;
+
+  // Narração por voz acessível via Web Speech API
+  ttsSystem.speak(`${fact.title}. ${fact.description}`);
 
   // Painel de fundo com cantos arredondados e borda dourada
   const panel = k.add([
@@ -69,6 +73,7 @@ export function showFactPopup(k: ReturnType<typeof kaboom>, fact: Fact) {
         },
         k.easings.easeInQuad
       ).then(() => {
+        ttsSystem.stop();
         k.destroy(panel);
         k.destroy(titleText);
         k.destroy(descText);

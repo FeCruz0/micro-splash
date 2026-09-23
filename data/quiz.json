@@ -1,132 +1,782 @@
 [
   {
-    "id": "q_antartica_krill",
+    "id": "q_ant_krill_tonnage",
     "factId": "antartica",
-    "question": "Quanto alimento uma baleia-jubarte consome diariamente nas águas da Antártica antes de migrar?",
+    "biome": "antartica",
+    "difficulty": "facil",
+    "question": "Quanto alimento uma baleia-jubarte adulta consome diariamente durante o verão antártico?",
     "options": [
-      "Até 50 kg de pequenos moluscos",
-      "Até 2 toneladas de krill para acumular reservas",
-      "Cerca de 200 kg de algas marinhas",
+      "Até 2 toneladas diárias de krill",
+      "Cerca de 50 kg de pequenos moluscos",
+      "Apenas 200 kg de peixes voadores",
       "Elas não se alimentam na Antártica"
     ],
-    "correctIndex": 1,
-    "explanation": "No verão polar, as jubartes ingerem até 2 toneladas diárias de krill, acumulando uma espessa camada de gordura para o jejum migratório."
+    "correctIndex": 0,
+    "explanation": "No verão polar, as jubartes ingerem até 2 toneladas diárias de krill, acumulando uma espessa camada de gordura para resistir ao jejum migratório."
   },
   {
-    "id": "q_canal_sofar",
-    "factId": "canal_sofar",
-    "question": "O que é o Canal SOFAR, fundamental para a comunicação das baleias em alto mar?",
+    "id": "q_ant_fendas_respiracao",
+    "factId": "morainas_gelo",
+    "biome": "antartica",
+    "difficulty": "facil",
+    "question": "Por que as fendas naturais no gelo marinho (banquisa) são vitais para as baleias na Antártica?",
     "options": [
-      "Uma corrente de água doce vinda do Ártico",
-      "Uma trincheira vulcânica perigosa",
-      "Uma camada oceânica onde o som viaja por milhares de km",
-      "Um grupo de recifes luminosos de coral"
+      "Porque servem para caçar gaivotas polares",
+      "Porque permitem que subam à superfície para respirar oxigênio atmosférico",
+      "Porque a água nessas fendas é morna",
+      "Porque servem apenas como esconderijo"
     ],
-    "correctIndex": 2,
-    "explanation": "O canal SOFAR funciona como um guia de ondas acústico submarino onde os cantos de baixa frequência viajam continentes inteiros sem se dissipar."
+    "correctIndex": 1,
+    "explanation": "Como todos os mamíferos marinhos, as baleias respiram ar por pulmões e necessitam de aberturas na banquisa antes que o mar congele por completo."
   },
   {
-    "id": "q_pinguins_porpoising",
+    "id": "q_ant_pinguins_porpoising",
     "factId": "pinguins_porpoising",
-    "question": "Por que os Pinguins-de-Magalhães executam saltos em arco ('porpoising') enquanto nadam?",
+    "biome": "antartica",
+    "difficulty": "facil",
+    "question": "Qual é a principal função mecânica dos saltos em arco ('porpoising') dos pinguins?",
     "options": [
-      "Para fugir de tubarões na superfície",
-      "Para pegar insetos voadores na transição polar",
-      "Apenas para se exibirem para o bando",
-      "Para reduzir o atrito hidrodinâmico e economizar energia"
+      "Fugir de insetos voadores na costa",
+      "Brincar e atrair predadores marinhos",
+      "Reduzir o atrito hidrodinâmico com a água e respirar velozmente",
+      "Aquecer as asas sob a neve polar"
+    ],
+    "correctIndex": 2,
+    "explanation": "Alternar o nado na água densa com trajetórias no ar diminui a resistência do meio, economizando energia e permitindo respirações rápidas."
+  },
+  {
+    "id": "q_ant_krill_especie",
+    "factId": "antartica",
+    "biome": "antartica",
+    "difficulty": "medio",
+    "question": "Qual é o nome científico do krill-antártico, base fundamental da cadeia alimentar polar?",
+    "options": [
+      "Megaptera novaeangliae",
+      "Spheniscus magellanicus",
+      "Balaenoptera musculus",
+      "Euphausia superba"
     ],
     "correctIndex": 3,
-    "explanation": "Alternar o nado na água com saltos no ar (porpoising) reduz a resistência do meio em até 4 vezes e permite respirar em alta velocidade."
+    "explanation": "O Euphausia superba é um minúsculo crustáceo semelhante a um camarão que forma biomassa colossal no Oceano Austral, sustentando peixes, aves e grandes baleias."
   },
   {
-    "id": "q_cachalote",
-    "factId": "cachalote_abissal",
-    "question": "Qual é a principal presa e profundidade de caça do Cachalote nas fossas oceânicas?",
+    "id": "q_ant_camada_blubber",
+    "factId": "antartica",
+    "biome": "antartica",
+    "difficulty": "medio",
+    "question": "Como a camada de gordura subcutânea ('blubber') auxilia a jubarte em águas congelantes?",
     "options": [
-      "Plâncton na superfície até 50 metros",
-      "Lulas gigantes em mergulhos profundos de até 2.000 metros",
-      "Cardumes de sardinha a 300 metros",
-      "Caranguejos nas praias e estuários"
+      "Funciona como isolante térmico indispensável e armazém metabólico de energia",
+      "Aumenta a velocidade máxima diminuindo o peso corporal",
+      "Ajuda a absorver oxigênio diretamente da água do mar",
+      "Impede que a baleia afunde quando dorme no fundo"
+    ],
+    "correctIndex": 0,
+    "explanation": "A gordura subcutânea atinge até 15 cm de espessura, retendo o calor vital do corpo mamífero contra temperaturas marinhas próximas a 0°C."
+  },
+  {
+    "id": "q_ant_predador_orcas",
+    "factId": "antartica",
+    "biome": "antartica",
+    "difficulty": "medio",
+    "question": "Qual é o principal predador natural que pode ameaçar filhotes de jubarte nas bordas do gelo polar?",
+    "options": [
+      "Tubarão-branco gigante",
+      "Orca (Orcinus orca), caçando em grupos coordenados",
+      "Leão-marinho-da-patagônia",
+      "Lula-colossal abissal"
     ],
     "correctIndex": 1,
-    "explanation": "O cachalote mergulha a mais de 2.000m nas fossas abissais, caçando lulas colossais na escuridão através de sua ecolocalização ultrassônica."
+    "explanation": "Orcas que caçam em matilhas cooperativas tentam isolar filhotes ou animais debilitados, embora jubartes adultas usem suas peitorais e cauda maciça para defendê-los."
   },
   {
-    "id": "q_golfinhos_drafting",
+    "id": "q_ant_temperatura_mar",
+    "factId": "morainas_gelo",
+    "biome": "antartica",
+    "difficulty": "dificil",
+    "question": "Em que temperatura aproximada a água do mar antártico começa a formar a banquisa de gelo superficial?",
+    "options": [
+      "Exatamente a 0°C como a água doce",
+      "A -10°C por causa da pressão hidrostática",
+      "Aproximadamente a -1,8°C devido à salinidade da água marinha",
+      "A água do mar nunca congela naturalmente"
+    ],
+    "correctIndex": 2,
+    "explanation": "A concentração média de sal de 35g/L no oceano rebaixa o ponto de congelamento da água para cerca de -1,8°C a -1,9°C."
+  },
+  {
+    "id": "q_ant_baleen_cerdas",
+    "factId": "antartica",
+    "biome": "antartica",
+    "difficulty": "dificil",
+    "question": "De que material biológico são feitas as lâminas de cerdas (barbatanas) bucais das jubartes?",
+    "options": [
+      "Esmalte dental e fosfato de cálcio rígido",
+      "Carbonato de cálcio semelhante a conchas",
+      "Cartilagem elástica de colágeno puro",
+      "Queratina, a mesma proteína de nossas unhas e cabelos"
+    ],
+    "correctIndex": 3,
+    "explanation": "As baleias-jubarte não têm dentes; possuem entre 270 e 400 placas de queratina que agem como peneira fina retendo o krill e expelindo a água."
+  },
+  {
+    "id": "q_ant_fotoperiodo_verao",
+    "factId": "antartica",
+    "biome": "antartica",
+    "difficulty": "dificil",
+    "question": "Qual fenômeno astronômico favorece a intensa proliferação de fitoplâncton no verão antártico?",
+    "options": [
+      "O 'Sol da Meia-Noite', com quase 24 horas diárias de luz solar sustentando fotossíntese contínua",
+      "Eclipses lunares contínuos de verão",
+      "A aproximação do cometa Halley",
+      "O aumento das marés astronômicas equatoriais"
+    ],
+    "correctIndex": 0,
+    "explanation": "No verão austral, o Sol permanece visível quase 24h por dia, promovendo uma colossal explosão de microalgas fotosintetizantes que alimentam os enxames de krill."
+  },
+  {
+    "id": "q_ant_tubérculos_focinho",
+    "factId": "antartica",
+    "biome": "antartica",
+    "difficulty": "dificil",
+    "question": "O que são as pequenas protuberâncias arredondadas visíveis na cabeça e mandíbula da jubarte?",
+    "options": [
+      "Tumores causados por poluição química",
+      "Tubérculos dérmicos contendo folículos com pelos sensitivos (vibrissas)",
+      "Bolsas de ar para flutuação de emergência",
+      "Órgãos excretores de excesso de sal"
+    ],
+    "correctIndex": 1,
+    "explanation": "Cada tubérculo abriga um pelo tátil primitivo conectado a nervos, funcionando como sensores mecânicos de correntes e proximidade de presas na água."
+  },
+  {
+    "id": "q_pel_canal_sofar",
+    "factId": "canal_sofar",
+    "biome": "pelagico",
+    "difficulty": "facil",
+    "question": "O que é o Canal SOFAR, fundamental para a comunicação oceânica das baleias em alto mar?",
+    "options": [
+      "Um vulcão submarino ativo em erupção",
+      "Um recife de corais fosforescentes",
+      "Uma camada marinha profunda onde o som se propaga por milhares de quilômetros",
+      "Um canal de navegação exclusivo para petroleiros"
+    ],
+    "correctIndex": 2,
+    "explanation": "O Canal SOFAR (Sound Fixing and Ranging) atua como guia de ondas acústico natural gerado pela combinação de temperatura e pressão marinha."
+  },
+  {
+    "id": "q_pel_jejum_migratorio",
+    "factId": "antartica",
+    "biome": "pelagico",
+    "difficulty": "facil",
+    "question": "Por que as jubartes realizam jejum quase total durante a travessia de milhares de quilômetros?",
+    "options": [
+      "Porque não têm dentes para mastigar peixes tropicais",
+      "Porque se alimentam de água salgada para nutrir as células",
+      "Porque perdem o apetite quando nadam velozmente",
+      "Porque o krill polar não existe nas águas mornas e tropicais do trajeto"
+    ],
+    "correctIndex": 3,
+    "explanation": "O krill antártico só prolifera nas águas geladas do sul. Na travessia tropical, a biomassa de alimento é dispersa e a jubarte depende de suas reservas lipídicas."
+  },
+  {
+    "id": "q_pel_golfinhos_drafting",
     "factId": "golfinhos_drafting",
-    "question": "Qual a grande vantagem do nado em esteira ('drafting') observado em golfinhos e cetáceos?",
+    "biome": "pelagico",
+    "difficulty": "facil",
+    "question": "Qual vantagem mecânica os cetáceos obtêm ao nadar na esteira hidrodinâmica de outro animal ('drafting')?",
     "options": [
-      "Reduzir o arrasto e economizar até 40% de energia",
-      "Aumentar a temperatura corporal em águas tropicais",
-      "Assustar predadores maiores com barulho",
-      "Manter o grupo sempre em linha reta"
+      "Economizar até 40% de energia e fôlego reduzindo o arrasto da água",
+      "Aumentar a temperatura corporal para não tremer de frio",
+      "Emitir sons mais agudos para espantar gaivotas",
+      "Evitar que a água salgada entre nos olhos"
     ],
     "correctIndex": 0,
-    "explanation": "A esteira hidrodinâmica gerada pela liderança do bando diminui a resistência da água, poupando até 40% do fôlego dos animais que vêm atrás."
+    "explanation": "A liderança desloca a massa de água à frente, criando uma zona de menor pressão onde os companheiros atrás deslizam com menor esforço físico."
   },
   {
-    "id": "q_poluicao_plastica",
-    "factId": "poluicao_plastica",
-    "question": "Quantas toneladas de resíduos plásticos são estimadas entrando nos oceanos a cada ano?",
+    "id": "q_pel_cachalote_profundidade",
+    "factId": "cachalote_abissal",
+    "biome": "pelagico",
+    "difficulty": "medio",
+    "question": "A que profundidade os cachalotes costumam mergulhar nas bacias oceânicas pelágicas para caçar?",
     "options": [
-      "Cerca de 100 mil toneladas",
-      "Apenas 500 toneladas no mundo todo",
-      "Mais de 8 milhões de toneladas anuais",
-      "Quase nada, o plástico se dissolve rapidamente"
-    ],
-    "correctIndex": 2,
-    "explanation": "Mais de 8 milhões de toneladas de plástico entram nos oceanos anualmente, fragmentando-se em microplásticos que contaminam toda a vida marinha."
-  },
-  {
-    "id": "q_redes_fantasmas",
-    "factId": "redes_fantasmas",
-    "question": "Por que as 'redes fantasmas' abandonadas no mar são consideradas tão perigosas?",
-    "options": [
-      "Porque atraem predadores venenosos",
-      "Porque impedem o fluxo natural das marés",
-      "Porque aceleram a oxidação das rochas marinhas",
-      "Porque continuam capturando e matando animais por décadas"
-    ],
-    "correctIndex": 3,
-    "explanation": "Feitas de materiais sintéticos resistentes como nylon, as redes abandonadas derivam matando baleias, tartarugas e peixes por emalhe contínuo."
-  },
-  {
-    "id": "q_canyon_ressurgencia",
-    "factId": "canyon_ressurgencia",
-    "question": "Qual fenômeno oceanográfico torna as águas de Arraial do Cabo famosas pela riqueza de vida?",
-    "options": [
-      "A Ressurgência, trazendo água fria profunda rica em nutrientes",
-      "O aquecimento térmico por vulcões submarinos ativos",
-      "O deságue de grandes rios lamacentos da floresta",
-      "Correntes polares que congelam a superfície"
-    ],
-    "correctIndex": 0,
-    "explanation": "A Ressurgência de Cabo Frio é impulsionada pelos ventos NE que trazem a água profunda da ACAS, gerando uma explosão de plâncton e krill."
-  },
-  {
-    "id": "q_reserva_arraial",
-    "factId": "reserva_arraial",
-    "question": "Em que ano foi criada a Reserva Extrativista Marinha de Arraial do Cabo, pioneira no Brasil?",
-    "options": [
-      "1950, durante a construção do primeiro farol",
-      "1997, protegendo a pesca tradicional e a biodiversidade",
-      "2020, como medida contra o turismo em massa",
-      "1888, logo após a abolição da escravatura"
+      "Apenas nos primeiros 30 metros de profundidade",
+      "Em fossas escuras a mais de 1.000 a 2.000 metros de profundidade",
+      "Até 100 metros perto das praias continentais",
+      "Eles não mergulham fundo e caçam na superfície"
     ],
     "correctIndex": 1,
-    "explanation": "Criada em 1997, a RESEX Marinha de Arraial do Cabo foi a primeira do país, conciliando sustento comunitário com preservação dos berçários marinhos."
+    "explanation": "O cachalote é o mamífero mergulhador supremo, descendo a abismos com pressões colossais para caçar lulas gigantes por ecolocalização ultrassônica."
   },
   {
-    "id": "q_salto_breach",
-    "factId": "salto_breach",
-    "question": "Quais são algumas das funções científicas do Salto Majestoso ('Breach') das jubartes?",
+    "id": "q_pel_velocidade_cruzeiro",
+    "factId": "canal_sofar",
+    "biome": "pelagico",
+    "difficulty": "medio",
+    "question": "Qual é a velocidade média sustentada de cruzeiro de uma jubarte em sua rota de migração oceânica?",
     "options": [
-      "Capturar aves marinhas em pleno voo",
-      "Evaporar a água do corpo para tomar sol",
-      "Comunicação acústica estrondosa, corte e desparasitação",
-      "Apenas exercício aeróbico para perder peso"
+      "Cerca de 60 a 80 km/h (como um carro de passeio)",
+      "Mais de 120 km/h graças à sua cauda potente",
+      "Entre 5 a 12 km/h, priorizando a eficiência metabólica de longo curso",
+      "Menos de 1 km/h em deriva passiva"
     ],
     "correctIndex": 2,
-    "explanation": "O impacto do breach emite estrondos que viajam quilômetros debaixo d'água, servindo como sinal acústico, demarcação social e remoção de cracas e piolhos-de-baleia."
+    "explanation": "Nadar a 5-12 km/h minimiza o consumo calórico ao longo dos 30.000m de rota, permitindo completar milhares de quilômetros sem esgotar as gorduras."
+  },
+  {
+    "id": "q_pel_frequencia_cantos",
+    "factId": "canal_sofar",
+    "biome": "pelagico",
+    "difficulty": "medio",
+    "question": "Em que faixa acústica situam-se os cantos de baixa frequência emitidos pelas jubartes?",
+    "options": [
+      "Apenas em frequências inaudíveis acima de 100.000 Hz",
+      "Elas emitem apenas cliques secos de radar acima de 50 kHz",
+      "Exclusivamente ultrassom como os pequenos morcegos",
+      "De 20 Hz a 4.000 Hz, perfeitamente audíveis na escala humana"
+    ],
+    "correctIndex": 3,
+    "explanation": "As jubartes produzem uma rica tapeçaria de gemidos, assobios e trinados de 20 Hz a 4 kHz, cobrindo graves profundos até notas agudas."
+  },
+  {
+    "id": "q_pel_magnetorecepcao",
+    "factId": "canal_sofar",
+    "biome": "pelagico",
+    "difficulty": "dificil",
+    "question": "Qual mecanismo geofísico auxilia as grandes baleias a navegar em linha reta em alto mar sem pontos visuais de referência?",
+    "options": [
+      "Sensibilidade ao campo geomagnético da Terra e gradientes térmicos/acústicos",
+      "Detecção de faróis terrestres a milhares de quilômetros",
+      "Observação diurna contínua do voo de insetos marinhos",
+      "Elas nadam em zigue-zague ao acaso até encontrar a costa"
+    ],
+    "correctIndex": 0,
+    "explanation": "Pesquisas indicam que cetáceos possuem biomagnetita em tecidos cerebrais, orientando-se pelas linhas do campo magnético terrestre e mapa acústico submarino."
+  },
+  {
+    "id": "q_pel_termodinamica_sofar",
+    "factId": "canal_sofar",
+    "biome": "pelagico",
+    "difficulty": "dificil",
+    "question": "Por que o som viaja tão longe sem perder energia no Canal SOFAR?",
+    "options": [
+      "Porque o som é refletido pela salinidade pura de superfície",
+      "Porque a velocidade do som atinge um ponto mínimo, refratando as ondas sonoras de volta para o eixo do canal",
+      "Porque não existem peixes nem obstáculos nessa camada",
+      "Porque a água gelada amplifica a eletricidade acústica"
+    ],
+    "correctIndex": 1,
+    "explanation": "O perfil de temperatura decrescente e pressão crescente cria uma zona de velocidade acústica mínima em torno de 800-1000m que aprisiona o som por refração."
+  },
+  {
+    "id": "q_pel_tempo_mergulho_max",
+    "factId": "antartica",
+    "biome": "pelagico",
+    "difficulty": "dificil",
+    "question": "Qual é a duração típica de um mergulho de deslocamento de uma jubarte adulta durante a migração?",
+    "options": [
+      "Cerca de 24 horas sem subir à tona",
+      "Apenas 30 segundos no máximo",
+      "Geralmente de 7 a 20 minutos, podendo atingir até 30 minutos em emergências",
+      "Exatamente 3 horas cronometradas"
+    ],
+    "correctIndex": 2,
+    "explanation": "A jubarte costuma mergulhar por 7 a 15 minutos em viagens normais, acumulando oxigênio em sua hemoglobina e mioglobina muscular antes de voltar à tona."
+  },
+  {
+    "id": "q_pel_peitorais_envergadura",
+    "factId": "golfinhos_drafting",
+    "biome": "pelagico",
+    "difficulty": "dificil",
+    "question": "Em relação ao corpo, qual é a proporção anatômica das nadadeiras peitorais da Megaptera novaeangliae?",
+    "options": [
+      "Menos de 5% do comprimento total do corpo",
+      "Elas têm o mesmo tamanho das nadadeiras de golfinhos comuns",
+      "Mais de 80% do corpo, agindo como asas de avião",
+      "Aproximadamente um terço (cerca de 30% a 33%) do comprimento total"
+    ],
+    "correctIndex": 3,
+    "explanation": "O nome 'Megaptera' significa literalmente 'grandes asas': suas peitorais chegam a 5 metros em animais de 15 metros, conferindo manobrabilidade sem igual."
+  },
+  {
+    "id": "q_urb_poluicao_plastica",
+    "factId": "poluicao_plastica",
+    "biome": "costa_urbana",
+    "difficulty": "facil",
+    "question": "Quantos milhões de toneladas de resíduos plásticos são despejados nos oceanos a cada ano no mundo?",
+    "options": [
+      "Mais de 8 a 11 milhões de toneladas anualmente",
+      "Cerca de 100 toneladas apenas",
+      "Menos de 5 mil toneladas",
+      "Quase nada, o plástico dissolve-se na água do mar"
+    ],
+    "correctIndex": 0,
+    "explanation": "Estima-se que mais de 8 a 11 milhões de toneladas de plástico cheguem aos mares por ano, ameaçando tartarugas, aves e mamíferos marinhos."
+  },
+  {
+    "id": "q_urb_redes_fantasmas",
+    "factId": "redes_fantasmas",
+    "biome": "costa_urbana",
+    "difficulty": "facil",
+    "question": "Por que o termo 'pesca fantasma' é usado para descrever redes abandonadas no mar?",
+    "options": [
+      "Porque são invisíveis para o olho humano fora d'água",
+      "Porque continuam capturando e matando animais marinhos continuamente por décadas",
+      "Porque brilham no escuro como fantasmas",
+      "Porque atraem lulas luminescentes de profundidade"
+    ],
+    "correctIndex": 1,
+    "explanation": "Fabricadas com fibras sintéticas resistentes como nylon, as redes perdidas não se degradam e capturam fauna marinha de forma indiscriminada por muito tempo."
+  },
+  {
+    "id": "q_urb_mancha_oleo",
+    "factId": "derramamento_oleo",
+    "biome": "costa_urbana",
+    "difficulty": "facil",
+    "question": "Qual o perigo mais grave de uma mancha de petróleo na superfície para uma baleia que sobe para respirar?",
+    "options": [
+      "Apenas sujar a cor natural de sua pele",
+      "Aquecer demais as nadadeiras peitorais",
+      "Obstruir o espiráculo e causar queimação química e asfixia nos pulmões",
+      "Mudar o tom de frequência de seus cantos"
+    ],
+    "correctIndex": 2,
+    "explanation": "O óleo cru e seus vapores voláteis inflamam os tecidos delicados do trato respiratório e aderem ao espiráculo, impedindo a oxigenação celular e provocando morte."
+  },
+  {
+    "id": "q_urb_colisao_navios",
+    "factId": "poluicao_plastica",
+    "biome": "costa_urbana",
+    "difficulty": "medio",
+    "question": "Qual é uma das principais causas de ferimentos fatais e mortalidade de baleias próximo a portos movimentados?",
+    "options": [
+      "Queda de raios elétricos no mar aberto",
+      "Ataque de gaivotas costeiras no espiráculo",
+      "Consumo acidental de areia de praia",
+      "Colisão com cascos e hélices de grandes navios cargueiros e petroleiros"
+    ],
+    "correctIndex": 3,
+    "explanation": "Grandes cargueiros navegam a mais de 20 nós em rotas que cruzam corredores de migração de baleias, provocando fraturas ósseas graves e cortes profundos."
+  },
+  {
+    "id": "q_urb_poluicao_sonora",
+    "factId": "canal_sofar",
+    "biome": "costa_urbana",
+    "difficulty": "medio",
+    "question": "De que forma o barulho incessante de motores e hélices de navios afeta a comunicação das baleias?",
+    "options": [
+      "Mascara e abafa as vocalizações, impedindo que mães e filhotes se encontrem",
+      "Estimula as baleias a cantarem mais afinadas",
+      "Não afeta em nada, pois baleias não ouvem sons de barcos",
+      "Ajuda as baleias a localizarem praias seguras"
+    ],
+    "correctIndex": 0,
+    "explanation": "A poluição sonora contínua em baixa frequência eleva o estresse dos cetáceos e encobre chamados sociais de alerta e união de pares reprodutivos."
+  },
+  {
+    "id": "q_urb_microplasticos",
+    "factId": "poluicao_plastica",
+    "biome": "costa_urbana",
+    "difficulty": "medio",
+    "question": "Como os microplásticos (fragmentos plásticos < 5mm) entram no organismo de baleias filtradoras?",
+    "options": [
+      "Elas engolem intencionalmente achando que são ovos de peixe",
+      "Ao filtrar centenas de milhares de litros de água do mar contaminada com suspensão plástica",
+      "Por absorção direta através dos poros da pele do dorso",
+      "Apenas quando estão encalhadas na areia seca"
+    ],
+    "correctIndex": 1,
+    "explanation": "Ao abrirem a boca e filtrarem volumes gigantescos de água para capturar presas, as baleias retêm milhares de partículas sintéticas e toxinas bioacumuláveis."
+  },
+  {
+    "id": "q_urb_descarte_ilegal",
+    "factId": "redes_fantasmas",
+    "biome": "costa_urbana",
+    "difficulty": "dificil",
+    "question": "Qual convenção internacional proíbe o descarte de plásticos e resíduos operacionais de embarcações no mar?",
+    "options": [
+      "Tratado de Tordesilhas de 1494",
+      "Protocolo de Kyoto para emissão de gases estufa",
+      "Convenção MARPOL 73/78 (Anexo V) da Organização Marítima Internacional",
+      "Convenção de Genebra sobre prisioneiros de guerra"
+    ],
+    "correctIndex": 2,
+    "explanation": "A Convenção MARPOL proíbe estritamente a descarga de qualquer tipo de resíduo plástico no oceano por qualquer navio ou plataforma marítima."
+  },
+  {
+    "id": "q_urb_tempo_decomposicao_pet",
+    "factId": "poluicao_plastica",
+    "biome": "costa_urbana",
+    "difficulty": "dificil",
+    "question": "Quanto tempo em média uma garrafa plástica de PET leva para fragmentar-se por completo no ambiente marinho?",
+    "options": [
+      "Cerca de 6 meses",
+      "Menos de duas semanas sob o sol tropical",
+      "Exatamente 5 anos",
+      "Mais de 400 a 450 anos"
+    ],
+    "correctIndex": 3,
+    "explanation": "Polímeros derivados de petróleo levam séculos para se degradar pela luz UV e ondas, fragmentando-se em partículas cada vez menores que nunca somem."
+  },
+  {
+    "id": "q_urb_lixo_toneladas_brasil",
+    "factId": "poluicao_plastica",
+    "biome": "costa_urbana",
+    "difficulty": "dificil",
+    "question": "Segundo estudos ambientais, qual fração aproximada do lixo marinho recolhido nas praias brasileiras é composta por plásticos?",
+    "options": [
+      "Mais de 80% a 90% de todo o lixo encontrado na costa",
+      "Menos de 10%",
+      "Apenas 25% de restos orgânicos",
+      "Não há plástico nas praias do litoral brasileiro"
+    ],
+    "correctIndex": 0,
+    "explanation": "O plástico é disparado o resíduo predominante (80-90%) em mutirões de limpeza costeira no Brasil, com sacolas, copos, embalagens e bitucas de cigarro."
+  },
+  {
+    "id": "q_urb_emalhe_resgate",
+    "factId": "redes_fantasmas",
+    "biome": "costa_urbana",
+    "difficulty": "dificil",
+    "question": "Como equipes especializadas (como o Projeto Baleia Jubarte) realizam o desenredamento de cetáceos presos em redes?",
+    "options": [
+      "Puxando a rede com força máxima por um guindaste de navio",
+      "Usando pequenas embarcações com hastes longas equipadas com lâminas especiais de corte controlado à distância",
+      "Mergulhando desarmados ao lado da cauda para desamarrar com as mãos",
+      "Esperando a rede quebrar sozinha com o tempo"
+    ],
+    "correctIndex": 1,
+    "explanation": "O desenredamento requer treinamento técnico rigoroso com varas telescópicas e facas de corte curvo para não ferir o animal nem colocar em risco os biólogos."
+  },
+  {
+    "id": "q_urb_bioacumulacao",
+    "factId": "derramamento_oleo",
+    "biome": "costa_urbana",
+    "difficulty": "dificil",
+    "question": "O que ocorre no processo ecotoxicológico de biomagnificação de poluentes na cadeia alimentar marinha?",
+    "options": [
+      "Os poluentes diminuem quanto mais alto o nível trófico",
+      "Os animais produzem antídotos naturais contra o lixo",
+      "Substâncias tóxicas como mercúrio e PCBs concentram-se cada vez mais nos grandes predadores e animais longevos",
+      "A água do mar elimina todas as substâncias químicas pesadas"
+    ],
+    "correctIndex": 2,
+    "explanation": "Toxinas lipofílicas acumulam-se no plâncton e nos peixes e atingem níveis perigosos nas reservas de gordura e no leite de mamíferos marinhos longevos."
+  },
+  {
+    "id": "q_can_ressurgencia_conceito",
+    "factId": "canyon_ressurgencia",
+    "biome": "canyons",
+    "difficulty": "facil",
+    "question": "O que é o fenômeno oceanográfico da Ressurgência observado em Cabo Frio e Arraial do Cabo?",
+    "options": [
+      "Um maremoto destrutivo gerado por terremotos submarinos",
+      "O deságue de água doce e morna do Rio Paraíba do Sul",
+      "O congelamento das praias fluminenses no inverno",
+      "A subida de águas profundas frias e extremamente ricas em nutrientes minerais à superfície"
+    ],
+    "correctIndex": 3,
+    "explanation": "A Ressurgência de Cabo Frio eleva águas profundas férteis da Corrente Central do Atlântico Sul, transformando a região em um oásis de biodiversidade marinha."
+  },
+  {
+    "id": "q_can_vento_propulsor",
+    "factId": "canyon_ressurgencia",
+    "biome": "canyons",
+    "difficulty": "facil",
+    "question": "Qual direção de vento predominante é o gatilho meteorológico essencial para acionar a Ressurgência de Cabo Frio?",
+    "options": [
+      "Ventos persistentes do quadrante Nordeste (NE)",
+      "Ventos fortes vindos do Sul (Frente Fria)",
+      "Brisa marítima fraca de Oeste",
+      "Ventos glaciais do polo Norte"
+    ],
+    "correctIndex": 0,
+    "explanation": "Os ventos de Nordeste sopram paralelamente à costa, empurrando as águas quentes de superfície mar adentro pelo transporte de Ekman e puxando a água fria do fundo."
+  },
+  {
+    "id": "q_can_cor_turquesa",
+    "factId": "boqueirao_ilha",
+    "biome": "canyons",
+    "difficulty": "facil",
+    "question": "Por que o mar de Arraial do Cabo possui cores turquesa e azul-cristalino tão límpidas e famosas?",
+    "options": [
+      "Porque corantes industriais foram despejados na água pelos pescadores",
+      "Devido à areia branca de quartzo puro, baixa sedimentação de rios e águas oceânicas profundas muito limpas",
+      "Porque a água é salgada artificialmente",
+      "Porque o fundo do mar é pintado de azul pelas equipes de mergulho"
+    ],
+    "correctIndex": 1,
+    "explanation": "A ausência de grandes rios lamacentos desaguando na enseada, somada à areia branca de quartzo e águas pelágicas límpidas, gera transparência incomparável."
+  },
+  {
+    "id": "q_can_massa_agua_acas",
+    "factId": "canyon_ressurgencia",
+    "biome": "canyons",
+    "difficulty": "medio",
+    "question": "Qual massa de água fria e profunda sobe pelos cânions submarinos durante a ressurgência fluminense?",
+    "options": [
+      "Água Tropical (AT) morna",
+      "Corrente das Guianas",
+      "Água Central do Atlântico Sul (ACAS)",
+      "Água Fluvial Amazônica"
+    ],
+    "correctIndex": 2,
+    "explanation": "A ACAS (Água Central do Atlântico Sul) repousa a centenas de metros de profundidade com temperaturas entre 12°C e 18°C e altíssima concentração de nitrato e fosfato."
+  },
+  {
+    "id": "q_can_temperatura_ressurgencia",
+    "factId": "canyon_ressurgencia",
+    "biome": "canyons",
+    "difficulty": "medio",
+    "question": "Para que faixa de temperatura a água da superfície pode despencar durante um pico de ressurgência em Arraial?",
+    "options": [
+      "Permanece constante a 28°C o ano todo",
+      "Congela a -5°C com blocos de gelo na praia",
+      "Sobe para 35°C fervente",
+      "Cai para cerca de 13°C a 16°C em pleno litoral do Rio de Janeiro"
+    ],
+    "correctIndex": 3,
+    "explanation": "A subida da ACAS provoca choques térmicos nas enseadas, fazendo a temperatura da água cair para 13-16°C, atraindo pinguins, golfinhos e orcas de passagem."
+  },
+  {
+    "id": "q_can_fitoplancton_explosao",
+    "factId": "canyon_ressurgencia",
+    "biome": "canyons",
+    "difficulty": "medio",
+    "question": "Como a abundância de nitratos e fosfatos da ressurgência beneficia toda a teia trófica de Arraial do Cabo?",
+    "options": [
+      "Alimenta uma explosão de fitoplâncton que multiplica o zooplâncton, cardumes de peixes e mamíferos marinhos",
+      "Intoxica peixes e afugenta tartarugas marinhas",
+      "Faz as pedras dos cânions derreterem",
+      "Não tem efeito perceptível na vida marinha"
+    ],
+    "correctIndex": 0,
+    "explanation": "Nutrientes sob luz solar direta disparam a produção primária dos oceanos, sustentando uma abundância pesqueira e biológica única em toda a costa sudeste."
+  },
+  {
+    "id": "q_can_transporte_ekman",
+    "factId": "canyon_ressurgencia",
+    "biome": "canyons",
+    "difficulty": "dificil",
+    "question": "Na oceanografia física, qual princípio explica o desvio a 90° à esquerda da água do mar em relação ao vento no hemisfério sul?",
+    "options": [
+      "Lei da Gravidade de Newton",
+      "Transporte de Ekman induzido pelo Efeito de Coriolis",
+      "Princípio da Flutuabilidade de Arquimedes",
+      "Efeito Estufa de Arrhenius"
+    ],
+    "correctIndex": 1,
+    "explanation": "Pelo efeito de Coriolis gerado pela rotação da Terra, a coluna de água sob atrito do vento Nordeste no Hemisfério Sul é defletida para o largo (Oceano Aberto)."
+  },
+  {
+    "id": "q_can_geologia_boqueirao",
+    "factId": "boqueirao_ilha",
+    "biome": "canyons",
+    "difficulty": "dificil",
+    "question": "O que caracteriza a formação geológica do Boqueirão que separa a Ilha do Farol do continente?",
+    "options": [
+      "Uma cratera de meteorito recente de 50 metros",
+      "Uma barreira artificial de concreto militar",
+      "Uma falha geológica rochosa estreita de granito e gnaisse com fortes correntes marinhas aceleradas",
+      "Uma caverna submersa de calcário sem saída para o mar"
+    ],
+    "correctIndex": 2,
+    "explanation": "O Boqueirão é uma fenda tectônica ancestral de costões escarpados que canaliza a passagem de águas cristalinas entre a Ilha do Farol e o Pontal do Atalaia."
+  },
+  {
+    "id": "q_can_algas_calcarias",
+    "factId": "boqueirao_ilha",
+    "biome": "canyons",
+    "difficulty": "dificil",
+    "question": "Qual grupo de algas de cor rosa brilhante incrusta as paredes submersas de granito em Arraial do Cabo?",
+    "options": [
+      "Algas marinhas verdes comestíveis (Ulva)",
+      "Sargassum flutuante do mar dos Sargaços",
+      "Musgos terrestres de água doce",
+      "Algas rodofíceas calcárias crostosas (Lithothamnion)"
+    ],
+    "correctIndex": 3,
+    "explanation": "As algas calcárias do gênero Lithothamnion precipitam carbonato de cálcio nas rochas, formando crostas rosas e roxas que consolidam a base de recifes bentônicos."
+  },
+  {
+    "id": "q_can_topografia_submarina",
+    "factId": "canyon_ressurgencia",
+    "biome": "canyons",
+    "difficulty": "dificil",
+    "question": "Por que a quebra de plataforma continental em Cabo Frio atua como funil para as correntes profundas?",
+    "options": [
+      "Porque o relevo submarino desce abruptamente de 100m para mais de 1.000m de profundidade muito perto da costa",
+      "Porque a costa é uma planície de areia sem relevo algum",
+      "Porque existem usinas térmicas operando no fundo do oceano",
+      "Porque a rotação terrestre empurra as pedras para a superfície"
+    ],
+    "correctIndex": 0,
+    "explanation": "A mudança abrupta na linha de costa e os cânions submarinos profundos canalizam a ACAS diretamente para a subida litorânea sem dissipação prévia."
+  },
+  {
+    "id": "q_can_moraina_relevo",
+    "factId": "morainas_gelo",
+    "biome": "canyons",
+    "difficulty": "dificil",
+    "question": "Qual o impacto dos relevos rochosos do Boqueirão sobre o comportamento natatório de mães com filhotes?",
+    "options": [
+      "As jubartes evitam a área e preferem alto-mar agitado",
+      "As enseadas rochosas oferecem refúgio hidroacústico contra ventos e ondas oceânicas fortes para amamentar",
+      "Elas usam as pedras para afiar suas barbatanas bucais",
+      "Os filhotes ficam presos nas pedras e não conseguem sair"
+    ],
+    "correctIndex": 1,
+    "explanation": "As águas abrigadas e sem grandes ondulações atrás dos costões de Arraial criam o ambiente perfeito para filhotes desenvolverem coordenação motora inicial."
+  },
+  {
+    "id": "q_arr_resex_criacao",
+    "factId": "reserva_arraial",
+    "biome": "arraial",
+    "difficulty": "facil",
+    "question": "Em que ano foi criada a Reserva Extrativista Marinha de Arraial do Cabo (RESEX), pioneira no Brasil?",
+    "options": [
+      "Em 1950, durante a construção do primeiro farol",
+      "Em 2022, após uma conferência internacional do clima",
+      "Em 1997, protegendo pescadores artesanais tradicionais e a biodiversidade marinha",
+      "No ano de 1822 com a independência brasileira"
+    ],
+    "correctIndex": 2,
+    "explanation": "Criada por Decreto Federal em 1997, a RESEX Marinha de Arraial do Cabo foi a primeira unidade de conservação marinha deste modelo no país."
+  },
+  {
+    "id": "q_arr_funcao_bercario",
+    "factId": "reserva_arraial",
+    "biome": "arraial",
+    "difficulty": "facil",
+    "question": "Qual é a principal atividade biológica das fêmeas de jubarte que atingem as águas protegidas de Arraial do Cabo?",
+    "options": [
+      "Alimentar-se vorazmente de krill e algas marinhas",
+      "Realizar mergulhos profundos de caça abissal",
+      "Aprender a cantar novas músicas com os machos",
+      "Dar à luz, amamentar e proteger os filhotes recém-nascidos"
+    ],
+    "correctIndex": 3,
+    "explanation": "As águas quentes e rasas do litoral brasileiro funcionam como berçário onde os filhotes, que nascem sem gordura isolante suficiente, podem crescer seguros."
+  },
+  {
+    "id": "q_arr_salto_breach",
+    "factId": "salto_breach",
+    "biome": "arraial",
+    "difficulty": "facil",
+    "question": "Quais são algumas das principais funções científicas comprovadas do Salto Majestoso ('Breach') das jubartes?",
+    "options": [
+      "Comunicação acústica estrondosa a longas distâncias, cortejo nupcial e desparasitação de cracas",
+      "Caçar aves marinhas que voam baixo sobre a água",
+      "Tentar respirar fora d'água sem usar o espiráculo",
+      "Exercício aeróbico para diminuir o peso da gordura"
+    ],
+    "correctIndex": 0,
+    "explanation": "O estrondo do choque de até 40 toneladas na superfície ecoa por dezenas de quilômetros debaixo d'água, servindo de comunicação social e descolando parasitas."
+  },
+  {
+    "id": "q_arr_filhote_peso",
+    "factId": "reserva_arraial",
+    "biome": "arraial",
+    "difficulty": "medio",
+    "question": "Com qual tamanho e peso aproximados nasce um filhote de baleia-jubarte no berçário brasileiro?",
+    "options": [
+      "Cerca de 50 cm de comprimento e 20 kg",
+      "Cerca de 4 a 5 metros de comprimento e pesando entre 1 a 2 toneladas",
+      "Exatamente 12 metros e 15 toneladas",
+      "O tamanho de um pinguim comum"
+    ],
+    "correctIndex": 1,
+    "explanation": "O filhote nasce medindo de 4 a 5 metros e pesando cerca de 1,5 tonelada, sendo empurrado suavemente pela mãe para a superfície no primeiro sopro de ar."
+  },
+  {
+    "id": "q_arr_leite_baleia",
+    "factId": "reserva_arraial",
+    "biome": "arraial",
+    "difficulty": "medio",
+    "question": "Qual é a principal característica do leite materno da baleia-jubarte que permite o rápido crescimento do filhote?",
+    "options": [
+      "É aguado e tem sabor adocicado de frutas",
+      "Não contém nenhuma proteína nem cálcio",
+      "Contém cerca de 40% a 50% de teor de gordura, com consistência espessa de iogurte",
+      "É produzido apenas uma vez por mês"
+    ],
+    "correctIndex": 2,
+    "explanation": "Com quase metade de pura gordura e proteína, o leite da jubarte não se dissolve na água e faz o filhote ganhar até 50 kg de peso por dia!"
+  },
+  {
+    "id": "q_arr_fotoidentificacao",
+    "factId": "reserva_arraial",
+    "biome": "arraial",
+    "difficulty": "medio",
+    "question": "Como os biólogos marinhos conseguem identificar individualmente cada baleia-jubarte sem precisar capturá-la?",
+    "options": [
+      "Pela contagem do número de dentes na mandíbula",
+      "Pela velocidade de mergulho cronometrada",
+      "Pela cor dos olhos dos animais",
+      "Pelo padrão único de manchas pretas e brancas e serrilhado da face inferior da cauda (fluke)"
+    ],
+    "correctIndex": 3,
+    "explanation": "A face inferior da nadadeira caudal de cada jubarte funciona como uma impressão digital humana exclusiva, permitindo catalogar rotas migratórias ano após ano."
+  },
+  {
+    "id": "q_arr_tempo_gestacao",
+    "factId": "reserva_arraial",
+    "biome": "arraial",
+    "difficulty": "dificil",
+    "question": "Quanto tempo dura em média o período de gestação de uma fêmea de baleia-jubarte?",
+    "options": [
+      "Aproximadamente 11 a 12 meses (quase um ano inteiro)",
+      "Apenas 3 meses como pequenos roedores",
+      "Cerca de 2 anos e meio",
+      "Exatamente 6 semanas"
+    ],
+    "correctIndex": 0,
+    "explanation": "A gestação dura de 11 a 12 meses: a fêmea é fecundada nas águas quentes do Brasil num inverno e retorna ao mesmo local no ano seguinte para parir."
+  },
+  {
+    "id": "q_arr_recuperacao_populacional",
+    "factId": "reserva_arraial",
+    "biome": "arraial",
+    "difficulty": "dificil",
+    "question": "Após a proibição internacional da caça comercial, para quanto recuperou-se a população brasileira de jubartes?",
+    "options": [
+      "A espécie infelizmente foi extinta no Atlântico Sul",
+      "Passou de menos de 1.000 sobreviventes na década de 1980 para mais de 30.000 animais hoje",
+      "Permanece estagnada em apenas 500 baleias",
+      "Existem apenas 50 baleias catalogadas em cativeiro"
+    ],
+    "correctIndex": 1,
+    "explanation": "Graças à proteção legal (Lei Federal 7.643/1987) e pesquisas de conservação, a população brasileira de jubartes recuperou mais de 90% de sua abundância histórica pré-caça."
+  },
+  {
+    "id": "q_arr_farol_novo_ano",
+    "factId": "boqueirao_ilha",
+    "biome": "arraial",
+    "difficulty": "dificil",
+    "question": "Em que ano foi inaugurado o Farol Novo de Arraial do Cabo no topo da Ilha do Farol para guiar embarcações?",
+    "options": [
+      "Em 1500 na esquadra de Cabral",
+      "Em 1999 com lâmpadas LED solares",
+      "Em 1861, substituindo o antigo farol mais alto que sofria com neblinas frequentes",
+      "Em 1750 pelos jesuítas"
+    ],
+    "correctIndex": 2,
+    "explanation": "O primeiro farol (1836) ficava a 395m e era frequentemente encoberto por nuvens da ressurgência. Em 1861, foi construído o Farol Novo em cota mais baixa."
+  },
+  {
+    "id": "q_arr_cracas_coronula",
+    "factId": "salto_breach",
+    "biome": "arraial",
+    "difficulty": "dificil",
+    "question": "Qual é a espécie comum de craca parasita epibionte que vive incrustada na pele das baleias-jubarte?",
+    "options": [
+      "Craca-gigante de água doce",
+      "Anêmona-de-fogo urticante",
+      "Caramujo-dourado marinho",
+      "Coronula diadema (craca-de-baleia)"
+    ],
+    "correctIndex": 3,
+    "explanation": "A Coronula diadema fixa-se na pele grossa da jubarte e depende dos saltos e da velocidade da água para filtrar partículas sem penetrar na carne da baleia."
   }
 ]

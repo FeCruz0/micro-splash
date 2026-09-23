@@ -2,6 +2,8 @@ import type { KaboomCtx } from "kaboom";
 import { audioSystem } from "../systems/audioSystem";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
 import { hapticsSystem } from "../systems/hapticsSystem";
+import { ttsSystem } from "../systems/ttsSystem";
+import { showOnboardingModal } from "./onboardingModal";
 import {
   RESOLUTION_PRESETS,
   type ResolutionKey,
@@ -317,10 +319,10 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
     hapticsText.text = getHapticsLabel();
   });
 
-  // --- 18.2 SELETOR DE CORES / DALTONISMO & ALTO CONTRASTE ---
+  // --- 18.2 SELETOR DE CORES / DALTONISMO & FASE 21 NARRAÇÃO EM VOZ (TTS) ---
   const btnAccessibility = k.add([
-    k.rect(350, 32, { radius: 8 }),
-    k.pos(k.width() / 2, k.height() / 2 - 54),
+    k.rect(170, 32, { radius: 7 }),
+    k.pos(k.width() / 2 - 90, k.height() / 2 - 54),
     k.color(accessibilitySystem.isHighContrast() ? k.rgb(30, 110, 150) : k.rgb(22, 75, 125)),
     k.outline(1, k.rgb(100, 240, 220)),
     k.scale(1),
@@ -332,8 +334,8 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   elements.push(btnAccessibility);
 
   const accessibilityText = k.add([
-    k.text(accessibilitySystem.getLabel(), { size: 12.5, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 - 54),
+    k.text(accessibilitySystem.getLabel(), { size: 11, font: "sans-serif" }),
+    k.pos(k.width() / 2 - 90, k.height() / 2 - 54),
     k.color(255, 255, 255),
     k.anchor("center"),
     k.fixed(),
@@ -353,6 +355,44 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
     audioSystem.playUiClick();
     accessibilityText.text = accessibilitySystem.getLabel();
     btnAccessibility.color = accessibilitySystem.isHighContrast() ? k.rgb(30, 110, 150) : k.rgb(22, 75, 125);
+  });
+
+  // Botão Narração em Voz (Web Speech API / TTS)
+  const btnTts = k.add([
+    k.rect(170, 32, { radius: 7 }),
+    k.pos(k.width() / 2 + 90, k.height() / 2 - 54),
+    k.color(ttsSystem.isEnabled() ? k.rgb(20, 100, 140) : k.rgb(50, 60, 70)),
+    k.outline(1, k.rgb(100, 220, 255)),
+    k.scale(1),
+    k.anchor("center"),
+    k.area(),
+    k.fixed(),
+    k.z(302),
+  ]);
+  elements.push(btnTts);
+
+  const ttsText = k.add([
+    k.text(ttsSystem.getLabel(), { size: 10.5, font: "sans-serif" }),
+    k.pos(k.width() / 2 + 90, k.height() / 2 - 54),
+    k.color(255, 255, 255),
+    k.anchor("center"),
+    k.fixed(),
+    k.z(303),
+  ]);
+  elements.push(ttsText);
+
+  btnTts.onHoverUpdate(() => {
+    btnTts.scale = k.vec2(1.02, 1.02);
+  });
+  btnTts.onHoverEnd(() => {
+    btnTts.scale = k.vec2(1, 1);
+  });
+
+  btnTts.onClick(() => {
+    const newState = ttsSystem.toggle();
+    audioSystem.playUiClick();
+    btnTts.color = newState ? k.rgb(20, 100, 140) : k.rgb(50, 60, 70);
+    ttsText.text = ttsSystem.getLabel();
   });
 
   // --- TOGGLE DE CONTROLES TOUCH NA TELA ---
@@ -559,10 +599,46 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
     k.z(303),
   ]));
 
-  // --- BOTÃO VOLTAR ---
+  // --- BOTÕES VOLTAR & REVER TUTORIAL ---
+  const btnTutorial = k.add([
+    k.rect(190, 36, { radius: 8 }),
+    k.pos(k.width() / 2 - 105, k.height() / 2 + 195),
+    k.color(20, 85, 130),
+    k.outline(1.5, k.rgb(100, 240, 220)),
+    k.scale(1),
+    k.anchor("center"),
+    k.area(),
+    k.fixed(),
+    k.z(302),
+  ]);
+  elements.push(btnTutorial);
+
+  elements.push(k.add([
+    k.text("Tutorial / Guia 📖", { size: 12.5, font: "sans-serif" }),
+    k.pos(k.width() / 2 - 105, k.height() / 2 + 195),
+    k.color(255, 255, 255),
+    k.anchor("center"),
+    k.fixed(),
+    k.z(303),
+  ]));
+
+  btnTutorial.onHoverUpdate(() => {
+    btnTutorial.color = k.rgb(28, 120, 175);
+    btnTutorial.scale = k.vec2(1.02, 1.02);
+  });
+  btnTutorial.onHoverEnd(() => {
+    btnTutorial.color = k.rgb(20, 85, 130);
+    btnTutorial.scale = k.vec2(1, 1);
+  });
+
+  btnTutorial.onClick(() => {
+    audioSystem.playUiClick();
+    showOnboardingModal(k, () => {});
+  });
+
   const btnBack = k.add([
-    k.rect(220, 38, { radius: 8 }),
-    k.pos(k.width() / 2, k.height() / 2 + 195),
+    k.rect(190, 36, { radius: 8 }),
+    k.pos(k.width() / 2 + 105, k.height() / 2 + 195),
     k.color(16, 120, 180),
     k.outline(2, k.rgb(100, 240, 255)),
     k.scale(1),
@@ -574,8 +650,8 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   elements.push(btnBack);
 
   elements.push(k.add([
-    k.text("Salvar & Voltar ↩️", { size: 14, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 + 195),
+    k.text("Salvar & Voltar ↩️", { size: 13, font: "sans-serif" }),
+    k.pos(k.width() / 2 + 105, k.height() / 2 + 195),
     k.color(255, 255, 255),
     k.anchor("center"),
     k.fixed(),
