@@ -98,12 +98,6 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
 - [x] **11.5 Testes Automatizados com Vitest:**
   - Implementar suíte de testes unitários cobrindo o gerenciador de estado (`createGameState`), persistência de resoluções, detecção de ambiente touch e física essencial da baleia.
 
----
-
-## 🎯 Próximas Fases (Ordenadas por Prioridade)
-
----
-
 ### 🎮 FASE 12: Gameplay & Mecânicas Novas
 *Objetivo: Enriquecer a dinâmica de navegação e introduzir novas camadas estratégicas durante a migração.*
 
@@ -149,7 +143,45 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
 ### 🎪 FASE 16: Engajamento & Ferramentas de Apresentação
 *Objetivo: Fornecer métricas coletivas e recursos para apresentação aos avaliadores.*
 
-- [ ] **16.1 Dashboard de Estatísticas Acumuladas:**
+- [x] **16.1 Dashboard de Estatísticas Acumuladas:**
   - Painel persistente visível no menu principal exibindo contadores coletivos de todos os jogadores (total de migrações tentadas, migrações concluídas com sucesso, krill total coletado, lixo desviado e tempo total acumulado de jogo).
-- [ ] **16.2 Modo Apresentação Guiada (Apoio aos Jurados/Professores):**
+- [x] **16.2 Modo Apresentação Guiada (Apoio aos Jurados/Professores):**
   - Atalho dedicado (`Ctrl+P`) que ativa sobreposição de legendas explicativas e destaques conceituais em tempo real, permitindo aos apresentadores guiar a banca avaliadora pelos conceitos ecológicos e de programação implementados.
+
+---
+
+## 🎯 Próximas Fases (Ordenadas por Prioridade)
+
+---
+
+### 🐋 FASE 17: Animação Orgânica da Jubarte & Cenários de Arraial
+*Objetivo: Elevar a fidelidade visual da criatura marinha e a organicidade dos relevos costeiros submersos.*
+
+- [ ] **17.1 Redesenho do Spritesheet da Baleia com Flexão Caudal (Spine Curvature):**
+  - Adicionar curvatura real da coluna vertebral e do pedúnculo caudal nos frames de batida (`whale.png`), com arco côncavo no *downstroke* e arco convexo no *upstroke*, enriquecendo a silhueta da jubarte.
+- [ ] **17.2 Animação de Manobra & Roll em Perspectiva:**
+  - Variação de rotação/roll sutil ao mudar bruscamente de profundidade, exibindo o padrão estriado do ventre e as nadadeiras peitorais brancas em perspectiva.
+- [ ] **17.3 Efeito de Reflexo Cáustico sobre a Pele da Baleia:**
+  - Projeção sutil de cáusticos de luz solar ondulando sobre o dorso da baleia enquanto ela navega próximo à superfície cristalina.
+- [ ] **17.4 Relevo Orgânico Submerso do Boqueirão da Ilha do Farol:**
+  - Reformulação visual da parte submersa do relevo rochoso (25.400m a 27.300m): substituir a laje retangular plana e rígida por costões rochosos escarpados de granito com silhueta orgânica irregular, fendas submarinas, estratificação geológica, fissuras, tufos de anêmonas, ouriços e bioincrustações de costão marinho real de Arraial do Cabo.
+
+### 🌊 FASE 18: Dinâmica Hidrodinâmica de Correntezas & Acessibilidade
+*Objetivo: Aprofundar a física biológica da navegação e garantir acessibilidade a todos os perfis de jogadores.*
+
+- [ ] **18.1 Dinâmica de Fôlego em Correntezas (Nado a Favor vs. Contra o Fluxo):**
+  - Modelar o consumo de oxigênio conforme o alinhamento da baleia com o vetor da correnteza: se a jubarte estiver virada e nadando contra o fluxo, o esforço físico intensificado aumenta o dreno de oxigênio (+35%); se estiver virada e nadando a favor da correnteza, a esteira hidrodinâmica reduz o dreno de oxigênio (-35%), criando uma camada tática e biológica realista de navegação oceânica.
+- [ ] **18.2 Modos de Alto Contraste & Daltonismo:**
+  - Paletas comutáveis no menu de opções (Protanopia, Deuteranopia e Alto Contraste com contornos reforçados para lixo, redes e krill).
+- [ ] **18.3 Seletor de Trilha Sonora / Jukebox Oceânica:**
+  - Opção no menu para alternar em tempo real entre: *Trilha 16-Bit Chiptune Dinâmica* (estilo David Wise), *Trilha Ambiente Contemplativa* (apenas hidrofones, água e cantos de baleia) e *Modo Foco* (apenas SFX).
+- [ ] **18.4 Feedback Háptico em Dispositivos Móveis:**
+  - Vibração tátil (`navigator.vibrate`) em tablets e celulares ao romper o gelo polar, sofrer colisão ou emitir o Biosonar.
+
+### 🌐 FASE 19: Eventos Climáticos & Distribuição para Totens (PWA)
+*Objetivo: Preparar o jogo para eventos públicos, feiras de ciências escolares e totens de museus sem dependência de internet.*
+
+- [ ] **19.1 Eventos Climáticos Dinâmicos na Rota:**
+  - Micro-climas ao longo da migração: nevasca polar passageira na Antártica, céu encoberto com vendaval em alto-mar e calmaria solar radiante em Arraial do Cabo.
+- [ ] **19.2 Modo PWA Offline-First para Totens Interativos & Feiras de Ciências:**
+  - Configuração de Service Worker e Web App Manifest permitindo instalação autônoma no desktop ou tela inicial de tablets, com cache local de todos os assets (sprites, sons, scripts), rodando 100% offline em estandes e museus sem necessidade de conexão com a internet.

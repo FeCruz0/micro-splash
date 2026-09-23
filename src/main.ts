@@ -29,6 +29,8 @@ import { createKioskScene } from "./systems/kioskMode";
 import { setupTouchControls } from "./ui/touchControls";
 import { initParticlePool } from "./systems/particlePool";
 import { initBiomeLifecycleManager } from "./systems/biomeLifecycleManager";
+import { recordMigrationStart, recordMigrationEnd } from "./systems/cumulativeStats";
+import { initPresentationMode } from "./systems/presentationMode";
 
 // Interfaces da Fase 6: Menu Principal, Seleção de Modo, Opções e Codex
 import { createMainMenu } from "./ui/mainMenu";
@@ -203,12 +205,28 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
     ]);
   }
 
+  // 1.5. Registra Início da Jornada no Dashboard Coletivo (Fase 16)
+  recordMigrationStart();
+  let isStatsRecorded = false;
+  const recordEndOnce = (completed: boolean) => {
+    if (isStatsRecorded) return;
+    isStatsRecorded = true;
+    recordMigrationEnd(
+      gameState.getDistance(),
+      gameState.getKrillCount(),
+      gameState.getTrashCount(),
+      gameState.getElapsedTime(),
+      completed
+    );
+  };
+
   // 2. Instancia obstáculos, krill, redes e bolsões de ar procedurais
   const obstacleData = loadLevelLayout(k);
 
-  // 2.5. Inicializa Núcleo de Otimização & Performance (Fase 15)
+  // 2.5. Inicializa Núcleo de Otimização & Performance (Fase 15) e Apresentação (Fase 16)
   const particlePool = initParticlePool(k);
   const biomeManager = initBiomeLifecycleManager(k);
+  const presentationMode = initPresentationMode(k, playerController);
 
   // 3. Inicializa os Sistemas dos 5 Biomas e Correntezas Oceânicas Procedurais
   setupIceSurfaceSystem(k, playerController);
@@ -281,6 +299,8 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
     onBreachComplete: () => {
       if (!isGameFinished) {
         isGameFinished = true;
+        recordEndOnce(true);
+        presentationMode.destroy();
         playerController.freeze();
         audioSystem.pauseAmbient();
         showVictoryScreen(k, gameState, () => {
@@ -298,6 +318,13 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
     if (isGameFinished) {
       return;
     }
+
+    // Se estiver em Pausa Didática (Modo Apresentação F16), congela física e atualiza o painel
+    if (presentationMode.isDidacticPaused()) {
+      presentationMode.update();
+      return;
+    }
+    presentationMode.update();
 
     const dt = k.dt();
     const playerXPosition = playerController.gameObj.pos.x;
@@ -322,6 +349,8 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
     // Fallback de segurança para conclusão caso alcance ou ultrapasse a rota
     if (playerXPosition >= GAME_CONFIG.ROUTE_TOTAL_DISTANCE) {
       isGameFinished = true;
+      recordEndOnce(true);
+      presentationMode.destroy();
       playerController.freeze();
       audioSystem.pauseAmbient();
       showVictoryScreen(k, gameState, () => {
@@ -343,6 +372,8 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
     // Verifica término do desafio de 1 minuto
     if (options.mode === "quick_challenge" && gameState.isTimeUp()) {
       isGameFinished = true;
+      recordEndOnce(false);
+      presentationMode.destroy();
       playerController.freeze();
       audioSystem.pauseAmbient();
       showChallengeEndScreen(
@@ -384,6 +415,8 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
 
       // Espera 3.5 segundos (tempo do barco chegar) e exibe o relatório
       k.wait(3.5, () => {
+        recordEndOnce(false);
+        presentationMode.destroy();
         playerController.freeze();
         showRescueScreen(k, gameState, () => {
           audioSystem.stopMigrationAudio();

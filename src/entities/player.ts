@@ -10,7 +10,7 @@ import { PlayerControlsManager } from "./player/playerControls";
 import {
   spawnBaleenSuction,
   spawnDraftingTrail,
-  spawnTailBubbleTrail,
+  spawnTailWaterRipples,
 } from "./player/playerParticles";
 
 export type { PlayerController } from "./player/types";
@@ -21,7 +21,7 @@ export function createPlayer(
   isSereneMode: boolean = false,
   touchState?: TouchControlsState
 ): PlayerController {
-  const baleia = k.add([
+  const comps: any[] = [
     k.sprite("baleia", { anim: "glide" }),
     k.pos(initialX, 200),
     k.area({ shape: new k.Rect(k.vec2(0, 0), 108, 38) }),
@@ -30,7 +30,11 @@ export function createPlayer(
     k.color(255, 255, 255),
     k.anchor("center"),
     TAGS.PLAYER,
-  ]);
+  ];
+  if (typeof k.scale === "function") {
+    comps.push(k.scale(1, 1));
+  }
+  const baleia = k.add(comps);
 
   const oxygenMgr = new PlayerOxygenManager(k);
   const physicsMgr = new PlayerPhysicsManager(k);
@@ -49,7 +53,7 @@ export function createPlayer(
   // Efeitos Ambientais
   let speedBoostTimer = 0;
   let speedBoostMultiplier = 1.0;
-  let tailBubbleTimer = 0;
+  let strokeRippleTriggered = false;
 
   baleia.onUpdate(() => {
     const dt = k.dt();
@@ -117,6 +121,17 @@ export function createPlayer(
 
       if (inputs.isStrokePressed) {
         audioSystem.playStrokeThrust();
+        strokeRippleTriggered = false;
+        if (!inAir) {
+          const currentBoost = speedBoostTimer > 0 ? speedBoostMultiplier : 1.0;
+          spawnTailWaterRipples(
+            k,
+            baleia.pos,
+            baleia.angle,
+            controlsMgr.isFacingRight(),
+            currentBoost
+          );
+        }
       }
 
       if (inputs.isStrokeDown) {
@@ -130,10 +145,24 @@ export function createPlayer(
           maxSpeed,
           currentBoost
         );
+
+        // Se estiver no ápice da batida descendente (downstroke), emite uma ondulação secundária
+        const strokeProgress = physicsMgr.getStrokeTimer() / GAME_CONFIG.MAX_STROKE_TIME;
+        if (!inAir && strokeProgress >= 0.45 && !strokeRippleTriggered) {
+          strokeRippleTriggered = true;
+          spawnTailWaterRipples(
+            k,
+            baleia.pos,
+            baleia.angle,
+            controlsMgr.isFacingRight(),
+            currentBoost * 1.15
+          );
+        }
       }
 
       if (inputs.isStrokeReleased) {
         physicsMgr.resetStrokeTimer();
+        strokeRippleTriggered = false;
       }
 
       sonarMgr.updateCooldown(dt);
@@ -164,12 +193,47 @@ export function createPlayer(
       }
     }
 
-    // 6. Oscilação orgânica da cauda em movimento
+    // 6. Deformação Orgânica (Squash & Stretch) e Ondulação do Nado
+    const isStrokeActive =
+      (k.isKeyDown("space") || (touchState && touchState.strokeDown)) &&
+      !isTrapped &&
+      !isFrozen &&
+      !oxygenMgr.isFaintingState();
+
     const currentSpeed = physicsMgr.getSpeed();
-    const swimSway =
-      currentSpeed.len() > 20 && !oxygenMgr.isFaintingState()
-        ? Math.sin(k.time() * 7) * Math.min(2.5, currentSpeed.len() / 80)
-        : 0;
+    const speedLen = currentSpeed.len();
+
+    // Squash & Stretch muscular na batida (alongamento hidrodinâmico e relaxamento)
+    if (baleia.scale) {
+      let targetScaleX = 1.0;
+      let targetScaleY = 1.0;
+
+      if (isStrokeActive) {
+        const strokeProgress = physicsMgr.getStrokeTimer() / GAME_CONFIG.MAX_STROKE_TIME;
+        const muscularThrust = Math.sin(strokeProgress * Math.PI) * 0.07;
+        targetScaleX = 1.0 + muscularThrust;
+        targetScaleY = 1.0 - muscularThrust * 0.65;
+      } else if (speedLen > 40) {
+        const glideBreathing = Math.sin(k.time() * 3) * 0.015;
+        targetScaleX = 1.0 + glideBreathing;
+        targetScaleY = 1.0 - glideBreathing;
+      }
+
+      baleia.scale.x = k.lerp(baleia.scale.x, targetScaleX, dt * 8);
+      baleia.scale.y = k.lerp(baleia.scale.y, targetScaleY, dt * 8);
+    }
+
+    // Ondulação da coluna vertebral sincronizada com o ciclo de nado (substitui a rotação rígida de torpedo)
+    let swimSway = 0;
+    if (!oxygenMgr.isFaintingState()) {
+      if (isStrokeActive) {
+        const strokeProgress = physicsMgr.getStrokeTimer() / GAME_CONFIG.MAX_STROKE_TIME;
+        swimSway = Math.sin(strokeProgress * Math.PI * 2) * 3.2;
+      } else if (speedLen > 30) {
+        // Balanço suave e majestoso em planeio hidrodinâmico
+        swimSway = Math.sin(k.time() * 3.2) * Math.min(1.2, speedLen / 100);
+      }
+    }
 
     baleia.angle =
       (controlsMgr.isFacingRight() ? controlsMgr.getAngle() : -controlsMgr.getAngle()) + swimSway;
@@ -201,23 +265,11 @@ export function createPlayer(
       spawnDraftingTrail(k, baleia.pos, controlsMgr.isFacingRight());
     }
 
-    // 10. Rastro de micro-bolhas dinâmicas da cauda em propulsão
-    if (!movementResult.inAir) {
-      const maxSpeed = GAME_CONFIG.MAX_SPEED * (1 + oxygenMgr.getKrillsEaten() * 0.01);
-      const speedRatio = Math.min(1.5, currentSpeed.len() / maxSpeed);
-      tailBubbleTimer -= dt;
-      const isStrokeActive = k.isKeyDown("space") || (touchState && touchState.strokeDown);
-      const interval = isStrokeActive ? 0.045 : 0.10;
-      if (tailBubbleTimer <= 0 && speedRatio > 0.08) {
-        tailBubbleTimer = interval;
-        spawnTailBubbleTrail(
-          k,
-          baleia.pos,
-          baleia.angle,
-          controlsMgr.isFacingRight(),
-          speedRatio
-        );
-      }
+    // 10. Deslocamento sutil dorsoventral (onda vertical suave na água durante a propulsão)
+    if (isStrokeActive && !movementResult.inAir && !isTrapped) {
+      const strokeProgress = physicsMgr.getStrokeTimer() / GAME_CONFIG.MAX_STROKE_TIME;
+      const dorsoventralHeave = Math.sin(strokeProgress * Math.PI * 2) * 0.7;
+      baleia.pos.y += dorsoventralHeave;
     }
 
     // 10. Cor conforme perda de oxigênio e rede

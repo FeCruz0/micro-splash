@@ -233,8 +233,85 @@ export function spawnDraftingTrail(k: KaboomCtx, pos: Vec2, isFacingRight: boole
 }
 
 /**
- * Emite rastro de micro-bolhas dinâmicas partindo da cauda (flukes) durante a propulsão.
- * A intensidade e tamanho das bolhas são proporcionais à velocidade instantânea.
+ * Emite ondulações orgânicas na água (water ripples) geradas pelo deslocamento
+ * de massa d'água da nadadeira caudal (flukes) durante o ciclo de batida.
+ * Sem efeito de 'escapamento/hélice': são ondas de pressão translúcidas que se
+ * expandem suavemente no local onde a cauda empurrou a água.
+ */
+export function spawnTailWaterRipples(
+  k: KaboomCtx,
+  pos: Vec2,
+  angleDeg: number,
+  isFacingRight: boolean,
+  intensity: number = 1.0
+) {
+  const angleRad = k.deg2rad(angleDeg);
+  // Posição exata das pontas da cauda (atrás do centro da baleia)
+  const tailBaseOffset = k.vec2(isFacingRight ? -48 : 48, 2);
+  const rotatedOffset = k.vec2(
+    tailBaseOffset.x * Math.cos(angleRad) - tailBaseOffset.y * Math.sin(angleRad),
+    tailBaseOffset.x * Math.sin(angleRad) + tailBaseOffset.y * Math.cos(angleRad)
+  );
+  const tailPos = pos.add(rotatedOffset);
+  const pool = getParticlePool();
+
+  // Emite 1 ondulação primária e, em impulsos mais fortes, uma secundária concêntrica
+  const rippleCount = intensity > 1.15 ? 2 : 1;
+
+  for (let i = 0; i < rippleCount; i++) {
+    const initialRadius = 4 + i * 3;
+    const growthRate = 45 + Math.random() * 15;
+    const life = 0.35 + i * 0.08;
+    // O centro da ondulação fica na água onde a cauda bateu, com quase nenhum arrasto artificial
+    const ripplePos = tailPos.add(k.vec2(
+      (isFacingRight ? -1 : 1) * (i * 4),
+      (Math.random() - 0.5) * 3
+    ));
+    const driftVel = k.vec2((isFacingRight ? -1 : 1) * (8 + i * 4), 0);
+    // Tom ciano-aquático translúcido e suave
+    const color = k.rgb(160, 235, 255);
+    const opacity = 0.35 - i * 0.08;
+
+    if (pool) {
+      pool.spawnCircle({
+        pos: ripplePos,
+        radius: initialRadius,
+        color,
+        opacity,
+        z: 13,
+        vel: driftVel,
+        growthRate,
+        fadeRate: 0.95,
+        maxLife: life,
+      });
+    } else {
+      const ripple = k.add([
+        k.circle(initialRadius),
+        k.pos(ripplePos),
+        k.color(color),
+        k.opacity(opacity),
+        k.z(13),
+      ]);
+
+      let curLife = life;
+      let curRadius = initialRadius;
+      ripple.onUpdate(() => {
+        const dt = k.dt();
+        curRadius += growthRate * dt;
+        ripple.radius = curRadius;
+        ripple.pos = ripple.pos.add(driftVel.scale(dt));
+        curLife -= dt;
+        ripple.opacity = Math.max(0, (curLife / life) * opacity);
+        if (curLife <= 0 || ripple.opacity <= 0) {
+          k.destroy(ripple);
+        }
+      });
+    }
+  }
+}
+
+/**
+ * @deprecated Mantido para compatibilidade retroativa; redireciona para spawnTailWaterRipples.
  */
 export function spawnTailBubbleTrail(
   k: KaboomCtx,
@@ -243,68 +320,7 @@ export function spawnTailBubbleTrail(
   isFacingRight: boolean,
   speedRatio: number
 ) {
-  if (speedRatio <= 0.08) return;
-
-  const count = Math.min(4, Math.max(1, Math.round(speedRatio * 3)));
-  const angleRad = k.deg2rad(angleDeg);
-  // Posição da cauda (atrás do centro da baleia)
-  const tailBaseOffset = k.vec2(isFacingRight ? -46 : 46, 2);
-  const rotatedOffset = k.vec2(
-    tailBaseOffset.x * Math.cos(angleRad) - tailBaseOffset.y * Math.sin(angleRad),
-    tailBaseOffset.x * Math.sin(angleRad) + tailBaseOffset.y * Math.cos(angleRad)
-  );
-  const tailPos = pos.add(rotatedOffset);
-  const pool = getParticlePool();
-
-  for (let i = 0; i < count; i++) {
-    const radius = 1.6 + Math.random() * (1.8 * Math.min(1.2, speedRatio));
-    const bubblePos = k.vec2(
-      tailPos.x + (Math.random() - 0.5) * 8,
-      tailPos.y + (Math.random() - 0.5) * 10
-    );
-    const color = k.choose([k.rgb(190, 240, 255), k.rgb(220, 250, 255), k.rgb(150, 225, 245)]);
-    const life = 0.45 + Math.random() * 0.4;
-    const driftX = (isFacingRight ? -1 : 1) * (20 + Math.random() * 35 * speedRatio);
-    const riseY = -25 - Math.random() * 35;
-
-    if (pool) {
-      pool.spawnCircle({
-        pos: bubblePos,
-        radius,
-        color,
-        opacity: 0.65 + Math.random() * 0.25,
-        z: 13,
-        vel: k.vec2(driftX, riseY),
-        swayFreq: 4.0,
-        swayAmp: 8.0,
-        maxLife: life,
-      });
-    } else {
-      const bubble = k.add([
-        k.circle(radius),
-        k.pos(bubblePos),
-        k.color(color),
-        k.opacity(0.65 + Math.random() * 0.25),
-        k.z(13),
-      ]);
-
-      const maxLife = life;
-      let curLife = life;
-      let sway = Math.random() * Math.PI * 2;
-
-      bubble.onUpdate(() => {
-        const dt = k.dt();
-        sway += dt * 4;
-        bubble.pos.x += (driftX + Math.sin(sway) * 8) * dt;
-        bubble.pos.y += riseY * dt;
-        curLife -= dt;
-        bubble.opacity = Math.max(0, (curLife / maxLife) * 0.8);
-        if (curLife <= 0 || bubble.opacity <= 0) {
-          k.destroy(bubble);
-        }
-      });
-    }
-  }
+  spawnTailWaterRipples(k, pos, angleDeg, isFacingRight, speedRatio);
 }
 
 

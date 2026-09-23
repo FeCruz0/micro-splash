@@ -1,6 +1,7 @@
 import type { KaboomCtx } from "kaboom";
 import { audioSystem } from "../systems/audioSystem";
 import type { GameState } from "../systems/state";
+import { recordQuizResult } from "../systems/cumulativeStats";
 import quizData from "../../data/quiz.json";
 
 export interface QuizQuestion {
@@ -447,6 +448,7 @@ export function showQuizModal(
 
     const finish = () => {
       audioSystem.playUiClick();
+      recordQuizResult(correctAnswers);
       destroyAll();
       onComplete(scoreGained, correctAnswers);
     };

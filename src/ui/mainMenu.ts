@@ -1,5 +1,6 @@
 import type { KaboomCtx } from "kaboom";
 import { audioSystem } from "../systems/audioSystem";
+import { showStatsModal } from "./statsModal";
 
 export function createMainMenu(
   k: KaboomCtx,
@@ -51,7 +52,7 @@ export function createMainMenu(
   // Título Sombra
   k.add([
     k.text("MICRO SPLASH", { size: 48, font: "sans-serif" }),
-    k.pos(k.width() / 2 + 3, k.height() / 2 - 165 + 3),
+    k.pos(k.width() / 2 + 3, k.height() / 2 - 170 + 3),
     k.color(2, 8, 20),
     k.anchor("center"),
     k.fixed(),
@@ -61,7 +62,7 @@ export function createMainMenu(
   // Título Principal
   k.add([
     k.text("MICRO SPLASH", { size: 48, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 - 165),
+    k.pos(k.width() / 2, k.height() / 2 - 170),
     k.color(100, 240, 255),
     k.anchor("center"),
     k.fixed(),
@@ -71,7 +72,7 @@ export function createMainMenu(
   // Subtítulo
   k.add([
     k.text("A Grande Migração da Baleia-Jubarte 🐋", { size: 16, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 - 118),
+    k.pos(k.width() / 2, k.height() / 2 - 124),
     k.color(200, 235, 255),
     k.anchor("center"),
     k.fixed(),
@@ -83,7 +84,7 @@ export function createMainMenu(
   if (highScore > 0) {
     k.add([
       k.text(`🏆 Recorde Histórico: ${highScore} Eco-Pontos`, { size: 12, font: "sans-serif" }),
-      k.pos(k.width() / 2, k.height() / 2 - 82),
+      k.pos(k.width() / 2, k.height() / 2 - 88),
       k.color(255, 215, 80),
       k.anchor("center"),
       k.fixed(),
@@ -97,7 +98,7 @@ export function createMainMenu(
   const menuButtons = [
     {
       label: "🌊 INICIAR MIGRAÇÃO",
-      y: k.height() / 2 - 38,
+      y: k.height() / 2 - 50,
       bg: k.rgb(20, 140, 200),
       hover: k.rgb(35, 175, 240),
       outline: k.rgb(100, 250, 255),
@@ -105,7 +106,7 @@ export function createMainMenu(
     },
     {
       label: "🏆 RANKING TOP 10",
-      y: k.height() / 2 + 18,
+      y: k.height() / 2 - 2,
       bg: k.rgb(26, 85, 150),
       hover: k.rgb(40, 120, 200),
       outline: k.rgb(255, 215, 80),
@@ -115,8 +116,18 @@ export function createMainMenu(
       },
     },
     {
+      label: "📊 IMPACTO COLETIVO",
+      y: k.height() / 2 + 46,
+      bg: k.rgb(18, 95, 130),
+      hover: k.rgb(28, 135, 180),
+      outline: k.rgb(0, 230, 255),
+      action: (onClose: () => void) => {
+        showStatsModal(k, onClose);
+      },
+    },
+    {
       label: "📖 DIÁRIO DE BORDO",
-      y: k.height() / 2 + 74,
+      y: k.height() / 2 + 94,
       bg: k.rgb(20, 50, 100),
       hover: k.rgb(30, 80, 145),
       outline: k.rgb(180, 220, 255),
@@ -124,7 +135,7 @@ export function createMainMenu(
     },
     {
       label: "⚙️ OPÇÕES",
-      y: k.height() / 2 + 130,
+      y: k.height() / 2 + 142,
       bg: k.rgb(24, 65, 120),
       hover: k.rgb(35, 95, 165),
       outline: k.rgb(80, 180, 240),
