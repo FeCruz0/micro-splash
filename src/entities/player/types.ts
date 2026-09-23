@@ -33,4 +33,10 @@ export interface PlayerController {
   freeze: () => void;
   unfreeze: () => void;
   isFrozen: () => boolean;
+
+  // Fase 17: Dinâmica Visual de Roll, Cáusticos e Cooldown de Nado
+  getRollAngle?: () => number;
+  getCausticOpacity?: () => number;
+  getVentralOpacity?: () => number;
+  getStrokeCooldown?: () => number;
 }

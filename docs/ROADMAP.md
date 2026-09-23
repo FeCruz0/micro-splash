@@ -157,13 +157,13 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
 ### 🐋 FASE 17: Animação Orgânica da Jubarte & Cenários de Arraial
 *Objetivo: Elevar a fidelidade visual da criatura marinha e a organicidade dos relevos costeiros submersos.*
 
-- [ ] **17.1 Redesenho do Spritesheet da Baleia com Flexão Caudal (Spine Curvature):**
+- [x] **17.1 Redesenho do Spritesheet da Baleia com Flexão Caudal (Spine Curvature):**
   - Adicionar curvatura real da coluna vertebral e do pedúnculo caudal nos frames de batida (`whale.png`), com arco côncavo no *downstroke* e arco convexo no *upstroke*, enriquecendo a silhueta da jubarte.
-- [ ] **17.2 Animação de Manobra & Roll em Perspectiva:**
+- [x] **17.2 Animação de Manobra & Roll em Perspectiva:**
   - Variação de rotação/roll sutil ao mudar bruscamente de profundidade, exibindo o padrão estriado do ventre e as nadadeiras peitorais brancas em perspectiva.
-- [ ] **17.3 Efeito de Reflexo Cáustico sobre a Pele da Baleia:**
+- [x] **17.3 Efeito de Reflexo Cáustico sobre a Pele da Baleia:**
   - Projeção sutil de cáusticos de luz solar ondulando sobre o dorso da baleia enquanto ela navega próximo à superfície cristalina.
-- [ ] **17.4 Relevo Orgânico Submerso do Boqueirão da Ilha do Farol:**
+- [x] **17.4 Relevo Orgânico Submerso do Boqueirão da Ilha do Farol:**
   - Reformulação visual da parte submersa do relevo rochoso (25.400m a 27.300m): substituir a laje retangular plana e rígida por costões rochosos escarpados de granito com silhueta orgânica irregular, fendas submarinas, estratificação geológica, fissuras, tufos de anêmonas, ouriços e bioincrustações de costão marinho real de Arraial do Cabo.
 
 ### 🌊 FASE 18: Dinâmica Hidrodinâmica de Correntezas & Acessibilidade

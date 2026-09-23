@@ -3,8 +3,9 @@ export const GAME_CONFIG = {
   SINK_RATE: 20,              // Afundamento suave constante da água
   MAX_SPEED: 240,             // Teto máximo de velocidade acumulada
   MAX_STROKE_TIME: 0.5,       // Duração máxima de uma batida de cauda (0.5s)
-  BASE_THRUST: 125,           // Impulso inicial restaurado da batida
-  PEAK_THRUST: 625,           // Adicional de impulso no pico da batida (propulsão vigorosa restaurada)
+  STROKE_COOLDOWN: 1.0,       // Intervalo mínimo de 1 segundo entre batidas consecutivas de cauda
+  BASE_THRUST: 90,            // Impulso inicial suave e orgânico da batida (reduzido de 125)
+  PEAK_THRUST: 450,           // Adicional de impulso no pico da batida (reduzido de 625)
   WATER_DRAG: 0.955,          // Resistência da água com perda de momentum acentuada (desacelera rápido da velocidade máxima)
   ROTATION_SPEED: 40,         // Velocidade de rotação das nadadeiras
   TRASH_SLOWDOWN: 0.5,        // Fator de desaceleração ao atingir lixo plástico (perde 50% da velocidade)

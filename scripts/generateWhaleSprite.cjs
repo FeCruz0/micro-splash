@@ -149,6 +149,19 @@ const PALETTE = {
   krillEye:        [24, 16, 14, 255],    // olho minúsculo do krill
 };
 
+/**
+ * Curvatura anatômica progressiva da coluna vertebral da jubarte.
+ * Começa suavemente após a inserção torácica (lx ~ 76) e atinge flexão máxima
+ * no pedúnculo caudal (lx = 18), gerando ondas de downstroke côncavo e upstroke convexo.
+ */
+function getSpineYOffset(lx, tailYOffset) {
+  if (lx >= 76 || tailYOffset === 0) return 0;
+  const t = Math.min(1, Math.max(0, (76 - lx) / 58));
+  // Interpolação cúbica de Hermite suave (smoothstep) para flexão biológica contínua
+  const factor = t * t * (3 - 2 * t);
+  return tailYOffset * factor;
+}
+
 function renderWhaleFrame(frameIndex) {
   const offsetX = frameIndex * FRAME_W;
 
@@ -157,14 +170,14 @@ function renderWhaleFrame(frameIndex) {
   let pecYOffset = 0;
   const isFeeding = (frameIndex === 3);
 
-  if (frameIndex === 1) { // stroke_up
-    tailYOffset = -4.5;
-    flukeTilt = -0.36;
-    pecYOffset = -2;
-  } else if (frameIndex === 2) { // stroke_down
-    tailYOffset = 5.5;
-    flukeTilt = 0.40;
-    pecYOffset = 2;
+  if (frameIndex === 1) { // stroke_up (arco convexo)
+    tailYOffset = -7.0;
+    flukeTilt = -0.44;
+    pecYOffset = -2.2;
+  } else if (frameIndex === 2) { // stroke_down (arco côncavo)
+    tailYOffset = 7.6;
+    flukeTilt = 0.48;
+    pecYOffset = 2.2;
   }
 
   // ===========================================================================
@@ -174,7 +187,7 @@ function renderWhaleFrame(frameIndex) {
     const bBaseX = offsetX + 80;
     const bBaseY = 36.5 + pecYOffset * 0.7;
     const bTipX = offsetX + 71;
-    const bTipY = bBaseY + 14.0 + (frameIndex === 1 ? -2 : (frameIndex === 2 ? 2.5 : 0));
+    const bTipY = bBaseY + 14.0 + (frameIndex === 1 ? -2.5 : (frameIndex === 2 ? 3.0 : 0));
 
     drawQuadCurve(bBaseX, bBaseY, bBaseX - 3, bBaseY + 7, bTipX, bTipY, 3.8, PALETTE.pectoralBackDark);
     drawQuadCurve(bBaseX - 1, bBaseY + 1, bBaseX - 4, bBaseY + 8, bTipX + 1, bTipY, 2.5, PALETTE.pectoralBack);
@@ -188,8 +201,7 @@ function renderWhaleFrame(frameIndex) {
   const pouchBounds = [];
 
   for (let lx = 18; lx <= 114; lx++) {
-    const tailFactor = Math.max(0, (56 - lx) / 38);
-    const currentTailY = tailYOffset * tailFactor;
+    const currentTailY = getSpineYOffset(lx, tailYOffset);
 
     let topY, botY, jawY;
 
@@ -218,7 +230,7 @@ function renderWhaleFrame(frameIndex) {
         const ht = (lx - 50) / 16;
         hump = Math.sin(ht * Math.PI) * 2.8;
       }
-      topY = 18.2 - hump + currentTailY * 0.15;
+      topY = 18.2 - hump + currentTailY;
 
       if (isFeeding) {
         // BOLSA GULAR: Cresce a partir de lx=54, atingindo ~57px em lx=88
@@ -230,7 +242,7 @@ function renderWhaleFrame(frameIndex) {
         }
       } else {
         const bellyFactor = Math.sin(t * Math.PI * 0.9);
-        botY = 35.5 + bellyFactor * 7.5;
+        botY = 35.5 + bellyFactor * 7.5 + currentTailY;
       }
     } else {
       // PEDÚNCULO CAUDAL COM NÓDULOS DORSAIS
@@ -373,8 +385,7 @@ function renderWhaleFrame(frameIndex) {
   // 4. CONTORNO DORSAL PRECISO E DESTAQUE NA CRISTA
   // ===========================================================================
   for (let lx = 18; lx <= 114; lx++) {
-    const tailFactor = Math.max(0, (56 - lx) / 38);
-    const currentTailY = tailYOffset * tailFactor;
+    const currentTailY = getSpineYOffset(lx, tailYOffset);
     let topY;
     if (lx > 88) {
       const t = (lx - 88) / 26;
@@ -385,7 +396,7 @@ function renderWhaleFrame(frameIndex) {
         const ht = (lx - 50) / 16;
         hump = Math.sin(ht * Math.PI) * 2.8;
       }
-      topY = 18.2 - hump + currentTailY * 0.15;
+      topY = 18.2 - hump + currentTailY;
     } else {
       const t = (lx - 18) / 32;
       let knuckle = 0;
@@ -405,7 +416,7 @@ function renderWhaleFrame(frameIndex) {
   // ===========================================================================
   {
     const dX = offsetX + 53;
-    const dY = 15.4 + tailYOffset * 0.15;
+    const dY = 15.4 + getSpineYOffset(53, tailYOffset);
     drawLine(dX + 4.5, dY + 3.2, dX - 0.5, dY - 3.2, 2.8, PALETTE.dorsalDark);
     drawLine(dX - 0.5, dY - 3.2, dX - 4.2, dY + 3.0, 2.2, PALETTE.dorsalDarkest);
     fillCircle(dX - 1.0, dY - 1.5, 1.5, PALETTE.dorsalDark);
@@ -549,7 +560,7 @@ function renderWhaleFrame(frameIndex) {
     const pCtrlY = pBaseY + 11.5;
 
     const pTipX = offsetX + 42;
-    const pTipY = pBaseY + 22.5 + (frameIndex === 1 ? -4.0 : (frameIndex === 2 ? 4.5 : 0));
+    const pTipY = pBaseY + 21.0 + (frameIndex === 1 ? -3.5 : (frameIndex === 2 ? 1.0 : 0));
 
     // Renderiza a lâmina por fatias transversais contínuas (fita preenchida)
     const ribbonSteps = 40;

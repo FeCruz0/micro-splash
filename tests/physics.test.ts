@@ -36,8 +36,8 @@ describe("PlayerPhysicsManager: Perda de Momentum e Impulso da Baleia", () => {
     }
 
     const speedAfterFirstStroke = physics.getSpeed().len();
-    // 1ª batida gera impulso vigoroso (> 100 px/s)
-    expect(speedAfterFirstStroke).toBeGreaterThan(100);
+    // 1ª batida gera impulso orgânico e moderado (> 85 px/s)
+    expect(speedAfterFirstStroke).toBeGreaterThan(85);
   });
 
   it("desacelera rapidamente (perde momentum) a partir da velocidade máxima ao parar de nadar", () => {

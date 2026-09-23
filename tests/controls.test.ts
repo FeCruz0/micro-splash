@@ -156,4 +156,98 @@ describe("PlayerControlsManager: Controle de Orientação", () => {
     player.unfreeze();
     expect(player.isFrozen()).toBe(false);
   });
+
+  it("não permite batidas de cauda rapidamente consecutivas e impõe delay de 1 segundo (strokeCooldown)", async () => {
+    const { createPlayer } = await import("../src/entities/player");
+
+    let isKeyPressedReturn = false;
+    let isKeyDownReturn = false;
+    let registeredUpdate: (() => void) | null = null;
+
+    const mockKaboom: any = {
+      height: () => 360,
+      width: () => 640,
+      sprite: () => ({ anim: "glide" }),
+      pos: (x: number, y: number) => ({ x, y }),
+      area: () => ({ area: true }),
+      body: () => ({ body: true }),
+      rotate: (r: number) => ({ rotate: r }),
+      color: (r: number, g: number, b: number) => ({ r, g, b }),
+      anchor: (_a: string) => ({ anchor: _a }),
+      scale: (x: number, y: number) => ({ x, y }),
+      opacity: (o: number) => ({ opacity: o }),
+      z: (z: number) => ({ z }),
+      rect: (w: number, h: number) => ({ type: "rect", w, h }),
+      circle: (r: number) => ({ type: "circle", r }),
+      Rect: class { constructor(_pos: any, _w: number, _h: number) {} },
+      vec2: (x: number, y: number) => ({
+        x,
+        y,
+        len: () => Math.sqrt(x * x + y * y),
+        unit: () => ({ x: 0, y: 0 }),
+        add: (other: any) => mockKaboom.vec2(x + other.x, y + other.y),
+        scale: (s: number) => mockKaboom.vec2(x * s, y * s),
+      }),
+      deg2rad: (deg: number) => (deg * Math.PI) / 180,
+      rad2deg: (rad: number) => (rad * 180) / Math.PI,
+      clamp: (val: number, min: number, max: number) => Math.max(min, Math.min(max, val)),
+      lerp: (a: number, b: number, t: number) => a + (b - a) * t,
+      isKeyDown: (key: string) => (key === "space" ? isKeyDownReturn : false),
+      isKeyPressed: (key: string) => (key === "space" ? isKeyPressedReturn : false),
+      isKeyReleased: () => false,
+      rand: (min: number) => min,
+      dt: () => 0.1, // avança 100ms por frame
+      time: () => 1.0,
+      camPos: () => ({ x: 100, y: 100 }),
+      rgb: (r: number, g: number, b: number) => ({ r, g, b }),
+      add: () => ({
+        pos: mockKaboom.vec2(120, 200),
+        scale: { x: 1, y: 1 },
+        angle: 0,
+        flipX: false,
+        opacity: 0,
+        color: { r: 255, g: 255, b: 255 },
+        play: () => {},
+        move: () => {},
+        onUpdate: (cb: () => void) => { registeredUpdate = cb; },
+        onDestroy: () => {},
+      }),
+    };
+
+    const player = createPlayer(mockKaboom, 120, false);
+    const updateFn = registeredUpdate as unknown as (() => void) | null;
+
+    // 1. Inicialmente o cooldown está zerado
+    expect(player.getStrokeCooldown!()).toBe(0);
+
+    // 2. Primeira batida de cauda (t = 0s)
+    isKeyPressedReturn = true;
+    isKeyDownReturn = false;
+    updateFn?.();
+    isKeyPressedReturn = false;
+
+    // O cooldown deve ser ativado imediatamente com 1.0s
+    expect(player.getStrokeCooldown!()).toBe(1.0);
+
+    // 3. Tentativas de bater cauda rapidamente em sequência durante o delay de 1s
+    for (let f = 0; f < 3; f++) {
+      isKeyPressedReturn = true;
+      updateFn?.();
+      isKeyPressedReturn = false;
+    }
+    // Cooldown continua decrescendo naturalmente (1.0 - 3 * 0.1 = 0.7s) sem reiniciar prematuramente
+    expect(player.getStrokeCooldown!()).toBeCloseTo(0.7, 1);
+
+    // 4. Avança o tempo até completar o 1 segundo completo (7 frames de 0.1s)
+    for (let f = 0; f < 7; f++) {
+      updateFn?.();
+    }
+    expect(player.getStrokeCooldown!()).toBeCloseTo(0, 2);
+
+    // 5. Após 1 segundo, nova batida é autorizada e reinicia o cooldown para 1.0s
+    isKeyPressedReturn = true;
+    updateFn?.();
+    isKeyPressedReturn = false;
+    expect(player.getStrokeCooldown!()).toBe(1.0);
+  });
 });
