@@ -1,8 +1,12 @@
 import kaboom from "kaboom";
 import { GAME_CONFIG, TAGS } from "../config";
 import type { PlayerController } from "../entities/player";
+import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 
 export function setupShipNoiseSystem(k: ReturnType<typeof kaboom>, playerController: PlayerController) {
+  let isSystemActive = true;
+  const allShipBodies: any[] = [];
+
   const ships = [
     { minX: 12400, maxX: 14400, currentX: 13200, speed: 45, dir: 1 },
     { minX: 14700, maxX: 16700, currentX: 15500, speed: 50, dir: -1 },
@@ -20,6 +24,8 @@ export function setupShipNoiseSystem(k: ReturnType<typeof kaboom>, playerControl
       k.z(10),
     ]);
 
+    allShipBodies.push(ship);
+
     // Chaminé do Navio (adicionada como filha do navio para navegar junto)
     ship.add([
       k.rect(20, 25),
@@ -33,6 +39,8 @@ export function setupShipNoiseSystem(k: ReturnType<typeof kaboom>, playerControl
     let trashEjectTimer = 3.0 + Math.random() * 4.0;
 
     ship.onUpdate(() => {
+      if (!isSystemActive) return;
+
       // Movimento de patrulha (ida e volta pelo setor)
       ship.pos.x += shipData.speed * shipData.dir * k.dt();
       if (ship.pos.x >= shipData.maxX) {
@@ -165,4 +173,37 @@ export function setupShipNoiseSystem(k: ReturnType<typeof kaboom>, playerControl
       }
     });
   });
+
+  const activate = () => {
+    isSystemActive = true;
+    allShipBodies.forEach((s) => {
+      s.hidden = false;
+    });
+  };
+
+  const deactivate = () => {
+    isSystemActive = false;
+    allShipBodies.forEach((s) => {
+      s.hidden = true;
+    });
+  };
+
+  const biomeMgr = getBiomeLifecycleManager();
+  if (biomeMgr) {
+    biomeMgr.registerModule({
+      id: "cargo_ships",
+      name: "Navios Cargueiros & Ruído (Costa Urbana)",
+      minX: 11200,
+      maxX: 19600,
+      activate,
+      deactivate,
+      isActive: () => isSystemActive,
+    });
+  }
+
+  return {
+    activate,
+    deactivate,
+    isActive: () => isSystemActive,
+  };
 }

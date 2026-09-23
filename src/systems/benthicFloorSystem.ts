@@ -206,32 +206,35 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
     const camX = k.camPos().x;
     const viewDist = k.width() + 200;
 
-    // A. Animação de ondulação das Florestas de Kelp
-    kelpForest.forEach((plant) => {
-      // Culling leve: só anima se estiver perto da tela
-      if (Math.abs(plant.baseX - camX) > viewDist) return;
+    // A. Animação de ondulação das Florestas de Kelp (somente no Bioma Antártico: x < 5500)
+    if (camX < 5500) {
+      kelpForest.forEach((plant) => {
+        if (Math.abs(plant.baseX - camX) > viewDist) return;
 
-      const baseSway = Math.sin(time * plant.swaySpeed + plant.swayPhase);
+        const baseSway = Math.sin(time * plant.swaySpeed + plant.swayPhase);
 
-      // Deforma os nós progressivamente (ápice com maior curvatura)
-      plant.segments.forEach((seg, idx) => {
-        const segProgress = (idx + 1) / plant.segments.length;
-        const currentSway = baseSway * segProgress * 16;
-        seg.pos.x = plant.baseX + currentSway;
-        seg.angle = baseSway * segProgress * 9;
+        // Deforma os nós progressivamente (ápice com maior curvatura)
+        plant.segments.forEach((seg, idx) => {
+          const segProgress = (idx + 1) / plant.segments.length;
+          const currentSway = baseSway * segProgress * 16;
+          seg.pos.x = plant.baseX + currentSway;
+          seg.angle = baseSway * segProgress * 9;
+        });
       });
-    });
+    }
 
-    // B. Animação sutil de respiração dos corais moles / gorgônias
-    corals.forEach((coral) => {
-      if (Math.abs(coral.obj.pos.x - camX) > viewDist) return;
+    // B. Animação sutil de respiração dos corais moles / gorgônias (somente em Arraial: x > 18500)
+    if (camX > 18500) {
+      corals.forEach((coral) => {
+        if (Math.abs(coral.obj.pos.x - camX) > viewDist) return;
 
-      if (coral.type === "fan") {
-        coral.obj.angle = Math.sin(time * 1.4 + coral.animPhase) * 4;
-      } else if (coral.type === "anemone") {
-        const breathe = 1 + Math.sin(time * 2.2 + coral.animPhase) * 0.08;
-        coral.obj.scale = k.vec2(breathe, 1 / breathe);
-      }
-    });
+        if (coral.type === "fan") {
+          coral.obj.angle = Math.sin(time * 1.4 + coral.animPhase) * 4;
+        } else if (coral.type === "anemone") {
+          const breathe = 1 + Math.sin(time * 2.2 + coral.animPhase) * 0.08;
+          coral.obj.scale = k.vec2(breathe, 1 / breathe);
+        }
+      });
+    }
   });
 }

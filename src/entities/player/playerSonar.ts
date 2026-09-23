@@ -1,6 +1,7 @@
 import type { KaboomCtx, Vec2 } from "kaboom";
 import { GAME_CONFIG, TAGS } from "../../config";
 import { audioSystem } from "../../systems/audioSystem";
+import { getParticlePool } from "../../systems/particlePool";
 
 export class PlayerSonarManager {
   private k: KaboomCtx;
@@ -113,22 +114,37 @@ export class PlayerSonarManager {
             });
 
             // 4 cintilações radiantes em cruz/estrela
+            const pool = getParticlePool();
             for (let s = 0; s < 4; s++) {
               const ang = (s / 4) * Math.PI * 2 + Math.PI / 4;
-              const spark = this.k.add([
-                this.k.circle(2),
-                this.k.pos(targetEntity.pos),
-                this.k.color(255, 235, 120),
-                this.k.opacity(0.9),
-                this.k.z(23),
-              ]);
               const dir = this.k.vec2(Math.cos(ang) * 55, Math.sin(ang) * 55);
-              spark.onUpdate(() => {
-                const dt = this.k.dt();
-                spark.pos = spark.pos.add(dir.scale(dt));
-                spark.opacity -= dt * 2.5;
-                if (spark.opacity <= 0) this.k.destroy(spark);
-              });
+
+              if (pool) {
+                pool.spawnCircle({
+                  pos: targetEntity.pos,
+                  radius: 2,
+                  color: this.k.rgb(255, 235, 120),
+                  opacity: 0.9,
+                  z: 23,
+                  vel: dir,
+                  fadeRate: 2.5,
+                  maxLife: 0.4,
+                });
+              } else {
+                const spark = this.k.add([
+                  this.k.circle(2),
+                  this.k.pos(targetEntity.pos),
+                  this.k.color(255, 235, 120),
+                  this.k.opacity(0.9),
+                  this.k.z(23),
+                ]);
+                spark.onUpdate(() => {
+                  const dt = this.k.dt();
+                  spark.pos = spark.pos.add(dir.scale(dt));
+                  spark.opacity -= dt * 2.5;
+                  if (spark.opacity <= 0) this.k.destroy(spark);
+                });
+              }
             }
           } else {
             const echoPing = this.k.add([

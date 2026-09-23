@@ -1,6 +1,8 @@
 import type { KaboomCtx } from "kaboom";
 import { GAME_CONFIG } from "../config";
 import type { PlayerController } from "../entities/player";
+import { getParticlePool } from "./particlePool";
+import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 
 /**
  * Sistema de Mancha de Óleo Pré-Arraial (Fase 9.1)
@@ -11,6 +13,7 @@ import type { PlayerController } from "../entities/player";
  * impedindo a recarga de oxigênio até que ela mergulhe fundo em águas limpas.
  */
 export function setupOilSpillSystem(k: KaboomCtx, playerController: PlayerController) {
+  let isSystemActive = true;
   const SPILL_START = 17400;
   const SPILL_END = 18900;
   const PATCH_WIDTH = 180;
@@ -34,6 +37,8 @@ export function setupOilSpillSystem(k: KaboomCtx, playerController: PlayerContro
 
   let buoyTime = 0;
   buoy.onUpdate(() => {
+    if (!isSystemActive) return;
+
     buoyTime += k.dt();
     buoyLight.color = Math.floor(buoyTime * 4) % 2 === 0 ? k.rgb(255, 30, 30) : k.rgb(60, 10, 10);
     buoy.pos.y = GAME_CONFIG.SEA_LEVEL - 5 + Math.sin(buoyTime * 2.5) * 2;
@@ -66,6 +71,8 @@ export function setupOilSpillSystem(k: KaboomCtx, playerController: PlayerContro
   let shimmerTime = 0;
 
   k.onUpdate(() => {
+    if (!isSystemActive) return;
+
     const player = playerController.gameObj;
     if (!player) return;
 
@@ -112,20 +119,67 @@ export function setupOilSpillSystem(k: KaboomCtx, playerController: PlayerContro
 
         // Respingo de gotículas de óleo negro em contato
         if (Math.random() < 0.4) {
-          const drop = k.add([
-            k.circle(1.5 + Math.random() * 1.8),
-            k.pos(player.pos.x + (Math.random() - 0.5) * 30, GAME_CONFIG.SEA_LEVEL + Math.random() * 4),
-            k.color(24, 16, 12),
-            k.opacity(0.85),
-            k.z(20),
-          ]);
-          drop.onUpdate(() => {
-            drop.pos.y += k.dt() * 40;
-            drop.opacity -= k.dt() * 2.0;
-            if (drop.opacity <= 0) k.destroy(drop);
-          });
+          const dropPos = k.vec2(player.pos.x + (Math.random() - 0.5) * 30, GAME_CONFIG.SEA_LEVEL + Math.random() * 4);
+          const pool = getParticlePool();
+          if (pool) {
+            pool.spawnCircle({
+              pos: dropPos,
+              radius: 1.5 + Math.random() * 1.8,
+              color: k.rgb(24, 16, 12),
+              opacity: 0.85,
+              z: 20,
+              vel: k.vec2(0, 40),
+              fadeRate: 2.0,
+              maxLife: 0.45,
+            });
+          } else {
+            const drop = k.add([
+              k.circle(1.5 + Math.random() * 1.8),
+              k.pos(dropPos),
+              k.color(24, 16, 12),
+              k.opacity(0.85),
+              k.z(20),
+            ]);
+            drop.onUpdate(() => {
+              drop.pos.y += k.dt() * 40;
+              drop.opacity -= k.dt() * 2.0;
+              if (drop.opacity <= 0) k.destroy(drop);
+            });
+          }
         }
       }
     }
   });
+
+  const activate = () => {
+    isSystemActive = true;
+    buoy.hidden = false;
+  };
+
+  const deactivate = () => {
+    isSystemActive = false;
+    buoy.hidden = true;
+    patches.forEach((p) => {
+      p.slick.hidden = true;
+    });
+  };
+
+  const biomeMgr = getBiomeLifecycleManager();
+  if (biomeMgr) {
+    biomeMgr.registerModule({
+      id: "oil_spill",
+      name: "Mancha de Petróleo (Pré-Arraial)",
+      minX: 16500,
+      maxX: 19800,
+      activate,
+      deactivate,
+      isActive: () => isSystemActive,
+    });
+  }
+
+  return {
+    activate,
+    deactivate,
+    isActive: () => isSystemActive,
+  };
 }

@@ -371,6 +371,10 @@ export function setupCanyonSystem(k: KaboomCtx) {
   // =========================================================================
   let time = 0;
   k.onUpdate(() => {
+    // Só atualiza rotação do feixe do Farol se estiver próximo de Arraial (x > 23500) ou durante reveal
+    const camX = k.camPos().x;
+    if (camX < 23500 && revealTimer <= 0) return;
+
     const dt = k.dt();
     time += dt;
 

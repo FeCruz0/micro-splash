@@ -141,9 +141,9 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
 ### ⚡ FASE 15: Otimização & Performance em Baixo Nível
 *Objetivo: Garantir taxa de quadros estável (60 FPS) em dispositivos com hardware modesto (tablets e notebooks).*
 
-- [ ] **15.1 Object Pooling para Partículas e Projéteis:**
+- [x] **15.1 Object Pooling para Partículas e Projéteis:**
   - Implementar pool de objetos reutilizáveis para bolhas de nado, spray do espiráculo, ecos do sonar e rastros hidrodinâmicos, reduzindo alocações e pausas de Garbage Collection.
-- [ ] **15.2 Ciclo de Vida e Lazy Loading de Sistemas por Bioma:**
+- [x] **15.2 Ciclo de Vida e Lazy Loading de Sistemas por Bioma:**
   - Ativar e desativar a execução de sistemas específicos (ex: `iceSurface`, `shipNoise`, `oilSpill`) estritamente dentro de suas faixas de coordenadas X, poupando processamento de CPU.
 
 ### 🎪 FASE 16: Engajamento & Ferramentas de Apresentação

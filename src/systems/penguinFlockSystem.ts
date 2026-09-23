@@ -1,6 +1,8 @@
 import type { KaboomCtx } from "kaboom";
 import { GAME_CONFIG, TAGS } from "../config";
 import { audioSystem } from "./audioSystem";
+import { getParticlePool } from "./particlePool";
+import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 
 /**
  * Sistema de Colônias Residentes de Pinguins-de-Magalhães em Loop Contínuo (Fase 9.5)
@@ -15,6 +17,9 @@ import { audioSystem } from "./audioSystem";
  * executa mergulho suave em U de 180° e volta para o início, repetindo o loop infinitamente.
  */
 export function setupPenguinFlockSystem(k: KaboomCtx) {
+  let isSystemActive = true;
+  const allPenguinBodies: any[] = [];
+
   const COLONIES = [
     {
       name: "Colônia da Largada",
@@ -114,6 +119,7 @@ export function setupPenguinFlockSystem(k: KaboomCtx) {
         k.anchor("center"),
       ]);
 
+      allPenguinBodies.push(pBody);
       penguins.push({
         obj: pBody,
         wing,
@@ -140,6 +146,8 @@ export function setupPenguinFlockSystem(k: KaboomCtx) {
     let soundTimer = 0;
 
     k.onUpdate(() => {
+      if (!isSystemActive) return;
+
       const dt = k.dt();
       const player = k.get(TAGS.PLAYER)[0];
 
@@ -239,18 +247,33 @@ export function setupPenguinFlockSystem(k: KaboomCtx) {
             if (player && Math.abs(penguin.obj.pos.x - player.pos.x) < 700) {
               if (penguin.leapProgress < 0.15 || penguin.leapProgress > 0.85) {
                 if (Math.random() < 0.3) {
-                  const splash = k.add([
-                    k.circle(1.2),
-                    k.pos(penguin.obj.pos.x, GAME_CONFIG.SEA_LEVEL + 2),
-                    k.color(220, 240, 255),
-                    k.opacity(0.8),
-                    k.z(14),
-                  ]);
-                  splash.onUpdate(() => {
-                    splash.pos.y -= dt * 25;
-                    splash.opacity -= dt * 3.0;
-                    if (splash.opacity <= 0) k.destroy(splash);
-                  });
+                  const splashPos = k.vec2(penguin.obj.pos.x, GAME_CONFIG.SEA_LEVEL + 2);
+                  const pool = getParticlePool();
+                  if (pool) {
+                    pool.spawnCircle({
+                      pos: splashPos,
+                      radius: 1.2,
+                      color: k.rgb(220, 240, 255),
+                      opacity: 0.8,
+                      z: 14,
+                      vel: k.vec2(0, -25),
+                      fadeRate: 3.0,
+                      maxLife: 0.3,
+                    });
+                  } else {
+                    const splash = k.add([
+                      k.circle(1.2),
+                      k.pos(splashPos),
+                      k.color(220, 240, 255),
+                      k.opacity(0.8),
+                      k.z(14),
+                    ]);
+                    splash.onUpdate(() => {
+                      splash.pos.y -= dt * 25;
+                      splash.opacity -= dt * 3.0;
+                      if (splash.opacity <= 0) k.destroy(splash);
+                    });
+                  }
                 }
               }
             }
@@ -278,24 +301,72 @@ export function setupPenguinFlockSystem(k: KaboomCtx) {
         // Trilha de bolhas subaquáticas
         if (player && Math.abs(penguin.obj.pos.x - player.pos.x) < 900) {
           if (!penguin.isLeaping && Math.random() < 0.12) {
-            const bubble = k.add([
-              k.circle(1.0),
-              k.pos(penguin.obj.pos.x - currentFacing * 12, penguin.obj.pos.y + (Math.random() - 0.5) * 4),
-              k.color(210, 240, 255),
-              k.opacity(0.65),
-              k.z(11),
-            ]);
-            bubble.onUpdate(() => {
-              bubble.pos.x -= currentFacing * dt * 20;
-              bubble.pos.y -= dt * 15;
-              bubble.opacity -= dt * 2.5;
-              if (bubble.opacity <= 0) k.destroy(bubble);
-            });
+            const bubblePos = k.vec2(penguin.obj.pos.x - currentFacing * 12, penguin.obj.pos.y + (Math.random() - 0.5) * 4);
+            const pool = getParticlePool();
+            if (pool) {
+              pool.spawnCircle({
+                pos: bubblePos,
+                radius: 1.0,
+                color: k.rgb(210, 240, 255),
+                opacity: 0.65,
+                z: 11,
+                vel: k.vec2(-currentFacing * 20, -15),
+                fadeRate: 2.5,
+                maxLife: 0.35,
+              });
+            } else {
+              const bubble = k.add([
+                k.circle(1.0),
+                k.pos(bubblePos),
+                k.color(210, 240, 255),
+                k.opacity(0.65),
+                k.z(11),
+              ]);
+              bubble.onUpdate(() => {
+                bubble.pos.x -= currentFacing * dt * 20;
+                bubble.pos.y -= dt * 15;
+                bubble.opacity -= dt * 2.5;
+                if (bubble.opacity <= 0) k.destroy(bubble);
+              });
+            }
           }
         }
       });
     });
   });
+
+  const activate = () => {
+    isSystemActive = true;
+    allPenguinBodies.forEach((p) => {
+      p.hidden = false;
+    });
+  };
+
+  const deactivate = () => {
+    isSystemActive = false;
+    allPenguinBodies.forEach((p) => {
+      p.hidden = true;
+    });
+  };
+
+  const biomeMgr = getBiomeLifecycleManager();
+  if (biomeMgr) {
+    biomeMgr.registerModule({
+      id: "penguin_colonies",
+      name: "Colônias de Pinguins (Antártica)",
+      minX: 0,
+      maxX: 5400,
+      activate,
+      deactivate,
+      isActive: () => isSystemActive,
+    });
+  }
+
+  return {
+    activate,
+    deactivate,
+    isActive: () => isSystemActive,
+  };
 }
 
 

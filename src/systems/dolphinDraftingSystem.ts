@@ -2,6 +2,8 @@ import type { KaboomCtx } from "kaboom";
 import { GAME_CONFIG } from "../config";
 import { audioSystem } from "./audioSystem";
 import type { PlayerController } from "../entities/player";
+import { getParticlePool } from "./particlePool";
+import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 
 /**
  * Sistema de Cardumes Residentes de Golfinhos-Rotadores em Loop Contínuo (Fase 9.3)
@@ -15,6 +17,9 @@ import type { PlayerController } from "../entities/player";
  * e volta para a origem, repetindo o loop indefinidamente sem sumir do cenário.
  */
 export function setupDolphinDraftingSystem(k: KaboomCtx, playerController: PlayerController) {
+  let isSystemActive = true;
+  const allDolphinBodies: any[] = [];
+
   const POD_ROUTES = [
     {
       name: "Cardume dos Recifes",
@@ -67,6 +72,8 @@ export function setupDolphinDraftingSystem(k: KaboomCtx, playerController: Playe
         k.z(11),
         "dolphin",
       ]);
+
+      allDolphinBodies.push(dolphin);
 
       // Ventre claro
       dolphin.add([
@@ -126,6 +133,8 @@ export function setupDolphinDraftingSystem(k: KaboomCtx, playerController: Playe
     let clickSoundTimer = 0;
 
     k.onUpdate(() => {
+      if (!isSystemActive) return;
+
       const dt = k.dt();
       const player = playerController.gameObj;
 
@@ -215,18 +224,33 @@ export function setupDolphinDraftingSystem(k: KaboomCtx, playerController: Playe
           if (player && Math.abs(podX - player.pos.x) < 800) {
             if (leapProgress < 0.12 || leapProgress > 0.88) {
               if (Math.random() < 0.3) {
-                const splash = k.add([
-                  k.circle(1.8),
-                  k.pos(podX + (Math.random() - 0.5) * 40, GAME_CONFIG.SEA_LEVEL + 3),
-                  k.color(210, 240, 255),
-                  k.opacity(0.85),
-                  k.z(14),
-                ]);
-                splash.onUpdate(() => {
-                  splash.pos.y -= dt * 25;
-                  splash.opacity -= dt * 3.5;
-                  if (splash.opacity <= 0) k.destroy(splash);
-                });
+                const splashPos = k.vec2(podX + (Math.random() - 0.5) * 40, GAME_CONFIG.SEA_LEVEL + 3);
+                const pool = getParticlePool();
+                if (pool) {
+                  pool.spawnCircle({
+                    pos: splashPos,
+                    radius: 1.8,
+                    color: k.rgb(210, 240, 255),
+                    opacity: 0.85,
+                    z: 14,
+                    vel: k.vec2(0, -25),
+                    fadeRate: 3.5,
+                    maxLife: 0.3,
+                  });
+                } else {
+                  const splash = k.add([
+                    k.circle(1.8),
+                    k.pos(splashPos),
+                    k.color(210, 240, 255),
+                    k.opacity(0.85),
+                    k.z(14),
+                  ]);
+                  splash.onUpdate(() => {
+                    splash.pos.y -= dt * 25;
+                    splash.opacity -= dt * 3.5;
+                    if (splash.opacity <= 0) k.destroy(splash);
+                  });
+                }
               }
             }
           }
@@ -286,5 +310,39 @@ export function setupDolphinDraftingSystem(k: KaboomCtx, playerController: Playe
       }
     });
   });
+
+  const activate = () => {
+    isSystemActive = true;
+    allDolphinBodies.forEach((d) => {
+      d.hidden = false;
+    });
+  };
+
+  const deactivate = () => {
+    isSystemActive = false;
+    playerController.setDrafting(false);
+    allDolphinBodies.forEach((d) => {
+      d.hidden = true;
+    });
+  };
+
+  const biomeMgr = getBiomeLifecycleManager();
+  if (biomeMgr) {
+    biomeMgr.registerModule({
+      id: "dolphin_pods",
+      name: "Cardumes de Golfinhos (Travessia Pelágica)",
+      minX: 4800,
+      maxX: 11800,
+      activate,
+      deactivate,
+      isActive: () => isSystemActive,
+    });
+  }
+
+  return {
+    activate,
+    deactivate,
+    isActive: () => isSystemActive,
+  };
 }
 

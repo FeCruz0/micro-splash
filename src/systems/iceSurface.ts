@@ -2,6 +2,8 @@ import kaboom from "kaboom";
 import { TAGS, GAME_CONFIG } from "../config";
 import { audioSystem } from "./audioSystem";
 import type { PlayerController } from "../entities/player";
+import { getParticlePool } from "./particlePool";
+import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 
 export interface IceGap {
   start: number;
@@ -37,6 +39,7 @@ export function isPositionInIceGap(x: number): boolean {
  * Cria a camada de gelo, o iceberg de parede inicial e as aberturas de respiração no bioma Antártico (0m - 5000m).
  */
 export function setupIceSurfaceSystem(k: ReturnType<typeof kaboom>, playerController?: PlayerController) {
+  let isSystemActive = true;
   // Reseta as fendas ativas para a configuração padrão limpa ao iniciar/reiniciar o jogo
   activeIceGaps = DEFAULT_ICE_GAPS.map((gap) => ({ ...gap }));
 
@@ -66,27 +69,44 @@ export function setupIceSurfaceSystem(k: ReturnType<typeof kaboom>, playerContro
           isBroken = true;
 
           // 1. Estilhaços de gelo cristalinos com física e gravidade
+          const pool = getParticlePool();
           for (let p = 0; p < 14; p++) {
             const shardSize = 3 + Math.random() * 5;
-            const shard = k.add([
-              k.rect(shardSize, shardSize),
-              k.pos(x + width * Math.random(), icePosY + iceHeight * Math.random()),
-              k.color(230, 248, 255),
-              k.opacity(0.95),
-              k.z(15),
-            ]);
-
+            const shardX = x + width * Math.random();
+            const shardY = icePosY + iceHeight * Math.random();
             const shardVel = k.vec2(
               (Math.random() - 0.5) * 260,
               -60 - Math.random() * 190
             );
 
-            shard.onUpdate(() => {
-              shardVel.y += 680 * k.dt(); // Gravidade nos estilhaços
-              shard.pos = shard.pos.add(shardVel.scale(k.dt()));
-              shard.opacity -= k.dt() * 1.5;
-              if (shard.opacity <= 0) k.destroy(shard);
-            });
+            if (pool) {
+              pool.spawnRect({
+                pos: k.vec2(shardX, shardY),
+                width: shardSize,
+                height: shardSize,
+                color: k.rgb(230, 248, 255),
+                opacity: 0.95,
+                z: 15,
+                vel: shardVel,
+                fadeRate: 1.5,
+                maxLife: 0.65,
+              });
+            } else {
+              const shard = k.add([
+                k.rect(shardSize, shardSize),
+                k.pos(shardX, shardY),
+                k.color(230, 248, 255),
+                k.opacity(0.95),
+                k.z(15),
+              ]);
+
+              shard.onUpdate(() => {
+                shardVel.y += 680 * k.dt(); // Gravidade nos estilhaços
+                shard.pos = shard.pos.add(shardVel.scale(k.dt()));
+                shard.opacity -= k.dt() * 1.5;
+                if (shard.opacity <= 0) k.destroy(shard);
+              });
+            }
           }
 
           // 2. Efeitos Sonoros e Tremor
@@ -118,7 +138,7 @@ export function setupIceSurfaceSystem(k: ReturnType<typeof kaboom>, playerContro
     // Detecção Contínua: 
     // Quebra APENAS por cima: a baleia deve estar no ar ou caindo sobre o topo do bloco de gelo
     segment.onUpdate(() => {
-      if (isBroken) return;
+      if (isBroken || !isSystemActive) return;
       const player = k.get(TAGS.PLAYER)[0];
       if (player) {
         const withinX = player.pos.x >= x - 10 && player.pos.x <= x + width + 10;
@@ -235,4 +255,31 @@ export function setupIceSurfaceSystem(k: ReturnType<typeof kaboom>, playerContro
   if (currentX < totalDistance) {
     createModularIceSpan(currentX, totalDistance);
   }
+
+  const activate = () => {
+    isSystemActive = true;
+  };
+
+  const deactivate = () => {
+    isSystemActive = false;
+  };
+
+  const biomeMgr = getBiomeLifecycleManager();
+  if (biomeMgr) {
+    biomeMgr.registerModule({
+      id: "ice_surface",
+      name: "Camada de Gelo (Antártica)",
+      minX: -1100,
+      maxX: 5400,
+      activate,
+      deactivate,
+      isActive: () => isSystemActive,
+    });
+  }
+
+  return {
+    activate,
+    deactivate,
+    isActive: () => isSystemActive,
+  };
 }

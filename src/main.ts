@@ -27,6 +27,8 @@ import { setupDolphinDraftingSystem } from "./systems/dolphinDraftingSystem";
 import { setupPenguinFlockSystem } from "./systems/penguinFlockSystem";
 import { createKioskScene } from "./systems/kioskMode";
 import { setupTouchControls } from "./ui/touchControls";
+import { initParticlePool } from "./systems/particlePool";
+import { initBiomeLifecycleManager } from "./systems/biomeLifecycleManager";
 
 // Interfaces da Fase 6: Menu Principal, Seleção de Modo, Opções e Codex
 import { createMainMenu } from "./ui/mainMenu";
@@ -204,6 +206,10 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
   // 2. Instancia obstáculos, krill, redes e bolsões de ar procedurais
   const obstacleData = loadLevelLayout(k);
 
+  // 2.5. Inicializa Núcleo de Otimização & Performance (Fase 15)
+  const particlePool = initParticlePool(k);
+  const biomeManager = initBiomeLifecycleManager(k);
+
   // 3. Inicializa os Sistemas dos 5 Biomas e Correntezas Oceânicas Procedurais
   setupIceSurfaceSystem(k, playerController);
   setupBackgroundFaunaSystem(k);
@@ -232,6 +238,36 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
   k.onKeyPress("m", () => {
     resumeAudioOnInteraction();
     audioSystem.toggleMute();
+  });
+
+  // Tecla 'F3': Diagnóstico de Performance em Tempo Real (Fase 15)
+  let isDebugHudOpen = false;
+  let debugHudContainer: any = null;
+  let debugText: any = null;
+
+  k.onKeyPress("f3", () => {
+    isDebugHudOpen = !isDebugHudOpen;
+    if (isDebugHudOpen) {
+      if (!debugHudContainer) {
+        debugHudContainer = k.add([
+          k.rect(280, 78, { radius: 6 }),
+          k.pos(12, 50),
+          k.color(10, 16, 26),
+          k.outline(1.5, k.rgb(0, 230, 255)),
+          k.opacity(0.88),
+          k.fixed(),
+          k.z(300),
+        ]);
+        debugText = debugHudContainer.add([
+          k.text("", { size: 9, font: "monospace" }),
+          k.pos(8, 8),
+          k.color(190, 245, 255),
+        ]);
+      }
+      debugHudContainer.hidden = false;
+    } else if (debugHudContainer) {
+      debugHudContainer.hidden = true;
+    }
   });
 
   // 5. Ativa colisões, ressurgência e o clímax do Salto Majestoso (Breach)
@@ -263,7 +299,25 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
       return;
     }
 
+    const dt = k.dt();
     const playerXPosition = playerController.gameObj.pos.x;
+
+    // Atualização dos Sistemas de Performance de Baixo Nível (Fase 15)
+    particlePool.update(dt);
+    biomeManager.update(playerXPosition);
+
+    if (isDebugHudOpen && debugText) {
+      const stats = particlePool.getStats();
+      const instantFps = Math.round(1 / Math.max(0.001, dt));
+      const activeMods = biomeManager.getActiveModules();
+      const modsText = activeMods.length > 0 ? activeMods.join(", ") : "Transição";
+      debugText.text = [
+        `⚡ [F3] DIAGNÓSTICO DE PERFORMANCE`,
+        `Taxa: ${instantFps} FPS | Entidades: ${k.get("*").length}`,
+        `Pool Partículas: ${stats.activeCircles + stats.activeRects} ativas (${stats.totalCircles + stats.totalRects} alocadas)`,
+        `Bioma: ${modsText}`,
+      ].join("\n");
+    }
     
     // Fallback de segurança para conclusão caso alcance ou ultrapasse a rota
     if (playerXPosition >= GAME_CONFIG.ROUTE_TOTAL_DISTANCE) {
