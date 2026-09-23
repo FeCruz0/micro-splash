@@ -1,126 +1,173 @@
-import type { KaboomCtx } from "kaboom";
+import type { KaboomCtx, GameObj } from "kaboom";
 import { GAME_CONFIG } from "../config";
 import { getCurrentBiome } from "../systems/oceanEnvironment";
 import type { PlayerController } from "../entities/player";
+
+export interface PerformanceStats {
+  fps?: number;
+  entities?: number;
+  activeParticles?: number;
+  totalParticles?: number;
+  activeModules?: string;
+}
 
 export function createDebugDistanceUI(k: KaboomCtx, playerController?: PlayerController) {
   // Proporções adaptativas com base na resolução virtual
   const isHighRes = k.width() >= 1920;
   const isMediumRes = k.width() >= 1280;
 
-  const scale = isHighRes ? 1.3 : isMediumRes ? 1.0 : 0.85;
-  const containerWidth = Math.round(340 * scale);
-  const containerHeight = Math.round(118 * scale);
+  const scale = isHighRes ? 1.25 : isMediumRes ? 1.0 : 0.85;
+  const containerWidth = Math.round(350 * scale);
+  const containerHeight = Math.round(152 * scale);
   const padding = Math.round(14 * scale);
 
-  const fontSizePrimary = Math.round(13 * scale);
-  const fontSizeSecondary = Math.round(11 * scale);
+  const fontSizeTitle = Math.round(10.5 * scale);
+  const fontSizePrimary = Math.round(11.5 * scale);
+  const fontSizeSecondary = Math.round(10 * scale);
 
-  // Fundo translúcido estilizado com efeito de vidro aquático
-  k.add([
+  // Container principal: OCULTO POR PADRÃO durante a gameplay comum!
+  // Ativado exclusivamente via tecla F3.
+  const container = k.add([
     k.rect(containerWidth, containerHeight, { radius: 10 }),
     k.pos(padding, padding),
-    k.color(8, 22, 44),
-    k.opacity(0.88),
-    k.outline(1.5, k.rgb(70, 140, 210)),
+    k.color(6, 16, 32),
+    k.opacity(0.92),
+    k.outline(1.8, k.rgb(0, 230, 255)),
     k.fixed(),
-    k.z(90),
+    k.z(300),
+    "dev_debug_telemetry_container",
+  ]);
+  container.hidden = true; // Invisível por padrão!
+
+  // Cabeçalho de desenvolvedor
+  container.add([
+    k.text("⚡ [F3] TELEMETRIA & DIAGNÓSTICO (DEV)", {
+      size: fontSizeTitle,
+      font: "monospace",
+    }),
+    k.pos(Math.round(10 * scale), Math.round(8 * scale)),
+    k.color(0, 230, 255),
+  ]);
+
+  // Linha de diagnóstico de hardware/performance
+  const perfText = container.add([
+    k.text("Taxa: -- FPS | Entidades: -- | Pool: --", {
+      size: fontSizeSecondary,
+      font: "monospace",
+    }),
+    k.pos(Math.round(10 * scale), Math.round(24 * scale)),
+    k.color(180, 240, 255),
   ]);
 
   // Texto de Distância & Bioma
   const totalFormatted = GAME_CONFIG.ROUTE_TOTAL_DISTANCE.toLocaleString("pt-BR");
-  const routeText = k.add([
-    k.text(`Distância: 0m / ${totalFormatted}m (0%)\nBioma: Trópicos`, {
+  const routeText = container.add([
+    k.text(`📍 Distância: 0m / ${totalFormatted}m (0%)\n🌊 Bioma: --`, {
       size: fontSizePrimary,
       font: "sans-serif",
-      lineSpacing: 3,
+      lineSpacing: 2.5,
     }),
-    k.pos(padding + Math.round(10 * scale), padding + Math.round(8 * scale)),
+    k.pos(Math.round(10 * scale), Math.round(40 * scale)),
     k.color(225, 240, 255),
-    k.fixed(),
-    k.z(92),
   ]);
 
   // Texto de Fôlego e Nutrição
-  const statusText = k.add([
-    k.text("Fôlego: 100% | Nutrição: 0%", {
+  const statusText = container.add([
+    k.text("🫁 Fôlego: 100% | 🦐 Nutrição: 0%", {
       size: fontSizeSecondary,
       font: "sans-serif",
     }),
-    k.pos(padding + Math.round(10 * scale), padding + Math.round(44 * scale)),
+    k.pos(Math.round(10 * scale), Math.round(76 * scale)),
     k.color(140, 220, 255),
-    k.fixed(),
-    k.z(92),
   ]);
 
   // Velocímetro em Tempo Real para Debug
-  const speedText = k.add([
+  const speedText = container.add([
     k.text(`⚡ Velocidade: 0 / ${GAME_CONFIG.MAX_SPEED} px/s (0%)`, {
       size: fontSizeSecondary,
       font: "sans-serif",
     }),
-    k.pos(padding + Math.round(10 * scale), padding + Math.round(59 * scale)),
+    k.pos(Math.round(10 * scale), Math.round(92 * scale)),
     k.color(180, 235, 255),
-    k.fixed(),
-    k.z(92),
   ]);
 
   // Mini-barra de medição da velocidade instantânea
-  const speedBarY = padding + Math.round(74 * scale);
+  const speedBarY = Math.round(108 * scale);
   const barWidth = containerWidth - Math.round(20 * scale);
-  const speedBarHeight = Math.round(3 * scale);
+  const speedBarHeight = Math.round(3.5 * scale);
 
-  k.add([
+  container.add([
     k.rect(barWidth, speedBarHeight, { radius: 1.5 }),
-    k.pos(padding + Math.round(10 * scale), speedBarY),
+    k.pos(Math.round(10 * scale), speedBarY),
     k.color(18, 36, 58),
-    k.fixed(),
-    k.z(91),
   ]);
 
-  const speedBarFill = k.add([
+  const speedBarFill = container.add([
     k.rect(0, speedBarHeight, { radius: 1.5 }),
-    k.pos(padding + Math.round(10 * scale), speedBarY),
+    k.pos(Math.round(10 * scale), speedBarY),
     k.color(100, 240, 255),
-    k.fixed(),
-    k.z(92),
   ]);
 
-  // Linha de Power-ups Ativos (Fase 12)
-  const powerupText = k.add([
+  // Linha de Power-ups & Badges Ativos
+  const powerupText = container.add([
     k.text("", {
       size: fontSizeSecondary,
       font: "sans-serif",
     }),
-    k.pos(padding + Math.round(10 * scale), padding + Math.round(82 * scale)),
+    k.pos(Math.round(10 * scale), Math.round(116 * scale)),
     k.color(255, 235, 120),
-    k.fixed(),
-    k.z(92),
   ]);
 
   // Fundo da barra de progresso da migração
-  const barY = padding + containerHeight - Math.round(8 * scale);
+  const barY = containerHeight - Math.round(10 * scale);
   const barHeight = Math.round(4 * scale);
 
-  k.add([
+  container.add([
     k.rect(barWidth, barHeight, { radius: 2 }),
-    k.pos(padding + Math.round(10 * scale), barY),
+    k.pos(Math.round(10 * scale), barY),
     k.color(20, 40, 65),
-    k.fixed(),
-    k.z(91),
   ]);
 
   // Preenchimento da barra de progresso da migração
-  const progressBarFill = k.add([
+  const progressBarFill = container.add([
     k.rect(0, barHeight, { radius: 2 }),
-    k.pos(padding + Math.round(10 * scale), barY),
+    k.pos(Math.round(10 * scale), barY),
     k.color(0, 200, 255),
-    k.fixed(),
-    k.z(92),
   ]);
 
   return {
-    update: (distance: number) => {
+    getContainer: (): GameObj => container,
+    isVisible: (): boolean => !container.hidden,
+    setVisible: (visible: boolean): void => {
+      container.hidden = !visible;
+    },
+    toggle: (): boolean => {
+      container.hidden = !container.hidden;
+      return !container.hidden;
+    },
+    destroy: (): void => {
+      if (typeof k.destroy === "function") {
+        k.destroy(container);
+      }
+    },
+    update: (distance: number, perfStats?: PerformanceStats) => {
+      // Se estiver oculto, não gasta ciclos de processamento de texto/canvas
+      if (container.hidden) {
+        return;
+      }
+
+      // Atualiza métricas de hardware se fornecidas
+      if (perfStats) {
+        const fpsStr = perfStats.fps !== undefined ? `${perfStats.fps} FPS` : "--";
+        const entStr = perfStats.entities !== undefined ? `${perfStats.entities} obj` : "--";
+        const poolStr =
+          perfStats.activeParticles !== undefined && perfStats.totalParticles !== undefined
+            ? `${perfStats.activeParticles}/${perfStats.totalParticles} part`
+            : "--";
+        const modStr = perfStats.activeModules ? ` | ${perfStats.activeModules}` : "";
+        perfText.text = `Taxa: ${fpsStr} | Entidades: ${entStr} | Pool: ${poolStr}${modStr}`;
+      }
+
       const clampedDist = Math.min(Math.max(distance, 0), GAME_CONFIG.ROUTE_TOTAL_DISTANCE);
       const percent = Math.floor((clampedDist / GAME_CONFIG.ROUTE_TOTAL_DISTANCE) * 100);
       const biome = getCurrentBiome(clampedDist);
@@ -133,7 +180,11 @@ export function createDebugDistanceUI(k: KaboomCtx, playerController?: PlayerCon
       if (playerController) {
         // Velocímetro em tempo real
         const vel = playerController.getSpeed?.() ?? k.vec2(0, 0);
-        const speedLen = Math.round(vel.len());
+        const speedLen = Math.round(
+          typeof vel?.len === "function"
+            ? vel.len()
+            : Math.sqrt((vel?.x || 0) * (vel?.x || 0) + (vel?.y || 0) * (vel?.y || 0))
+        );
         const maxSpd = Math.round(playerController.getMaxSpeed?.() ?? GAME_CONFIG.MAX_SPEED);
         const ratio = maxSpd > 0 ? speedLen / maxSpd : 0;
         const speedPercent = Math.round(ratio * 100);

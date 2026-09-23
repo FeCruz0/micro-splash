@@ -1,0 +1,32 @@
+{
+  "name": "Micro Splash - A Jornada da Jubarte",
+  "short_name": "Micro Splash",
+  "description": "Navegue com uma jovem jubarte da Antártica até Arraial do Cabo em uma jornada oceânica interativa e educativa.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "landscape",
+  "theme_color": "#06122a",
+  "background_color": "#06122a",
+  "categories": ["games", "education"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

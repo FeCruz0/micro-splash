@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0a2a50" />
+      <stop offset="100%" stop-color="#041024" />
+    </linearGradient>
+    <linearGradient id="whaleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="50%" stop-color="#0284c7" />
+      <stop offset="100%" stop-color="#0369a1" />
+    </linearGradient>
+    <linearGradient id="waveGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#67e8f9" stop-opacity="0.9" />
+    </linearGradient>
+  </defs>
+
+  <!-- Fundo Circular Oceânico -->
+  <circle cx="256" cy="256" r="240" fill="url(#bgGrad)" stroke="#38bdf8" stroke-width="12" />
+
+  <!-- Ondulação da Superfície / Água -->
+  <path d="M 40 320 C 120 290, 180 340, 256 310 C 330 280, 390 330, 472 310 L 472 450 C 400 480, 310 496, 256 496 C 180 496, 100 475, 40 430 Z" fill="#0369a1" opacity="0.6" />
+  <path d="M 40 340 C 130 320, 200 360, 270 335 C 340 310, 410 350, 472 330 L 472 450 C 400 480, 310 496, 256 496 C 180 496, 100 475, 40 430 Z" fill="url(#waveGrad)" opacity="0.45" />
+
+  <!-- Cauda da Jubarte (Fluke & Pedúnculo Caudal) -->
+  <!-- Pedúnculo -->
+  <path d="M 238 410 C 242 330, 246 270, 256 220 C 266 270, 270 330, 274 410 Z" fill="url(#whaleGrad)" />
+
+  <!-- Nadadeiras Caudais (Flukes) com chanfro central característico da jubarte -->
+  <path d="M 256 220 
+           C 240 185, 180 135, 90 145 
+           C 70 148, 60 165, 80 175 
+           C 130 195, 190 205, 246 235
+           C 252 238, 255 242, 256 244
+           C 257 242, 260 238, 266 235
+           C 322 205, 382 195, 432 175
+           C 452 165, 442 148, 422 145
+           C 332 135, 272 185, 256 220 Z" 
+        fill="url(#whaleGrad)" 
+        stroke="#e0f2fe" 
+        stroke-width="5" />
+
+  <!-- Gotas e Borrifo Cristalino -->
+  <circle cx="210" cy="120" r="10" fill="#bae6fd" opacity="0.8" />
+  <circle cx="302" cy="120" r="10" fill="#bae6fd" opacity="0.8" />
+  <circle cx="256" cy="95" r="12" fill="#7dd3fc" opacity="0.9" />
+  <circle cx="160" cy="90" r="7" fill="#e0f2fe" opacity="0.75" />
+  <circle cx="352" cy="90" r="7" fill="#e0f2fe" opacity="0.75" />
+</svg>

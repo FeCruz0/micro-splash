@@ -25,6 +25,11 @@ import { setupOceanFloorSystem } from "./systems/oceanFloorSystem";
 import { setupOilSpillSystem } from "./systems/oilSpillSystem";
 import { setupDolphinDraftingSystem } from "./systems/dolphinDraftingSystem";
 import { setupPenguinFlockSystem } from "./systems/penguinFlockSystem";
+import { setupWeatherSystem } from "./systems/weatherSystem";
+import { setupBioluminescenceSystem } from "./systems/bioluminescenceSystem";
+import { setupBiomeVignetteSystem } from "./systems/biomeVignetteSystem";
+import { setupCinematicCameraSystem } from "./systems/cinematicCameraSystem";
+import { setupDynamicShadowSystem } from "./systems/dynamicShadowSystem";
 import { createKioskScene } from "./systems/kioskMode";
 import { setupTouchControls } from "./ui/touchControls";
 import { initParticlePool } from "./systems/particlePool";
@@ -244,6 +249,13 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
   setupOilSpillSystem(k, playerController);
   setupDolphinDraftingSystem(k, playerController);
   setupPenguinFlockSystem(k);
+  setupWeatherSystem(k, playerController);
+
+  // Fase 20: Imersão Visual Avançada
+  setupDynamicShadowSystem(k, playerController);
+  setupBioluminescenceSystem(k, playerController);
+  setupBiomeVignetteSystem(k, playerController);
+  setupCinematicCameraSystem(k, playerController);
 
   // 4. Inicializa áudio da migração e atalhos
   audioSystem.startMigrationAudio(initialX);
@@ -261,34 +273,9 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
     audioSystem.toggleMute();
   });
 
-  // Tecla 'F3': Diagnóstico de Performance em Tempo Real (Fase 15)
-  let isDebugHudOpen = false;
-  let debugHudContainer: any = null;
-  let debugText: any = null;
-
+  // Tecla 'F3': Alterna o Painel de Telemetria e Diagnóstico de Desenvolvedor (Fôlego, Distância, Velocidade, FPS, etc.)
   k.onKeyPress("f3", () => {
-    isDebugHudOpen = !isDebugHudOpen;
-    if (isDebugHudOpen) {
-      if (!debugHudContainer) {
-        debugHudContainer = k.add([
-          k.rect(280, 78, { radius: 6 }),
-          k.pos(12, 50),
-          k.color(10, 16, 26),
-          k.outline(1.5, k.rgb(0, 230, 255)),
-          k.opacity(0.88),
-          k.fixed(),
-          k.z(300),
-        ]);
-        debugText = debugHudContainer.add([
-          k.text("", { size: 9, font: "monospace" }),
-          k.pos(8, 8),
-          k.color(190, 245, 255),
-        ]);
-      }
-      debugHudContainer.hidden = false;
-    } else if (debugHudContainer) {
-      debugHudContainer.hidden = true;
-    }
+    debugDistanceUI.toggle();
   });
 
   // 5. Ativa colisões, ressurgência e o clímax do Salto Majestoso (Breach)
@@ -336,17 +323,19 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
     particlePool.update(dt);
     biomeManager.update(playerXPosition);
 
-    if (isDebugHudOpen && debugText) {
+    if (debugDistanceUI.isVisible()) {
       const stats = particlePool.getStats();
       const instantFps = Math.round(1 / Math.max(0.001, dt));
       const activeMods = biomeManager.getActiveModules();
       const modsText = activeMods.length > 0 ? activeMods.join(", ") : "Transição";
-      debugText.text = [
-        `⚡ [F3] DIAGNÓSTICO DE PERFORMANCE`,
-        `Taxa: ${instantFps} FPS | Entidades: ${k.get("*").length}`,
-        `Pool Partículas: ${stats.activeCircles + stats.activeRects} ativas (${stats.totalCircles + stats.totalRects} alocadas)`,
-        `Bioma: ${modsText}`,
-      ].join("\n");
+
+      debugDistanceUI.update(playerXPosition, {
+        fps: instantFps,
+        entities: k.get("*").length,
+        activeParticles: stats.activeCircles + stats.activeRects,
+        totalParticles: stats.totalCircles + stats.totalRects,
+        activeModules: modsText,
+      });
     }
     
     // Fallback de segurança para conclusão caso alcance ou ultrapasse a rota
@@ -433,11 +422,24 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
     waterSurface.pos.x = k.camPos().x - k.width();
     skyBand.pos.x = k.camPos().x - k.width();
     
-    // Atualiza cores do oceano e UI de distância
+    // Atualiza cores do oceano
     updateOceanColors(k, playerXPosition, waterSurface, oceanFloor, skyBand);
-    debugDistanceUI.update(playerXPosition);
   });
 });
 
 // Inicia o jogo na Splash Screen Animada (Fase 13)
 k.go("splash");
+
+// Registro do PWA Service Worker Offline-First para Totens e Tablets (Fase 19.2)
+if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("/sw.js")
+      .then((registration) => {
+        console.log(`[PWA] Micro Splash Service Worker ativo (Escopo: ${registration.scope})`);
+      })
+      .catch((err) => {
+        console.warn("[PWA] Falha no registro do Service Worker:", err);
+      });
+  });
+}

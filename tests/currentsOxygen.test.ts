@@ -28,6 +28,7 @@ function createMockKaboom() {
     color: () => {},
     opacity: () => {},
     outline: () => {},
+    destroy: () => {},
     z: () => {},
     dt: () => 0.1,
     time: () => 10.0,
