@@ -65,7 +65,21 @@ export class PlayerOxygenManager {
     this.isFainting = false;
   }
 
-  public calculateDrainMultiplier(speedLen: number, isDrafting: boolean = false): number {
+  private currentFlowModifier = 1.0;
+
+  public setCurrentFlowModifier(mod: number): void {
+    this.currentFlowModifier = mod;
+  }
+
+  public getCurrentFlowModifier(): number {
+    return this.currentFlowModifier;
+  }
+
+  public calculateDrainMultiplier(
+    speedLen: number,
+    isDrafting: boolean = false,
+    currentFlowModifier: number = this.currentFlowModifier
+  ): number {
     const maxSpeed = GAME_CONFIG.MAX_SPEED * (1 + this.krillsEaten * 0.01);
     const speedRatio = Math.min(1.5, speedLen / maxSpeed);
     // Em repouso (speed = 0): 0.4x (perde 60% menos fôlego)
@@ -74,7 +88,7 @@ export class PlayerOxygenManager {
     // Em velocidade turbo / boost (150%): até 2.2x
     const speedDrainFactor = 0.4 + speedRatio * 1.2;
     const draftMult = isDrafting ? 0.60 : 1.0;
-    return speedDrainFactor * draftMult;
+    return speedDrainFactor * draftMult * currentFlowModifier;
   }
 
   public update(

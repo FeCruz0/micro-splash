@@ -1,5 +1,7 @@
 import type { KaboomCtx } from "kaboom";
 import { audioSystem } from "../systems/audioSystem";
+import { accessibilitySystem } from "../systems/accessibilitySystem";
+import { hapticsSystem } from "../systems/hapticsSystem";
 import {
   RESOLUTION_PRESETS,
   type ResolutionKey,
@@ -108,8 +110,8 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
 
   // --- CONTROLE DE VOLUME ---
   elements.push(k.add([
-    k.text("Volume Geral:", { size: 15, font: "sans-serif" }),
-    k.pos(k.width() / 2 - 160, k.height() / 2 - 165),
+    k.text("Volume Geral:", { size: 14, font: "sans-serif" }),
+    k.pos(k.width() / 2 - 165, k.height() / 2 - 180),
     k.color(200, 230, 255),
     k.anchor("left"),
     k.fixed(),
@@ -117,8 +119,8 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   ]));
 
   const volumeText = k.add([
-    k.text(`${Math.round(audioSystem.getVolume() * 100)}%`, { size: 16, font: "sans-serif" }),
-    k.pos(k.width() / 2 + 60, k.height() / 2 - 165),
+    k.text(`${Math.round(audioSystem.getVolume() * 100)}%`, { size: 15, font: "sans-serif" }),
+    k.pos(k.width() / 2 + 55, k.height() / 2 - 180),
     k.color(100, 240, 255),
     k.anchor("center"),
     k.fixed(),
@@ -128,8 +130,8 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
 
   // Botão Diminuir Volume [-]
   const btnVolDown = k.add([
-    k.rect(36, 32, { radius: 6 }),
-    k.pos(k.width() / 2 + 10, k.height() / 2 - 165),
+    k.rect(34, 28, { radius: 6 }),
+    k.pos(k.width() / 2 + 5, k.height() / 2 - 180),
     k.color(20, 60, 110),
     k.outline(1, k.rgb(100, 200, 255)),
     k.scale(1),
@@ -141,8 +143,8 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   elements.push(btnVolDown);
 
   elements.push(k.add([
-    k.text("-", { size: 20 }),
-    k.pos(k.width() / 2 + 10, k.height() / 2 - 165),
+    k.text("-", { size: 18 }),
+    k.pos(k.width() / 2 + 5, k.height() / 2 - 180),
     k.color(255, 255, 255),
     k.anchor("center"),
     k.fixed(),
@@ -165,8 +167,8 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
 
   // Botão Aumentar Volume [+]
   const btnVolUp = k.add([
-    k.rect(36, 32, { radius: 6 }),
-    k.pos(k.width() / 2 + 110, k.height() / 2 - 165),
+    k.rect(34, 28, { radius: 6 }),
+    k.pos(k.width() / 2 + 105, k.height() / 2 - 180),
     k.color(20, 60, 110),
     k.outline(1, k.rgb(100, 200, 255)),
     k.scale(1),
@@ -178,8 +180,8 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   elements.push(btnVolUp);
 
   elements.push(k.add([
-    k.text("+", { size: 18 }),
-    k.pos(k.width() / 2 + 110, k.height() / 2 - 165),
+    k.text("+", { size: 16 }),
+    k.pos(k.width() / 2 + 105, k.height() / 2 - 180),
     k.color(255, 255, 255),
     k.anchor("center"),
     k.fixed(),
@@ -200,11 +202,11 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
     volumeText.text = `${Math.round(newVol * 100)}%`;
   });
 
-  // --- TOGGLE DE MÚSICA AMBIENTE ---
-  const btnMusic = k.add([
-    k.rect(340, 34, { radius: 8 }),
-    k.pos(k.width() / 2, k.height() / 2 - 115),
-    k.color(audioSystem.isMusicEnabled() ? k.rgb(20, 90, 140) : k.rgb(50, 60, 70)),
+  // --- 18.3 SELETOR DE TRILHA SONORA / JUKEBOX OCEÂNICA ---
+  const btnSoundtrack = k.add([
+    k.rect(350, 32, { radius: 8 }),
+    k.pos(k.width() / 2, k.height() / 2 - 138),
+    k.color(22, 85, 140),
     k.outline(1, k.rgb(100, 220, 255)),
     k.scale(1),
     k.anchor("center"),
@@ -212,37 +214,35 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
     k.fixed(),
     k.z(302),
   ]);
-  elements.push(btnMusic);
+  elements.push(btnSoundtrack);
 
-  const musicText = k.add([
-    k.text(`Música Ambiente: ${audioSystem.isMusicEnabled() ? "LIGADA 🎵" : "DESLIGADA 🔇"}`, { size: 13, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 - 115),
+  const soundtrackText = k.add([
+    k.text(audioSystem.getSoundtrackModeLabel(), { size: 12.5, font: "sans-serif" }),
+    k.pos(k.width() / 2, k.height() / 2 - 138),
     k.color(255, 255, 255),
     k.anchor("center"),
     k.fixed(),
     k.z(303),
   ]);
-  elements.push(musicText);
+  elements.push(soundtrackText);
 
-  btnMusic.onHoverUpdate(() => {
-    btnMusic.scale = k.vec2(1.02, 1.02);
+  btnSoundtrack.onHoverUpdate(() => {
+    btnSoundtrack.scale = k.vec2(1.02, 1.02);
   });
-  btnMusic.onHoverEnd(() => {
-    btnMusic.scale = k.vec2(1, 1);
+  btnSoundtrack.onHoverEnd(() => {
+    btnSoundtrack.scale = k.vec2(1, 1);
   });
 
-  btnMusic.onClick(() => {
-    const newState = !audioSystem.isMusicEnabled();
-    audioSystem.setMusicEnabled(newState);
+  btnSoundtrack.onClick(() => {
+    audioSystem.cycleNextSoundtrackMode();
     audioSystem.playUiClick();
-    btnMusic.color = newState ? k.rgb(20, 90, 140) : k.rgb(50, 60, 70);
-    musicText.text = `Música Ambiente: ${newState ? "LIGADA 🎵" : "DESLIGADA 🔇"}`;
+    soundtrackText.text = audioSystem.getSoundtrackModeLabel();
   });
 
-  // --- TOGGLE DE EFEITOS SONOROS (SFX) ---
+  // --- EFEITOS SONOROS (SFX) & 18.4 FEEDBACK HÁPTICO (VIBRAÇÃO TÁTIL) ---
   const btnSfx = k.add([
-    k.rect(340, 34, { radius: 8 }),
-    k.pos(k.width() / 2, k.height() / 2 - 68),
+    k.rect(170, 32, { radius: 7 }),
+    k.pos(k.width() / 2 - 90, k.height() / 2 - 96),
     k.color(audioSystem.isSfxEnabled() ? k.rgb(20, 90, 140) : k.rgb(50, 60, 70)),
     k.outline(1, k.rgb(100, 220, 255)),
     k.scale(1),
@@ -254,8 +254,8 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   elements.push(btnSfx);
 
   const sfxText = k.add([
-    k.text(`Efeitos Sonoros: ${audioSystem.isSfxEnabled() ? "LIGADOS 🔊" : "DESLIGADOS 🔇"}`, { size: 13, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 - 68),
+    k.text(`SFX: ${audioSystem.isSfxEnabled() ? "LIGADOS 🔊" : "DESLIGADOS 🔇"}`, { size: 11.5, font: "sans-serif" }),
+    k.pos(k.width() / 2 - 90, k.height() / 2 - 96),
     k.color(255, 255, 255),
     k.anchor("center"),
     k.fixed(),
@@ -275,7 +275,84 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
     audioSystem.setSfxEnabled(newState);
     audioSystem.playUiClick();
     btnSfx.color = newState ? k.rgb(20, 90, 140) : k.rgb(50, 60, 70);
-    sfxText.text = `Efeitos Sonoros: ${newState ? "LIGADOS 🔊" : "DESLIGADOS 🔇"}`;
+    sfxText.text = `SFX: ${newState ? "LIGADOS 🔊" : "DESLIGADOS 🔇"}`;
+  });
+
+  // Botão Feedback Háptico (Vibração Tátil)
+  const getHapticsLabel = () => hapticsSystem.isEnabled() ? "Vibração: LIGADA 📳" : "Vibração: DESLIGADA 📴";
+  const btnHaptics = k.add([
+    k.rect(170, 32, { radius: 7 }),
+    k.pos(k.width() / 2 + 90, k.height() / 2 - 96),
+    k.color(hapticsSystem.isEnabled() ? k.rgb(20, 90, 140) : k.rgb(50, 60, 70)),
+    k.outline(1, k.rgb(100, 220, 255)),
+    k.scale(1),
+    k.anchor("center"),
+    k.area(),
+    k.fixed(),
+    k.z(302),
+  ]);
+  elements.push(btnHaptics);
+
+  const hapticsText = k.add([
+    k.text(getHapticsLabel(), { size: 11.5, font: "sans-serif" }),
+    k.pos(k.width() / 2 + 90, k.height() / 2 - 96),
+    k.color(255, 255, 255),
+    k.anchor("center"),
+    k.fixed(),
+    k.z(303),
+  ]);
+  elements.push(hapticsText);
+
+  btnHaptics.onHoverUpdate(() => {
+    btnHaptics.scale = k.vec2(1.02, 1.02);
+  });
+  btnHaptics.onHoverEnd(() => {
+    btnHaptics.scale = k.vec2(1, 1);
+  });
+
+  btnHaptics.onClick(() => {
+    const newState = hapticsSystem.toggle();
+    audioSystem.playUiClick();
+    btnHaptics.color = newState ? k.rgb(20, 90, 140) : k.rgb(50, 60, 70);
+    hapticsText.text = getHapticsLabel();
+  });
+
+  // --- 18.2 SELETOR DE CORES / DALTONISMO & ALTO CONTRASTE ---
+  const btnAccessibility = k.add([
+    k.rect(350, 32, { radius: 8 }),
+    k.pos(k.width() / 2, k.height() / 2 - 54),
+    k.color(accessibilitySystem.isHighContrast() ? k.rgb(30, 110, 150) : k.rgb(22, 75, 125)),
+    k.outline(1, k.rgb(100, 240, 220)),
+    k.scale(1),
+    k.anchor("center"),
+    k.area(),
+    k.fixed(),
+    k.z(302),
+  ]);
+  elements.push(btnAccessibility);
+
+  const accessibilityText = k.add([
+    k.text(accessibilitySystem.getLabel(), { size: 12.5, font: "sans-serif" }),
+    k.pos(k.width() / 2, k.height() / 2 - 54),
+    k.color(255, 255, 255),
+    k.anchor("center"),
+    k.fixed(),
+    k.z(303),
+  ]);
+  elements.push(accessibilityText);
+
+  btnAccessibility.onHoverUpdate(() => {
+    btnAccessibility.scale = k.vec2(1.02, 1.02);
+  });
+  btnAccessibility.onHoverEnd(() => {
+    btnAccessibility.scale = k.vec2(1, 1);
+  });
+
+  btnAccessibility.onClick(() => {
+    accessibilitySystem.cycleNextColorMode();
+    audioSystem.playUiClick();
+    accessibilityText.text = accessibilitySystem.getLabel();
+    btnAccessibility.color = accessibilitySystem.isHighContrast() ? k.rgb(30, 110, 150) : k.rgb(22, 75, 125);
   });
 
   // --- TOGGLE DE CONTROLES TOUCH NA TELA ---
@@ -287,8 +364,8 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   };
 
   const btnTouch = k.add([
-    k.rect(340, 34, { radius: 8 }),
-    k.pos(k.width() / 2, k.height() / 2 - 20),
+    k.rect(350, 32, { radius: 8 }),
+    k.pos(k.width() / 2, k.height() / 2 - 12),
     k.color(touchMode === "off" ? k.rgb(50, 60, 70) : k.rgb(20, 90, 140)),
     k.outline(1, k.rgb(100, 220, 255)),
     k.scale(1),
@@ -301,7 +378,7 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
 
   const touchText = k.add([
     k.text(getTouchLabel(touchMode), { size: 12, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 - 20),
+    k.pos(k.width() / 2, k.height() / 2 - 12),
     k.color(255, 255, 255),
     k.anchor("center"),
     k.fixed(),
@@ -332,8 +409,8 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   const getResLabel = (key: ResolutionKey) => `Resolução: ${RESOLUTION_PRESETS[key].label}`;
 
   const btnRes = k.add([
-    k.rect(340, 32, { radius: 7 }),
-    k.pos(k.width() / 2, k.height() / 2 + 24),
+    k.rect(350, 30, { radius: 7 }),
+    k.pos(k.width() / 2, k.height() / 2 + 28),
     k.color(24, 80, 135),
     k.outline(1, k.rgb(80, 210, 255)),
     k.scale(1),
@@ -346,7 +423,7 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
 
   const resText = k.add([
     k.text(getResLabel(currentResKey), { size: 11.5, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 + 24),
+    k.pos(k.width() / 2, k.height() / 2 + 28),
     k.color(255, 255, 255),
     k.anchor("center"),
     k.fixed(),
@@ -356,7 +433,7 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
 
   const resHintText = k.add([
     k.text("", { size: 10, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 + 48),
+    k.pos(k.width() / 2, k.height() / 2 + 50),
     k.color(255, 220, 100),
     k.anchor("center"),
     k.fixed(),
@@ -451,8 +528,8 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
 
   // --- GUIA DE CONTROLES ---
   elements.push(k.add([
-    k.rect(480, 68, { radius: 8 }),
-    k.pos(k.width() / 2, k.height() / 2 + 128),
+    k.rect(480, 56, { radius: 8 }),
+    k.pos(k.width() / 2, k.height() / 2 + 132),
     k.color(8, 25, 55),
     k.outline(1, k.rgb(50, 120, 180)),
     k.anchor("center"),
@@ -461,8 +538,8 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   ]));
 
   elements.push(k.add([
-    k.text("🎮 GUIA RÁPIDO DE CONTROLES:", { size: 11, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 + 88),
+    k.text("🎮 GUIA RÁPIDO DE CONTROLES:", { size: 10.5, font: "sans-serif" }),
+    k.pos(k.width() / 2, k.height() / 2 + 115),
     k.color(255, 215, 100),
     k.anchor("center"),
     k.fixed(),
@@ -470,12 +547,12 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   ]));
 
   elements.push(k.add([
-    k.text("• [Setas/WASD] ou D-Pad Touch: Nadar e inclinar a baleia\n• [Espaço] ou Botão Nado Touch: Impulso de nado\n• [Shift/E] ou Botão Sonar Touch: Biosonar 360°", {
-      size: 11,
+    k.text("• [Setas/WASD] ou D-Pad Touch: Nadar e inclinar a baleia\n• [Espaço] ou Botão Nado Touch: Impulso de nado (delay 1s)  • [Shift/E]: Biosonar", {
+      size: 10,
       font: "sans-serif",
-      lineSpacing: 3,
+      lineSpacing: 2,
     }),
-    k.pos(k.width() / 2, k.height() / 2 + 120),
+    k.pos(k.width() / 2, k.height() / 2 + 138),
     k.color(180, 220, 250),
     k.anchor("center"),
     k.fixed(),

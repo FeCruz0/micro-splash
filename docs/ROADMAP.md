@@ -169,13 +169,13 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
 ### 🌊 FASE 18: Dinâmica Hidrodinâmica de Correntezas & Acessibilidade
 *Objetivo: Aprofundar a física biológica da navegação e garantir acessibilidade a todos os perfis de jogadores.*
 
-- [ ] **18.1 Dinâmica de Fôlego em Correntezas (Nado a Favor vs. Contra o Fluxo):**
+- [x] **18.1 Dinâmica de Fôlego em Correntezas (Nado a Favor vs. Contra o Fluxo):**
   - Modelar o consumo de oxigênio conforme o alinhamento da baleia com o vetor da correnteza: se a jubarte estiver virada e nadando contra o fluxo, o esforço físico intensificado aumenta o dreno de oxigênio (+35%); se estiver virada e nadando a favor da correnteza, a esteira hidrodinâmica reduz o dreno de oxigênio (-35%), criando uma camada tática e biológica realista de navegação oceânica.
-- [ ] **18.2 Modos de Alto Contraste & Daltonismo:**
+- [x] **18.2 Modos de Alto Contraste & Daltonismo:**
   - Paletas comutáveis no menu de opções (Protanopia, Deuteranopia e Alto Contraste com contornos reforçados para lixo, redes e krill).
-- [ ] **18.3 Seletor de Trilha Sonora / Jukebox Oceânica:**
+- [x] **18.3 Seletor de Trilha Sonora / Jukebox Oceânica:**
   - Opção no menu para alternar em tempo real entre: *Trilha 16-Bit Chiptune Dinâmica* (estilo David Wise), *Trilha Ambiente Contemplativa* (apenas hidrofones, água e cantos de baleia) e *Modo Foco* (apenas SFX).
-- [ ] **18.4 Feedback Háptico em Dispositivos Móveis:**
+- [x] **18.4 Feedback Háptico em Dispositivos Móveis:**
   - Vibração tátil (`navigator.vibrate`) em tablets e celulares ao romper o gelo polar, sofrer colisão ou emitir o Biosonar.
 
 ### 🌐 FASE 19: Eventos Climáticos & Distribuição para Totens (PWA)

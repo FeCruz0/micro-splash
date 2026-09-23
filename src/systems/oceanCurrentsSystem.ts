@@ -111,7 +111,7 @@ export function setupOceanCurrentsSystem(
       }
     }
 
-    // 4. Interação física contínua com a baleia
+    // 4. Interação física contínua com a baleia e cálculo de dinâmica de fôlego
     currentBox.onUpdate(() => {
       const playerPos = playerController.gameObj.pos;
 
@@ -121,6 +121,18 @@ export function setupOceanCurrentsSystem(
       if (isInX && isInY) {
         const dt = k.dt();
         const currentSpeed = playerController.getSpeed();
+        const facingRight = playerController.isFacingRight ? playerController.isFacingRight() : true;
+
+        // Sentido da correnteza (+1 para favorável/leste, -1 para contrária/oeste)
+        const currentDir = isFavorable ? 1 : -1;
+        const whaleDir = facingRight ? 1 : -1;
+        const isAlignedWithFlow = currentDir === whaleDir;
+
+        // Fase 18.1: A favor do fluxo = -35% de dreno (0.65x); Contra o fluxo = +35% de dreno (1.35x)
+        const flowModifier = isAlignedWithFlow ? 0.65 : 1.35;
+        if (playerController.setCurrentFlowModifier) {
+          playerController.setCurrentFlowModifier(flowModifier);
+        }
 
         if (isFavorable) {
           // Acelera a jubarte para a frente (+X) com empuxo hidrodinâmico
@@ -167,7 +179,42 @@ export function setupOceanCurrentsSystem(
             k.shake(1.0);
           }
         }
+
+        // Micro-bolhas de esforço/resistência ao nadar contra a correnteza
+        if (!isAlignedWithFlow && Math.random() < 0.22) {
+          const bubble = k.add([
+            k.circle(k.rand(1.5, 3)),
+            k.pos(playerPos.x + (facingRight ? 40 : -40), playerPos.y + k.rand(-8, 8)),
+            k.color(200, 230, 255),
+            k.opacity(0.65),
+            k.z(14),
+          ]);
+          bubble.onUpdate(() => {
+            bubble.pos.x -= currentDir * 110 * k.dt();
+            bubble.pos.y -= 20 * k.dt();
+            bubble.opacity -= k.dt() * 2.2;
+            if (bubble.opacity <= 0) k.destroy(bubble);
+          });
+        }
       }
     });
+  });
+
+  // Reset do modificador quando a baleia não estiver dentro de nenhuma zona
+  k.onUpdate(() => {
+    if (!playerController.gameObj || !playerController.gameObj.pos) return;
+    const playerPos = playerController.gameObj.pos;
+    const inAny = zones.some(
+      (z) =>
+        playerPos.x >= z.startX &&
+        playerPos.x <= z.endX &&
+        playerPos.y >= z.y &&
+        playerPos.y <= z.y + z.height
+    );
+    if (!inAny && playerController.setCurrentFlowModifier) {
+      if (playerController.getCurrentFlowModifier && playerController.getCurrentFlowModifier() !== 1.0) {
+        playerController.setCurrentFlowModifier(1.0);
+      }
+    }
   });
 }

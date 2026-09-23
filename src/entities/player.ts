@@ -514,5 +514,12 @@ export function createPlayer(
     getCausticOpacity: () => whaleCaustics.opacity,
     getVentralOpacity: () => whaleVentralFlash.opacity,
     getStrokeCooldown: () => strokeCooldownTimer,
+
+    // Fase 18: Dinâmica Hidrodinâmica de Correntezas
+    isFacingRight: () => controlsMgr.isFacingRight(),
+    setCurrentFlowModifier: (mod: number) => {
+      oxygenMgr.setCurrentFlowModifier(mod);
+    },
+    getCurrentFlowModifier: () => oxygenMgr.getCurrentFlowModifier(),
   };
 }

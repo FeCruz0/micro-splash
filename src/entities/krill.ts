@@ -1,5 +1,6 @@
 import type { GameObj, KaboomCtx, Vec2 } from "kaboom";
 import { GAME_CONFIG, TAGS } from "../config";
+import { accessibilitySystem } from "../systems/accessibilitySystem";
 
 interface BoidMember {
   obj: GameObj;
@@ -49,22 +50,26 @@ export function createKrill(k: KaboomCtx, position: Vec2): GameObj {
     const relX = Math.cos(angle) * radius;
     const relY = Math.sin(angle) * radius;
 
-    const baseColor = k.rgb(
-      255,
-      150 + Math.floor(Math.random() * 45),
-      60 + Math.floor(Math.random() * 40)
-    );
+    const isHighContrast = accessibilitySystem.isHighContrast();
+    const baseColor = isHighContrast
+      ? k.rgb(255, 230, 50)
+      : k.rgb(
+          255,
+          150 + Math.floor(Math.random() * 45),
+          60 + Math.floor(Math.random() * 40)
+        );
 
     const boidObj = k.add([
-      k.rect(4.2, 2.4, { radius: 1 }),
+      k.rect(isHighContrast ? 4.8 : 4.2, isHighContrast ? 2.8 : 2.4, { radius: 1 }),
       k.pos(position.x + relX, position.y + relY),
       k.rotate(0),
       k.color(baseColor),
-      k.opacity(0.85),
+      isHighContrast ? k.outline(1, k.rgb(0, 0, 0)) : null,
+      k.opacity(isHighContrast ? 1.0 : 0.85),
       k.anchor("center"),
       k.scale(1),
       k.z(11),
-    ]);
+    ].filter(Boolean));
 
     boids.push({
       obj: boidObj,

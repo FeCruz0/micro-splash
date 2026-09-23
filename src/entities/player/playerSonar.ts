@@ -1,6 +1,7 @@
 import type { KaboomCtx, Vec2 } from "kaboom";
 import { GAME_CONFIG, TAGS } from "../../config";
 import { audioSystem } from "../../systems/audioSystem";
+import { hapticsSystem } from "../../systems/hapticsSystem";
 import { getParticlePool } from "../../systems/particlePool";
 
 export class PlayerSonarManager {
@@ -26,6 +27,7 @@ export class PlayerSonarManager {
 
     this.sonarCooldown = GAME_CONFIG.SONAR_COOLDOWN;
     audioSystem.playWhaleSong(1.0, 1.0);
+    hapticsSystem.triggerSonar();
 
     const headPos = pos.add(this.k.vec2(facingRight ? 42 : -42, -4));
 

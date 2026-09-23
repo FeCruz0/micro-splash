@@ -1,17 +1,23 @@
 import type { KaboomCtx, Vec2 } from "kaboom";
 import { GAME_CONFIG, TAGS } from "../config";
+import { accessibilitySystem } from "../systems/accessibilitySystem";
 
 export function createTrash(k: KaboomCtx, position: Vec2) {
   let revealTimer = 0;
+  const isHighContrast = accessibilitySystem.isHighContrast();
+  const baseOpacity = isHighContrast ? 0.55 : 0.25;
 
   const trash = k.add([
     k.rect(22, 22, { radius: 4 }),
     k.pos(position),
-    k.color(220, 50, 50),
-    k.outline(1.5, k.rgb(255, 120, 120)),
+    k.color(isHighContrast ? k.rgb(240, 60, 60) : k.rgb(220, 50, 50)),
+    k.outline(
+      isHighContrast ? 2.5 : 1.5,
+      isHighContrast ? k.rgb(255, 240, 50) : k.rgb(255, 120, 120)
+    ),
     k.area(),
     k.anchor("center"),
-    k.opacity(0.25), // Camuflado nas águas escuras
+    k.opacity(baseOpacity), // Camuflado nas águas escuras (reforçado em alto contraste)
     TAGS.TRASH,
     {
       reveal() {
@@ -30,9 +36,9 @@ export function createTrash(k: KaboomCtx, position: Vec2) {
 
     if (revealTimer > 0) {
       revealTimer -= k.dt();
-      trash.opacity = k.lerp(0.25, 1, Math.min(1, revealTimer / 1.5));
+      trash.opacity = k.lerp(baseOpacity, 1, Math.min(1, revealTimer / 1.5));
     } else {
-      trash.opacity = 0.25;
+      trash.opacity = baseOpacity;
     }
   });
 

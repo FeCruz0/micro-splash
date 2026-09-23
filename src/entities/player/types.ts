@@ -39,4 +39,9 @@ export interface PlayerController {
   getCausticOpacity?: () => number;
   getVentralOpacity?: () => number;
   getStrokeCooldown?: () => number;
+
+  // Fase 18: Dinâmica Hidrodinâmica de Correntezas (A favor vs. Contra o Fluxo)
+  isFacingRight?: () => boolean;
+  setCurrentFlowModifier?: (modifier: number) => void;
+  getCurrentFlowModifier?: () => number;
 }

@@ -19,6 +19,14 @@
 import { BiomeMusicEngine } from "./audio/audioMusic";
 export { BIOME_INDEX } from "./audio/audioMusic";
 
+export type SoundtrackMode = "chiptune" | "ambient" | "sfx_only";
+
+export const SOUNDTRACK_MODE_LABELS: Record<SoundtrackMode, string> = {
+  chiptune: "Trilha: 16-BIT DINÂMICA 🎶",
+  ambient: "Trilha: AMBIENTE CONTEMPLATIVA 🌊",
+  sfx_only: "Trilha: MODO FOCO (APENAS SFX) 🎧",
+};
+
 class AudioSystem {
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
@@ -32,6 +40,8 @@ class AudioSystem {
   private sfxEnabled: boolean = true;
   private lastWhaleSongTime: number = 0;
   private isMigrationAudioRunning: boolean = false;
+  private soundtrackMode: SoundtrackMode = "chiptune";
+  private ambientWhaleTimer: any = null;
 
   // Motor musical procedural Aquatic Ambience + 16-Bit Lofi Ocean
   private biomeEngine: BiomeMusicEngine = new BiomeMusicEngine();
@@ -69,15 +79,14 @@ class AudioSystem {
     // Inicia a ambiência de marés e correntes profundas se ainda não estiver ativa
     if (!this.ambientNoiseSource) {
       this.startAmbientOcean();
-    } else if (this.ambientGain) {
-      const targetGain = (!this.isMuted && this.musicEnabled) ? 0.30 : 0;
-      this.ambientGain.gain.setTargetAtTime(targetGain, this.ctx.currentTime, 0.2);
     }
 
     // Inicia o motor musical de bioma
     this.biomeEngine.init(this.ctx, this.masterGain);
-    this.biomeEngine.setEnabled(!this.isMuted && this.musicEnabled);
     this.biomeEngine.updatePosition(initialX);
+
+    // Configura a reprodução de acordo com o modo de trilha sonora ativo
+    this.updateSoundtrackPlayback();
   }
 
   /**
@@ -85,6 +94,10 @@ class AudioSystem {
    */
   public stopMigrationAudio() {
     this.isMigrationAudioRunning = false;
+    if (this.ambientWhaleTimer) {
+      clearInterval(this.ambientWhaleTimer);
+      this.ambientWhaleTimer = null;
+    }
     this.pauseAmbient();
   }
 
@@ -96,6 +109,9 @@ class AudioSystem {
         if (typeof parsed.volume === "number") this.volume = Math.max(1.0, parsed.volume);
         if (typeof parsed.musicEnabled === "boolean") this.musicEnabled = parsed.musicEnabled;
         if (typeof parsed.sfxEnabled === "boolean") this.sfxEnabled = parsed.sfxEnabled;
+        if (parsed.soundtrackMode === "chiptune" || parsed.soundtrackMode === "ambient" || parsed.soundtrackMode === "sfx_only") {
+          this.soundtrackMode = parsed.soundtrackMode;
+        }
       }
     } catch {}
   }
@@ -106,8 +122,85 @@ class AudioSystem {
         volume: this.volume,
         musicEnabled: this.musicEnabled,
         sfxEnabled: this.sfxEnabled,
+        soundtrackMode: this.soundtrackMode,
       }));
     } catch {}
+  }
+
+  public getSoundtrackMode(): SoundtrackMode {
+    return this.soundtrackMode;
+  }
+
+  public setSoundtrackMode(mode: SoundtrackMode) {
+    this.soundtrackMode = mode;
+    this.updateSoundtrackPlayback();
+    this.saveSettings();
+  }
+
+  public cycleNextSoundtrackMode(): SoundtrackMode {
+    const modes: SoundtrackMode[] = ["chiptune", "ambient", "sfx_only"];
+    const currentIdx = modes.indexOf(this.soundtrackMode);
+    const nextIdx = (currentIdx + 1) % modes.length;
+    const nextMode = modes[nextIdx];
+    this.setSoundtrackMode(nextMode);
+    return nextMode;
+  }
+
+  public getSoundtrackModeLabel(): string {
+    return SOUNDTRACK_MODE_LABELS[this.soundtrackMode] || SOUNDTRACK_MODE_LABELS.chiptune;
+  }
+
+  public updateSoundtrackPlayback() {
+    if (!this.ctx) return;
+
+    if (this.ambientWhaleTimer) {
+      clearInterval(this.ambientWhaleTimer);
+      this.ambientWhaleTimer = null;
+    }
+
+    if (this.isMuted || !this.musicEnabled) {
+      this.biomeEngine.setEnabled(false);
+      if (this.ambientGain) {
+        this.ambientGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.05);
+      }
+      return;
+    }
+
+    switch (this.soundtrackMode) {
+      case "chiptune":
+        this.biomeEngine.setEnabled(this.isMigrationAudioRunning);
+        if (this.ambientGain) {
+          const targetGain = this.isMigrationAudioRunning ? 0.20 : 0;
+          this.ambientGain.gain.setTargetAtTime(targetGain, this.ctx.currentTime, 0.1);
+        }
+        break;
+
+      case "ambient":
+        // Silencia sintetizadores melódicos do biomeEngine
+        this.biomeEngine.setEnabled(false);
+        // Ativa ambiência líquida e profunda
+        if (this.ambientGain) {
+          const targetGain = this.isMigrationAudioRunning ? 0.32 : 0;
+          this.ambientGain.gain.setTargetAtTime(targetGain, this.ctx.currentTime, 0.1);
+        }
+        // Dispara cantos contemplativos procedurais de baleia periodicamente
+        if (this.isMigrationAudioRunning) {
+          this.ambientWhaleTimer = setInterval(() => {
+            if (this.soundtrackMode === "ambient" && this.isMigrationAudioRunning && this.musicEnabled && !this.isMuted) {
+              this.playWhaleSong(0.50, 0.90 + Math.random() * 0.2);
+            }
+          }, 14000);
+        }
+        break;
+
+      case "sfx_only":
+        // Silencia música e ambiência de fundo; preserva apenas SFX
+        this.biomeEngine.setEnabled(false);
+        if (this.ambientGain) {
+          this.ambientGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.05);
+        }
+        break;
+    }
   }
 
   public setVolume(val: number) {
@@ -125,12 +218,7 @@ class AudioSystem {
 
   public setMusicEnabled(enabled: boolean) {
     this.musicEnabled = enabled;
-    this.biomeEngine.setEnabled(enabled && this.isMigrationAudioRunning);
-    if (!enabled && this.ambientGain && this.ctx) {
-      this.ambientGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.05);
-    } else if (enabled && this.isMigrationAudioRunning && this.ambientGain && this.ctx && !this.isMuted) {
-      this.ambientGain.gain.setTargetAtTime(0.20, this.ctx.currentTime, 0.05);
-    }
+    this.updateSoundtrackPlayback();
     this.saveSettings();
   }
 

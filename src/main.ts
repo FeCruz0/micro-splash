@@ -31,6 +31,7 @@ import { initParticlePool } from "./systems/particlePool";
 import { initBiomeLifecycleManager } from "./systems/biomeLifecycleManager";
 import { recordMigrationStart, recordMigrationEnd } from "./systems/cumulativeStats";
 import { initPresentationMode } from "./systems/presentationMode";
+import { accessibilitySystem } from "./systems/accessibilitySystem";
 
 // Interfaces da Fase 6: Menu Principal, Seleção de Modo, Opções e Codex
 import { createMainMenu } from "./ui/mainMenu";
@@ -52,6 +53,8 @@ const k = kaboom({
   stretch: !isLetterbox,
   background: [6, 18, 42],
 });
+
+accessibilitySystem.init();
 
 // Suporte global para alternar Tela Cheia com F11
 k.onKeyPress("f11", () => {

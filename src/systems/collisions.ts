@@ -1,6 +1,7 @@
 import type { KaboomCtx } from "kaboom";
 import { TAGS, GAME_CONFIG } from "../config";
 import { audioSystem } from "./audioSystem";
+import { hapticsSystem } from "./hapticsSystem";
 import type { PlayerController } from "../entities/player";
 import type { GameState } from "./state";
 
@@ -19,8 +20,9 @@ export function setupCollisions(
 
     gameState.addTrash();
 
-    // Som de impacto no plástico
+    // Som de impacto no plástico e vibração tátil
     audioSystem.playTrashThud();
+    hapticsSystem.triggerCollision();
 
     // Aplica desaceleração instantânea (perde 50% da velocidade)
     const currentSpeed = playerController.getSpeed();
@@ -64,6 +66,7 @@ export function setupCollisions(
 
     k.destroy(net); // remove rede do mapa
     audioSystem.playNetTangle();
+    hapticsSystem.triggerCollision();
 
     if (!playerController.isTrapped()) {
       playerController.trapInNet(GAME_CONFIG.NET_ESCAPE_COUNT); // prende a baleia
@@ -82,6 +85,7 @@ export function setupCollisions(
     const vel = playerController.getSpeed();
     if (player.pos.y <= iceBlock.pos.y + 8 && vel.y >= 0) {
       if (iceBlock.breakIce) {
+        hapticsSystem.triggerIceBreach();
         iceBlock.breakIce();
       }
     }
