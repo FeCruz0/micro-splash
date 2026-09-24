@@ -121,7 +121,9 @@ export function setupOceanCurrentsSystem(
       if (isInX && isInY) {
         const dt = k.dt();
         const currentSpeed = playerController.getSpeed();
-        const facingRight = playerController.isFacingRight ? playerController.isFacingRight() : true;
+        const facingRight = playerController.isFacingRight
+          ? playerController.isFacingRight()
+          : true;
 
         // Sentido da correnteza (+1 para favorável/leste, -1 para contrária/oeste)
         const currentDir = isFavorable ? 1 : -1;
@@ -136,12 +138,7 @@ export function setupOceanCurrentsSystem(
 
         if (isFavorable) {
           // Acelera a jubarte para a frente (+X) com empuxo hidrodinâmico
-          playerController.setSpeed(
-            k.vec2(
-              currentSpeed.x + zone.force * dt,
-              currentSpeed.y
-            )
-          );
+          playerController.setSpeed(k.vec2(currentSpeed.x + zone.force * dt, currentSpeed.y));
 
           // Áudio de impulso favorável com debounce
           const now = k.time();
@@ -167,12 +164,7 @@ export function setupOceanCurrentsSystem(
           }
         } else {
           // Empurra a jubarte para trás (-X)
-          playerController.setSpeed(
-            k.vec2(
-              currentSpeed.x - zone.force * dt,
-              currentSpeed.y
-            )
-          );
+          playerController.setSpeed(k.vec2(currentSpeed.x - zone.force * dt, currentSpeed.y));
 
           // Leve turbulência visual na tela
           if (Math.random() < 0.15) {
@@ -212,7 +204,10 @@ export function setupOceanCurrentsSystem(
         playerPos.y <= z.y + z.height
     );
     if (!inAny && playerController.setCurrentFlowModifier) {
-      if (playerController.getCurrentFlowModifier && playerController.getCurrentFlowModifier() !== 1.0) {
+      if (
+        playerController.getCurrentFlowModifier &&
+        playerController.getCurrentFlowModifier() !== 1.0
+      ) {
         playerController.setCurrentFlowModifier(1.0);
       }
     }

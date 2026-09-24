@@ -54,6 +54,6 @@ describe("PlayerPhysicsManager: Perda de Momentum e Impulso da Baleia", () => {
 
     const coastSpeed = physics.getSpeed().len();
     // Em apenas 0.5s sem nadar, a baleia deve ter perdido mais de 60% da velocidade máxima
-    expect(coastSpeed).toBeLessThan(GAME_CONFIG.MAX_SPEED * 0.40);
+    expect(coastSpeed).toBeLessThan(GAME_CONFIG.MAX_SPEED * 0.4);
   });
 });

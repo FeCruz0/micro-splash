@@ -24,7 +24,10 @@ function shuffleArray<T>(array: T[]): T[] {
   return arr;
 }
 
-function selectQuizQuestions(allQuestions: QuizQuestion[], unlockedFactIds?: string[]): QuizQuestion[] {
+function selectQuizQuestions(
+  allQuestions: QuizQuestion[],
+  unlockedFactIds?: string[]
+): QuizQuestion[] {
   const unlockedSet = new Set(unlockedFactIds || []);
 
   const selected: QuizQuestion[] = [];
@@ -45,7 +48,9 @@ function selectQuizQuestions(allQuestions: QuizQuestion[], unlockedFactIds?: str
   const difficulties: ("facil" | "medio" | "dificil")[] = ["facil", "medio", "dificil"];
   for (const diff of difficulties) {
     if (selected.length >= 3) break;
-    const pool = shuffleArray(allQuestions.filter((q) => q.difficulty === diff && !selectedIds.has(q.id)));
+    const pool = shuffleArray(
+      allQuestions.filter((q) => q.difficulty === diff && !selectedIds.has(q.id))
+    );
     if (pool.length > 0) {
       selected.push(pool[0]);
       selectedIds.add(pool[0].id);
@@ -75,7 +80,8 @@ export function showQuizModal(
   audioSystem.playUiClick();
 
   // Seleciona 3 perguntas usando seleção inteligente baseada na rota e dificuldades
-  const unlockedFacts = typeof gameState.getUnlockedFactIds === "function" ? gameState.getUnlockedFactIds() : [];
+  const unlockedFacts =
+    typeof gameState.getUnlockedFactIds === "function" ? gameState.getUnlockedFactIds() : [];
   const questions = selectQuizQuestions(quizData as QuizQuestion[], unlockedFacts);
 
   let currentQuestionIdx = 0;
@@ -127,14 +133,16 @@ export function showQuizModal(
   elements.push(card);
 
   // Título do Quiz no topo do card
-  elements.push(k.add([
-    k.text("DESAFIO DE CONHECIMENTO ECOLÓGICO 🧪🐋", { size: 16, font: "sans-serif" }),
-    k.pos(cX, cY - cardH / 2 + 28),
-    k.color(255, 215, 80),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(502),
-  ]));
+  elements.push(
+    k.add([
+      k.text("DESAFIO DE CONHECIMENTO ECOLÓGICO 🧪🐋", { size: 16, font: "sans-serif" }),
+      k.pos(cX, cY - cardH / 2 + 28),
+      k.color(255, 215, 80),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(502),
+    ])
+  );
 
   const destroyAll = () => {
     if (isClosed) return;
@@ -147,10 +155,14 @@ export function showQuizModal(
     });
 
     dynamicElements.forEach((el) => {
-      try { k.destroy(el); } catch {}
+      try {
+        k.destroy(el);
+      } catch {}
     });
     elements.forEach((el) => {
-      try { k.destroy(el); } catch {}
+      try {
+        k.destroy(el);
+      } catch {}
     });
   };
 
@@ -173,14 +185,16 @@ export function showQuizModal(
   ]);
   elements.push(btnClose);
 
-  elements.push(k.add([
-    k.text("✕", { size: 14, font: "sans-serif" }),
-    k.pos(cX + cardW / 2 - 24, cY - cardH / 2 + 26),
-    k.color(255, 255, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(506),
-  ]));
+  elements.push(
+    k.add([
+      k.text("✕", { size: 14, font: "sans-serif" }),
+      k.pos(cX + cardW / 2 - 24, cY - cardH / 2 + 26),
+      k.color(255, 255, 255),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(506),
+    ])
+  );
 
   btnClose.onHoverUpdate(() => {
     btnClose.color = k.rgb(150, 40, 40);
@@ -192,16 +206,20 @@ export function showQuizModal(
   keyListeners.push(k.onKeyPress("escape", doClose));
 
   // Suporte a tecla Enter / Espaço para avançar após responder
-  keyListeners.push(k.onKeyPress("enter", () => {
-    if (isAnswered && onAdvanceCallback) {
-      onAdvanceCallback();
-    }
-  }));
-  keyListeners.push(k.onKeyPress("space", () => {
-    if (isAnswered && onAdvanceCallback) {
-      onAdvanceCallback();
-    }
-  }));
+  keyListeners.push(
+    k.onKeyPress("enter", () => {
+      if (isAnswered && onAdvanceCallback) {
+        onAdvanceCallback();
+      }
+    })
+  );
+  keyListeners.push(
+    k.onKeyPress("space", () => {
+      if (isAnswered && onAdvanceCallback) {
+        onAdvanceCallback();
+      }
+    })
+  );
 
   // Registro único dos atalhos de teclado 1, 2, 3, 4 ou A, B, C, D
   const optionKeys = [
@@ -224,7 +242,9 @@ export function showQuizModal(
 
   const renderQuestion = () => {
     dynamicElements.forEach((el) => {
-      try { k.destroy(el); } catch {}
+      try {
+        k.destroy(el);
+      } catch {}
     });
     dynamicElements = [];
     isAnswered = false;
@@ -261,27 +281,34 @@ export function showQuizModal(
     ].filter(Boolean);
 
     // Indicador de Progresso e Pontuação com Bioma e Dificuldade
-    dynamicElements.push(k.add([
-      k.text(
-        metaParts.join("  •  "),
-        { size: 10.5, font: "sans-serif" }
-      ),
-      k.pos(cX, cY - cardH / 2 + 56),
-      k.color(140, 220, 255),
-      k.anchor("center"),
-      k.fixed(),
-      k.z(502),
-    ]));
+    dynamicElements.push(
+      k.add([
+        k.text(metaParts.join("  •  "), { size: 10.5, font: "sans-serif" }),
+        k.pos(cX, cY - cardH / 2 + 56),
+        k.color(140, 220, 255),
+        k.anchor("center"),
+        k.fixed(),
+        k.z(502),
+      ])
+    );
 
     // Pergunta em destaque
-    dynamicElements.push(k.add([
-      k.text(q.question, { size: 13.5, font: "sans-serif", width: cardW - 50, lineSpacing: 3, align: "center" }),
-      k.pos(cX, cY - cardH / 2 + 96),
-      k.color(255, 255, 255),
-      k.anchor("center"),
-      k.fixed(),
-      k.z(502),
-    ]));
+    dynamicElements.push(
+      k.add([
+        k.text(q.question, {
+          size: 13.5,
+          font: "sans-serif",
+          width: cardW - 50,
+          lineSpacing: 3,
+          align: "center",
+        }),
+        k.pos(cX, cY - cardH / 2 + 96),
+        k.color(255, 255, 255),
+        k.anchor("center"),
+        k.fixed(),
+        k.z(502),
+      ])
+    );
 
     // 4 Botões de Alternativas
     const optionLetters = ["A", "B", "C", "D"];
@@ -325,17 +352,22 @@ export function showQuizModal(
       });
 
       // Feedback explicativo sucinto
-      dynamicElements.push(k.add([
-        k.text(
-          `${isCorrect ? "✅ Correto! (+100 pts)" : "❌ Incorreto!"} ${q.explanation}`,
-          { size: 11, font: "sans-serif", width: cardW - 50, lineSpacing: 2.5, align: "center" }
-        ),
-        k.pos(cX, cY + cardH / 2 - 68),
-        k.color(isCorrect ? k.rgb(140, 255, 180) : k.rgb(255, 190, 170)),
-        k.anchor("center"),
-        k.fixed(),
-        k.z(504),
-      ]));
+      dynamicElements.push(
+        k.add([
+          k.text(`${isCorrect ? "✅ Correto! (+100 pts)" : "❌ Incorreto!"} ${q.explanation}`, {
+            size: 11,
+            font: "sans-serif",
+            width: cardW - 50,
+            lineSpacing: 2.5,
+            align: "center",
+          }),
+          k.pos(cX, cY + cardH / 2 - 68),
+          k.color(isCorrect ? k.rgb(140, 255, 180) : k.rgb(255, 190, 170)),
+          k.anchor("center"),
+          k.fixed(),
+          k.z(504),
+        ])
+      );
 
       // Botão Avançar / Concluir
       const isLastQuestion = currentQuestionIdx === questions.length - 1;
@@ -351,17 +383,19 @@ export function showQuizModal(
       ]);
       dynamicElements.push(btnNext);
 
-      dynamicElements.push(k.add([
-        k.text(isLastQuestion ? "Ver Resultado 🏆 (ENTER)" : "Próxima Pergunta ▶ (ENTER)", {
-          size: 11.5,
-          font: "sans-serif",
-        }),
-        k.pos(cX, cY + cardH / 2 - 26),
-        k.color(255, 255, 255),
-        k.anchor("center"),
-        k.fixed(),
-        k.z(506),
-      ]));
+      dynamicElements.push(
+        k.add([
+          k.text(isLastQuestion ? "Ver Resultado 🏆 (ENTER)" : "Próxima Pergunta ▶ (ENTER)", {
+            size: 11.5,
+            font: "sans-serif",
+          }),
+          k.pos(cX, cY + cardH / 2 - 26),
+          k.color(255, 255, 255),
+          k.anchor("center"),
+          k.fixed(),
+          k.z(506),
+        ])
+      );
 
       btnNext.onHoverUpdate(() => {
         btnNext.color = k.rgb(35, 140, 220);
@@ -439,7 +473,9 @@ export function showQuizModal(
 
   const renderSummary = () => {
     dynamicElements.forEach((el) => {
-      try { k.destroy(el); } catch {}
+      try {
+        k.destroy(el);
+      } catch {}
     });
     dynamicElements = [];
     currentSelectOption = null;
@@ -447,40 +483,46 @@ export function showQuizModal(
 
     audioSystem.playVictoryFanfare();
 
-    dynamicElements.push(k.add([
-      k.text("PARABÉNS PELO DESEMPENHO ECOLÓGICO! 🎉", { size: 16, font: "sans-serif" }),
-      k.pos(cX, cY - 80),
-      k.color(255, 215, 80),
-      k.anchor("center"),
-      k.fixed(),
-      k.z(503),
-    ]));
+    dynamicElements.push(
+      k.add([
+        k.text("PARABÉNS PELO DESEMPENHO ECOLÓGICO! 🎉", { size: 16, font: "sans-serif" }),
+        k.pos(cX, cY - 80),
+        k.color(255, 215, 80),
+        k.anchor("center"),
+        k.fixed(),
+        k.z(503),
+      ])
+    );
 
-    dynamicElements.push(k.add([
-      k.text(
-        `Você acertou ${correctAnswers} de ${questions.length} perguntas!\n` +
-        `Bônus Conquistado: +${scoreGained} Eco-Pontos somados à sua pontuação!`,
-        { size: 13.5, font: "sans-serif", lineSpacing: 5, align: "center" }
-      ),
-      k.pos(cX, cY - 15),
-      k.color(210, 240, 255),
-      k.anchor("center"),
-      k.fixed(),
-      k.z(503),
-    ]));
+    dynamicElements.push(
+      k.add([
+        k.text(
+          `Você acertou ${correctAnswers} de ${questions.length} perguntas!\n` +
+            `Bônus Conquistado: +${scoreGained} Eco-Pontos somados à sua pontuação!`,
+          { size: 13.5, font: "sans-serif", lineSpacing: 5, align: "center" }
+        ),
+        k.pos(cX, cY - 15),
+        k.color(210, 240, 255),
+        k.anchor("center"),
+        k.fixed(),
+        k.z(503),
+      ])
+    );
 
-    dynamicElements.push(k.add([
-      k.text(
-        "Seus conhecimentos sobre a migração e conservação marinha\n" +
-        "foram registrados no seu Certificado Oficial da Expedição!",
-        { size: 11.5, font: "sans-serif", lineSpacing: 3.5, align: "center" }
-      ),
-      k.pos(cX, cY + 48),
-      k.color(160, 215, 245),
-      k.anchor("center"),
-      k.fixed(),
-      k.z(503),
-    ]));
+    dynamicElements.push(
+      k.add([
+        k.text(
+          "Seus conhecimentos sobre a migração e conservação marinha\n" +
+            "foram registrados no seu Certificado Oficial da Expedição!",
+          { size: 11.5, font: "sans-serif", lineSpacing: 3.5, align: "center" }
+        ),
+        k.pos(cX, cY + 48),
+        k.color(160, 215, 245),
+        k.anchor("center"),
+        k.fixed(),
+        k.z(503),
+      ])
+    );
 
     const btnFinish = k.add([
       k.rect(240, 36, { radius: 7 }),
@@ -494,14 +536,16 @@ export function showQuizModal(
     ]);
     dynamicElements.push(btnFinish);
 
-    dynamicElements.push(k.add([
-      k.text("Concluir e Voltar 📜 (ENTER)", { size: 12.5, font: "sans-serif" }),
-      k.pos(cX, cY + 115),
-      k.color(255, 255, 255),
-      k.anchor("center"),
-      k.fixed(),
-      k.z(506),
-    ]));
+    dynamicElements.push(
+      k.add([
+        k.text("Concluir e Voltar 📜 (ENTER)", { size: 12.5, font: "sans-serif" }),
+        k.pos(cX, cY + 115),
+        k.color(255, 255, 255),
+        k.anchor("center"),
+        k.fixed(),
+        k.z(506),
+      ])
+    );
 
     btnFinish.onHoverUpdate(() => {
       btnFinish.color = k.rgb(28, 160, 100);

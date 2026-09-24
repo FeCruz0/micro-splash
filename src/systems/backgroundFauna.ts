@@ -129,7 +129,7 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
           if (ring.opacity <= 0) k.destroy(ring);
         });
 
-        audioSystem.playWhaleSong(0.50, 0.95);
+        audioSystem.playWhaleSong(0.5, 0.95);
       }
     }
   });
@@ -161,12 +161,7 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
   ]);
 
   // Olho com brilho marinho suave nas profundezas
-  leviathan.add([
-    k.circle(3),
-    k.pos(55, -4),
-    k.color(80, 210, 255),
-    k.opacity(0.6),
-  ]);
+  leviathan.add([k.circle(3), k.pos(55, -4), k.color(80, 210, 255), k.opacity(0.6)]);
 
   // Flukes caudais colossais
   const leviathanFlukes = leviathan.add([

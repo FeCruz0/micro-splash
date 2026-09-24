@@ -1,6 +1,6 @@
-const fs = require('node:fs');
-const path = require('node:path');
-const zlib = require('node:zlib');
+const fs = require("node:fs");
+const path = require("node:path");
+const zlib = require("node:zlib");
 
 function encodePng(width, height, rgbaBuffer) {
   // Constrói imagem RGBA sem filtro por linha (filter byte = 0)
@@ -28,9 +28,9 @@ function encodePng(width, height, rgbaBuffer) {
   ihdr[11] = 0; // Filter
   ihdr[12] = 0; // Interlace
 
-  const ihdrChunk = createChunk('IHDR', ihdr);
-  const idatChunk = createChunk('IDAT', compressedData);
-  const iendChunk = createChunk('IEND', Buffer.alloc(0));
+  const ihdrChunk = createChunk("IHDR", ihdr);
+  const idatChunk = createChunk("IDAT", compressedData);
+  const iendChunk = createChunk("IEND", Buffer.alloc(0));
 
   return Buffer.concat([signature, ihdrChunk, idatChunk, iendChunk]);
 }
@@ -39,10 +39,10 @@ function createChunk(type, data) {
   const len = data.length;
   const buf = Buffer.alloc(4 + 4 + len + 4);
   buf.writeUInt32BE(len, 0);
-  buf.write(type, 4, 4, 'ascii');
+  buf.write(type, 4, 4, "ascii");
   data.copy(buf, 8);
 
-  const crcTarget = Buffer.concat([Buffer.from(type, 'ascii'), data]);
+  const crcTarget = Buffer.concat([Buffer.from(type, "ascii"), data]);
   const crc = crc32(crcTarget);
   buf.writeUInt32BE(crc, 8 + len);
   return buf;
@@ -53,7 +53,7 @@ const crcTable = [];
 for (let n = 0; n < 256; n++) {
   let c = n;
   for (let k = 0; k < 8; k++) {
-    c = (c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1);
+    c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
   }
   crcTable[n] = c;
 }
@@ -98,7 +98,7 @@ function renderIconBuffer(size) {
         // Borda circular com anel ciano brilhante
         if (edge > 0.94) {
           setPixel(x, y, 56, 189, 248, 255);
-        } else if (edge > 0.90) {
+        } else if (edge > 0.9) {
           setPixel(x, y, 14, 116, 144, 255);
         } else {
           // Gradiente vertical oceânico
@@ -135,7 +135,7 @@ function renderIconBuffer(size) {
   // Pedúnculo
   const pedW = size * 0.07;
   const pedTop = size * 0.44;
-  const pedBottom = size * 0.80;
+  const pedBottom = size * 0.8;
   for (let y = Math.floor(pedTop); y <= Math.floor(pedBottom); y++) {
     const t = (y - pedTop) / (pedBottom - pedTop);
     const w = pedW * (0.6 + t * 0.6);
@@ -177,11 +177,11 @@ function renderIconBuffer(size) {
 
   // 4. Gotas de Água e Borrifos
   const drops = [
-    { x: cx - size * 0.10, y: size * 0.24, r: size * 0.024 },
-    { x: cx + size * 0.10, y: size * 0.24, r: size * 0.024 },
-    { x: cx, y: size * 0.18, r: size * 0.030 },
-    { x: cx - size * 0.20, y: size * 0.19, r: size * 0.016 },
-    { x: cx + size * 0.20, y: size * 0.19, r: size * 0.016 },
+    { x: cx - size * 0.1, y: size * 0.24, r: size * 0.024 },
+    { x: cx + size * 0.1, y: size * 0.24, r: size * 0.024 },
+    { x: cx, y: size * 0.18, r: size * 0.03 },
+    { x: cx - size * 0.2, y: size * 0.19, r: size * 0.016 },
+    { x: cx + size * 0.2, y: size * 0.19, r: size * 0.016 },
   ];
 
   drops.forEach((d) => {
@@ -200,24 +200,24 @@ function renderIconBuffer(size) {
 }
 
 function main() {
-  const iconsDir = path.resolve(__dirname, '../public/icons');
+  const iconsDir = path.resolve(__dirname, "../public/icons");
   if (!fs.existsSync(iconsDir)) {
     fs.mkdirSync(iconsDir, { recursive: true });
   }
 
   // Gera 192x192
-  console.log('Gerando icon-192.png...');
+  console.log("Gerando icon-192.png...");
   const buf192 = renderIconBuffer(192);
   const png192 = encodePng(192, 192, buf192);
-  fs.writeFileSync(path.join(iconsDir, 'icon-192.png'), png192);
+  fs.writeFileSync(path.join(iconsDir, "icon-192.png"), png192);
 
   // Gera 512x512
-  console.log('Gerando icon-512.png...');
+  console.log("Gerando icon-512.png...");
   const buf512 = renderIconBuffer(512);
   const png512 = encodePng(512, 512, buf512);
-  fs.writeFileSync(path.join(iconsDir, 'icon-512.png'), png512);
+  fs.writeFileSync(path.join(iconsDir, "icon-512.png"), png512);
 
-  console.log('Ícones PWA gerados com sucesso em public/icons/!');
+  console.log("Ícones PWA gerados com sucesso em public/icons/!");
 }
 
 main();

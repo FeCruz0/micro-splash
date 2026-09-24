@@ -1,11 +1,11 @@
 import type { LeaderboardEntry } from "./leaderboard";
 
 export interface WeeklyChallengeInfo {
-  weekKey: string;      // ex: "2026-W39"
-  weekLabel: string;    // ex: "Semana 39 / 2026"
-  seed: number;         // Semente determinística para proceduralObstacles
-  daysLeft: number;     // Dias restantes até a virada da semana
-  expiresAt: Date;      // Momento exato da expiração (próximo domingo 23:59:59)
+  weekKey: string; // ex: "2026-W39"
+  weekLabel: string; // ex: "Semana 39 / 2026"
+  seed: number; // Semente determinística para proceduralObstacles
+  daysLeft: number; // Dias restantes até a virada da semana
+  expiresAt: Date; // Momento exato da expiração (próximo domingo 23:59:59)
 }
 
 /**
@@ -18,7 +18,7 @@ export function stringToSeed(str: string): number {
     hash ^= str.charCodeAt(i);
     hash = Math.imul(hash, 16777619);
   }
-  const seed = (hash >>> 0) % 900000 + 100000; // Garante número de 6 dígitos
+  const seed = ((hash >>> 0) % 900000) + 100000; // Garante número de 6 dígitos
   return seed;
 }
 
@@ -119,7 +119,8 @@ export function addWeeklyLeaderboardEntry(entry: LeaderboardEntry, weekKey?: str
     score: Math.max(0, Math.floor(entry.score)),
     distance: Math.max(0, Math.floor(entry.distance)),
     mode: "weekly",
-    date: entry.date || new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
+    date:
+      entry.date || new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
     weekKey: weekKey || getWeeklyChallengeInfo().weekKey,
   };
 

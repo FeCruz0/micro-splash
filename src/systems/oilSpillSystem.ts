@@ -7,7 +7,7 @@ import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 /**
  * Sistema de Mancha de Óleo Pré-Arraial (Fase 9.1)
  * Faixa: 17.400m a 18.900m (antes do Boqueirão)
- * 
+ *
  * Simula um derramamento industrial de hidrocarbonetos na superfície.
  * Respirar ou romper a superfície nessa zona obstrui o espiráculo da baleia,
  * impedindo a recarga de oxigênio até que ela mergulhe fundo em águas limpas.
@@ -29,11 +29,7 @@ export function setupOilSpillSystem(k: KaboomCtx, playerController: PlayerContro
   ]);
 
   // Luz piscante de perigo na boia
-  const buoyLight = buoy.add([
-    k.circle(4),
-    k.pos(0, -32),
-    k.color(255, 40, 40),
-  ]);
+  const buoyLight = buoy.add([k.circle(4), k.pos(0, -32), k.color(255, 40, 40)]);
 
   let buoyTime = 0;
   buoy.onUpdate(() => {
@@ -89,7 +85,7 @@ export function setupOilSpillSystem(k: KaboomCtx, playerController: PlayerContro
         // Variação de cor da película iridescente (arco-íris característico)
         const hue = (shimmerTime * 60 + idx * 45) % 360;
         const phase = (hue / 360) * 3;
-        let r = 180, g = 80, b = 220;
+        let r: number, g: number, b: number;
         if (phase < 1) {
           r = 220 - phase * 140;
           g = 80 + phase * 140;
@@ -119,7 +115,10 @@ export function setupOilSpillSystem(k: KaboomCtx, playerController: PlayerContro
 
         // Respingo de gotículas de óleo negro em contato
         if (Math.random() < 0.4) {
-          const dropPos = k.vec2(player.pos.x + (Math.random() - 0.5) * 30, GAME_CONFIG.SEA_LEVEL + Math.random() * 4);
+          const dropPos = k.vec2(
+            player.pos.x + (Math.random() - 0.5) * 30,
+            GAME_CONFIG.SEA_LEVEL + Math.random() * 4
+          );
           const pool = getParticlePool();
           if (pool) {
             pool.spawnCircle({

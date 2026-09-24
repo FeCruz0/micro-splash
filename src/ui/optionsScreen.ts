@@ -53,14 +53,16 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   elements.push(card);
 
   // Título
-  elements.push(k.add([
-    k.text("OPÇÕES ⚙️", { size: 20, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 - 215),
-    k.color(255, 230, 100),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(302),
-  ]));
+  elements.push(
+    k.add([
+      k.text("OPÇÕES ⚙️", { size: 20, font: "sans-serif" }),
+      k.pos(k.width() / 2, k.height() / 2 - 215),
+      k.color(255, 230, 100),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(302),
+    ])
+  );
 
   const close = () => {
     if (isClosed) return;
@@ -68,9 +70,14 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
     audioSystem.playUiClick();
     escListener.cancel();
     elements.forEach((el) => {
-      try { k.destroy(el); } catch {}
+      try {
+        k.destroy(el);
+      } catch {}
     });
-    if ((currentResKey !== initialRes.key || currentDisplayMode !== initialDisplayMode) && typeof window !== "undefined") {
+    if (
+      (currentResKey !== initialRes.key || currentDisplayMode !== initialDisplayMode) &&
+      typeof window !== "undefined"
+    ) {
       window.location.reload();
       return;
     }
@@ -93,14 +100,16 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   ]);
   elements.push(btnX);
 
-  elements.push(k.add([
-    k.text("✕", { size: 16, font: "sans-serif" }),
-    k.pos(k.width() / 2 + cardW / 2 - 26, k.height() / 2 - cardH / 2 + 26),
-    k.color(255, 255, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(306),
-  ]));
+  elements.push(
+    k.add([
+      k.text("✕", { size: 16, font: "sans-serif" }),
+      k.pos(k.width() / 2 + cardW / 2 - 26, k.height() / 2 - cardH / 2 + 26),
+      k.color(255, 255, 255),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(306),
+    ])
+  );
 
   btnX.onHoverUpdate(() => {
     btnX.color = k.rgb(180, 50, 50);
@@ -111,14 +120,16 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   btnX.onClick(close);
 
   // --- CONTROLE DE VOLUME ---
-  elements.push(k.add([
-    k.text("Volume Geral:", { size: 14, font: "sans-serif" }),
-    k.pos(k.width() / 2 - 165, k.height() / 2 - 180),
-    k.color(200, 230, 255),
-    k.anchor("left"),
-    k.fixed(),
-    k.z(302),
-  ]));
+  elements.push(
+    k.add([
+      k.text("Volume Geral:", { size: 14, font: "sans-serif" }),
+      k.pos(k.width() / 2 - 165, k.height() / 2 - 180),
+      k.color(200, 230, 255),
+      k.anchor("left"),
+      k.fixed(),
+      k.z(302),
+    ])
+  );
 
   const volumeText = k.add([
     k.text(`${Math.round(audioSystem.getVolume() * 100)}%`, { size: 15, font: "sans-serif" }),
@@ -144,14 +155,16 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   ]);
   elements.push(btnVolDown);
 
-  elements.push(k.add([
-    k.text("-", { size: 18 }),
-    k.pos(k.width() / 2 + 5, k.height() / 2 - 180),
-    k.color(255, 255, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(303),
-  ]));
+  elements.push(
+    k.add([
+      k.text("-", { size: 18 }),
+      k.pos(k.width() / 2 + 5, k.height() / 2 - 180),
+      k.color(255, 255, 255),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(303),
+    ])
+  );
 
   btnVolDown.onHoverUpdate(() => {
     btnVolDown.color = k.rgb(35, 95, 160);
@@ -181,14 +194,16 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   ]);
   elements.push(btnVolUp);
 
-  elements.push(k.add([
-    k.text("+", { size: 16 }),
-    k.pos(k.width() / 2 + 105, k.height() / 2 - 180),
-    k.color(255, 255, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(303),
-  ]));
+  elements.push(
+    k.add([
+      k.text("+", { size: 16 }),
+      k.pos(k.width() / 2 + 105, k.height() / 2 - 180),
+      k.color(255, 255, 255),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(303),
+    ])
+  );
 
   btnVolUp.onHoverUpdate(() => {
     btnVolUp.color = k.rgb(35, 95, 160);
@@ -256,7 +271,10 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   elements.push(btnSfx);
 
   const sfxText = k.add([
-    k.text(`SFX: ${audioSystem.isSfxEnabled() ? "LIGADOS 🔊" : "DESLIGADOS 🔇"}`, { size: 11.5, font: "sans-serif" }),
+    k.text(`SFX: ${audioSystem.isSfxEnabled() ? "LIGADOS 🔊" : "DESLIGADOS 🔇"}`, {
+      size: 11.5,
+      font: "sans-serif",
+    }),
     k.pos(k.width() / 2 - 90, k.height() / 2 - 96),
     k.color(255, 255, 255),
     k.anchor("center"),
@@ -281,7 +299,8 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   });
 
   // Botão Feedback Háptico (Vibração Tátil)
-  const getHapticsLabel = () => hapticsSystem.isEnabled() ? "Vibração: LIGADA 📳" : "Vibração: DESLIGADA 📴";
+  const getHapticsLabel = () =>
+    hapticsSystem.isEnabled() ? "Vibração: LIGADA 📳" : "Vibração: DESLIGADA 📴";
   const btnHaptics = k.add([
     k.rect(170, 32, { radius: 7 }),
     k.pos(k.width() / 2 + 90, k.height() / 2 - 96),
@@ -354,7 +373,9 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
     accessibilitySystem.cycleNextColorMode();
     audioSystem.playUiClick();
     accessibilityText.text = accessibilitySystem.getLabel();
-    btnAccessibility.color = accessibilitySystem.isHighContrast() ? k.rgb(30, 110, 150) : k.rgb(22, 75, 125);
+    btnAccessibility.color = accessibilitySystem.isHighContrast()
+      ? k.rgb(30, 110, 150)
+      : k.rgb(22, 75, 125);
   });
 
   // Botão Narração em Voz (Web Speech API / TTS)
@@ -520,7 +541,10 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   elements.push(btnDisplay);
 
   const displayText = k.add([
-    k.text(currentDisplayMode === "stretch" ? "Bordas: PREENCHER 🖥️✓" : "Bordas: 16:9 FIXA 📺", { size: 10.5, font: "sans-serif" }),
+    k.text(currentDisplayMode === "stretch" ? "Bordas: PREENCHER 🖥️✓" : "Bordas: 16:9 FIXA 📺", {
+      size: 10.5,
+      font: "sans-serif",
+    }),
     k.pos(k.width() / 2 - 72, k.height() / 2 + 70),
     k.color(255, 255, 255),
     k.anchor("center"),
@@ -533,7 +557,8 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
     currentDisplayMode = currentDisplayMode === "stretch" ? "letterbox" : "stretch";
     setSavedDisplayMode(currentDisplayMode);
     audioSystem.playUiClick();
-    displayText.text = currentDisplayMode === "stretch" ? "Bordas: PREENCHER 🖥️✓" : "Bordas: 16:9 FIXA 📺";
+    displayText.text =
+      currentDisplayMode === "stretch" ? "Bordas: PREENCHER 🖥️✓" : "Bordas: 16:9 FIXA 📺";
     btnDisplay.color = currentDisplayMode === "stretch" ? k.rgb(18, 105, 80) : k.rgb(50, 65, 85);
     updateReloadHint();
   });
@@ -567,37 +592,46 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   });
 
   // --- GUIA DE CONTROLES ---
-  elements.push(k.add([
-    k.rect(480, 56, { radius: 8 }),
-    k.pos(k.width() / 2, k.height() / 2 + 132),
-    k.color(8, 25, 55),
-    k.outline(1, k.rgb(50, 120, 180)),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(302),
-  ]));
+  elements.push(
+    k.add([
+      k.rect(480, 56, { radius: 8 }),
+      k.pos(k.width() / 2, k.height() / 2 + 132),
+      k.color(8, 25, 55),
+      k.outline(1, k.rgb(50, 120, 180)),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(302),
+    ])
+  );
 
-  elements.push(k.add([
-    k.text("🎮 GUIA RÁPIDO DE CONTROLES:", { size: 10.5, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 + 115),
-    k.color(255, 215, 100),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(303),
-  ]));
+  elements.push(
+    k.add([
+      k.text("🎮 GUIA RÁPIDO DE CONTROLES:", { size: 10.5, font: "sans-serif" }),
+      k.pos(k.width() / 2, k.height() / 2 + 115),
+      k.color(255, 215, 100),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(303),
+    ])
+  );
 
-  elements.push(k.add([
-    k.text("• [Setas/WASD] ou D-Pad Touch: Nadar e inclinar a baleia\n• [Espaço] ou Botão Nado Touch: Impulso de nado (delay 1s)  • [Shift/E]: Biosonar", {
-      size: 10,
-      font: "sans-serif",
-      lineSpacing: 2,
-    }),
-    k.pos(k.width() / 2, k.height() / 2 + 138),
-    k.color(180, 220, 250),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(303),
-  ]));
+  elements.push(
+    k.add([
+      k.text(
+        "• [Setas/WASD] ou D-Pad Touch: Nadar e inclinar a baleia\n• [Espaço] ou Botão Nado Touch: Impulso de nado (delay 1s)  • [Shift/E]: Biosonar",
+        {
+          size: 10,
+          font: "sans-serif",
+          lineSpacing: 2,
+        }
+      ),
+      k.pos(k.width() / 2, k.height() / 2 + 138),
+      k.color(180, 220, 250),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(303),
+    ])
+  );
 
   // --- BOTÕES VOLTAR & REVER TUTORIAL ---
   const btnTutorial = k.add([
@@ -613,14 +647,16 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   ]);
   elements.push(btnTutorial);
 
-  elements.push(k.add([
-    k.text("Tutorial / Guia 📖", { size: 12.5, font: "sans-serif" }),
-    k.pos(k.width() / 2 - 105, k.height() / 2 + 195),
-    k.color(255, 255, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(303),
-  ]));
+  elements.push(
+    k.add([
+      k.text("Tutorial / Guia 📖", { size: 12.5, font: "sans-serif" }),
+      k.pos(k.width() / 2 - 105, k.height() / 2 + 195),
+      k.color(255, 255, 255),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(303),
+    ])
+  );
 
   btnTutorial.onHoverUpdate(() => {
     btnTutorial.color = k.rgb(28, 120, 175);
@@ -649,14 +685,16 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   ]);
   elements.push(btnBack);
 
-  elements.push(k.add([
-    k.text("Salvar & Voltar ↩️", { size: 13, font: "sans-serif" }),
-    k.pos(k.width() / 2 + 105, k.height() / 2 + 195),
-    k.color(255, 255, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(303),
-  ]));
+  elements.push(
+    k.add([
+      k.text("Salvar & Voltar ↩️", { size: 13, font: "sans-serif" }),
+      k.pos(k.width() / 2 + 105, k.height() / 2 + 195),
+      k.color(255, 255, 255),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(303),
+    ])
+  );
 
   btnBack.onHoverUpdate(() => {
     btnBack.color = k.rgb(30, 150, 220);

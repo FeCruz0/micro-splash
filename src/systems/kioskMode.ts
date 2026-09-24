@@ -12,31 +12,13 @@ export function createKioskScene(k: KaboomCtx) {
   audioSystem.startMigrationAudio(6000);
 
   // Fundo marinho gradiente profundo
-  k.add([
-    k.rect(k.width(), k.height()),
-    k.pos(0, 0),
-    k.color(8, 28, 62),
-    k.fixed(),
-    k.z(-20),
-  ]);
+  k.add([k.rect(k.width(), k.height()), k.pos(0, 0), k.color(8, 28, 62), k.fixed(), k.z(-20)]);
 
   // Faixa de céu na superfície
-  k.add([
-    k.rect(k.width(), 75),
-    k.pos(0, 0),
-    k.color(110, 185, 240),
-    k.fixed(),
-    k.z(-15),
-  ]);
+  k.add([k.rect(k.width(), 75), k.pos(0, 0), k.color(110, 185, 240), k.fixed(), k.z(-15)]);
 
   // Linha da superfície
-  k.add([
-    k.rect(k.width(), 8),
-    k.pos(0, 75),
-    k.color(30, 90, 160),
-    k.fixed(),
-    k.z(-10),
-  ]);
+  k.add([k.rect(k.width(), 8), k.pos(0, 75), k.color(30, 90, 160), k.fixed(), k.z(-10)]);
 
   // Leito oceânico de fundo
   k.add([

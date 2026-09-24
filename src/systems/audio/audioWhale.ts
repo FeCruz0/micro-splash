@@ -71,8 +71,8 @@ export class AudioWhale {
 
     oscA.type = "sine";
     const baseFreqA = 261.63 * pitchShift;
-    const peakFreqA = 295.00 * pitchShift;
-    const endFreqA = 175.00 * pitchShift;
+    const peakFreqA = 295.0 * pitchShift;
+    const endFreqA = 175.0 * pitchShift;
 
     oscA.frequency.setValueAtTime(baseFreqA, tA);
     oscA.frequency.exponentialRampToValueAtTime(peakFreqA, tA + 0.9);
@@ -144,7 +144,7 @@ export class AudioWhale {
 
     // 3. CANAL 3 / FRASE C: A PERCUSSÃO BIOLÓGICA (O Rangido / Estalos e Zíper)
     const tC = tB + 2.2;
-    const clickIntervals = [0, 0.11, 0.24, 0.40, 0.60];
+    const clickIntervals = [0, 0.11, 0.24, 0.4, 0.6];
 
     clickIntervals.forEach((offset, idx) => {
       const clickTime = tC + offset;

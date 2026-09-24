@@ -37,7 +37,10 @@ function getCacheKey(type: "global" | "weekly", weekKey?: string): string {
   return `${CACHE_KEY_PREFIX}${type}_${weekKey || "main"}`;
 }
 
-export function getCachedLeaderboard(type: "global" | "weekly", weekKey?: string): LeaderboardEntry[] | null {
+export function getCachedLeaderboard(
+  type: "global" | "weekly",
+  weekKey?: string
+): LeaderboardEntry[] | null {
   try {
     if (typeof localStorage === "undefined") return null;
     const raw = localStorage.getItem(getCacheKey(type, weekKey));
@@ -52,7 +55,11 @@ export function getCachedLeaderboard(type: "global" | "weekly", weekKey?: string
   return null;
 }
 
-export function saveCachedLeaderboard(type: "global" | "weekly", entries: LeaderboardEntry[], weekKey?: string): void {
+export function saveCachedLeaderboard(
+  type: "global" | "weekly",
+  entries: LeaderboardEntry[],
+  weekKey?: string
+): void {
   try {
     if (typeof localStorage === "undefined") return;
     localStorage.setItem(getCacheKey(type, weekKey), JSON.stringify(entries));
@@ -115,7 +122,10 @@ export async function fetchOnlineLeaderboard(
       success: !!cached,
       data: cached || [],
       isOffline: true,
-      error: err?.name === "AbortError" ? "Tempo limite de conexão excedido" : err?.message || "Falha na conexão",
+      error:
+        err?.name === "AbortError"
+          ? "Tempo limite de conexão excedido"
+          : err?.message || "Falha na conexão",
     };
   }
 }
@@ -173,7 +183,10 @@ export async function submitOnlineScore(
     return {
       success: false,
       isOffline: true,
-      error: err?.name === "AbortError" ? "Tempo limite de envio excedido" : err?.message || "Falha de rede",
+      error:
+        err?.name === "AbortError"
+          ? "Tempo limite de envio excedido"
+          : err?.message || "Falha de rede",
     };
   }
 }

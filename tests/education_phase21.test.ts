@@ -22,15 +22,26 @@ describe("Fase 21: Conteúdo Educacional & Acessibilidade Expandida", () => {
       quizData.forEach((q, idx) => {
         expect(q.id, `Questão ${idx} sem id`).toBeTruthy();
         expect(q.factId, `Questão ${q.id} sem factId`).toBeTruthy();
-        expect(validBiomes.has(q.biome), `Questão ${q.id} com bioma inválido: ${q.biome}`).toBe(true);
-        expect(validDifficulties.has(q.difficulty), `Questão ${q.id} com dificuldade inválida: ${q.difficulty}`).toBe(true);
+        expect(validBiomes.has(q.biome), `Questão ${q.id} com bioma inválido: ${q.biome}`).toBe(
+          true
+        );
+        expect(
+          validDifficulties.has(q.difficulty),
+          `Questão ${q.id} com dificuldade inválida: ${q.difficulty}`
+        ).toBe(true);
         expect(q.question.trim().length, `Questão ${q.id} sem texto`).toBeGreaterThan(15);
         expect(Array.isArray(q.options), `Questão ${q.id} options não é array`).toBe(true);
         expect(q.options.length, `Questão ${q.id} deve ter exatamente 4 opções`).toBe(4);
         q.options.forEach((opt, optIdx) => {
-          expect(opt.trim().length, `Opção ${optIdx} da questão ${q.id} está vazia`).toBeGreaterThan(0);
+          expect(
+            opt.trim().length,
+            `Opção ${optIdx} da questão ${q.id} está vazia`
+          ).toBeGreaterThan(0);
         });
-        expect(q.correctIndex, `Questão ${q.id} correctIndex fora do intervalo 0-3`).toBeGreaterThanOrEqual(0);
+        expect(
+          q.correctIndex,
+          `Questão ${q.id} correctIndex fora do intervalo 0-3`
+        ).toBeGreaterThanOrEqual(0);
         expect(q.correctIndex).toBeLessThanOrEqual(3);
         expect(q.explanation.trim().length, `Questão ${q.id} sem explicação`).toBeGreaterThan(10);
       });

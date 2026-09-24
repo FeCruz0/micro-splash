@@ -36,8 +36,8 @@ describe("Expanded Scientific Facts (data/facts.json)", () => {
   });
 
   it("cobre pontos-chave como Antártica, Zona Abissal, Poluição e Arraial do Cabo", () => {
-    const allTitles = factsData.map(f => f.title).join(" ");
-    const allDescriptions = factsData.map(f => f.description).join(" ");
+    const allTitles = factsData.map((f) => f.title).join(" ");
+    const allDescriptions = factsData.map((f) => f.description).join(" ");
     expect(allTitles).toContain("Polar");
     expect(allTitles).toContain("Abissais");
     expect(allDescriptions.toLowerCase()).toContain("cachalote");

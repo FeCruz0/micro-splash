@@ -21,9 +21,11 @@ export const PRESENTATION_POINTS: PresentationPoint[] = [
     x: 120,
     y: GAME_CONFIG.SEA_LEVEL + 50,
     ecoTitle: "Fotoperíodo Polar & Berçário Glacial",
-    ecoDesc: "O gelo marinho antártico serve de abrigo térmico contra orcas e berçário de microalgas essenciais para a proliferação massiva do krill.",
+    ecoDesc:
+      "O gelo marinho antártico serve de abrigo térmico contra orcas e berçário de microalgas essenciais para a proliferação massiva do krill.",
     techTitle: "Quebra Top-Down de Gelo & Física Modular",
-    techDesc: "Camada de 40+ blocos com detecção vetorial estrita por cima, estilhaços gerados via Object Pooling e fendas dinâmicas de respiração registradas no gameState.",
+    techDesc:
+      "Camada de 40+ blocos com detecção vetorial estrita por cima, estilhaços gerados via Object Pooling e fendas dinâmicas de respiração registradas no gameState.",
   },
   {
     biomeIndex: 2,
@@ -31,9 +33,11 @@ export const PRESENTATION_POINTS: PresentationPoint[] = [
     x: 5600,
     y: GAME_CONFIG.SEA_LEVEL + 75,
     ecoTitle: "Comportamento de Cardumes & Vácuo Hidrodinâmico",
-    ecoDesc: "Cetáceos e golfinhos-rotadores utilizam a esteira hidrodinâmica (drafting) da líder para poupar até 60% de energia metabólica na travessia oceânica.",
+    ecoDesc:
+      "Cetáceos e golfinhos-rotadores utilizam a esteira hidrodinâmica (drafting) da líder para poupar até 60% de energia metabólica na travessia oceânica.",
     techTitle: "Boids Flocking Kinematics & U-Turns Orgânicos",
-    techDesc: "Cardumes com cinemática contínua sem física custosa: interpolação senoidal da formação, perspectiva 3D na virada e saltos acrobáticos em cascata sincronizada.",
+    techDesc:
+      "Cardumes com cinemática contínua sem física custosa: interpolação senoidal da formação, perspectiva 3D na virada e saltos acrobáticos em cascata sincronizada.",
   },
   {
     biomeIndex: 3,
@@ -41,9 +45,11 @@ export const PRESENTATION_POINTS: PresentationPoint[] = [
     x: 12600,
     y: GAME_CONFIG.SEA_LEVEL + 45,
     ecoTitle: "Poluição Acústica & Impacto de Hidrocarbonetos",
-    ecoDesc: "Ruídos de hélices e motores de cargueiros propagam pelo canal SOFAR e desorientam o biosonar; o petróleo obstrui o espiráculo impedindo a recarga de ar.",
+    ecoDesc:
+      "Ruídos de hélices e motores de cargueiros propagam pelo canal SOFAR e desorientam o biosonar; o petróleo obstrui o espiráculo impedindo a recarga de ar.",
     techTitle: "FSM Autônoma & Anéis de Interferência Harmônica",
-    techDesc: "Navios cargueiros em patrulha autônoma com dispersor periódico de resíduos sólidos e emissor de ondas acústicas que exercem repulsão física sobre a baleia.",
+    techDesc:
+      "Navios cargueiros em patrulha autônoma com dispersor periódico de resíduos sólidos e emissor de ondas acústicas que exercem repulsão física sobre a baleia.",
   },
   {
     biomeIndex: 4,
@@ -51,9 +57,11 @@ export const PRESENTATION_POINTS: PresentationPoint[] = [
     x: 19300,
     y: GAME_CONFIG.SEA_LEVEL + 90,
     ecoTitle: "A Ressurgência de Cabo Frio (Upwelling)",
-    ecoDesc: "Ventos de NE empurram as águas superficiais e forçam a ascensão da ACAS (Água Central do Atlântico Sul), gelada e carregada de nitratos e fosfatos.",
+    ecoDesc:
+      "Ventos de NE empurram as águas superficiais e forçam a ascensão da ACAS (Água Central do Atlântico Sul), gelada e carregada de nitratos e fosfatos.",
     techTitle: "Propulsão Vetorial Dinâmica & Iluminação Volumétrica",
-    techDesc: "Jatos ascendentes periódicos com vetores de força diagonal, spawn dinâmico de enxames de krill e raios solares translúcidos renderizados em paralaxe 2.5D.",
+    techDesc:
+      "Jatos ascendentes periódicos com vetores de força diagonal, spawn dinâmico de enxames de krill e raios solares translúcidos renderizados em paralaxe 2.5D.",
   },
   {
     biomeIndex: 5,
@@ -61,9 +69,11 @@ export const PRESENTATION_POINTS: PresentationPoint[] = [
     x: 25600,
     y: GAME_CONFIG.SEA_LEVEL + 35,
     ecoTitle: "Santuário de Reprodução & O Salto Majestoso",
-    ecoDesc: "A Enseada de Arraial do Cabo oferece águas abrigadas ideais para amamentação. O salto fora d'água (breach) serve para comunicação e desparasitação.",
+    ecoDesc:
+      "A Enseada de Arraial do Cabo oferece águas abrigadas ideais para amamentação. O salto fora d'água (breach) serve para comunicação e desparasitação.",
     techTitle: "Breach System & Clímax Balístico",
-    techDesc: "Breach System: congelamento suave dos controles ao ultrapassar o Boqueirão, arco gravitacional aéreo com rotação de 360°, câmera lenta e splash de celebração.",
+    techDesc:
+      "Breach System: congelamento suave dos controles ao ultrapassar o Boqueirão, arco gravitacional aéreo com rotação de 360°, câmera lenta e splash de celebração.",
   },
 ];
 
@@ -224,11 +234,7 @@ export class PresentationModeManager {
     const h = this.k.height();
 
     // Container raiz fixo na tela com alta prioridade visual
-    this.container = this.k.add([
-      this.k.pos(0, 0),
-      this.k.fixed(),
-      this.k.z(350),
-    ]);
+    this.container = this.k.add([this.k.pos(0, 0), this.k.fixed(), this.k.z(350)]);
 
     // 1. BARRA SUPERIOR DE TELETRANSPORTE & CONTROLE
     const topBar = this.container.add([
@@ -242,13 +248,19 @@ export class PresentationModeManager {
     ]);
 
     topBar.add([
-      this.k.text("🎙️ MODO APRESENTAÇÃO GUIADA (JURADOS/PROFESSORES)", { size: 11, font: "sans-serif" }),
+      this.k.text("🎙️ MODO APRESENTAÇÃO GUIADA (JURADOS/PROFESSORES)", {
+        size: 11,
+        font: "sans-serif",
+      }),
       this.k.pos(12, 10),
       this.k.color(255, 220, 90),
     ]);
 
     topBar.add([
-      this.k.text("Saltar Biomas [Teclas 1 a 5] | Fechar [Ctrl+P / ESC]", { size: 9, font: "sans-serif" }),
+      this.k.text("Saltar Biomas [Teclas 1 a 5] | Fechar [Ctrl+P / ESC]", {
+        size: 9,
+        font: "sans-serif",
+      }),
       this.k.pos(12, 28),
       this.k.color(140, 195, 240),
     ]);
@@ -369,7 +381,10 @@ export class PresentationModeManager {
 
 let activePresentationManager: PresentationModeManager | null = null;
 
-export function initPresentationMode(k: KaboomCtx, playerController: PlayerController): PresentationModeManager {
+export function initPresentationMode(
+  k: KaboomCtx,
+  playerController: PlayerController
+): PresentationModeManager {
   if (activePresentationManager) {
     activePresentationManager.destroy();
   }

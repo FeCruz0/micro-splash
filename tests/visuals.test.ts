@@ -1,7 +1,11 @@
 import { describe, it, expect } from "vitest";
 import { BIOME_COLOR_STOPS, GAME_CONFIG } from "../src/config";
 import { getColorsAtDistance, getCurrentBiome } from "../src/systems/oceanEnvironment";
-import { extractVictoryCardData, generateAndDownloadVictoryCard, type VictoryCardData } from "../src/ui/victoryCard";
+import {
+  extractVictoryCardData,
+  generateAndDownloadVictoryCard,
+  type VictoryCardData,
+} from "../src/ui/victoryCard";
 import { createGameState } from "../src/systems/state";
 
 describe("Fase 13: Polimento Visual, Atmosfera & Identidade", () => {
@@ -19,23 +23,19 @@ describe("Fase 13: Polimento Visual, Atmosfera & Identidade", () => {
 
       // Continuidade sem lacunas
       for (let i = 0; i < BIOME_COLOR_STOPS.length - 1; i++) {
-        expect(BIOME_COLOR_STOPS[i].distanceEnd).toBe(
-          BIOME_COLOR_STOPS[i + 1].distanceStart
-        );
+        expect(BIOME_COLOR_STOPS[i].distanceEnd).toBe(BIOME_COLOR_STOPS[i + 1].distanceStart);
       }
     });
 
     it("todos os biomas têm canais de cores RGB válidos entre 0 e 255", () => {
       BIOME_COLOR_STOPS.forEach((biome) => {
-        [biome.bgColor, biome.surfaceColor, biome.floorColor, biome.skyColor].forEach(
-          (color) => {
-            expect(color.length).toBe(3);
-            color.forEach((channel) => {
-              expect(channel).toBeGreaterThanOrEqual(0);
-              expect(channel).toBeLessThanOrEqual(255);
-            });
-          }
-        );
+        [biome.bgColor, biome.surfaceColor, biome.floorColor, biome.skyColor].forEach((color) => {
+          expect(color.length).toBe(3);
+          color.forEach((channel) => {
+            expect(channel).toBeGreaterThanOrEqual(0);
+            expect(channel).toBeLessThanOrEqual(255);
+          });
+        });
       });
     });
 
@@ -206,7 +206,9 @@ describe("Fase 13: Polimento Visual, Atmosfera & Identidade", () => {
         opacity: (o: number) => ({ opacity: o }),
         z: (z: number) => ({ z }),
         rect: (w: number, h: number) => ({ type: "rect", w, h }),
-        Rect: class { constructor(_pos: any, _w: number, _h: number) {} },
+        Rect: class {
+          constructor(_pos: any, _w: number, _h: number) {}
+        },
         vec2: (x: number, y: number) => ({
           x,
           y,
@@ -237,7 +239,9 @@ describe("Fase 13: Polimento Visual, Atmosfera & Identidade", () => {
             color: { r: 255, g: 255, b: 255 },
             play: () => {},
             move: () => {},
-            onUpdate: (cb: () => void) => { registeredUpdate = cb; },
+            onUpdate: (cb: () => void) => {
+              registeredUpdate = cb;
+            },
             onDestroy: () => {},
           };
           return obj;
@@ -277,7 +281,9 @@ describe("Fase 13: Polimento Visual, Atmosfera & Identidade", () => {
         opacity: (o: number) => ({ opacity: o }),
         z: (z: number) => ({ z }),
         rect: (w: number, h: number) => ({ type: "rect", w, h }),
-        Rect: class { constructor(_pos: any, _w: number, _h: number) {} },
+        Rect: class {
+          constructor(_pos: any, _w: number, _h: number) {}
+        },
         vec2: (x: number, y: number) => ({
           x,
           y,
@@ -300,10 +306,22 @@ describe("Fase 13: Polimento Visual, Atmosfera & Identidade", () => {
         camPos: () => ({ x: 100, y: 100 }),
         rgb: (r: number, g: number, b: number) => ({ r, g, b }),
         add: () => {
-          let _pos = { x: 120, y: currentWhaleY, add: (v: any) => ({ x: 120 + v.x, y: currentWhaleY + v.y }) };
+          let _pos = {
+            x: 120,
+            y: currentWhaleY,
+            add: (v: any) => ({ x: 120 + v.x, y: currentWhaleY + v.y }),
+          };
           const obj: any = {
-            get pos() { return { x: _pos.x, y: currentWhaleY, add: (v: any) => ({ x: _pos.x + v.x, y: currentWhaleY + v.y }) }; },
-            set pos(v: any) { _pos = v; },
+            get pos() {
+              return {
+                x: _pos.x,
+                y: currentWhaleY,
+                add: (v: any) => ({ x: _pos.x + v.x, y: currentWhaleY + v.y }),
+              };
+            },
+            set pos(v: any) {
+              _pos = v;
+            },
             scale: { x: 1, y: 1 },
             angle: 0,
             flipX: false,
@@ -311,7 +329,9 @@ describe("Fase 13: Polimento Visual, Atmosfera & Identidade", () => {
             color: { r: 255, g: 255, b: 255 },
             play: () => {},
             move: () => {},
-            onUpdate: (cb: () => void) => { registeredUpdate = cb; },
+            onUpdate: (cb: () => void) => {
+              registeredUpdate = cb;
+            },
             onDestroy: () => {},
           };
           return obj;

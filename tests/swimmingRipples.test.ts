@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { spawnTailWaterRipples, spawnTailBubbleTrail } from "../src/entities/player/playerParticles";
+import {
+  spawnTailWaterRipples,
+  spawnTailBubbleTrail,
+} from "../src/entities/player/playerParticles";
 
 function createMockKaboom() {
   const spawnedObjects: any[] = [];
@@ -28,9 +31,17 @@ function createMockKaboom() {
         comps,
         radius: 0,
         opacity: 1,
-        pos: { x: 0, y: 0, add: (other: any) => ({ x: obj.pos.x + other.x, y: obj.pos.y + other.y }) },
-        onUpdate: (cb: () => void) => { updateCb = cb; },
-        _triggerUpdate: () => { if (updateCb) updateCb(); },
+        pos: {
+          x: 0,
+          y: 0,
+          add: (other: any) => ({ x: obj.pos.x + other.x, y: obj.pos.y + other.y }),
+        },
+        onUpdate: (cb: () => void) => {
+          updateCb = cb;
+        },
+        _triggerUpdate: () => {
+          if (updateCb) updateCb();
+        },
       };
       spawnedObjects.push(obj);
       return obj;

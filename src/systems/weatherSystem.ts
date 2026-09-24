@@ -150,7 +150,7 @@ export function setupWeatherSystem(k: KaboomCtx, playerController: PlayerControl
       swaySpeed: 0,
       swayAmp: 0,
       phase: 0,
-      baseOpacity: k.rand(0.35, 0.70),
+      baseOpacity: k.rand(0.35, 0.7),
     });
   }
 
@@ -178,7 +178,7 @@ export function setupWeatherSystem(k: KaboomCtx, playerController: PlayerControl
       swaySpeed: k.rand(1.2, 2.5),
       swayAmp: k.rand(8, 18),
       phase: Math.random() * Math.PI * 2,
-      baseOpacity: k.rand(0.30, 0.65),
+      baseOpacity: k.rand(0.3, 0.65),
     });
   }
 

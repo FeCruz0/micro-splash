@@ -155,7 +155,8 @@ export function createPlayer(
       }
     } else if (isTrapped) {
       // 3. Presa em rede fantasma
-      const isStrokePressedNow = k.isKeyPressed("space") || (touchState && touchState.strokePressed);
+      const isStrokePressedNow =
+        k.isKeyPressed("space") || (touchState && touchState.strokePressed);
       if (isStrokePressedNow) {
         escapesNeeded--;
         k.shake(2);
@@ -259,10 +260,7 @@ export function createPlayer(
 
     // 6. Deformação Orgânica (Squash & Stretch), Roll em Perspectiva e Ondulação do Nado
     const isMuscularStroke =
-      isStrokeInMotion &&
-      !isTrapped &&
-      !isFrozen &&
-      !oxygenMgr.isFaintingState();
+      isStrokeInMotion && !isTrapped && !isFrozen && !oxygenMgr.isFaintingState();
 
     const currentSpeed = physicsMgr.getSpeed();
     const speedLen = currentSpeed.len();
@@ -376,7 +374,7 @@ export function createPlayer(
             Math.cos(tNow * 3.2 + baleia.pos.x * 0.05) * 0.5 +
             1) *
           0.5;
-        whaleCaustics.opacity = depthFactor * (0.10 + shimmer * 0.25);
+        whaleCaustics.opacity = depthFactor * (0.1 + shimmer * 0.25);
         if (typeof k.rgb === "function") {
           const sunGlint = Math.sin(tNow * 2.5) * 20;
           whaleCaustics.color = k.rgb(180 + sunGlint, 240, 255);
@@ -406,7 +404,11 @@ export function createPlayer(
       }
     }
 
-    if (whaleVentralFlash && whaleVentralFlash.pos && typeof whaleVentralFlash.pos.add === "function") {
+    if (
+      whaleVentralFlash &&
+      whaleVentralFlash.pos &&
+      typeof whaleVentralFlash.pos.add === "function"
+    ) {
       whaleVentralFlash.pos = baleia.pos.add(downNormal.scale(6));
       whaleVentralFlash.angle = baleia.angle;
       if (whaleVentralFlash.scale && baleia.scale) {

@@ -50,7 +50,11 @@ export function loadStaticLevelLayout(k: KaboomCtx): void {
 
 import type { ProceduralObstacleData } from "./proceduralObstacles";
 
-export function loadLevelLayout(k: KaboomCtx, useProcedural: boolean = true, seed?: number): ProceduralObstacleData | void {
+export function loadLevelLayout(
+  k: KaboomCtx,
+  useProcedural: boolean = true,
+  seed?: number
+): ProceduralObstacleData | void {
   if (useProcedural) {
     return spawnProceduralLevel(k, seed);
   } else {

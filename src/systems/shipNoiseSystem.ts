@@ -3,7 +3,10 @@ import { GAME_CONFIG, TAGS } from "../config";
 import type { PlayerController } from "../entities/player";
 import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 
-export function setupShipNoiseSystem(k: ReturnType<typeof kaboom>, playerController: PlayerController) {
+export function setupShipNoiseSystem(
+  k: ReturnType<typeof kaboom>,
+  playerController: PlayerController
+) {
   let isSystemActive = true;
   const allShipBodies: any[] = [];
 
@@ -27,13 +30,7 @@ export function setupShipNoiseSystem(k: ReturnType<typeof kaboom>, playerControl
     allShipBodies.push(ship);
 
     // Chaminé do Navio (adicionada como filha do navio para navegar junto)
-    ship.add([
-      k.rect(20, 25),
-      k.pos(30, -25),
-      k.color(180, 50, 50),
-      k.anchor("center"),
-      k.z(9),
-    ]);
+    ship.add([k.rect(20, 25), k.pos(30, -25), k.color(180, 50, 50), k.anchor("center"), k.z(9)]);
 
     let noiseTimer = 0;
     let trashEjectTimer = 3.0 + Math.random() * 4.0;
@@ -99,14 +96,14 @@ export function setupShipNoiseSystem(k: ReturnType<typeof kaboom>, playerControl
       if (trashEjectTimer >= 8.5 && distToPlayer < 1600) {
         trashEjectTimer = 0;
 
-        const ejectX = ship.pos.x - (shipData.dir * 65);
+        const ejectX = ship.pos.x - shipData.dir * 65;
         const ejectY = ship.pos.y + 16;
         const trashType = Math.floor(Math.random() * 3);
 
         let trashItem: any;
         let sinkSpeed = 28 + Math.random() * 14;
-        let swaySpeed = 1.5 + Math.random();
-        let swayAmp = 10 + Math.random() * 8;
+        const swaySpeed = 1.5 + Math.random();
+        const swayAmp = 10 + Math.random() * 8;
         let tAge = 0;
 
         if (trashType === 0) {
@@ -122,12 +119,7 @@ export function setupShipNoiseSystem(k: ReturnType<typeof kaboom>, playerControl
             TAGS.TRASH,
             "ship_ejected_trash",
           ]);
-          trashItem.add([
-            k.rect(18, 6),
-            k.pos(0, 0),
-            k.color(240, 200, 30),
-            k.anchor("center"),
-          ]);
+          trashItem.add([k.rect(18, 6), k.pos(0, 0), k.color(240, 200, 30), k.anchor("center")]);
           sinkSpeed = 36;
         } else if (trashType === 1) {
           // Engradado de madeira industrial
@@ -166,7 +158,10 @@ export function setupShipNoiseSystem(k: ReturnType<typeof kaboom>, playerControl
           trashItem.pos.x = startX + Math.sin(tAge * swaySpeed) * swayAmp;
 
           // Destrói se afundar até o leito ou ficar muito para trás
-          if (trashItem.pos.y > k.height() - 40 || trashItem.pos.x < playerController.gameObj.pos.x - 1200) {
+          if (
+            trashItem.pos.y > k.height() - 40 ||
+            trashItem.pos.x < playerController.gameObj.pos.x - 1200
+          ) {
             k.destroy(trashItem);
           }
         });

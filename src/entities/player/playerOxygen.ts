@@ -87,7 +87,7 @@ export class PlayerOxygenManager {
     // Em velocidade máxima (100%): 1.6x (perde 60% mais fôlego pelo esforço)
     // Em velocidade turbo / boost (150%): até 2.2x
     const speedDrainFactor = 0.4 + speedRatio * 1.2;
-    const draftMult = isDrafting ? 0.60 : 1.0;
+    const draftMult = isDrafting ? 0.6 : 1.0;
     return speedDrainFactor * draftMult * currentFlowModifier;
   }
 

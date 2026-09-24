@@ -2,34 +2,34 @@
 
 Um jogo 2D de navegação subaquática, física hidrodinâmica e conscientização ambiental desenvolvido em **TypeScript** com **Kaboom.js**, síntese procedural de áudio **Web Audio API** e **Vite**.
 
-Este projeto foi concebido com foco em **educação e consciência ecológica**, abordando os impactos da poluição marinha e a fantástica rota migratória das **baleias-jubarte (*Megaptera novaeangliae*)** desde as águas polares da Antártica até o berçário de reprodução em **Arraial do Cabo, RJ**.
+Este projeto foi concebido com foco em **educação e consciência ecológica**, abordando os impactos da poluição marinha e a fantástica rota migratória das **baleias-jubarte (_Megaptera novaeangliae_)** desde as águas polares da Antártica até o berçário de reprodução em **Arraial do Cabo, RJ**.
 
 ---
 
 ## 🌟 Principais Recursos
 
 - 🐋 **Identidade Real da Jubarte:** Spritesheet anatômico exclusivo de 4 quadros (nado planado, batidas de cauda ascendente/descendente e abertura de mandíbula com cerdas filtradoras ao comer krill).
-- 💨 **Esguicho do Espiráculo (*Blowhole Spout*):** Erupção vertical dupla em "V" de vapor e água ao quebrar a superfície para renovar o oxigênio.
+- 💨 **Esguicho do Espiráculo (_Blowhole Spout_):** Erupção vertical dupla em "V" de vapor e água ao quebrar a superfície para renovar o oxigênio.
 - 📡 **Biosonar 360° Omnidirecional:** Onda acústica em tela inteira (`Shift`, `E` ou `X`) que revela lixos plásticos e redes de pesca camufladas nas profundezas escuras, com retorno sonoro de eco e destaque fluorescente.
 - 🧭 **3 Modos de Jogo Adaptados:**
   - **Migração Normal:** A jornada clássica de 27.000m com gerenciamento de oxigênio, perigos e Eco-Score.
   - **Migração Serena:** Modo de acessibilidade com fôlego infinito (`∞`) e sem desmaios, ideal para crianças e exploração relaxante.
   - **Migração Rápida (60s):** Desafio dinâmico de 1 minuto cronometrado, com seletor de bioma e painel de estatísticas da rodada.
-- 📖 **Diário de Bordo da Expedição (Codex):** Enciclopédia interativa no menu com fichas biológicas das espécies, fatos ecológicos desbloqueados na rota e informações de conservação do *Instituto Baleia Jubarte* e UNESCO.
+- 📖 **Diário de Bordo da Expedição (Codex):** Enciclopédia interativa no menu com fichas biológicas das espécies, fatos ecológicos desbloqueados na rota e informações de conservação do _Instituto Baleia Jubarte_ e UNESCO.
 - 🎵 **Sonoplastia 16-Bit Retrô em Tempo Real:**
-  - Trilha adaptativa inspirada em *Donkey Kong Country: Aquatic Ambiance* (David Wise) a 75 BPM em Dó Menor com baixo *wavetable* aveludado e arpejos híbridos de harpa e coral.
+  - Trilha adaptativa inspirada em _Donkey Kong Country: Aquatic Ambiance_ (David Wise) a 75 BPM em Dó Menor com baixo _wavetable_ aveludado e arpejos híbridos de harpa e coral.
   - Canto da baleia estruturado em **3 canais de síntese** (Assobio LFO, Gemido Cello gutural e Percussão zíper) com barramento de eco passa-baixa estilo SNES, acionado **exclusivamente via sonar**.
 
 ---
 
 ## 🎮 Controles
 
-| Tecla / Comando | Ação |
-| :--- | :--- |
-| `Espaço` | **Batida de Cauda (Impulso):** Segurar gera aceleração senoidal (pico em 0.3s). Soltar e retomar no ritmo ideal mantém velocidade alta. Também usado para romper redes de pesca. |
-| `Setas` ou `W, A, S, D` | **Direcionar Nado & Virada:** Inclina a baleia para cima/baixo (até 45°) e inverte a direção horizontal com câmera elástica (*lerp*). |
-| `Shift`, `E` ou `X` | **Biosonar Omnidirecional:** Dispara pulso acústico de 360° para revelar perigos camuflados e acionar a vocalização da jubarte. |
-| `Esc` | **Fechar Telas / Modais:** Fecha o Diário de Bordo, Seletor de Modo e Menu de Opções. |
+| Tecla / Comando         | Ação                                                                                                                                                                             |
+| :---------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Espaço`                | **Batida de Cauda (Impulso):** Segurar gera aceleração senoidal (pico em 0.3s). Soltar e retomar no ritmo ideal mantém velocidade alta. Também usado para romper redes de pesca. |
+| `Setas` ou `W, A, S, D` | **Direcionar Nado & Virada:** Inclina a baleia para cima/baixo (até 45°) e inverte a direção horizontal com câmera elástica (_lerp_).                                            |
+| `Shift`, `E` ou `X`     | **Biosonar Omnidirecional:** Dispara pulso acústico de 360° para revelar perigos camuflados e acionar a vocalização da jubarte.                                                  |
+| `Esc`                   | **Fechar Telas / Modais:** Fecha o Diário de Bordo, Seletor de Modo e Menu de Opções.                                                                                            |
 
 ---
 
@@ -39,7 +39,7 @@ Este projeto foi concebido com foco em **educação e consciência ecológica**,
 2. **Travessia Oceânica (5.000m – 12.000m):** Mar aberto profundo, jejum total de krill e passagem de outras jubartes cantantes.
 3. **Costa Urbana (12.000m – 19.000m):** Tráfego de cargueiros industriais, poluição sonora, redes fantasmas, lixo plástico e patrulha da Guarda Marítima.
 4. **Cânions de Ressurgência (19.000m – 25.000m):** Jatos de água profunda rica em nutrientes e navegação precisa pelas gargantas rochosas do Boqueirão.
-5. **Santuário de Arraial do Cabo (25.000m – 27.000m):** Águas cristalinas e calmas, encontro do berçário (mãe e filhote) e o evento do Salto Majestoso (*Breach*) na linha de chegada.
+5. **Santuário de Arraial do Cabo (25.000m – 27.000m):** Águas cristalinas e calmas, encontro do berçário (mãe e filhote) e o evento do Salto Majestoso (_Breach_) na linha de chegada.
 
 ---
 

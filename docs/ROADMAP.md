@@ -7,11 +7,13 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
 ## ✅ Fases Já Concluídas e Implementadas
 
 ### 🚀 FASE 1: Base do Mapa & Geografia dos 27.000m
+
 - [x] **1.1 Transição Dinâmica de Cores do Mar (`main.ts`):** Gradiente de fundo de azul polar escuro (`#051c38`) a azul turquesa luminoso (`#1490b8`).
 - [x] **1.2 Restrição Geográfica da Ressurgência (`upwellingSystem.ts`):** Jatos ascensionais e geração de Krill exclusivos na faixa de Arraial do Cabo (`19.000m - 25.000m`).
 - [x] **1.3 Redistribuição dos Pop-ups Educativos (`data/facts.json`):** Gatilhos pedagógicos nos 5 biomas da rota.
 
 ### ❄️ FASE 2: Biomas Específicos & Perigos (Level Design por Etapa)
+
 - [x] **2.1 Etapa 1 - Oceano Antártico (0m - 5.000m):** Blocos de gelo na superfície com fendas de respiração e silhuetas de Orcas ao fundo.
 - [x] **2.2 Etapa 2 - Travessia Oceânica (5.000m - 12.000m):** Jejum de Krill e correntes oceânicas contrárias exigindo desvio vertical.
 - [x] **2.3 Etapa 3 - Costa Urbana & Tráfego Marítimo (12.000m - 19.000m):** Navios cargueiros móveis patrulhando em ida e volta, ruído sonoro empurrando para baixo, e lixo/redes em camadas escalonadas.
@@ -19,37 +21,42 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
 - [x] **2.5 Etapa 5 - Santuário Marinho (25.000m - 27.000m):** Águas cristalinas abrigadas da Ilha do Farol.
 
 ### 🦐 FASE 3: Progressão do Jogador & Sistema Nutricional
+
 - [x] **3.1 Crescimento Progressivo via Krill:** +1% permanente em velocidade máxima e fôlego máximo por cardume consumido.
 - [x] **Mecânica Aprimorada de Rede Fantasma:** Trava apenas controles, permitindo afundamento e perda de fôlego contínuos com colisões ativas.
 
 ### 🏆 FASE 4: Polimento, Áudio & Clímax Final
+
 - [x] **4.1 Evento do Salto Majestoso (Breach):** Salto acrobático no céu de Arraial na linha de chegada (26.700m - 27.000m) com spray de água, tremor de tela e +500 Eco-Pontos.
 - [x] **4.2 Paisagem Sonora e Áudio Ambiente (`audioSystem.ts`):** Web Audio API procedural com borbulhamento marinho, cantos ressonantes de baleia-jubarte e SFX (sonar, krill, lixo, rede, splash e fanfarra).
 - [x] **4.3 Polimento do Relatório de Migração (`victoryScreen.ts`):** Indicador de Sabedoria Ancestral / Herança Cultural, partículas brilhantes e fanfarra de vitória.
 - [x] **4.4 Silenciamento de Áudio no Fim de Jogo:** Interrupção imediata de sons ambientes e cantos ao desmaiar/morrer e durante a tela de resgate.
 
 ### 🎵 FASE 5: Sonoplastia 16-Bit Retrô & Redesenho de SFX
+
 - [x] **5.1 Redesenho do Som de Alimentação de Krill (Engolida / Sucção):** Som biológico de sucção por cerdas (baleen filter sweep) e deglutição de massa d'água (`playKrillGulp`), eliminando o efeito de moeda.
 - [x] **5.2 Síntese de Efeitos Sonoros 16-Bit Retrô:** Recriação em síntese FM clássica (2 operadores) para o sonar com eco secundário reflexivo (`playSonarSound`), impulso de nado (`playStrokeThrust`), colisão com lixo (`playTrashThud`), atrito em rede fantasma (`playNetTangle`), splash de reentrada e fanfarra de vitória (`playVictoryFanfare`).
-- [x] **5.3 Trilha Sonora 16-Bit Adaptativa por Bioma:** Motor de sequenciamento musical procedural (`BiomeMusicEngine`) com arpejos gelados na Antártica, atmosfera submarina de mar aberto estilo *Ecco* / *Aquatic Ambiance*, ritmo tenso e industrial na Costa Urbana, e progressão harmônica tropical solar em Arraial do Cabo.
+- [x] **5.3 Trilha Sonora 16-Bit Adaptativa por Bioma:** Motor de sequenciamento musical procedural (`BiomeMusicEngine`) com arpejos gelados na Antártica, atmosfera submarina de mar aberto estilo _Ecco_ / _Aquatic Ambiance_, ritmo tenso e industrial na Costa Urbana, e progressão harmônica tropical solar em Arraial do Cabo.
 
 ### 🧭 FASE 6: Menu Inicial, Seleção de Modo & Diário de Bordo
+
 - [x] **6.1 Tela de Menu Principal:** Menu inicial com visual marítimo, partículas bioluminescentes, high score persistente e opções: "Iniciar Migração", "Opções" e "Diário de Bordo (Codex)".
 - [x] **6.2 Fluxo de Início com Escolha do Modo de Jogo:**
   - **Migração Normal:** Rota migratória clássica completa com dreno de oxigênio, perigos e pontuação no Eco-Score.
   - **Migração Serena:** Oxigênio infinito (`∞`) e navegação livre sem risco de desmaio, ideal para crianças, novatos e exploração contemplativa.
   - **Migração Rápida:** Partida cronometrada de 60 segundos com bioma selecionável (Labirinto Polar, Desvio Urbano ou Cânions de Arraial) e tela dedicada de estatísticas da rodada.
 - [x] **6.3 Painel de Opções & Configurações de Áudio:** Ajuste de volume geral (+/-) e botões liga/desliga para música ambiente e efeitos sonoros com persistência em `localStorage`.
-- [x] **6.4 Diário de Bordo da Expedição (Codex no Menu):** Painel categorizado em abas com consulta de espécies marinhas observadas, fatos ecológicos desbloqueados na rota e mensagens de conservação do *Instituto Baleia Jubarte*.
+- [x] **6.4 Diário de Bordo da Expedição (Codex no Menu):** Painel categorizado em abas com consulta de espécies marinhas observadas, fatos ecológicos desbloqueados na rota e mensagens de conservação do _Instituto Baleia Jubarte_.
 
 ### 🐋 FASE 7: Identidade da Jubarte, Habilidades & Feedback Sensorial (Arte & Animação)
+
 - [x] **7.1 Sprite Personalizado da Baleia-Jubarte:**
   - Substituição definitiva do `bean.png` por spritesheet dedicado com anatomia real da Jubarte (nadadeiras peitorais longas e brancas, tubérculos no focinho, corcunda e cauda serrilhada).
 - [x] **7.2 Animações Orgânicas de Nado & Alimentação:**
   - Movimento ondulante da cauda/flukes sincronizado com o impulso de nado (`Espaço`).
   - Abertura suave da mandíbula de cerdas (baleen) com partículas de sucção ao engolir cardumes de Krill.
 - [x] **7.3 Esguicho do Espiráculo (Blowhole Spout):**
-  - Erupção vertical de vapor e borrifo d'água em formato de V com partículas e som de exalação profunda (*whoosh*) ao romper a superfície para respirar.
+  - Erupção vertical de vapor e borrifo d'água em formato de V com partículas e som de exalação profunda (_whoosh_) ao romper a superfície para respirar.
 - [x] **7.4 Sonar Omnidirecional (Varredura de Tela Total) & Revelação Subaquática:**
   - O sonar deixa de ser direcional (eliminando o cone estreito de 30°) e passa a emitir uma onda acústica expansiva em 360° cobrindo toda a tela (raio de 650px).
   - Redes fantasmas e lixo plástico camuflados nas profundezas acendem com contorno acústico e esmaecem gradualmente, além de ecos nos cânions rochosos.
@@ -58,7 +65,8 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
   - Eliminação de temporizadores aleatórios: a baleia só canta quando o jogador aciona o sonar ou quando baleias próximas emitem pulsos acústicos no mar aberto ou santuário.
 
 ### 🌅 FASE 8: Cenários Vivos & Atmosfera em Paralaxe (Profundidade & Luz)
-- [x] **8.1 Raios de Sol Subaquáticos (*God Rays*) & Caustics (`lightRaysSystem.ts`):**
+
+- [x] **8.1 Raios de Sol Subaquáticos (_God Rays_) & Caustics (`lightRaysSystem.ts`):**
   - Feixes translúcidos de luz solar filtrando dinamicamente da superfície em direção às profundezas, com destaque luminoso dourado e turquesa cintilante em Arraial do Cabo.
   - Cáusticos de refração luminosa ondulando na sub-superfície acompanhando o movimento das águas.
 - [x] **8.2 Céu Vivo em Paralaxe (`parallaxSkySystem.ts`):**
@@ -66,26 +74,29 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
   - Aves marinhas migratórias com batimento de asas em tempo real (Albatrozes na Antártica; Gaivotas e Fragatas na Costa Urbana e Arraial).
   - Silhueta do Farol da Ilha do Farol no horizonte de Arraial (~25.950m) com torre listrada e feixe cônico rotativo varrendo o céu e o mar.
 - [x] **8.3 Detalhamento do Fundo Marinho Bentônico (`benthicFloorSystem.ts`):**
-  - Florestas de algas gigantes (*kelp*) na Antártica com física de deformação senoidal fluida de ondulação.
+  - Florestas de algas gigantes (_kelp_) na Antártica com física de deformação senoidal fluida de ondulação.
   - Recifes de corais em Arraial do Cabo (corais-cérebro com sulcos, leques de gorgônias e anêmonas fluorescentes) acompanhados de peixes de recife coloridos.
 
 ### 🌊 FASE 9: Dinâmica Ecológica, Fauna Rara & Perigos Adicionais
+
 - [x] **9.1 Mancha de Óleo Pré-Arraial (antes do Boqueirão):** Mancha negra iridescente entre 17.400m e 18.900m que obstrui o espiráculo por lodo e impede a respiração até a realização de mergulho de limpeza em águas profundas.
 - [x] **9.2 Descarte Ativo de Lixo por Navios Industriais:** Navios cargueiros da Costa Urbana ejetam periodicamente tambores tóxicos, engradados de madeira e sacos plásticos em sua esteira que afundam em zigue-zague com colisão ativa.
-- [x] **9.3 Nado em Bando com Golfinhos (*Drafting*):** Bandos de Golfinhos-Rotadores em mar aberto que concedem esteira hidrodinâmica favorável (+25% velocidade e -40% dreno de O₂) com trilha aerodinâmica e cliques 16-bit.
+- [x] **9.3 Nado em Bando com Golfinhos (_Drafting_):** Bandos de Golfinhos-Rotadores em mar aberto que concedem esteira hidrodinâmica favorável (+25% velocidade e -40% dreno de O₂) com trilha aerodinâmica e cliques 16-bit.
 - [x] **9.4 Silhueta de Cachalote nas Profundezas:** Encontro solene com leviatã abissal colossal de 280px no leito profundo (8.000m - 10.800m) emitindo infrassom oceânico ressonante e ondas de choque acústicas.
-- [x] **9.5 Pinguins-de-Magalhães Saltando na Saída Antártica:** Bandos ágeis realizando *porpoising* (saltos em arco fora d'água) com rastro de bolhas e pios rápidos na transição polar (4.000m - 5.200m).
+- [x] **9.5 Pinguins-de-Magalhães Saltando na Saída Antártica:** Bandos ágeis realizando _porpoising_ (saltos em arco fora d'água) com rastro de bolhas e pios rápidos na transição polar (4.000m - 5.200m).
 
 ### 📱 FASE 10: Modo Kiosk & Acessibilidade Mobile
-*Objetivo: Maximizar o engajamento com totens interativos, visitantes e dispositivos touch.*
+
+_Objetivo: Maximizar o engajamento com totens interativos, visitantes e dispositivos touch._
 
 - [x] **10.1 Modo Kiosk (Demonstração Interativa):**
-  - Ativação de um screensaver/demonstração cinematográfica autônoma se o jogo permanecer inativo por 45 segundos no menu, com convite: *"Toque em qualquer tecla para guiar a Jubarte!"*.
+  - Ativação de um screensaver/demonstração cinematográfica autônoma se o jogo permanecer inativo por 45 segundos no menu, com convite: _"Toque em qualquer tecla para guiar a Jubarte!"_.
 - [x] **10.2 Controles Virtuais Touch na Tela:**
   - Suporte a botões virtuais na tela para tablets, celulares e totens interativos.
 
 ### 🏗️ FASE 11: Arquitetura & Qualidade de Código (Refatoração & Testes)
-*Objetivo: Desacoplar sistemas monolíticos, eliminar dívidas técnicas e garantir estabilidade através de testes automatizados.*
+
+_Objetivo: Desacoplar sistemas monolíticos, eliminar dívidas técnicas e garantir estabilidade através de testes automatizados._
 
 - [x] **11.1 Modularização de `player.ts` (God Object):**
   - Decompor o monólito em submódulos especializados: `playerPhysics.ts` (arrasto, gravidade e limites), `playerOxygen.ts` (dreno e recuperação de fôlego), `playerSonar.ts` (eco acústico 360°), `playerParticles.ts` (espiráculo, bolhas e rastros) e `playerControls.ts` (unificação de teclado e touch).
@@ -99,19 +110,21 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
   - Implementar suíte de testes unitários cobrindo o gerenciador de estado (`createGameState`), persistência de resoluções, detecção de ambiente touch e física essencial da baleia.
 
 ### 🎮 FASE 12: Gameplay & Mecânicas Novas
-*Objetivo: Enriquecer a dinâmica de navegação e introduzir novas camadas estratégicas durante a migração.*
+
+_Objetivo: Enriquecer a dinâmica de navegação e introduzir novas camadas estratégicas durante a migração._
 
 - [x] **12.1 Geração Procedural de Obstáculos por Bioma:**
   - Substituir posições fixas por geração dinâmica de perigos e cardumes com base no avanço horizontal X da baleia, garantindo rejogabilidade única em cada tentativa sem memorização prévia de rota.
 - [x] **12.2 Filhote de Baleia Acompanhante (Calf Escort) & Rota de 30.000m:**
   - Expansão da rota final para 30.000m com 5.000m de escolta ativa no berçário (25.000m a 30.000m). O filhote enfrenta perigos residuais (redes fantasmas, lixo e paredões rochosos invisíveis que só aparecem com Biosonar). O jogador pode usar o Biosonar em 360° para cortar redes e libertar o filhote em apuros.
 - [x] **12.3 Power-ups Temporários Ambientais:**
-  - Introduzir itens colecionáveis temáticos: *Escudo de Bolhas* (imunidade a uma colisão com lixo), *Corrente Favorável* (+50% de velocidade por 5s), *Bolsão de Ar Submerso* (+30% fôlego instantâneo) e *Bioluminescência* (revelação luminosa de perigos próximos por 8s).
+  - Introduzir itens colecionáveis temáticos: _Escudo de Bolhas_ (imunidade a uma colisão com lixo), _Corrente Favorável_ (+50% de velocidade por 5s), _Bolsão de Ar Submerso_ (+30% fôlego instantâneo) e _Bioluminescência_ (revelação luminosa de perigos próximos por 8s).
 - [x] **12.4 Leaderboard Local Top 10 (Ranking Arcade):**
   - Expandir o high score único para um ranking Top 10 persistente em `localStorage`, com inserção de iniciais do jogador (estilo arcade de 3 letras), ideal para disputa entre jogadores.
 
 ### 🎨 FASE 13: Polimento Visual, Atmosfera & Identidade
-*Objetivo: Elevar o impacto visual e a imersão sensorial com micro-animações e apresentação profissional.*
+
+_Objetivo: Elevar o impacto visual e a imersão sensorial com micro-animações e apresentação profissional._
 
 - [x] **13.1 Partículas Dinâmicas de Bolhas de Nado:**
   - Adicionar emissão contínua de rastro de micro-bolhas (2-4px) partindo da cauda da baleia durante a propulsão, com intensidade proporcional à velocidade instantânea.
@@ -125,7 +138,8 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
   - Gerar cartão de resultado exportável em imagem PNG na tela de vitória, contendo nome do jogador, pontuação final, estatísticas da migração, logo do projeto e selo digital.
 
 ### 📚 FASE 14: Conteúdo Educativo Expandido & Avaliação
-*Objetivo: Fortalecer o valor pedagógico e a fixação do aprendizado para jurados e público estudantil.*
+
+_Objetivo: Fortalecer o valor pedagógico e a fixação do aprendizado para jurados e público estudantil._
 
 - [x] **14.1 Expansão do Acervo de Fatos Científicos (`facts.json`):**
   - Ampliar de 5 para 12+ fatos ecológicos baseados em dados reais (propagação acústica no canal SOFAR, mortalidade por redes fantasmas, correntes oceânicas e a história da Reserva Extrativista de Arraial do Cabo).
@@ -133,7 +147,8 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
   - Adicionar mini-desafio opcional ao final da rota com 3 perguntas de múltipla escolha sobre os fatos ecológicos desbloqueados durante a partida, premiando acertos com pontuação extra no Eco-Score.
 
 ### ⚡ FASE 15: Otimização & Performance em Baixo Nível
-*Objetivo: Garantir taxa de quadros estável (60 FPS) em dispositivos com hardware modesto (tablets e notebooks).*
+
+_Objetivo: Garantir taxa de quadros estável (60 FPS) em dispositivos com hardware modesto (tablets e notebooks)._
 
 - [x] **15.1 Object Pooling para Partículas e Projéteis:**
   - Implementar pool de objetos reutilizáveis para bolhas de nado, spray do espiráculo, ecos do sonar e rastros hidrodinâmicos, reduzindo alocações e pausas de Garbage Collection.
@@ -141,7 +156,8 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
   - Ativar e desativar a execução de sistemas específicos (ex: `iceSurface`, `shipNoise`, `oilSpill`) estritamente dentro de suas faixas de coordenadas X, poupando processamento de CPU.
 
 ### 🎪 FASE 16: Engajamento & Ferramentas de Apresentação
-*Objetivo: Fornecer métricas coletivas e recursos para apresentação aos avaliadores.*
+
+_Objetivo: Fornecer métricas coletivas e recursos para apresentação aos avaliadores._
 
 - [x] **16.1 Dashboard de Estatísticas Acumuladas:**
   - Painel persistente visível no menu principal exibindo contadores coletivos de todos os jogadores (total de migrações tentadas, migrações concluídas com sucesso, krill total coletado, lixo desviado e tempo total acumulado de jogo).
@@ -155,10 +171,11 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
 ---
 
 ### 🐋 FASE 17: Animação Orgânica da Jubarte & Cenários de Arraial
-*Objetivo: Elevar a fidelidade visual da criatura marinha e a organicidade dos relevos costeiros submersos.*
+
+_Objetivo: Elevar a fidelidade visual da criatura marinha e a organicidade dos relevos costeiros submersos._
 
 - [x] **17.1 Redesenho do Spritesheet da Baleia com Flexão Caudal (Spine Curvature):**
-  - Adicionar curvatura real da coluna vertebral e do pedúnculo caudal nos frames de batida (`whale.png`), com arco côncavo no *downstroke* e arco convexo no *upstroke*, enriquecendo a silhueta da jubarte.
+  - Adicionar curvatura real da coluna vertebral e do pedúnculo caudal nos frames de batida (`whale.png`), com arco côncavo no _downstroke_ e arco convexo no _upstroke_, enriquecendo a silhueta da jubarte.
 - [x] **17.2 Animação de Manobra & Roll em Perspectiva:**
   - Variação de rotação/roll sutil ao mudar bruscamente de profundidade, exibindo o padrão estriado do ventre e as nadadeiras peitorais brancas em perspectiva.
 - [x] **17.3 Efeito de Reflexo Cáustico sobre a Pele da Baleia:**
@@ -167,19 +184,21 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
   - Reformulação visual da parte submersa do relevo rochoso (25.400m a 27.300m): substituir a laje retangular plana e rígida por costões rochosos escarpados de granito com silhueta orgânica irregular, fendas submarinas, estratificação geológica, fissuras, tufos de anêmonas, ouriços e bioincrustações de costão marinho real de Arraial do Cabo.
 
 ### 🌊 FASE 18: Dinâmica Hidrodinâmica de Correntezas & Acessibilidade
-*Objetivo: Aprofundar a física biológica da navegação e garantir acessibilidade a todos os perfis de jogadores.*
+
+_Objetivo: Aprofundar a física biológica da navegação e garantir acessibilidade a todos os perfis de jogadores._
 
 - [x] **18.1 Dinâmica de Fôlego em Correntezas (Nado a Favor vs. Contra o Fluxo):**
   - Modelar o consumo de oxigênio conforme o alinhamento da baleia com o vetor da correnteza: se a jubarte estiver virada e nadando contra o fluxo, o esforço físico intensificado aumenta o dreno de oxigênio (+35%); se estiver virada e nadando a favor da correnteza, a esteira hidrodinâmica reduz o dreno de oxigênio (-35%), criando uma camada tática e biológica realista de navegação oceânica.
 - [x] **18.2 Modos de Alto Contraste & Daltonismo:**
   - Paletas comutáveis no menu de opções (Protanopia, Deuteranopia e Alto Contraste com contornos reforçados para lixo, redes e krill).
 - [x] **18.3 Seletor de Trilha Sonora / Jukebox Oceânica:**
-  - Opção no menu para alternar em tempo real entre: *Trilha 16-Bit Chiptune Dinâmica* (estilo David Wise), *Trilha Ambiente Contemplativa* (apenas hidrofones, água e cantos de baleia) e *Modo Foco* (apenas SFX).
+  - Opção no menu para alternar em tempo real entre: _Trilha 16-Bit Chiptune Dinâmica_ (estilo David Wise), _Trilha Ambiente Contemplativa_ (apenas hidrofones, água e cantos de baleia) e _Modo Foco_ (apenas SFX).
 - [x] **18.4 Feedback Háptico em Dispositivos Móveis:**
   - Vibração tátil (`navigator.vibrate`) em tablets e celulares ao romper o gelo polar, sofrer colisão ou emitir o Biosonar.
 
 ### 🌐 FASE 19: Eventos Climáticos & Distribuição para Totens (PWA)
-*Objetivo: Preparar o jogo para eventos públicos, feiras de ciências escolares e totens de museus sem dependência de internet.*
+
+_Objetivo: Preparar o jogo para eventos públicos, feiras de ciências escolares e totens de museus sem dependência de internet._
 
 - [x] **19.1 Eventos Climáticos Dinâmicos na Rota:**
   - Micro-climas ao longo da migração: nevasca polar passageira na Antártica, céu encoberto com vendaval em alto-mar e calmaria solar radiante em Arraial do Cabo.
@@ -189,12 +208,13 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
 ---
 
 ### 🌌 FASE 20: Imersão Visual Avançada
-*Objetivo: Elevar o impacto estético do jogo com fenômenos naturais visuais e storytelling cinematográfico de baixo custo de implementação.*
+
+_Objetivo: Elevar o impacto estético do jogo com fenômenos naturais visuais e storytelling cinematográfico de baixo custo de implementação._
 
 - [x] **20.1 Esteira de Bioluminescência Procedural:**
   - Na Costa Urbana (bioma noturno, `skyColor = [12, 18, 38]`), a passagem da jubarte ativa uma esteira de partículas bioluminescentes azul-esverdeadas persistindo 2–3s atrás dela — fenômeno real documentado e visualmente espetacular no bioma mais escuro.
 - [x] **20.2 Vinhetas Narrativas de Transição de Bioma:**
-  - Ao cruzar 5.000m, 12.000m, 19.000m e 25.000m, exibir brevemente (2s) uma vinheta com o nome do bioma e uma frase poética, estilo títulos de mapa de *Donkey Kong Country*. Ex.: *"TRAVESSIA PELÁGICA — Onde o krill acaba e os golfinhos começam."*
+  - Ao cruzar 5.000m, 12.000m, 19.000m e 25.000m, exibir brevemente (2s) uma vinheta com o nome do bioma e uma frase poética, estilo títulos de mapa de _Donkey Kong Country_. Ex.: _"TRAVESSIA PELÁGICA — Onde o krill acaba e os golfinhos começam."_
 - [x] **20.3 Zoom Cinematográfico em Eventos Narrativos:**
   - Em momentos de alta tensão dramática (entrada na ressurgência, primeiro navio, encontro com golfinhos), a câmera executa um suave zoom-in de 1.3× por 2–3s com `k.tween` de `camScale` — custo de implementação mínimo, impacto máximo.
 - [x] **20.4 Sombras Dinâmicas Projetadas sob a Baleia:**
@@ -205,26 +225,28 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
 ## 🔜 Próximas Fases Planejadas
 
 ### 📚 FASE 21: Conteúdo Educacional & Acessibilidade Expandida
-*Objetivo: Aprofundar o impacto pedagógico com quiz rico (exclusivo para o final do jogo), narração em voz acessível e onboarding contextual.*
+
+_Objetivo: Aprofundar o impacto pedagógico com quiz rico (exclusivo para o final do jogo), narração em voz acessível e onboarding contextual._
 
 - [x] **21.1 Banco de Quiz Expandido (50+ Perguntas por Bioma & Dificuldade):**
   - Expandir o `data/quiz.json` de 10 para 50+ perguntas organizadas por bioma e dificuldade progressiva (fácil → médio → difícil). **Nota de Design Estrita:** O quiz permanece exclusivamente como desafio opcional pós-jogo (na tela de vitória e no Diário de Bordo/Codex no menu), nunca interrompendo a natação durante a migração ativa.
 - [x] **21.2 Narração em Voz via Web Speech API (TTS):**
   - Usar `SpeechSynthesisUtterance` nativo do browser para narrar os fatos ecológicos em voz neutra em português quando surgem na tela — sem necessidade de arquivos de áudio externos. Configurável nas Opções (ativar/desativar). Torna o jogo acessível para crianças menores que ainda não leem fluentemente.
 - [x] **21.3 Onboarding PWA para Primeira Abertura:**
-  - Na primeira abertura como PWA ou web (detectada via `localStorage`), exibir 3 slides rápidos de contextualização: (1) quem é a jubarte (*Megaptera novaeangliae*), (2) como os controles funcionam (nado, oxigênio e Biosonar), (3) por que ela migra (30.000m até Arraial do Cabo). Essencial para totens onde não há monitor humano explicando o jogo, acessível também a qualquer momento pelo menu.
+  - Na primeira abertura como PWA ou web (detectada via `localStorage`), exibir 3 slides rápidos de contextualização: (1) quem é a jubarte (_Megaptera novaeangliae_), (2) como os controles funcionam (nado, oxigênio e Biosonar), (3) por que ela migra (30.000m até Arraial do Cabo). Essencial para totens onde não há monitor humano explicando o jogo, acessível também a qualquer momento pelo menu.
 
 ### 🏆 FASE 22: Progressão, Competição & Rejogabilidade
-*Objetivo: Criar motivação para retorno e competição saudável entre jogadores e turmas escolares.*
+
+_Objetivo: Criar motivação para retorno e competição saudável entre jogadores e turmas escolares._
 
 - [x] **22.1 Ranking Online Global (Cloudflare Worker + KV):**
   - Substituir o ranking local pelo envio de score ao backend (Cloudflare Worker gratuito + KV Store) com arquitetura offline-first transparente. O nome/iniciais já é coletado pelo `initialsInputModal.ts`. Exibir top 10 global, semanal e local com abas de navegação.
 - [x] **22.2 Desafios Semanais por Semente Procedural:**
   - Usar a data da semana como semente determinística para um layout de obstáculos idêntico no mundo todo a cada 7 dias. Ranking semanal separado do ranking padrão. Ao completar, gera um Certificado Oficial com selo único, data e semente no Victory Card.
 
-
 ### 🔧 FASE 23: Qualidade Técnica & Plataformas
-*Objetivo: Reduzir débito técnico, ampliar alcance de plataformas e garantir robustez de longo prazo do projeto.*
+
+_Objetivo: Reduzir débito técnico, ampliar alcance de plataformas e garantir robustez de longo prazo do projeto._
 
 - [x] **23.1 Refatoração Modular do `audioSystem.ts`:**
   - O `audioSystem.ts` possuía 1.338 linhas — o maior arquivo do projeto. Quebrado em módulos coesos: `audioEngine.ts` (AudioContext, gain, mute/volume, loop de áudio ambiente), `audioSFX.ts` (todos os efeitos sonoros procedurais e aquáticos), `audioWhale.ts` (síntese dos cantos de baleia em 3 canais e chamados abissais) e integração harmônica com o `audioMusic.ts`, mantendo `audioSystem.ts` como fachada 100% retrocompatível.
@@ -236,23 +258,25 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
   - Spritesheet expandido de 4 para 8 frames (1024x64 px) em `scripts/generateWhaleSprite.cjs`, gerando nova folha de sprites biológica com ciclos suaves de subida (upstroke), descida potente (downstroke), retorno elástico, deslizamento e engolfamento alimentar (feed). Atualizado no `main.ts` com animações fluídas.
 
 ### 🛠️ FASE 24: Developer Experience & Qualidade de Código
-*Objetivo: Estabelecer ferramentas de qualidade, padronização e observabilidade do código que sustentem o crescimento do projeto a longo prazo.*
 
-- [ ] **24.1 ESLint + Prettier — Linting e Formatação Padronizada:**
-  - Configurar `eslint.config.js` com `@typescript-eslint/recommended` e Prettier com regras consistentes (aspas simples, semicolons, trailing comma). Adicionar scripts `"lint": "eslint src tests"` e `"format": "prettier --write ."` ao `package.json`.
-- [ ] **24.2 Husky + lint-staged — Pre-commit Hooks:**
-  - Instalar `husky` + `lint-staged` para executar automaticamente lint e testes unitários antes de cada commit, garantindo que nenhum código mal formatado ou quebrado entre no repositório — especialmente valioso ao receber colaboradores externos.
-- [ ] **24.3 Cobertura de Testes com Relatório Visual (`vitest --coverage`):**
-  - Adicionar `@vitest/coverage-v8` e o script `"coverage": "vitest run --coverage"` com threshold mínimo de 80% de cobertura de branches. O Vitest suporta nativamente, sem dependência extra de runner. Revela pontos cegos como caminhos de erro em `audioSystem.ts` nunca exercitados pelos testes atuais.
-- [ ] **24.4 Versionamento Semântico (`package.json` + `CHANGELOG.md`):**
-  - Renomear `"name": "temp"` para `"name": "micro-splash"` e `"version": "0.0.0"` para `"version": "1.0.0"`. Criar `CHANGELOG.md` com entradas retroativas para as Fases 1–20. Configurar `standard-version` ou `release-it` para automatizar bump de versão via commit convencional (`feat:`, `fix:`, `docs:`).
-- [ ] **24.5 Script de Geração de Assets Unificado (`npm run generate`):**
-  - Adicionar script npm `"generate": "node scripts/generateWhaleSprite.cjs && node scripts/generatePwaIcons.cjs"` e documentar no README. Os scripts atualmente dispersos em `scripts/` são desconhecidos para novos colaboradores.
-- [ ] **24.6 Validação de Schema com Zod para `data/*.json`:**
-  - Criar schemas Zod para `facts.json`, `quiz.json` e `level_layout.json` e executar validação no início do build via plugin Vite ou script pre-build. Evita bugs silenciosos quando um professor edita os JSONs e omite um campo obrigatório como `triggerX` — o build falha com mensagem clara em vez de quebrar em runtime.
+_Objetivo: Estabelecer ferramentas de qualidade, padronização e observabilidade do código que sustentem o crescimento do projeto a longo prazo._
+
+- [x] **24.1 ESLint + Prettier — Linting e Formatação Padronizada:**
+  - Configurado `eslint.config.js` oficial do ESLint 9 Flat Config com `@typescript-eslint` e Prettier integrado via `eslint-config-prettier`. Adicionados scripts `"lint"`, `"lint:fix"`, `"format"` e `"format:check"` ao `package.json`.
+- [x] **24.2 Husky + lint-staged — Pre-commit Hooks:**
+  - Configurados `husky` e `lint-staged` para executar automaticamente formatação Prettier, linting com fix e suite completa de testes unitários antes de cada commit.
+- [x] **24.3 Cobertura de Testes com Relatório Visual (`vitest --coverage`):**
+  - Adicionado `@vitest/coverage-v8` e o script `"coverage": "vitest run --coverage"` com relatórios visuais text, JSON e HTML nativos do Vitest.
+- [x] **24.4 Versionamento Semântico (`package.json` + `CHANGELOG.md`):**
+  - Atualizado pacote para `"name": "micro-splash"` e `"version": "1.0.0"`. Criado `CHANGELOG.md` seguindo Keep a Changelog e SemVer com histórico retroativo completo cobrindo todas as Fases de 1 a 24.
+- [x] **24.5 Script de Geração de Assets Unificado (`npm run generate`):**
+  - Adicionados scripts no `package.json`: `"generate": "node scripts/generateWhaleSprite.cjs && node scripts/generatePwaIcons.cjs"`, `"generate:whale"` e `"generate:icons"`.
+- [x] **24.6 Validação de Schema com Zod para `data/*.json`:**
+  - Criados schemas Zod em `src/schemas/dataSchemas.ts` para `facts.json`, `quiz.json` e `level_layout.json`. Criados script executável `scripts/validateData.cjs` (`npm run validate:data`) e suíte de testes `tests/dataSchema.test.ts` com 8 verificações integradas ao pipeline de testes.
 
 ### 🚀 FASE 25: Infraestrutura, CI/CD & Deploy
-*Objetivo: Automatizar o ciclo de integração, testes e publicação do jogo, tornando o deploy nos totens e a URL pública triviais.*
+
+_Objetivo: Automatizar o ciclo de integração, testes e publicação do jogo, tornando o deploy nos totens e a URL pública triviais._
 
 - [ ] **25.1 GitHub Actions — Pipeline de CI Completo:**
   - Criar `.github/workflows/ci.yml` que executa em todo PR e push para `develop`/`main`: checkout + Node 20, `npm ci`, `npm run lint`, `npm test` e `npm run build`. Garante que nenhum PR quebre os testes ou o build de produção. Custo zero no GitHub.
@@ -266,7 +290,8 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
   - Criar arquivos `.env.development` e `.env.production` para configurar `VITE_API_URL`, `VITE_KIOSK_MODE` e `VITE_BUILD_VERSION` por ambiente. Exibir a versão no rodapé do menu para diagnóstico fácil em totens sem console.
 
 ### 📄 FASE 26: Documentação, Acessibilidade & Compliance
-*Objetivo: Tornar o projeto acessível para colaboradores, educadores, usuários com necessidades especiais e compatível com requisitos legais de ambientes escolares públicos.*
+
+_Objetivo: Tornar o projeto acessível para colaboradores, educadores, usuários com necessidades especiais e compatível com requisitos legais de ambientes escolares públicos._
 
 - [ ] **26.1 `CONTRIBUTING.md` — Guia de Contribuição:**
   - Documentar como configurar o ambiente (Docker vs. Node), convenção de commits (`feat:`, `fix:`, `docs:`, `test:`), como regenerar sprites (`npm run generate`) e como adicionar fatos/perguntas nos arquivos `data/*.json` sem tocar em TypeScript. Essencial para receber contribuições de professores e pesquisadores.
@@ -286,7 +311,8 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
   - Criar documento descrevendo quais dados são armazenados no `localStorage` (highscore, fatos desbloqueados, stats cumulativas), que nenhum dado é enviado a terceiros e como o usuário pode resetar tudo. Adicionar botão "🗑️ Apagar Todos os Dados" nas Opções. Requisito legal para adoção em redes escolares públicas municipais (LGPD).
 
 ### 🌍 FASE 27: Marketing, Analytics, Conteúdo & Internacionalização
-*Objetivo: Ampliar o alcance do jogo para audiências nacionais e internacionais, obter dados reais de uso e abrir o conteúdo educacional para co-criação institucional.*
+
+_Objetivo: Ampliar o alcance do jogo para audiências nacionais e internacionais, obter dados reais de uso e abrir o conteúdo educacional para co-criação institucional._
 
 - [ ] **27.1 Open Graph e Twitter Cards no `index.html`:**
   - Adicionar meta tags `og:title`, `og:description`, `og:image`, `og:type` e `twitter:card` ao `index.html`. Quando professores compartilharem o link do jogo no WhatsApp, Telegram ou Twitter, o preview exibirá imagem e título em vez de URL crua.
@@ -308,7 +334,8 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
   - Adicionar tradução para Guarani Nhandewa (`gn`) — língua falada por comunidades costeiras do Sul do Brasil com relação ancestral com o ecossistema marinho e cetáceos migrantes. Diferencial único de acessibilidade cultural com potencial de parceria com FUNAI e universidades indígenas.
 
 ### 🐋 FASE 28: Proporcionalidade Biológica & Redesenho de Entidades
-*Objetivo: Corrigir as proporções de todas as criaturas e objetos em relação à jubarte controlável (108px de referência), tornando o ecossistema visual biologicamente crível e pedagogicamente honesto.*
+
+_Objetivo: Corrigir as proporções de todas as criaturas e objetos em relação à jubarte controlável (108px de referência), tornando o ecossistema visual biologicamente crível e pedagogicamente honesto._
 
 - [ ] **28.1 Redimensionamento dos Pinguins-de-Magalhães:**
   - Corpo atual: `22×9px` — equivale biologicamente a um pinguim de ~2.9m. Reduzir para `14×5px` com `radius: 2`, compensando o detalhe com cores mais contrastantes (branco ventral vibrante, dorso quase preto). Proporção correta: pinguim real de 70cm vs. jubarte de 14m = razão 1:20 = ~5px de comprimento ideal.
@@ -328,7 +355,8 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
   - Atual: colisores de `AIR_POCKET` completamente invisíveis — o jogador percebe o efeito mas não vê o elemento. Adicionar `circle(20–30px)` com preenchimento `(200, 240, 255, 0.12)` e borda brilhante `outline(1.5, rgb(180, 230, 255, 0.6))` oscilando suavemente com `sin(time)`. Imediatamente legível como "bolsão de ar respirável".
 
 ### 🌊 FASE 29: Superfície, Céu & Atmosfera
-*Objetivo: Transformar a interface visual entre ar e água — o elemento mais visível do jogo — e enriquecer o céu de cada bioma com fenômenos atmosféricos reais e coerentes com a geografia da rota.*
+
+_Objetivo: Transformar a interface visual entre ar e água — o elemento mais visível do jogo — e enriquecer o céu de cada bioma com fenômenos atmosféricos reais e coerentes com a geografia da rota._
 
 - [ ] **29.1 Linha d'Água Ondulada e Orgânica:**
   - Atual: `waterSurface` = `rect(k.width() * 2, 14)` estático e monocromático. Substituir por série de 8–10 segmentos com altura animada individualmente por ondas senoidais desfasadas, criando superfície viva e ondulada. Adicionar borda superior com faixa de espuma branca `(opacity: 0.35)` simulando a interface real água/ar.
@@ -348,7 +376,8 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
   - Pássaros atuais têm forma genérica sem distinção de espécie. Diferenciar por bioma: **Albatroz** (Antártica/Pelágico) — asas longas horizontais de `60px` de envergadura, batendo lentamente; **Fragata-magnífica** (Costa Urbana) — corpo fusiforme com cauda bifurcada em V invertido, vermelho e preto; **Garça-branca** (Arraial) — pescoço longo em S com pernas pendentes no voo.
 
 ### 🌿 FASE 30: Fundo Submarino, Iluminação & Identidade dos Obstáculos
-*Objetivo: Enriquecer o leito marinho com flora e geologia procedural por bioma, corrigir a iluminação subaquática e dar identidade visual real a cada tipo de obstáculo.*
+
+_Objetivo: Enriquecer o leito marinho com flora e geologia procedural por bioma, corrigir a iluminação subaquática e dar identidade visual real a cada tipo de obstáculo._
 
 - [ ] **30.1 Silhuetas Procedurais do Fundo por Tipo Geológico:**
   - Todos os `SUBMARINE_RELIEFS` são retângulos `radius: 4` — moraina, monte submarino e banco de areia têm a mesma forma. Diferenciar: **Moraina** → topo irregular com 3–5 pontos de altura randômica (`polygon`); **Monte Submarino** → forma cônica com `circle` no pico; **Banco de Areia** → ondulação suave com topo plano e declive gradual; **Canyon Ridge** → paredes verticais abruptas.
@@ -368,7 +397,8 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
   - Blocos de gelo atuais: `rect` branco sólido `opacity: 0.96` sem nenhuma profundidade visual. Adicionar 3–4 faixas internas de tons ligeiramente diferentes `(180, 215, 255)` e `(230, 248, 255)` com borda translúcida `opacity: 0.4`. Veias diagonais de azul glacial `(30, 80, 140, 0.15)` cruzando cada bloco — translucidez cristalina característica do gelo ártico.
 
 ### 🎆 FASE 31: Partículas, Coerência de Bioma & Polimento de Interface
-*Objetivo: Adicionar efeitos de partículas em momentos dramáticos ausentes, garantir coerência visual consistente entre todos os biomas e refinar a interface HUD.*
+
+_Objetivo: Adicionar efeitos de partículas em momentos dramáticos ausentes, garantir coerência visual consistente entre todos os biomas e refinar a interface HUD._
 
 - [ ] **31.1 Splash de Reentrada da Baleia após o Breach:**
   - O momento de reentrada na água após o salto majestoso — o clímax do jogo — não tem efeito de splash. Ao cruzar `SEA_LEVEL` com velocidade Y > 200, disparar 16–24 partículas de respingo em arco simétrico (`rect 3×8px` brancos com gravidade) — metade para a esquerda, metade para a direita. O momento mais dramático do jogo precisa do efeito mais impactante.
@@ -390,7 +420,8 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
   - Cursor padrão do browser quebra a imersão. Substituir via CSS `cursor: url(...)` por bolha oceânica `(circle 12px turquesa com borda branca)` no estado normal e âncora ou anzol no estado `hover` sobre botões — identidade oceânica mantida desde antes de clicar no primeiro botão.
 
 ### 🖋️ FASE 32: Tipografia, Texto & Hierarquia Visual
-*Objetivo: Substituir a fonte padrão do browser por tipografia oceânica consistente, corrigir hierarquias textuais entre telas e garantir legibilidade em todas as resoluções suportadas.*
+
+_Objetivo: Substituir a fonte padrão do browser por tipografia oceânica consistente, corrigir hierarquias textuais entre telas e garantir legibilidade em todas as resoluções suportadas._
 
 - [ ] **32.1 Fonte Customizada — Carregar Google Font via `index.html`:**
   - Todo texto do jogo usa `font: "sans-serif"` — a fonte padrão do browser, que varia entre sistemas operacionais (Helvetica no macOS, Arial no Windows, DejaVu no Linux). Carregar `Orbitron` (títulos e HUD — estilo técnico/científico) + `Inter` (textos corridos, modais, quiz) via `<link>` no `index.html`. Passar o nome da fonte para todos os `k.text()` via constante `FONT_TITLE` e `FONT_BODY` em `config.ts`.
@@ -415,7 +446,8 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
   - Instruções de controle como `"Pressione ESPAÇO"` são textuais genéricas. Substituir por representação visual de tecla: `[ESPAÇO]`, `[↑]`, `[↓]` usando `rect` com `border-radius` e `outline` — visual de "tecla física". Padrão amplamente reconhecido em jogos modernos.
 
 ### 🖥️ FASE 33: Sistema de Resoluções, Modos de Tela & Responsividade
-*Objetivo: Expandir os presets de resolução para cobrir monitores 4K, ultrawide e tablets, corrigir o modo letterbox para funcionar corretamente e adicionar modo automático baseado na resolução nativa do dispositivo.*
+
+_Objetivo: Expandir os presets de resolução para cobrir monitores 4K, ultrawide e tablets, corrigir o modo letterbox para funcionar corretamente e adicionar modo automático baseado na resolução nativa do dispositivo._
 
 - [ ] **33.1 Adicionar Preset 1440p (2K) e 4K (2160p):**
   - Presets atuais: `450p`, `540p`, `720p`, `1080p`. Faltam monitores modernos usados em museus e totens: `"1440p": { width: 2560, height: 1440 }` e `"4K": { width: 3840, height: 2160 }`. Sprites procedurais em Kaboom escalam via GPU sem perda de qualidade — não há risco de borramento.
@@ -435,7 +467,8 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
   - O HUD de diagnóstico F3 atual lista FPS mas não a resolução em uso. Adicionar linha `"Resolução: 1920×1080 (720p)"` ao painel F3 — útil para diagnóstico remoto de problemas em totens.
 
 ### 🎬 FASE 34: Telas de Jogo — Visual & Polimento de UI
-*Objetivo: Elevar todas as telas de interface (splash, menu, vitória, resgate, opções, modo) ao mesmo nível visual cinematográfico, com animações de entrada, identidade oceânica e estado de hover comunicativo.*
+
+_Objetivo: Elevar todas as telas de interface (splash, menu, vitória, resgate, opções, modo) ao mesmo nível visual cinematográfico, com animações de entrada, identidade oceânica e estado de hover comunicativo._
 
 - [ ] **34.1 Animação de Entrada em Todos os Modais:**
   - Nenhum modal tem animação de entrada — aparecem instantaneamente. Implementar `k.tween` de escala (`0.85 → 1.0`) + opacity (`0 → 1`) em 0.25s com easing `k.easings.easeOutBack` para todos os cards de modal. Feedback visual imediato de abertura.
@@ -455,7 +488,8 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
   - Ao confirmar mudança de resolução nas Opções, a tela reconfigura instantaneamente — pode causar flash visual. Adicionar fade-out de 0.3s (`rect` preto em `z: 9999`) antes do `window.location.reload()` que aplica a nova resolução.
 
 ### 🐬 FASE 35: Polimento Visual dos Sistemas Ausentes
-*Objetivo: Cobrir elementos visuais não tratados nas fases anteriores — ressurgência, kelp/corais bentônicos, ventos térmicos e correntes oceânicas visíveis.*
+
+_Objetivo: Cobrir elementos visuais não tratados nas fases anteriores — ressurgência, kelp/corais bentônicos, ventos térmicos e correntes oceânicas visíveis._
 
 - [ ] **35.1 Jatos de Ressurgência com Mais Detalhes Visuais:**
   - Jatos atuais: `rect(30, 80, radius: 10)` azul `(0, 220, 255, 0.4)` com `outline: 3` branco (`upwellingSystem.ts` linha 48). Parecem cápsulas rígidas. Redesenhar como feixes de linhas finas (`rect 4×80px`) em leque de 5–7 ângulos ligeiramente diferentes, sem border rígido, com gradiente de opacity (mais denso na base, mais transparente no topo) — visual de corrente d'água subindo, não de objeto sólido.

@@ -63,7 +63,8 @@ export function addLeaderboardEntry(entry: LeaderboardEntry): boolean {
     score: Math.max(0, Math.floor(entry.score)),
     distance: Math.max(0, Math.floor(entry.distance)),
     mode: entry.mode || "standard",
-    date: entry.date || new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
+    date:
+      entry.date || new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
     weekKey: entry.weekKey,
   };
 
@@ -106,4 +107,3 @@ export function resetLeaderboard(): void {
     }
   } catch {}
 }
-

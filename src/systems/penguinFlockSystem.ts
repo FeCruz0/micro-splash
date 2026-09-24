@@ -11,7 +11,7 @@ import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
  *   - Colônia 2 (Fendas Glaciais Médias): 1.350m a 2.050m (Loop de 700m)
  *   - Colônia 3 (Geleiras Profundas): 2.900m a 3.700m (Loop de 800m)
  *   - Colônia 4 (Borda Polar & Saída Mar Aberto): 4.400m a 5.250m (Loop de 850m)
- * 
+ *
  * Cada colônia já habita o cenário e executa um percurso pré-programado permanente:
  * nada até o ponto de retorno, salta fora d'água no meio da rota (porpoising),
  * executa mergulho suave em U de 180° e volta para o início, repetindo o loop infinitamente.
@@ -90,11 +90,7 @@ export function setupPenguinFlockSystem(k: KaboomCtx) {
       ]);
 
       // Faixa facial branca do Pinguim-de-Magalhães
-      pBody.add([
-        k.circle(1.8),
-        k.pos(5, -2),
-        k.color(240, 245, 255),
-      ]);
+      pBody.add([k.circle(1.8), k.pos(5, -2), k.color(240, 245, 255)]);
 
       // Bico âmbar
       pBody.add([
@@ -112,12 +108,7 @@ export function setupPenguinFlockSystem(k: KaboomCtx) {
       ]);
 
       // Patas
-      pBody.add([
-        k.rect(4, 2),
-        k.pos(-11, 2),
-        k.color(210, 120, 50),
-        k.anchor("center"),
-      ]);
+      pBody.add([k.rect(4, 2), k.pos(-11, 2), k.color(210, 120, 50), k.anchor("center")]);
 
       allPenguinBodies.push(pBody);
       penguins.push({
@@ -213,19 +204,17 @@ export function setupPenguinFlockSystem(k: KaboomCtx) {
       const turnYOffset = turnState === "turn" ? Math.sin(p * Math.PI) * 22 : 0;
 
       // Fator de formação contínuo (zero saltos instantâneos)
-      const formationFactor = turnState === "turn" 
-        ? turnFromDir * Math.cos(p * Math.PI) 
-        : dir;
+      const formationFactor = turnState === "turn" ? turnFromDir * Math.cos(p * Math.PI) : dir;
 
       // Escala horizontal em perspectiva 3D
       const currentFacing = turnState === "turn" ? (p < 0.5 ? turnFromDir : targetDir) : dir;
-      const scaleSquash = turnState === "turn" ? Math.max(0.2, Math.abs(Math.cos(p * Math.PI))) : 1.0;
+      const scaleSquash =
+        turnState === "turn" ? Math.max(0.2, Math.abs(Math.cos(p * Math.PI))) : 1.0;
       const effectiveScaleX = currentFacing * scaleSquash;
 
       // Inclinação suave do corpo na curva
-      const turnPitchAngle = turnState === "turn" 
-        ? currentFacing * Math.sin(p * Math.PI * 2) * 15 
-        : 0;
+      const turnPitchAngle =
+        turnState === "turn" ? currentFacing * Math.sin(p * Math.PI * 2) * 15 : 0;
 
       soundTimer += dt;
 
@@ -286,7 +275,8 @@ export function setupPenguinFlockSystem(k: KaboomCtx) {
         // Posicionamento contínuo
         const waveY = Math.sin(penguin.swimPhase) * 4;
         penguin.obj.pos.x = flockX + penguin.baseOffsetX * formationFactor;
-        penguin.obj.pos.y = GAME_CONFIG.SEA_LEVEL + colony.depth + penguin.baseOffsetY + waveY + leapY + turnYOffset;
+        penguin.obj.pos.y =
+          GAME_CONFIG.SEA_LEVEL + colony.depth + penguin.baseOffsetY + waveY + leapY + turnYOffset;
 
         penguin.obj.scale.x = effectiveScaleX;
 
@@ -301,7 +291,10 @@ export function setupPenguinFlockSystem(k: KaboomCtx) {
         // Trilha de bolhas subaquáticas
         if (player && Math.abs(penguin.obj.pos.x - player.pos.x) < 900) {
           if (!penguin.isLeaping && Math.random() < 0.12) {
-            const bubblePos = k.vec2(penguin.obj.pos.x - currentFacing * 12, penguin.obj.pos.y + (Math.random() - 0.5) * 4);
+            const bubblePos = k.vec2(
+              penguin.obj.pos.x - currentFacing * 12,
+              penguin.obj.pos.y + (Math.random() - 0.5) * 4
+            );
             const pool = getParticlePool();
             if (pool) {
               pool.spawnCircle({
@@ -368,5 +361,3 @@ export function setupPenguinFlockSystem(k: KaboomCtx) {
     isActive: () => isSystemActive,
   };
 }
-
-

@@ -25,7 +25,10 @@ function ensureSvgFiltersInjected(): void {
 
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.id = "micro-splash-accessibility-filters";
-  svg.setAttribute("style", "position: absolute; width: 0; height: 0; pointer-events: none; overflow: hidden;");
+  svg.setAttribute(
+    "style",
+    "position: absolute; width: 0; height: 0; pointer-events: none; overflow: hidden;"
+  );
 
   svg.innerHTML = `
     <defs>
@@ -127,7 +130,13 @@ class AccessibilitySystem {
     try {
       if (typeof localStorage !== "undefined") {
         const saved = localStorage.getItem(STORAGE_KEY) as ColorMode | null;
-        if (saved && (saved === "normal" || saved === "protanopia" || saved === "deuteranopia" || saved === "high_contrast")) {
+        if (
+          saved &&
+          (saved === "normal" ||
+            saved === "protanopia" ||
+            saved === "deuteranopia" ||
+            saved === "high_contrast")
+        ) {
           currentColorMode = saved;
         }
       }

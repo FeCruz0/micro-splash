@@ -16,13 +16,7 @@ export function createMainMenu(
   let isModalOpen = false;
 
   // Fundo oceânico profundo
-  k.add([
-    k.rect(k.width(), k.height()),
-    k.pos(0, 0),
-    k.color(6, 18, 42),
-    k.fixed(),
-    k.z(0),
-  ]);
+  k.add([k.rect(k.width(), k.height()), k.pos(0, 0), k.color(6, 18, 42), k.fixed(), k.z(0)]);
 
   // Partículas bioluminescentes flutuantes
   const particles: any[] = [];
@@ -189,12 +183,15 @@ export function createMainMenu(
 
   // Rodapé Educativo e Institucional
   k.add([
-    k.text("Inspirado nas pesquisas de conservação do Instituto Baleia Jubarte\nTrilha: 'Aquatic Ambience' (David Wise) & 16-Bit Lofi Ocean", {
-      size: 10,
-      font: "sans-serif",
-      align: "center",
-      lineSpacing: 4,
-    }),
+    k.text(
+      "Inspirado nas pesquisas de conservação do Instituto Baleia Jubarte\nTrilha: 'Aquatic Ambience' (David Wise) & 16-Bit Lofi Ocean",
+      {
+        size: 10,
+        font: "sans-serif",
+        align: "center",
+        lineSpacing: 4,
+      }
+    ),
     k.pos(k.width() / 2, k.height() - 35),
     k.color(140, 180, 220),
     k.anchor("center"),
@@ -226,4 +223,3 @@ export function createMainMenu(
     }
   });
 }
-

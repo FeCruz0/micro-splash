@@ -37,7 +37,10 @@ export function showRescueScreen(k: KaboomCtx, gameState: GameState, onRestart: 
   ]);
 
   k.add([
-    k.text("A baleia desmaiou por asfixia mas foi resgatada a tempo em Arraial do Cabo!", { size: 12, width: 440 }),
+    k.text("A baleia desmaiou por asfixia mas foi resgatada a tempo em Arraial do Cabo!", {
+      size: 12,
+      width: 440,
+    }),
     k.pos(k.width() / 2, k.height() / 2 - 100),
     k.color(200, 230, 255),
     k.anchor("center"),
@@ -46,7 +49,7 @@ export function showRescueScreen(k: KaboomCtx, gameState: GameState, onRestart: 
   ]);
 
   // Estatísticas da Viagem
-  const statsText = 
+  const statsText =
     `📏 Distância Navegada: ${gameState.getDistance()}m\n` +
     `⏱️ Tempo de Viagem: ${gameState.getElapsedTime()} seg\n` +
     `🦐 Krill Coletado: ${gameState.getKrillCount()}\n` +

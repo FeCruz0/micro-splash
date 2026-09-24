@@ -55,7 +55,9 @@ describe("Sistema de Topografia e Relevos Submarinos (oceanFloorSystem)", () => 
         const obj: any = {
           comps,
           hasTag: (tag: string) => comps.includes(tag),
-          isStaticBody: comps.some((c) => c && typeof c === "object" && "isStatic" in c && c.isStatic),
+          isStaticBody: comps.some(
+            (c) => c && typeof c === "object" && "isStatic" in c && c.isStatic
+          ),
           hasArea: comps.some((c) => c && typeof c === "object" && "area" in c),
           outline: { color: { r: 40, g: 60, b: 80 }, width: 2 },
           onUpdate: () => {},

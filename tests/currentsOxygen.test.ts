@@ -96,14 +96,20 @@ describe("Fase 18.1: Dinâmica Hidrodinâmica de Fôlego em Correntezas", () => 
     const mockPlayerController: any = {
       gameObj: {
         pos: {
-          get x() { return playerX; },
-          get y() { return playerY; },
+          get x() {
+            return playerX;
+          },
+          get y() {
+            return playerY;
+          },
         },
       },
       getSpeed: () => k.vec2(100, 0),
       setSpeed: () => {},
       isFacingRight: () => facingRight,
-      setCurrentFlowModifier: (mod: number) => { currentModifier = mod; },
+      setCurrentFlowModifier: (mod: number) => {
+        currentModifier = mod;
+      },
       getCurrentFlowModifier: () => currentModifier,
     };
 

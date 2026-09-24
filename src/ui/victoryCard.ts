@@ -24,7 +24,10 @@ export interface VictoryCardData {
 /**
  * Extrai os dados formatados da vitória a partir de uma instância de GameState.
  */
-export function extractVictoryCardData(gameState: GameState, playerName: string = "Guardião dos Mares"): VictoryCardData {
+export function extractVictoryCardData(
+  gameState: GameState,
+  playerName: string = "Guardião dos Mares"
+): VictoryCardData {
   const finalScore = gameState.calculateFinalScore();
   let rank = "🥉 RANK B - Navegador Aprendiz";
   if (finalScore >= 3500) rank = "🥇 RANK S - Guardião dos Oceanos!";
@@ -198,11 +201,19 @@ export function createVictoryCardCanvas(data: VictoryCardData): HTMLCanvasElemen
 
   ctx.fillStyle = "#ffd700";
   ctx.font = "bold 46px 'Segoe UI', Arial, sans-serif";
-  ctx.fillText(`${data.finalScore.toLocaleString("pt-BR")} pts`, scoreBoxX + scoreBoxW / 2, scoreBoxY + 80);
+  ctx.fillText(
+    `${data.finalScore.toLocaleString("pt-BR")} pts`,
+    scoreBoxX + scoreBoxW / 2,
+    scoreBoxY + 80
+  );
 
   ctx.fillStyle = "#d0ebff";
   ctx.font = "13px 'Segoe UI', Arial, sans-serif";
-  ctx.fillText(`Recorde Pessoal: ${data.highScore.toLocaleString("pt-BR")} pts`, scoreBoxX + scoreBoxW / 2, scoreBoxY + 105);
+  ctx.fillText(
+    `Recorde Pessoal: ${data.highScore.toLocaleString("pt-BR")} pts`,
+    scoreBoxX + scoreBoxW / 2,
+    scoreBoxY + 105
+  );
   ctx.restore();
 
   // 7. Grade de Estatísticas da Travessia
@@ -220,13 +231,21 @@ export function createVictoryCardCanvas(data: VictoryCardData): HTMLCanvasElemen
   ctx.fillStyle = "#e7f5ff";
 
   // Coluna 1
-  ctx.fillText(`📏 Rota Percorrida: ${GAME_CONFIG.ROUTE_TOTAL_DISTANCE.toLocaleString("pt-BR")}m (100%)`, col1X, gridY + 34);
+  ctx.fillText(
+    `📏 Rota Percorrida: ${GAME_CONFIG.ROUTE_TOTAL_DISTANCE.toLocaleString("pt-BR")}m (100%)`,
+    col1X,
+    gridY + 34
+  );
   ctx.fillText(`⏱️ Duração da Travessia: ${data.elapsedTime} segundos`, col1X, gridY + 65);
   ctx.fillText(`🦐 Biomassa de Krill Coletada: ${data.krillCount} cardumes`, col1X, gridY + 96);
 
   // Coluna 2
   ctx.fillText(`🗑️ Resíduos Plásticos Encontrados: ${data.trashCount}`, col2X, gridY + 34);
-  ctx.fillText(`✨ Salto Majestoso (Breach): ${data.hasBreached ? "Executado (+500 pts)" : "Não"}`, col2X, gridY + 65);
+  ctx.fillText(
+    `✨ Salto Majestoso (Breach): ${data.hasBreached ? "Executado (+500 pts)" : "Não"}`,
+    col2X,
+    gridY + 65
+  );
   ctx.fillText(
     data.quizScore && data.quizScore > 0
       ? `🧪 Quiz Ecológico: ${data.quizCorrectCount || 0}/3 acertos (+${data.quizScore} pts)`
@@ -245,15 +264,29 @@ export function createVictoryCardCanvas(data: VictoryCardData): HTMLCanvasElemen
   ctx.fillStyle = "#ffd700";
   ctx.font = "bold 13px 'Segoe UI', Arial, sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText(data.isWeeklyChallenge ? "SELO OFICIAL SEMANAL 📅" : "PROJETO CONSERVAÇÃO MARINHA", col3X + 155, gridY + 20);
+  ctx.fillText(
+    data.isWeeklyChallenge ? "SELO OFICIAL SEMANAL 📅" : "PROJETO CONSERVAÇÃO MARINHA",
+    col3X + 155,
+    gridY + 20
+  );
   ctx.fillStyle = "#a5d8ff";
   ctx.font = "12px 'Segoe UI', Arial, sans-serif";
-  ctx.fillText(data.isWeeklyChallenge ? `Semana ${data.weekKey || ""} Autenticada` : "Autenticação Digital Ecológica", col3X + 155, gridY + 45);
+  ctx.fillText(
+    data.isWeeklyChallenge
+      ? `Semana ${data.weekKey || ""} Autenticada`
+      : "Autenticação Digital Ecológica",
+    col3X + 155,
+    gridY + 45
+  );
   ctx.fillStyle = "#ffffff";
   ctx.font = "bold 13px 'Courier New', monospace";
   const certId = data.isWeeklyChallenge
-    ? `ID: MS-W#${data.seed || 0}-${Math.abs(data.finalScore * 7919).toString(16).toUpperCase()}`
-    : `ID: MS-${Math.abs(data.finalScore * 7919).toString(16).toUpperCase()}`;
+    ? `ID: MS-W#${data.seed || 0}-${Math.abs(data.finalScore * 7919)
+        .toString(16)
+        .toUpperCase()}`
+    : `ID: MS-${Math.abs(data.finalScore * 7919)
+        .toString(16)
+        .toUpperCase()}`;
   ctx.fillText(certId, col3X + 155, gridY + 74);
   ctx.restore();
 
@@ -337,8 +370,8 @@ export function getShareText(data: VictoryCardData): string {
     data.mode === "quick_challenge"
       ? "no Desafio Rápido de 60s"
       : data.mode === "serene"
-      ? "no Modo Sereno"
-      : "na Rota Migratória";
+        ? "no Modo Sereno"
+        : "na Rota Migratória";
 
   return (
     `🐋 Concluí a jornada da baleia-jubarte ${modeText} no jogo Micro-Splash!\n` +
@@ -391,4 +424,3 @@ export async function shareVictoryCard(data: VictoryCardData): Promise<boolean> 
     return false;
   }
 }
-

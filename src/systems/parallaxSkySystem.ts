@@ -40,7 +40,7 @@ export function setupParallaxSkySystem(k: ReturnType<typeof kaboom>) {
     const width = 80 + (i % 4) * 35;
     const height = 18 + (i % 3) * 6;
     const baseY = 10 + (i % 4) * 12;
-    const parallaxFactor = 0.18 + (i % 3) * 0.10; // Nuvens mais distantes movem-se mais devagar
+    const parallaxFactor = 0.18 + (i % 3) * 0.1; // Nuvens mais distantes movem-se mais devagar
     const speed = 6 + (i % 3) * 4; // Deriva do vento
 
     const cloudObj = k.add([
@@ -54,7 +54,7 @@ export function setupParallaxSkySystem(k: ReturnType<typeof kaboom>) {
 
     clouds.push({
       obj: cloudObj,
-      baseX: i * (k.width() / cloudCount * 1.3),
+      baseX: i * ((k.width() / cloudCount) * 1.3),
       baseY,
       speed,
       parallaxFactor,
@@ -79,7 +79,7 @@ export function setupParallaxSkySystem(k: ReturnType<typeof kaboom>) {
 
     stars.push({
       obj: starObj,
-      baseX: i * (k.width() / starCount * 1.4),
+      baseX: i * ((k.width() / starCount) * 1.4),
       baseY: starY,
       blinkPhase: Math.random() * Math.PI * 2,
     });
@@ -166,13 +166,13 @@ export function setupParallaxSkySystem(k: ReturnType<typeof kaboom>) {
         c.obj.opacity = 0.65;
       } else if (camX < 19000) {
         c.obj.color = k.rgb(75, 85, 115); // Noite urbana (silhuetas azuladas no céu noturno)
-        c.obj.opacity = 0.40;
+        c.obj.opacity = 0.4;
       } else if (camX < 25000) {
         c.obj.color = k.rgb(220, 195, 235); // Alvorada límpida / lilás
         c.obj.opacity = 0.55;
       } else {
         c.obj.color = k.rgb(255, 248, 230); // Manhã solar dourada em Arraial
-        c.obj.opacity = 0.60;
+        c.obj.opacity = 0.6;
       }
     });
 
@@ -182,8 +182,8 @@ export function setupParallaxSkySystem(k: ReturnType<typeof kaboom>) {
         ? camX < 13000
           ? (camX - 11500) / 1500
           : camX > 18000
-          ? (19500 - camX) / 1500
-          : 1.0
+            ? (19500 - camX) / 1500
+            : 1.0
         : 0;
 
     stars.forEach((s) => {
@@ -214,6 +214,5 @@ export function setupParallaxSkySystem(k: ReturnType<typeof kaboom>) {
       b.wingRight.pos.y = currentY;
       b.wingRight.angle = wingAngle;
     });
-
   });
 }

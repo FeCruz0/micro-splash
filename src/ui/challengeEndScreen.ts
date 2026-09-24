@@ -18,9 +18,16 @@ export function showChallengeEndScreen(
   const mode = gameState.getMode();
 
   if (isTop10Score(score) || mode === "weekly") {
-    showInitialsInputModal(k, score, distance, mode, () => {
-      renderChallengeEndContent(k, gameState, onPlayAgain, onReturnMenu);
-    }, gameState.getWeekKey());
+    showInitialsInputModal(
+      k,
+      score,
+      distance,
+      mode,
+      () => {
+        renderChallengeEndContent(k, gameState, onPlayAgain, onReturnMenu);
+      },
+      gameState.getWeekKey()
+    );
   } else {
     renderChallengeEndContent(k, gameState, onPlayAgain, onReturnMenu);
   }
@@ -38,73 +45,96 @@ function renderChallengeEndContent(
   let isModalOpen = false;
 
   // Fundo escuro com partículas douradas
-  elements.push(k.add([
-    k.rect(k.width(), k.height()),
-    k.pos(0, 0),
-    k.color(6, 18, 38),
-    k.opacity(0.94),
-    k.fixed(),
-    k.z(300),
-  ]));
+  elements.push(
+    k.add([
+      k.rect(k.width(), k.height()),
+      k.pos(0, 0),
+      k.color(6, 18, 38),
+      k.opacity(0.94),
+      k.fixed(),
+      k.z(300),
+    ])
+  );
 
   const cardW = 580;
   const cardH = 430;
-  elements.push(k.add([
-    k.rect(cardW, cardH, { radius: 14 }),
-    k.pos(k.width() / 2, k.height() / 2),
-    k.color(12, 35, 75),
-    k.outline(3, k.rgb(255, 180, 50)),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(301),
-  ]));
+  elements.push(
+    k.add([
+      k.rect(cardW, cardH, { radius: 14 }),
+      k.pos(k.width() / 2, k.height() / 2),
+      k.color(12, 35, 75),
+      k.outline(3, k.rgb(255, 180, 50)),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(301),
+    ])
+  );
 
   // Título
-  elements.push(k.add([
-    k.text("TEMPO ESGOTADO! FIM DA RODADA! ⏱️🎉", { size: 18, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 - 165),
-    k.color(255, 215, 60),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(302),
-  ]));
+  elements.push(
+    k.add([
+      k.text("TEMPO ESGOTADO! FIM DA RODADA! ⏱️🎉", { size: 18, font: "sans-serif" }),
+      k.pos(k.width() / 2, k.height() / 2 - 165),
+      k.color(255, 215, 60),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(302),
+    ])
+  );
 
-  elements.push(k.add([
-    k.text("Migração Rápida (Desafio 60s)", { size: 13, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 - 135),
-    k.color(140, 220, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(302),
-  ]));
+  elements.push(
+    k.add([
+      k.text("Migração Rápida (Desafio 60s)", { size: 13, font: "sans-serif" }),
+      k.pos(k.width() / 2, k.height() / 2 - 135),
+      k.color(140, 220, 255),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(302),
+    ])
+  );
 
   // Placar e Estatísticas
-  elements.push(k.add([
-    k.text(`🦐 Cardumes de Krill Consumidos: ${gameState.getKrillCount()}`, { size: 13.5, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 - 95),
-    k.color(220, 240, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(302),
-  ]));
+  elements.push(
+    k.add([
+      k.text(`🦐 Cardumes de Krill Consumidos: ${gameState.getKrillCount()}`, {
+        size: 13.5,
+        font: "sans-serif",
+      }),
+      k.pos(k.width() / 2, k.height() / 2 - 95),
+      k.color(220, 240, 255),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(302),
+    ])
+  );
 
-  elements.push(k.add([
-    k.text(`🌊 Distância Percorrida: ${gameState.getDistance()}m`, { size: 13.5, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 - 65),
-    k.color(220, 240, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(302),
-  ]));
+  elements.push(
+    k.add([
+      k.text(`🌊 Distância Percorrida: ${gameState.getDistance()}m`, {
+        size: 13.5,
+        font: "sans-serif",
+      }),
+      k.pos(k.width() / 2, k.height() / 2 - 65),
+      k.color(220, 240, 255),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(302),
+    ])
+  );
 
-  elements.push(k.add([
-    k.text(`⚠️ Lixo Plástico Colidido: ${gameState.getTrashCount()}`, { size: 13.5, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 - 35),
-    k.color(220, 240, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(302),
-  ]));
+  elements.push(
+    k.add([
+      k.text(`⚠️ Lixo Plástico Colidido: ${gameState.getTrashCount()}`, {
+        size: 13.5,
+        font: "sans-serif",
+      }),
+      k.pos(k.width() / 2, k.height() / 2 - 35),
+      k.color(220, 240, 255),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(302),
+    ])
+  );
 
   const getScoreText = () => {
     const finalScore = gameState.calculateFinalScore();
@@ -145,10 +175,15 @@ function renderChallengeEndContent(
   elements.push(btnQuiz);
 
   const btnQuizLabel = k.add([
-    k.text(quizCompleted ? `Quiz Concluído! (+${gameState.getQuizScore()} pts) ✓` : "🧪 Desafio Ecológico [ENTER] (+300 pts) ▶", {
-      size: 12.5,
-      font: "sans-serif",
-    }),
+    k.text(
+      quizCompleted
+        ? `Quiz Concluído! (+${gameState.getQuizScore()} pts) ✓`
+        : "🧪 Desafio Ecológico [ENTER] (+300 pts) ▶",
+      {
+        size: 12.5,
+        font: "sans-serif",
+      }
+    ),
     k.pos(k.width() / 2, k.height() / 2 + 38),
     k.color(255, 255, 255),
     k.anchor("center"),
@@ -236,7 +271,9 @@ function renderChallengeEndContent(
 
   const destroyAll = () => {
     keyListeners.forEach((l) => {
-      try { if (l && typeof l.cancel === "function") l.cancel(); } catch {}
+      try {
+        if (l && typeof l.cancel === "function") l.cancel();
+      } catch {}
     });
     elements.forEach((el) => k.destroy(el));
   };
@@ -255,7 +292,10 @@ function renderChallengeEndContent(
   elements.push(btnAgain);
 
   const btnAgainLabel = k.add([
-    k.text(quizCompleted ? "Jogar Novamente [ENTER] 🔄" : "Jogar Novamente [R] 🔄", { size: 12, font: "sans-serif" }),
+    k.text(quizCompleted ? "Jogar Novamente [ENTER] 🔄" : "Jogar Novamente [R] 🔄", {
+      size: 12,
+      font: "sans-serif",
+    }),
     k.pos(k.width() / 2 - 105, k.height() / 2 + 130),
     k.color(255, 255, 255),
     k.anchor("center"),
@@ -292,14 +332,16 @@ function renderChallengeEndContent(
   ]);
   elements.push(btnMenu);
 
-  elements.push(k.add([
-    k.text("Menu Principal [ESC] 🏠", { size: 12, font: "sans-serif" }),
-    k.pos(k.width() / 2 + 105, k.height() / 2 + 130),
-    k.color(255, 255, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(303),
-  ]));
+  elements.push(
+    k.add([
+      k.text("Menu Principal [ESC] 🏠", { size: 12, font: "sans-serif" }),
+      k.pos(k.width() / 2 + 105, k.height() / 2 + 130),
+      k.color(255, 255, 255),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(303),
+    ])
+  );
 
   const handleReturnMenu = () => {
     if (!canInteract || isModalOpen) return;

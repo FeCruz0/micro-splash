@@ -25,12 +25,7 @@ export function createSplashScreen(k: KaboomCtx, onFinish: () => void) {
   const cy = k.height() / 2;
 
   // Fundo marinho abissal profundo
-  k.add([
-    k.rect(k.width(), k.height()),
-    k.pos(0, 0),
-    k.color(6, 16, 36),
-    k.z(0),
-  ]);
+  k.add([k.rect(k.width(), k.height()), k.pos(0, 0), k.color(6, 16, 36), k.z(0)]);
 
   // Bolhas ascendentes decorativas
   for (let i = 0; i < 30; i++) {
@@ -70,7 +65,7 @@ export function createSplashScreen(k: KaboomCtx, onFinish: () => void) {
       k.color(210, 240, 255),
       k.z(5),
     ]);
-  } catch (_e) {
+  } catch {
     // Se sprite não carregar, ignora silenciosamente
   }
 

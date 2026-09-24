@@ -26,17 +26,21 @@ if (typeof window !== "undefined") {
     } catch {}
   };
   window.addEventListener("touchstart", markTouchActive, { passive: true });
-  window.addEventListener("pointerdown", (e) => {
-    if (e.pointerType === "touch") {
-      markTouchActive();
-    } else if (e.pointerType === "mouse") {
-      // Se está usando mouse no PC, garante que a sessão não fique presa como touch
-      sessionTouchDetected = false;
-      try {
-        sessionStorage.removeItem("micro_splash_touch_active");
-      } catch {}
-    }
-  }, { passive: true });
+  window.addEventListener(
+    "pointerdown",
+    (e) => {
+      if (e.pointerType === "touch") {
+        markTouchActive();
+      } else if (e.pointerType === "mouse") {
+        // Se está usando mouse no PC, garante que a sessão não fique presa como touch
+        sessionTouchDetected = false;
+        try {
+          sessionStorage.removeItem("micro_splash_touch_active");
+        } catch {}
+      }
+    },
+    { passive: true }
+  );
 }
 
 export function isTouchEnvironment(): boolean {
@@ -50,8 +54,9 @@ export function isTouchEnvironment(): boolean {
   if (sessionTouchDetected) return true;
 
   // Modo "auto":
-  const isMobileUA =
-    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(navigator.userAgent);
+  const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(
+    navigator.userAgent
+  );
 
   // pointer: coarse indica tela touch como entrada primária (celulares, tablets).
   // Se for mouse/trackpad no PC, pointer é "fine" e hover é "hover", mesmo que tenha tela touch secundária.
@@ -105,7 +110,12 @@ export function setupTouchControls(k: KaboomCtx): {
       ])
     );
 
-    function createDirButton(label: string, offsetX: number, offsetY: number, onState: (down: boolean) => void) {
+    function createDirButton(
+      label: string,
+      offsetX: number,
+      offsetY: number,
+      onState: (down: boolean) => void
+    ) {
       const btn = k.add([
         k.rect(btnSize, btnSize, { radius: 12 }),
         k.pos(dpadBaseX + offsetX, dpadBaseY + offsetY),

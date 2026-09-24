@@ -53,23 +53,21 @@ export function createKrill(k: KaboomCtx, position: Vec2): GameObj {
     const isHighContrast = accessibilitySystem.isHighContrast();
     const baseColor = isHighContrast
       ? k.rgb(255, 230, 50)
-      : k.rgb(
-          255,
-          150 + Math.floor(Math.random() * 45),
-          60 + Math.floor(Math.random() * 40)
-        );
+      : k.rgb(255, 150 + Math.floor(Math.random() * 45), 60 + Math.floor(Math.random() * 40));
 
-    const boidObj = k.add([
-      k.rect(isHighContrast ? 4.8 : 4.2, isHighContrast ? 2.8 : 2.4, { radius: 1 }),
-      k.pos(position.x + relX, position.y + relY),
-      k.rotate(0),
-      k.color(baseColor),
-      isHighContrast ? k.outline(1, k.rgb(0, 0, 0)) : null,
-      k.opacity(isHighContrast ? 1.0 : 0.85),
-      k.anchor("center"),
-      k.scale(1),
-      k.z(11),
-    ].filter(Boolean));
+    const boidObj = k.add(
+      [
+        k.rect(isHighContrast ? 4.8 : 4.2, isHighContrast ? 2.8 : 2.4, { radius: 1 }),
+        k.pos(position.x + relX, position.y + relY),
+        k.rotate(0),
+        k.color(baseColor),
+        isHighContrast ? k.outline(1, k.rgb(0, 0, 0)) : null,
+        k.opacity(isHighContrast ? 1.0 : 0.85),
+        k.anchor("center"),
+        k.scale(1),
+        k.z(11),
+      ].filter(Boolean)
+    );
 
     boids.push({
       obj: boidObj,
@@ -106,15 +104,11 @@ export function createKrill(k: KaboomCtx, position: Vec2): GameObj {
       ]);
     }
 
-
     // Partículas de explosão de bioluminescência
     for (let i = 0; i < 6; i++) {
       const spark = k.add([
         k.circle(k.rand(1.5, 2.5)),
-        k.pos(
-          krillCluster.pos.x + k.rand(-14, 14),
-          krillCluster.pos.y + k.rand(-14, 14)
-        ),
+        k.pos(krillCluster.pos.x + k.rand(-14, 14), krillCluster.pos.y + k.rand(-14, 14)),
         k.color(k.choose([k.rgb(255, 235, 120), k.rgb(100, 255, 220)])),
         k.opacity(0.9),
         k.z(13),
@@ -170,8 +164,14 @@ export function createKrill(k: KaboomCtx, position: Vec2): GameObj {
         haloInner.opacity = 0.35 * revealProgress;
       }
     } else {
-      if (haloCircle) { k.destroy(haloCircle); haloCircle = null; }
-      if (haloInner) { k.destroy(haloInner); haloInner = null; }
+      if (haloCircle) {
+        k.destroy(haloCircle);
+        haloCircle = null;
+      }
+      if (haloInner) {
+        k.destroy(haloInner);
+        haloInner = null;
+      }
     }
 
     for (const b of boids) {
@@ -184,10 +184,7 @@ export function createKrill(k: KaboomCtx, position: Vec2): GameObj {
       } else {
         // Órbita suave e coesão em torno do centro do cardume
         const orbitAngle = time * b.speed + b.phase;
-        const targetRel = k.vec2(
-          Math.cos(orbitAngle) * 11,
-          Math.sin(orbitAngle * 1.2) * 7
-        );
+        const targetRel = k.vec2(Math.cos(orbitAngle) * 11, Math.sin(orbitAngle * 1.2) * 7);
         b.relPos = b.relPos.lerp(targetRel, dt * 3);
       }
 
@@ -226,8 +223,16 @@ export function createKrill(k: KaboomCtx, position: Vec2): GameObj {
   });
 
   krillCluster.onDestroy(() => {
-    if (haloCircle) { try { k.destroy(haloCircle); } catch {} }
-    if (haloInner) { try { k.destroy(haloInner); } catch {} }
+    if (haloCircle) {
+      try {
+        k.destroy(haloCircle);
+      } catch {}
+    }
+    if (haloInner) {
+      try {
+        k.destroy(haloInner);
+      } catch {}
+    }
 
     // Destrói todos os boids filhos
     for (const b of boids) {

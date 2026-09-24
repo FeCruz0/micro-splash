@@ -36,12 +36,15 @@ export function setupBreachSystem(config: BreachSystemConfig) {
     if (playerPos.x >= triggerDistance && !isBreachTriggered) {
       if (!promptBanner) {
         promptBanner = k.add([
-          k.text("ÁGUAS CALMAS DE ARRAIAL! 🐋\nPRESSIONE [ESPAÇO] OU TOQUE PARA O SALTO MAJESTOSO!", {
-            size: 15,
-            font: "sans-serif",
-            align: "center",
-            lineSpacing: 6,
-          }),
+          k.text(
+            "ÁGUAS CALMAS DE ARRAIAL! 🐋\nPRESSIONE [ESPAÇO] OU TOQUE PARA O SALTO MAJESTOSO!",
+            {
+              size: 15,
+              font: "sans-serif",
+              align: "center",
+              lineSpacing: 6,
+            }
+          ),
           k.pos(k.width() / 2, 60),
           k.color(255, 220, 100),
           k.outline(3, k.rgb(10, 30, 60)),
@@ -159,7 +162,11 @@ export function setupBreachSystem(config: BreachSystemConfig) {
 /**
  * Cria partículas de espuma, borrifos e ondulações 16-bits no impacto do mergulho ou rompimento.
  */
-export function createWaterSplash(k: ReturnType<typeof kaboom>, pos: any, particleCount: number = 26) {
+export function createWaterSplash(
+  k: ReturnType<typeof kaboom>,
+  pos: any,
+  particleCount: number = 26
+) {
   // 1. Gotículas de spray em pixel art 16-bits (quadrados angulares com paleta aquática retrô)
   for (let i = 0; i < particleCount; i++) {
     const angle = k.rand(-155, -25);
@@ -169,11 +176,7 @@ export function createWaterSplash(k: ReturnType<typeof kaboom>, pos: any, partic
     const velY = Math.sin(rad) * speed;
     const size = k.rand(3, 6);
 
-    const colors = [
-      k.rgb(255, 255, 255),
-      k.rgb(190, 240, 255),
-      k.rgb(120, 215, 255),
-    ];
+    const colors = [k.rgb(255, 255, 255), k.rgb(190, 240, 255), k.rgb(120, 215, 255)];
     const dropColor = colors[Math.floor(Math.random() * colors.length)];
 
     const drop = k.add([

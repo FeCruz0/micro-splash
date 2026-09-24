@@ -47,21 +47,25 @@ export function showModeSelectScreen(
   elements.push(card);
 
   // Título do Modal
-  elements.push(k.add([
-    k.text("ESCOLHA SEU ESTILO DE MIGRAÇÃO 🐋", { size: 21, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 - 258),
-    k.color(255, 230, 100),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(302),
-  ]));
+  elements.push(
+    k.add([
+      k.text("ESCOLHA SEU ESTILO DE MIGRAÇÃO 🐋", { size: 21, font: "sans-serif" }),
+      k.pos(k.width() / 2, k.height() / 2 - 258),
+      k.color(255, 230, 100),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(302),
+    ])
+  );
 
   const destroyAll = () => {
     if (isClosed) return;
     isClosed = true;
     escListener.cancel();
     elements.forEach((el) => {
-      try { k.destroy(el); } catch {}
+      try {
+        k.destroy(el);
+      } catch {}
     });
   };
 
@@ -88,14 +92,16 @@ export function showModeSelectScreen(
   ]);
   elements.push(btnX);
 
-  elements.push(k.add([
-    k.text("✕", { size: 18, font: "sans-serif" }),
-    k.pos(k.width() / 2 + cardW / 2 - 28, k.height() / 2 - cardH / 2 + 28),
-    k.color(255, 255, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(306),
-  ]));
+  elements.push(
+    k.add([
+      k.text("✕", { size: 18, font: "sans-serif" }),
+      k.pos(k.width() / 2 + cardW / 2 - 28, k.height() / 2 - cardH / 2 + 28),
+      k.color(255, 255, 255),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(306),
+    ])
+  );
 
   btnX.onHoverUpdate(() => {
     if (!canInteract) return;
@@ -122,26 +128,33 @@ export function showModeSelectScreen(
   ]);
   elements.push(card1);
 
-  elements.push(k.add([
-    k.text("🌊 MIGRAÇÃO NORMAL (CLÁSSICA)", { size: 15, font: "sans-serif" }),
-    k.pos(k.width() / 2 - 330, k.height() / 2 - 215),
-    k.color(100, 240, 255),
-    k.anchor("left"),
-    k.fixed(),
-    k.z(303),
-  ]));
+  elements.push(
+    k.add([
+      k.text("🌊 MIGRAÇÃO NORMAL (CLÁSSICA)", { size: 15, font: "sans-serif" }),
+      k.pos(k.width() / 2 - 330, k.height() / 2 - 215),
+      k.color(100, 240, 255),
+      k.anchor("left"),
+      k.fixed(),
+      k.z(303),
+    ])
+  );
 
-  elements.push(k.add([
-    k.text("Rota de 27.000m. Fôlego limitado por mergulho, desvio de redes, lixo e navios com Eco-Score.", {
-      size: 11,
-      font: "sans-serif",
-    }),
-    k.pos(k.width() / 2 - 330, k.height() / 2 - 190),
-    k.color(200, 230, 250),
-    k.anchor("left"),
-    k.fixed(),
-    k.z(303),
-  ]));
+  elements.push(
+    k.add([
+      k.text(
+        "Rota de 27.000m. Fôlego limitado por mergulho, desvio de redes, lixo e navios com Eco-Score.",
+        {
+          size: 11,
+          font: "sans-serif",
+        }
+      ),
+      k.pos(k.width() / 2 - 330, k.height() / 2 - 190),
+      k.color(200, 230, 250),
+      k.anchor("left"),
+      k.fixed(),
+      k.z(303),
+    ])
+  );
 
   card1.onHoverUpdate(() => {
     if (!canInteract) return;
@@ -177,26 +190,33 @@ export function showModeSelectScreen(
   ]);
   elements.push(card2);
 
-  elements.push(k.add([
-    k.text("🌸 MIGRAÇÃO SERENA (CONTEMPLATIVA)", { size: 15, font: "sans-serif" }),
-    k.pos(k.width() / 2 - 330, k.height() / 2 - 133),
-    k.color(140, 255, 200),
-    k.anchor("left"),
-    k.fixed(),
-    k.z(303),
-  ]));
+  elements.push(
+    k.add([
+      k.text("🌸 MIGRAÇÃO SERENA (CONTEMPLATIVA)", { size: 15, font: "sans-serif" }),
+      k.pos(k.width() / 2 - 330, k.height() / 2 - 133),
+      k.color(140, 255, 200),
+      k.anchor("left"),
+      k.fixed(),
+      k.z(303),
+    ])
+  );
 
-  elements.push(k.add([
-    k.text("Oxigênio infinito (∞) e zero risco de desmaio. Modo acessível e relaxante para todas as idades.", {
-      size: 11,
-      font: "sans-serif",
-    }),
-    k.pos(k.width() / 2 - 330, k.height() / 2 - 108),
-    k.color(200, 245, 230),
-    k.anchor("left"),
-    k.fixed(),
-    k.z(303),
-  ]));
+  elements.push(
+    k.add([
+      k.text(
+        "Oxigênio infinito (∞) e zero risco de desmaio. Modo acessível e relaxante para todas as idades.",
+        {
+          size: 11,
+          font: "sans-serif",
+        }
+      ),
+      k.pos(k.width() / 2 - 330, k.height() / 2 - 108),
+      k.color(200, 245, 230),
+      k.anchor("left"),
+      k.fixed(),
+      k.z(303),
+    ])
+  );
 
   card2.onHoverUpdate(() => {
     if (!canInteract) return;
@@ -234,27 +254,37 @@ export function showModeSelectScreen(
   ]);
   elements.push(cardWeekly);
 
-  elements.push(k.add([
-    k.text(`📅 DESAFIO SEMANAL DA ROTA — ${weeklyInfo.weekLabel}`, { size: 15, font: "sans-serif" }),
-    k.pos(k.width() / 2 - 330, k.height() / 2 - 53),
-    k.color(255, 225, 90),
-    k.anchor("left"),
-    k.fixed(),
-    k.z(303),
-  ]));
+  elements.push(
+    k.add([
+      k.text(`📅 DESAFIO SEMANAL DA ROTA — ${weeklyInfo.weekLabel}`, {
+        size: 15,
+        font: "sans-serif",
+      }),
+      k.pos(k.width() / 2 - 330, k.height() / 2 - 53),
+      k.color(255, 225, 90),
+      k.anchor("left"),
+      k.fixed(),
+      k.z(303),
+    ])
+  );
 
-  elements.push(k.add([
-    k.text(`Semente #${weeklyInfo.seed} • Rota idêntica para o mundo todo • ⏳ ${weeklyInfo.daysLeft} dia(s) restantes\nComplete a rota para conquistar o Certificado Oficial da Semana com selo digital!`, {
-      size: 11,
-      font: "sans-serif",
-      lineSpacing: 4,
-    }),
-    k.pos(k.width() / 2 - 330, k.height() / 2 - 27),
-    k.color(225, 245, 255),
-    k.anchor("left"),
-    k.fixed(),
-    k.z(303),
-  ]));
+  elements.push(
+    k.add([
+      k.text(
+        `Semente #${weeklyInfo.seed} • Rota idêntica para o mundo todo • ⏳ ${weeklyInfo.daysLeft} dia(s) restantes\nComplete a rota para conquistar o Certificado Oficial da Semana com selo digital!`,
+        {
+          size: 11,
+          font: "sans-serif",
+          lineSpacing: 4,
+        }
+      ),
+      k.pos(k.width() / 2 - 330, k.height() / 2 - 27),
+      k.color(225, 245, 255),
+      k.anchor("left"),
+      k.fixed(),
+      k.z(303),
+    ])
+  );
 
   cardWeekly.onHoverUpdate(() => {
     if (!canInteract) return;
@@ -294,26 +324,30 @@ export function showModeSelectScreen(
   ]);
   elements.push(card3);
 
-  elements.push(k.add([
-    k.text("⚡ MIGRAÇÃO RÁPIDA (60 SEGUNDOS)", { size: 15, font: "sans-serif" }),
-    k.pos(k.width() / 2 - 330, k.height() / 2 + 32),
-    k.color(255, 210, 120),
-    k.anchor("left"),
-    k.fixed(),
-    k.z(303),
-  ]));
+  elements.push(
+    k.add([
+      k.text("⚡ MIGRAÇÃO RÁPIDA (60 SEGUNDOS)", { size: 15, font: "sans-serif" }),
+      k.pos(k.width() / 2 - 330, k.height() / 2 + 32),
+      k.color(255, 210, 120),
+      k.anchor("left"),
+      k.fixed(),
+      k.z(303),
+    ])
+  );
 
-  elements.push(k.add([
-    k.text("Desafio cronometrado de 1 min. Trecho:", {
-      size: 11,
-      font: "sans-serif",
-    }),
-    k.pos(k.width() / 2 - 330, k.height() / 2 + 56),
-    k.color(240, 220, 190),
-    k.anchor("left"),
-    k.fixed(),
-    k.z(303),
-  ]));
+  elements.push(
+    k.add([
+      k.text("Desafio cronometrado de 1 min. Trecho:", {
+        size: 11,
+        font: "sans-serif",
+      }),
+      k.pos(k.width() / 2 - 330, k.height() / 2 + 56),
+      k.color(240, 220, 190),
+      k.anchor("left"),
+      k.fixed(),
+      k.z(303),
+    ])
+  );
 
   // Botões seletores de Bioma
   const biomes = [
@@ -331,7 +365,10 @@ export function showModeSelectScreen(
       k.rect(130, 24, { radius: 5 }),
       k.pos(bX, bY),
       k.color(selectedBiomeIndex === biome.index ? k.rgb(200, 120, 20) : k.rgb(20, 45, 80)),
-      k.outline(1, selectedBiomeIndex === biome.index ? k.rgb(255, 230, 150) : k.rgb(100, 140, 190)),
+      k.outline(
+        1,
+        selectedBiomeIndex === biome.index ? k.rgb(255, 230, 150) : k.rgb(100, 140, 190)
+      ),
       k.scale(1),
       k.anchor("center"),
       k.area(),
@@ -377,14 +414,16 @@ export function showModeSelectScreen(
   ]);
   elements.push(btnStartQuick);
 
-  elements.push(k.add([
-    k.text("⚡ INICIAR MIGRAÇÃO RÁPIDA (60s)", { size: 11, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 + 96),
-    k.color(255, 255, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(305),
-  ]));
+  elements.push(
+    k.add([
+      k.text("⚡ INICIAR MIGRAÇÃO RÁPIDA (60s)", { size: 11, font: "sans-serif" }),
+      k.pos(k.width() / 2, k.height() / 2 + 96),
+      k.color(255, 255, 255),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(305),
+    ])
+  );
 
   btnStartQuick.onHoverUpdate(() => {
     if (!canInteract) return;
@@ -422,14 +461,16 @@ export function showModeSelectScreen(
   ]);
   elements.push(btnBack);
 
-  elements.push(k.add([
-    k.text("Voltar ao Menu ↩️", { size: 14, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 + 162),
-    k.color(220, 240, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(303),
-  ]));
+  elements.push(
+    k.add([
+      k.text("Voltar ao Menu ↩️", { size: 14, font: "sans-serif" }),
+      k.pos(k.width() / 2, k.height() / 2 + 162),
+      k.color(220, 240, 255),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(303),
+    ])
+  );
 
   btnBack.onHoverUpdate(() => {
     if (!canInteract) return;
@@ -442,4 +483,3 @@ export function showModeSelectScreen(
   });
   btnBack.onClick(close);
 }
-

@@ -1,6 +1,6 @@
-const fs = require('node:fs');
-const path = require('node:path');
-const zlib = require('node:zlib');
+const fs = require("node:fs");
+const path = require("node:path");
+const zlib = require("node:zlib");
 
 const WIDTH = 128;
 const HEIGHT = 64;
@@ -82,7 +82,8 @@ function drawLine(x0, y0, x1, y1, width, color) {
 
 function drawQuadCurve(x0, y0, cx, cy, x1, y1, width, color) {
   const steps = Math.max(16, Math.ceil(Math.hypot(x1 - x0, y1 - y0) * 1.8));
-  let prevX = x0, prevY = y0;
+  let prevX = x0,
+    prevY = y0;
   for (let i = 1; i <= steps; i++) {
     const t = i / steps;
     const it = 1 - t;
@@ -96,45 +97,45 @@ function drawQuadCurve(x0, y0, cx, cy, x1, y1, width, color) {
 
 const PALETTE = {
   dorsalDarkest: [30, 22, 16, 255],
-  dorsalDark:    [52, 40, 32, 255],
-  dorsalMid:     [78, 64, 52, 255],
-  dorsalLight:   [114, 96, 78, 255],
+  dorsalDark: [52, 40, 32, 255],
+  dorsalMid: [78, 64, 52, 255],
+  dorsalLight: [114, 96, 78, 255],
   dorsalHighlight: [146, 126, 104, 255],
 
-  bellyWhite:    [248, 244, 236, 255],
-  bellyMid:      [224, 214, 198, 255],
-  bellyShade:    [172, 156, 138, 255],
-  bellyPatch:    [252, 250, 244, 255],
+  bellyWhite: [248, 244, 236, 255],
+  bellyMid: [224, 214, 198, 255],
+  bellyShade: [172, 156, 138, 255],
+  bellyPatch: [252, 250, 244, 255],
 
-  grooveDeep:    [34, 24, 16, 255],
-  grooveMid:     [68, 52, 38, 255],
-  grooveRidge:   [254, 252, 246, 255],
+  grooveDeep: [34, 24, 16, 255],
+  grooveMid: [68, 52, 38, 255],
+  grooveRidge: [254, 252, 246, 255],
 
   pectoralWhite: [250, 248, 242, 255],
   pectoralCream: [232, 226, 216, 255],
-  pectoralMottle:[112, 96, 80, 255],
-  pectoralDark:  [38, 28, 20, 255],
-  pectoralBack:  [106, 90, 76, 240],
+  pectoralMottle: [112, 96, 80, 255],
+  pectoralDark: [38, 28, 20, 255],
+  pectoralBack: [106, 90, 76, 240],
   pectoralBackDark: [54, 42, 32, 255],
 
-  tubercleBase:  [34, 24, 18, 255],
-  tubercleTip:   [184, 166, 146, 255],
+  tubercleBase: [34, 24, 18, 255],
+  tubercleTip: [184, 166, 146, 255],
   tubercleGlint: [240, 230, 215, 255],
 
-  eyeRing:       [64, 48, 36, 255],
-  eyeDark:       [14, 10, 8, 255],
-  eyeGlint:      [245, 250, 255, 255],
-  blowhole:      [22, 14, 10, 255],
+  eyeRing: [64, 48, 36, 255],
+  eyeDark: [14, 10, 8, 255],
+  eyeGlint: [245, 250, 255, 255],
+  blowhole: [22, 14, 10, 255],
 
-  baleenPlate:     [252, 242, 210, 255],
-  baleenMid:       [228, 210, 170, 255],
-  baleenShadow:    [140, 120, 85, 255],
-  mouthGape:       [46, 16, 22, 255],
-  mouthTongue:     [86, 28, 40, 255],
-  mouthStream:     [180, 225, 255, 140],
-  krillBody:       [255, 95, 60, 255],
-  krillGlow:       [255, 210, 150, 220],
-  krillEye:        [24, 14, 12, 255],
+  baleenPlate: [252, 242, 210, 255],
+  baleenMid: [228, 210, 170, 255],
+  baleenShadow: [140, 120, 85, 255],
+  mouthGape: [46, 16, 22, 255],
+  mouthTongue: [86, 28, 40, 255],
+  mouthStream: [180, 225, 255, 140],
+  krillBody: [255, 95, 60, 255],
+  krillGlow: [255, 210, 150, 220],
+  krillEye: [24, 14, 12, 255],
 };
 
 function renderFeedingWhale() {
@@ -144,8 +145,26 @@ function renderFeedingWhale() {
     const bBaseY = 36.5;
     const bTipX = 71;
     const bTipY = 50.5;
-    drawQuadCurve(bBaseX, bBaseY, bBaseX - 3, bBaseY + 7, bTipX, bTipY, 3.8, PALETTE.pectoralBackDark);
-    drawQuadCurve(bBaseX - 1, bBaseY + 1, bBaseX - 4, bBaseY + 8, bTipX + 1, bTipY, 2.5, PALETTE.pectoralBack);
+    drawQuadCurve(
+      bBaseX,
+      bBaseY,
+      bBaseX - 3,
+      bBaseY + 7,
+      bTipX,
+      bTipY,
+      3.8,
+      PALETTE.pectoralBackDark
+    );
+    drawQuadCurve(
+      bBaseX - 1,
+      bBaseY + 1,
+      bBaseX - 4,
+      bBaseY + 8,
+      bTipX + 1,
+      bTipY,
+      2.5,
+      PALETTE.pectoralBack
+    );
   }
 
   // 2. CORPO POSTERIOR E MÉDIO (lx = 18 até 88)
@@ -184,7 +203,7 @@ function renderFeedingWhale() {
 
     const colH = Math.max(1, botY - topY);
     if (lx >= 54) {
-      pouchBounds[lx] = { top: topY + colH * 0.50, bot: botY };
+      pouchBounds[lx] = { top: topY + colH * 0.5, bot: botY };
     }
 
     for (let py = Math.floor(topY); py <= Math.ceil(botY); py++) {
@@ -210,16 +229,28 @@ function renderFeedingWhale() {
   // O palato interno (teto da boca) fica logo abaixo do dorso
   for (let lx = 88; lx <= 114; lx++) {
     const t = (lx - 88) / 26; // 0..1
-    const topY = 19.5 + t * 4.0;          // dorso do rostro: 19.5 -> 23.5
-    const palateY = 23.5 + t * 2.5;       // teto do palato: 23.5 -> 26.0
+    const topY = 19.5 + t * 4.0; // dorso do rostro: 19.5 -> 23.5
+    const palateY = 23.5 + t * 2.5; // teto do palato: 23.5 -> 26.0
 
     for (let py = Math.floor(topY); py <= Math.ceil(palateY); py++) {
       if (py <= topY + 1.0) {
-        setPixel(lx, py, PALETTE.dorsalDarkest[0], PALETTE.dorsalDarkest[1], PALETTE.dorsalDarkest[2]);
+        setPixel(
+          lx,
+          py,
+          PALETTE.dorsalDarkest[0],
+          PALETTE.dorsalDarkest[1],
+          PALETTE.dorsalDarkest[2]
+        );
       } else if (py <= topY + 2.5) {
         setPixel(lx, py, PALETTE.dorsalLight[0], PALETTE.dorsalLight[1], PALETTE.dorsalLight[2]);
       } else if (py >= palateY - 0.8) {
-        setPixel(lx, py, PALETTE.dorsalDarkest[0], PALETTE.dorsalDarkest[1], PALETTE.dorsalDarkest[2]);
+        setPixel(
+          lx,
+          py,
+          PALETTE.dorsalDarkest[0],
+          PALETTE.dorsalDarkest[1],
+          PALETTE.dorsalDarkest[2]
+        );
       } else {
         setPixel(lx, py, PALETTE.dorsalDark[0], PALETTE.dorsalDark[1], PALETTE.dorsalDark[2]);
       }
@@ -245,7 +276,7 @@ function renderFeedingWhale() {
     const palateY = 23.5 + t2 * 2.5;
     for (let py = Math.ceil(palateY + 0.5); py < Math.floor(jawY); py++) {
       const depthT = (py - palateY) / (jawY - palateY);
-      if (depthT > 0.70) {
+      if (depthT > 0.7) {
         setPixel(lx, py, PALETTE.mouthTongue[0], PALETTE.mouthTongue[1], PALETTE.mouthTongue[2]);
       } else {
         setPixel(lx, py, PALETTE.mouthGape[0], PALETTE.mouthGape[1], PALETTE.mouthGape[2]);
@@ -254,12 +285,13 @@ function renderFeedingWhale() {
 
     // Osso da mandíbula inferior
     for (let py = Math.floor(jawY); py <= Math.ceil(jawBotY); py++) {
-      setPixel(lx, py, py === Math.floor(jawY)
-        ? PALETTE.dorsalDarkest[0] : PALETTE.dorsalDark[0],
-        py === Math.floor(jawY)
-        ? PALETTE.dorsalDarkest[1] : PALETTE.dorsalDark[1],
-        py === Math.floor(jawY)
-        ? PALETTE.dorsalDarkest[2] : PALETTE.dorsalDark[2]);
+      setPixel(
+        lx,
+        py,
+        py === Math.floor(jawY) ? PALETTE.dorsalDarkest[0] : PALETTE.dorsalDark[0],
+        py === Math.floor(jawY) ? PALETTE.dorsalDarkest[1] : PALETTE.dorsalDark[1],
+        py === Math.floor(jawY) ? PALETTE.dorsalDarkest[2] : PALETTE.dorsalDark[2]
+      );
     }
 
     // Tecido elástico da bolsa gular abaixo da mandíbula
@@ -285,7 +317,13 @@ function renderFeedingWhale() {
       if (ry > b.top && ry < b.bot) {
         setPixel(lx, ry, PALETTE.grooveDeep[0], PALETTE.grooveDeep[1], PALETTE.grooveDeep[2]);
         if (ry - 1 > b.top) {
-          setPixel(lx, ry - 1, PALETTE.grooveRidge[0], PALETTE.grooveRidge[1], PALETTE.grooveRidge[2]);
+          setPixel(
+            lx,
+            ry - 1,
+            PALETTE.grooveRidge[0],
+            PALETTE.grooveRidge[1],
+            PALETTE.grooveRidge[2]
+          );
         }
       }
     }
@@ -305,7 +343,7 @@ function renderFeedingWhale() {
     for (let py = Math.floor(palateY + 1.2); py <= Math.floor(palateY + hangLen); py++) {
       const fracDown = (py - (palateY + 1.2)) / (hangLen - 1.2);
       const isTip = fracDown > 0.85;
-      const isPlate = (lx % 2 === 0);
+      const isPlate = lx % 2 === 0;
 
       if (isTip) {
         setPixel(lx, py, PALETTE.baleenShadow[0], PALETTE.baleenShadow[1], PALETTE.baleenShadow[2]);
@@ -338,9 +376,21 @@ function renderFeedingWhale() {
       }
       topY = 29.5 - t * 11.3 - knuckle;
     }
-    setPixel(lx, Math.floor(topY), PALETTE.dorsalDarkest[0], PALETTE.dorsalDarkest[1], PALETTE.dorsalDarkest[2]);
+    setPixel(
+      lx,
+      Math.floor(topY),
+      PALETTE.dorsalDarkest[0],
+      PALETTE.dorsalDarkest[1],
+      PALETTE.dorsalDarkest[2]
+    );
     if (lx >= 60 && lx <= 84) {
-      setPixel(lx, Math.floor(topY) + 1, PALETTE.dorsalHighlight[0], PALETTE.dorsalHighlight[1], PALETTE.dorsalHighlight[2]);
+      setPixel(
+        lx,
+        Math.floor(topY) + 1,
+        PALETTE.dorsalHighlight[0],
+        PALETTE.dorsalHighlight[1],
+        PALETTE.dorsalHighlight[2]
+      );
     }
   }
 
@@ -351,7 +401,13 @@ function renderFeedingWhale() {
     drawLine(dX + 4.5, dY + 3.2, dX - 0.5, dY - 3.2, 2.8, PALETTE.dorsalDark);
     drawLine(dX - 0.5, dY - 3.2, dX - 4.2, dY + 3.0, 2.2, PALETTE.dorsalDarkest);
     fillCircle(dX - 1.0, dY - 1.5, 1.5, PALETTE.dorsalDark);
-    setPixel(dX - 0.5, Math.round(dY - 3.2), PALETTE.dorsalLight[0], PALETTE.dorsalLight[1], PALETTE.dorsalLight[2]);
+    setPixel(
+      dX - 0.5,
+      Math.round(dY - 3.2),
+      PALETTE.dorsalLight[0],
+      PALETTE.dorsalLight[1],
+      PALETTE.dorsalLight[2]
+    );
   }
 
   // 10. ESPIRÁCULO E OLHO
@@ -361,7 +417,13 @@ function renderFeedingWhale() {
     fillCircle(blowX, blowY, 1.3, PALETTE.dorsalDarkest);
     setPixel(blowX - 0.6, blowY, PALETTE.blowhole[0], PALETTE.blowhole[1], PALETTE.blowhole[2]);
     setPixel(blowX + 0.6, blowY, PALETTE.blowhole[0], PALETTE.blowhole[1], PALETTE.blowhole[2]);
-    setPixel(blowX, blowY - 0.8, PALETTE.dorsalLight[0], PALETTE.dorsalLight[1], PALETTE.dorsalLight[2]);
+    setPixel(
+      blowX,
+      blowY - 0.8,
+      PALETTE.dorsalLight[0],
+      PALETTE.dorsalLight[1],
+      PALETTE.dorsalLight[2]
+    );
 
     // Olho: na região dorso-lateral da cabeça, BEM acima da abertura da boca
     // Na Megaptera, o olho fica no terço anterior da cabeça, no flanco escuro
@@ -376,25 +438,31 @@ function renderFeedingWhale() {
   const tubercles = [
     // Crista medial do rostro
     { x: 113.5, y: 27.2, r: 1.4 },
-    { x: 108,   y: 25.5, r: 1.4 },
-    { x: 102,   y: 23.8, r: 1.4 },
-    { x: 96,    y: 22.2, r: 1.3 },
-    { x: 90,    y: 20.8, r: 1.2 },
+    { x: 108, y: 25.5, r: 1.4 },
+    { x: 102, y: 23.8, r: 1.4 },
+    { x: 96, y: 22.2, r: 1.3 },
+    { x: 90, y: 20.8, r: 1.2 },
     // Laterais do rostro
-    { x: 106,   y: 27.0, r: 1.2 },
-    { x: 100,   y: 25.4, r: 1.2 },
-    { x: 94,    y: 23.8, r: 1.1 },
+    { x: 106, y: 27.0, r: 1.2 },
+    { x: 100, y: 25.4, r: 1.2 },
+    { x: 94, y: 23.8, r: 1.1 },
     // Queixo e mandíbula inferior rebaixada
     { x: 111.0, y: 46.5, r: 1.8 }, // Grande nódulo clássico do queixo
     { x: 105.0, y: 44.2, r: 1.4 },
-    { x: 98.0,  y: 40.5, r: 1.3 },
-    { x: 92.0,  y: 34.5, r: 1.2 },
+    { x: 98.0, y: 40.5, r: 1.3 },
+    { x: 92.0, y: 34.5, r: 1.2 },
   ];
 
   for (const t of tubercles) {
     fillCircle(t.x, t.y, t.r, PALETTE.tubercleBase);
     fillCircle(t.x - 0.3, t.y - 0.4, t.r * 0.65, PALETTE.tubercleTip);
-    setPixel(t.x - 0.4, t.y - 0.6, PALETTE.tubercleGlint[0], PALETTE.tubercleGlint[1], PALETTE.tubercleGlint[2]);
+    setPixel(
+      t.x - 0.4,
+      t.y - 0.6,
+      PALETTE.tubercleGlint[0],
+      PALETTE.tubercleGlint[1],
+      PALETTE.tubercleGlint[2]
+    );
   }
 
   // 12. NADADEIRA PEITORAL GIGANTE (Sobrepondo lateralmente a bolsa)
@@ -425,8 +493,20 @@ function renderFeedingWhale() {
       const pBotY = cy - ny * halfW;
 
       drawLine(pBotX, pBotY, pTopX, pTopY, 1.6, PALETTE.pectoralWhite);
-      setPixel(pTopX, pTopY, PALETTE.pectoralDark[0], PALETTE.pectoralDark[1], PALETTE.pectoralDark[2]);
-      setPixel(pTopX - nx * 0.5, pTopY - ny * 0.5, PALETTE.pectoralDark[0], PALETTE.pectoralDark[1], PALETTE.pectoralDark[2]);
+      setPixel(
+        pTopX,
+        pTopY,
+        PALETTE.pectoralDark[0],
+        PALETTE.pectoralDark[1],
+        PALETTE.pectoralDark[2]
+      );
+      setPixel(
+        pTopX - nx * 0.5,
+        pTopY - ny * 0.5,
+        PALETTE.pectoralDark[0],
+        PALETTE.pectoralDark[1],
+        PALETTE.pectoralDark[2]
+      );
     }
 
     // Tubérculos na borda da peitoral
@@ -445,7 +525,13 @@ function renderFeedingWhale() {
       const kx = cx + nx * halfW;
       const ky = cy + ny * halfW;
       fillCircle(kx, ky, 1.2, PALETTE.pectoralDark);
-      setPixel(kx - nx * 0.3, ky - ny * 0.3, PALETTE.tubercleTip[0], PALETTE.tubercleTip[1], PALETTE.tubercleTip[2]);
+      setPixel(
+        kx - nx * 0.3,
+        ky - ny * 0.3,
+        PALETTE.tubercleTip[0],
+        PALETTE.tubercleTip[1],
+        PALETTE.tubercleTip[2]
+      );
     }
   }
 
@@ -458,7 +544,7 @@ function renderFeedingWhale() {
 
     // Krill bioluminescente — discreta mas presente
     const krills = [
-      { x: 98,  y: 36, r: 1.2 }, // Dentro da abertura, perto das barbas
+      { x: 98, y: 36, r: 1.2 }, // Dentro da abertura, perto das barbas
       { x: 105, y: 39, r: 1.4 }, // Meio da cavidade oral
       { x: 111, y: 35, r: 1.3 }, // Logo antes da boca
       { x: 116, y: 33, r: 1.2 }, // Fora, sendo sugado (ligeiro)
@@ -477,14 +563,50 @@ function renderFeedingWhale() {
     const fBaseX = 18;
     const fBaseY = 31.5;
     fillEllipse(fBaseX - 3, fBaseY, 3.5, 2.0, PALETTE.dorsalDark);
-    
+
     // Lobo superior
-    drawQuadCurve(fBaseX - 2, fBaseY, fBaseX - 7, fBaseY - 6, fBaseX - 14, fBaseY - 12, 2.4, PALETTE.dorsalDarkest);
-    drawQuadCurve(fBaseX - 1, fBaseY - 1, fBaseX - 5, fBaseY - 5, fBaseX - 13, fBaseY - 11, 1.6, PALETTE.dorsalLight);
-    
+    drawQuadCurve(
+      fBaseX - 2,
+      fBaseY,
+      fBaseX - 7,
+      fBaseY - 6,
+      fBaseX - 14,
+      fBaseY - 12,
+      2.4,
+      PALETTE.dorsalDarkest
+    );
+    drawQuadCurve(
+      fBaseX - 1,
+      fBaseY - 1,
+      fBaseX - 5,
+      fBaseY - 5,
+      fBaseX - 13,
+      fBaseY - 11,
+      1.6,
+      PALETTE.dorsalLight
+    );
+
     // Lobo inferior
-    drawQuadCurve(fBaseX - 2, fBaseY, fBaseX - 7, fBaseY + 6, fBaseX - 14, fBaseY + 12, 2.4, PALETTE.dorsalDarkest);
-    drawQuadCurve(fBaseX - 1, fBaseY + 1, fBaseX - 5, fBaseY + 5, fBaseX - 13, fBaseY + 11, 1.6, PALETTE.dorsalLight);
+    drawQuadCurve(
+      fBaseX - 2,
+      fBaseY,
+      fBaseX - 7,
+      fBaseY + 6,
+      fBaseX - 14,
+      fBaseY + 12,
+      2.4,
+      PALETTE.dorsalDarkest
+    );
+    drawQuadCurve(
+      fBaseX - 1,
+      fBaseY + 1,
+      fBaseX - 5,
+      fBaseY + 5,
+      fBaseX - 13,
+      fBaseY + 11,
+      1.6,
+      PALETTE.dorsalLight
+    );
   }
 }
 
@@ -506,7 +628,7 @@ function createScaledPNG(scale) {
 
       for (let sy = 0; sy < scale; sy++) {
         for (let sx = 0; sx < scale; sx++) {
-          const didx = (((y * scale + sy) * sw) + (x * scale + sx)) * 4;
+          const didx = ((y * scale + sy) * sw + (x * scale + sx)) * 4;
           sbuf[didx] = r;
           sbuf[didx + 1] = g;
           sbuf[didx + 2] = b;
@@ -530,7 +652,7 @@ function createScaledPNG(scale) {
   for (let n = 0; n < 256; n++) {
     let c = n;
     for (let k = 0; k < 8; k++) {
-      c = ((c & 1) ? (0xedb88320 ^ (c >>> 1)) : (c >>> 1));
+      c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
     }
     crcTable[n] = c;
   }
@@ -542,7 +664,7 @@ function createScaledPNG(scale) {
   function makeChunk(type, data) {
     const chunk = Buffer.alloc(4 + 4 + data.length + 4);
     chunk.writeUInt32BE(data.length, 0);
-    chunk.write(type, 4, 4, 'ascii');
+    chunk.write(type, 4, 4, "ascii");
     data.copy(chunk, 8);
     const crcVal = crc32(chunk.subarray(4, 8 + data.length));
     chunk.writeUInt32BE(crcVal, 8 + data.length);
@@ -551,18 +673,22 @@ function createScaledPNG(scale) {
 
   return Buffer.concat([
     Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
-    makeChunk('IHDR', (() => {
-      const b = Buffer.alloc(13);
-      b.writeUInt32BE(sw, 0);
-      b.writeUInt32BE(sh, 4);
-      b[8] = 8; b[9] = 6;
-      return b;
-    })()),
-    makeChunk('IDAT', deflated),
-    makeChunk('IEND', Buffer.alloc(0))
+    makeChunk(
+      "IHDR",
+      (() => {
+        const b = Buffer.alloc(13);
+        b.writeUInt32BE(sw, 0);
+        b.writeUInt32BE(sh, 4);
+        b[8] = 8;
+        b[9] = 6;
+        return b;
+      })()
+    ),
+    makeChunk("IDAT", deflated),
+    makeChunk("IEND", Buffer.alloc(0)),
   ]);
 }
 
 const previewPng = createScaledPNG(3);
-fs.writeFileSync('scratch_whale_feed_preview.png', previewPng);
-console.log('Preview salvo com sucesso em scratch_whale_feed_preview.png');
+fs.writeFileSync("scratch_whale_feed_preview.png", previewPng);
+console.log("Preview salvo com sucesso em scratch_whale_feed_preview.png");

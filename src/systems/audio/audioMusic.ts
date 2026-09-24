@@ -1,15 +1,15 @@
 export const BIOME_INDEX = {
-  ANTARCTICA: 0,   // 0m - 5.000m (Polar Aquatic Ambience: Cm9, Abmaj7#11, Fm9, Gsus4/Cm)
-  OCEAN: 1,        // 5.000m - 12.000m (Aquatic Ambience Clássico de David Wise: Cm9, Abmaj7#11, Fm9, Gm7)
-  URBAN: 2,        // 12.000m - 19.000m (Rainy Coastal Waters: Cm7, Ebmaj7, Bb7sus4, Fm9)
-  ARRAIAL: 3,      // 19.000m - 27.000m (Sunken Coral Sanctuary: Cm9, Abmaj7#11, Ebmaj9, Bbadd9)
+  ANTARCTICA: 0, // 0m - 5.000m (Polar Aquatic Ambience: Cm9, Abmaj7#11, Fm9, Gsus4/Cm)
+  OCEAN: 1, // 5.000m - 12.000m (Aquatic Ambience Clássico de David Wise: Cm9, Abmaj7#11, Fm9, Gm7)
+  URBAN: 2, // 12.000m - 19.000m (Rainy Coastal Waters: Cm7, Ebmaj7, Bb7sus4, Fm9)
+  ARRAIAL: 3, // 19.000m - 27.000m (Sunken Coral Sanctuary: Cm9, Abmaj7#11, Ebmaj9, Bbadd9)
 } as const;
 
 export interface BiomeHarmony {
-  bassRoot: number;        // Nota fundamental do baixo (ex: C2 = 65.41 Hz)
-  bassAlt: number;         // Nota alternativa/quinta para pulso síncopado (ex: G2 = 98.00 Hz)
-  pad: number[];           // Acorde aveludado estilo Korg Wavestation (filtrado morno, < 500Hz)
-  harpChoirArp: number[];  // Arpejo etéreo de Harpa + Coral vocal em 6 passos (196Hz - 420Hz)
+  bassRoot: number; // Nota fundamental do baixo (ex: C2 = 65.41 Hz)
+  bassAlt: number; // Nota alternativa/quinta para pulso síncopado (ex: G2 = 98.00 Hz)
+  pad: number[]; // Acorde aveludado estilo Korg Wavestation (filtrado morno, < 500Hz)
+  harpChoirArp: number[]; // Arpejo etéreo de Harpa + Coral vocal em 6 passos (196Hz - 420Hz)
 }
 
 /**
@@ -26,103 +26,119 @@ export class BiomeMusicEngine {
   private timerId: any = null;
 
   // Andamento exato de David Wise: 75 BPM (0.8s por semínima -> 0.20s por semicolcheia/16th step)
-  private readonly stepDuration: number = (60 / 75) / 4;
+  private readonly stepDuration: number = 60 / 75 / 4;
 
   // Harmonias em Dó menor (C minor), arpejos de harpa+coral e graves por bioma
   private readonly biomeScores: Record<number, BiomeHarmony[]> = {
     // 1. Antártica: Polar Aquatic Ambience (Gelo milenar, águas límpidas e profundas)
     [BIOME_INDEX.ANTARCTICA]: [
       {
-        bassRoot: 65.41, bassAlt: 98.00,
-        pad: [130.81, 155.56, 196.00, 233.08, 293.66],
-        harpChoirArp: [196.00, 233.08, 293.66, 311.13, 293.66, 233.08]
+        bassRoot: 65.41,
+        bassAlt: 98.0,
+        pad: [130.81, 155.56, 196.0, 233.08, 293.66],
+        harpChoirArp: [196.0, 233.08, 293.66, 311.13, 293.66, 233.08],
       },
       {
-        bassRoot: 51.91, bassAlt: 77.78,
-        pad: [103.83, 130.81, 155.56, 196.00, 293.66],
-        harpChoirArp: [207.65, 261.63, 293.66, 392.00, 293.66, 261.63]
+        bassRoot: 51.91,
+        bassAlt: 77.78,
+        pad: [103.83, 130.81, 155.56, 196.0, 293.66],
+        harpChoirArp: [207.65, 261.63, 293.66, 392.0, 293.66, 261.63],
       },
       {
-        bassRoot: 43.65, bassAlt: 65.41,
-        pad: [87.31, 103.83, 130.81, 155.56, 196.00],
-        harpChoirArp: [174.61, 207.65, 261.63, 311.13, 261.63, 207.65]
+        bassRoot: 43.65,
+        bassAlt: 65.41,
+        pad: [87.31, 103.83, 130.81, 155.56, 196.0],
+        harpChoirArp: [174.61, 207.65, 261.63, 311.13, 261.63, 207.65],
       },
       {
-        bassRoot: 49.00, bassAlt: 73.42,
-        pad: [98.00, 130.81, 146.83, 174.61, 233.08],
-        harpChoirArp: [146.83, 196.00, 233.08, 261.63, 233.08, 196.00]
+        bassRoot: 49.0,
+        bassAlt: 73.42,
+        pad: [98.0, 130.81, 146.83, 174.61, 233.08],
+        harpChoirArp: [146.83, 196.0, 233.08, 261.63, 233.08, 196.0],
       },
     ],
 
     // 2. Travessia Oceânica: O Verdadeiro "Aquatic Ambiance" (Cm9 -> Abmaj7#11 -> Fm9 -> Gm7)
     [BIOME_INDEX.OCEAN]: [
       {
-        bassRoot: 65.41, bassAlt: 98.00,
-        pad: [130.81, 155.56, 196.00, 233.08, 293.66],
-        harpChoirArp: [196.00, 261.63, 293.66, 311.13, 392.00, 311.13]
+        bassRoot: 65.41,
+        bassAlt: 98.0,
+        pad: [130.81, 155.56, 196.0, 233.08, 293.66],
+        harpChoirArp: [196.0, 261.63, 293.66, 311.13, 392.0, 311.13],
       },
       {
-        bassRoot: 51.91, bassAlt: 77.78,
-        pad: [103.83, 130.81, 155.56, 196.00, 293.66],
-        harpChoirArp: [207.65, 261.63, 293.66, 392.00, 415.30, 392.00]
+        bassRoot: 51.91,
+        bassAlt: 77.78,
+        pad: [103.83, 130.81, 155.56, 196.0, 293.66],
+        harpChoirArp: [207.65, 261.63, 293.66, 392.0, 415.3, 392.0],
       },
       {
-        bassRoot: 43.65, bassAlt: 65.41,
-        pad: [87.31, 103.83, 130.81, 155.56, 196.00],
-        harpChoirArp: [174.61, 207.65, 261.63, 311.13, 349.23, 311.13]
+        bassRoot: 43.65,
+        bassAlt: 65.41,
+        pad: [87.31, 103.83, 130.81, 155.56, 196.0],
+        harpChoirArp: [174.61, 207.65, 261.63, 311.13, 349.23, 311.13],
       },
       {
-        bassRoot: 49.00, bassAlt: 73.42,
-        pad: [98.00, 116.54, 146.83, 174.61, 233.08],
-        harpChoirArp: [196.00, 233.08, 293.66, 349.23, 293.66, 233.08]
+        bassRoot: 49.0,
+        bassAlt: 73.42,
+        pad: [98.0, 116.54, 146.83, 174.61, 233.08],
+        harpChoirArp: [196.0, 233.08, 293.66, 349.23, 293.66, 233.08],
       },
     ],
 
     // 3. Costa Urbana: Rainy Coastal Waters (Nostalgia, névoa e reflexão aveludada)
     [BIOME_INDEX.URBAN]: [
       {
-        bassRoot: 65.41, bassAlt: 98.00,
-        pad: [130.81, 155.56, 196.00, 233.08],
-        harpChoirArp: [196.00, 233.08, 261.63, 311.13, 261.63, 233.08]
+        bassRoot: 65.41,
+        bassAlt: 98.0,
+        pad: [130.81, 155.56, 196.0, 233.08],
+        harpChoirArp: [196.0, 233.08, 261.63, 311.13, 261.63, 233.08],
       },
       {
-        bassRoot: 77.78, bassAlt: 116.54,
-        pad: [77.78, 116.54, 155.56, 196.00, 233.08, 293.66],
-        harpChoirArp: [233.08, 293.66, 311.13, 392.00, 311.13, 293.66]
+        bassRoot: 77.78,
+        bassAlt: 116.54,
+        pad: [77.78, 116.54, 155.56, 196.0, 233.08, 293.66],
+        harpChoirArp: [233.08, 293.66, 311.13, 392.0, 311.13, 293.66],
       },
       {
-        bassRoot: 58.27, bassAlt: 87.31,
+        bassRoot: 58.27,
+        bassAlt: 87.31,
         pad: [116.54, 146.83, 174.61, 207.65, 261.63],
-        harpChoirArp: [174.61, 207.65, 233.08, 293.66, 261.63, 207.65]
+        harpChoirArp: [174.61, 207.65, 233.08, 293.66, 261.63, 207.65],
       },
       {
-        bassRoot: 43.65, bassAlt: 65.41,
-        pad: [87.31, 103.83, 130.81, 155.56, 196.00],
-        harpChoirArp: [174.61, 207.65, 261.63, 311.13, 261.63, 207.65]
+        bassRoot: 43.65,
+        bassAlt: 65.41,
+        pad: [87.31, 103.83, 130.81, 155.56, 196.0],
+        harpChoirArp: [174.61, 207.65, 261.63, 311.13, 261.63, 207.65],
       },
     ],
 
     // 4. Santuário de Arraial: Sunken Coral Sanctuary (Raios de sol submersos, águas turquesas e serenidade)
     [BIOME_INDEX.ARRAIAL]: [
       {
-        bassRoot: 65.41, bassAlt: 98.00,
-        pad: [130.81, 155.56, 196.00, 233.08, 293.66],
-        harpChoirArp: [196.00, 261.63, 293.66, 392.00, 311.13, 261.63]
+        bassRoot: 65.41,
+        bassAlt: 98.0,
+        pad: [130.81, 155.56, 196.0, 233.08, 293.66],
+        harpChoirArp: [196.0, 261.63, 293.66, 392.0, 311.13, 261.63],
       },
       {
-        bassRoot: 51.91, bassAlt: 77.78,
-        pad: [103.83, 130.81, 155.56, 196.00, 293.66],
-        harpChoirArp: [207.65, 293.66, 392.00, 415.30, 392.00, 293.66]
+        bassRoot: 51.91,
+        bassAlt: 77.78,
+        pad: [103.83, 130.81, 155.56, 196.0, 293.66],
+        harpChoirArp: [207.65, 293.66, 392.0, 415.3, 392.0, 293.66],
       },
       {
-        bassRoot: 77.78, bassAlt: 116.54,
-        pad: [77.78, 116.54, 155.56, 196.00, 293.66, 349.23],
-        harpChoirArp: [233.08, 293.66, 349.23, 392.00, 349.23, 293.66]
+        bassRoot: 77.78,
+        bassAlt: 116.54,
+        pad: [77.78, 116.54, 155.56, 196.0, 293.66, 349.23],
+        harpChoirArp: [233.08, 293.66, 349.23, 392.0, 349.23, 293.66],
       },
       {
-        bassRoot: 58.27, bassAlt: 87.31,
+        bassRoot: 58.27,
+        bassAlt: 87.31,
         pad: [116.54, 146.83, 174.61, 233.08, 261.63],
-        harpChoirArp: [174.61, 233.08, 261.63, 293.66, 261.63, 233.08]
+        harpChoirArp: [174.61, 233.08, 261.63, 293.66, 261.63, 233.08],
       },
     ],
   };
@@ -130,14 +146,14 @@ export class BiomeMusicEngine {
   public init(ctx: AudioContext, masterGain: GainNode) {
     this.ctx = ctx;
     this.musicGain = ctx.createGain();
-    this.musicGain.gain.value = 0.50;
+    this.musicGain.gain.value = 0.5;
     this.musicGain.connect(masterGain);
 
     this.start();
   }
 
   public updatePosition(playerX: number) {
-    let targetBiome: number = BIOME_INDEX.ANTARCTICA;
+    let targetBiome: number;
     if (playerX >= 19000) {
       targetBiome = BIOME_INDEX.ARRAIAL;
     } else if (playerX >= 12000) {
@@ -269,7 +285,7 @@ export class BiomeMusicEngine {
     }
 
     if (step === 14) {
-      this.synthWavetableBass(harmony.bassAlt, time, 0.30, false);
+      this.synthWavetableBass(harmony.bassAlt, time, 0.3, false);
       this.synthBubbleShaker(time);
     }
   }
@@ -315,7 +331,12 @@ export class BiomeMusicEngine {
     });
   }
 
-  private synthWavetableBass(freq: number, time: number, duration: number, isAccent: boolean = false) {
+  private synthWavetableBass(
+    freq: number,
+    time: number,
+    duration: number,
+    isAccent: boolean = false
+  ) {
     if (!this.ctx || !this.musicGain) return;
 
     const subOsc = this.ctx.createOscillator();

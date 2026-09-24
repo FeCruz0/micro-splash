@@ -14,8 +14,12 @@ describe("BiomeLifecycleManager (Lazy Loading por Bioma)", () => {
       name: "Antártica",
       minX: 0,
       maxX: 5000,
-      activate: () => { antarcticaActive = true; },
-      deactivate: () => { antarcticaActive = false; },
+      activate: () => {
+        antarcticaActive = true;
+      },
+      deactivate: () => {
+        antarcticaActive = false;
+      },
       isActive: () => antarcticaActive,
     };
 
@@ -24,8 +28,12 @@ describe("BiomeLifecycleManager (Lazy Loading por Bioma)", () => {
       name: "Travessia Pelágica",
       minX: 5000,
       maxX: 12000,
-      activate: () => { pelagicActive = true; },
-      deactivate: () => { pelagicActive = false; },
+      activate: () => {
+        pelagicActive = true;
+      },
+      deactivate: () => {
+        pelagicActive = false;
+      },
       isActive: () => pelagicActive,
     };
 
@@ -62,8 +70,12 @@ describe("BiomeLifecycleManager (Lazy Loading por Bioma)", () => {
       name: "Camada de Gelo",
       minX: 0,
       maxX: 5000,
-      activate: () => { active = true; },
-      deactivate: () => { active = false; },
+      activate: () => {
+        active = true;
+      },
+      deactivate: () => {
+        active = false;
+      },
       isActive: () => active,
     };
 

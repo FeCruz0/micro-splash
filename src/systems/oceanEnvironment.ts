@@ -5,10 +5,7 @@ import { BIOME_COLOR_STOPS, GAME_CONFIG, type BiomeColorStop } from "../config";
  * Retorna o bioma atual com base na distância percorrida.
  */
 export function getCurrentBiome(distance: number): BiomeColorStop {
-  const clampedDistance = Math.min(
-    Math.max(distance, 0),
-    GAME_CONFIG.ROUTE_TOTAL_DISTANCE
-  );
+  const clampedDistance = Math.min(Math.max(distance, 0), GAME_CONFIG.ROUTE_TOTAL_DISTANCE);
 
   return (
     BIOME_COLOR_STOPS.find(
@@ -22,10 +19,7 @@ export function getCurrentBiome(distance: number): BiomeColorStop {
  */
 export function getColorsAtDistance(k: ReturnType<typeof kaboom>, distance: number) {
   // Evita extrapolação além de 0m ou 27.000m
-  const clampedDistance = Math.min(
-    Math.max(distance, 0),
-    GAME_CONFIG.ROUTE_TOTAL_DISTANCE
-  );
+  const clampedDistance = Math.min(Math.max(distance, 0), GAME_CONFIG.ROUTE_TOTAL_DISTANCE);
 
   let currentStop: BiomeColorStop = BIOME_COLOR_STOPS[0];
   let nextStop: BiomeColorStop = BIOME_COLOR_STOPS[0];
@@ -87,7 +81,7 @@ export function updateOceanColors(
   skyObj?: GameObj
 ) {
   const { bgColor, surfaceColor, floorColor, skyColor } = getColorsAtDistance(k, distance);
-  
+
   k.setBackground(bgColor);
 
   if (surfaceObj) {

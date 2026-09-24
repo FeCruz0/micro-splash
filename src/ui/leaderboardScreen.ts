@@ -13,7 +13,7 @@ export function showLeaderboardScreen(k: KaboomCtx, onClose: () => void) {
   let isClosed = false;
 
   let activeTab: LeaderboardTab = "global";
-  let statusMessage = "Conectando ao servidor global...";
+  const statusMessage = "Conectando ao servidor global...";
 
   const cardW = 720;
   const cardH = 530;
@@ -154,7 +154,9 @@ export function showLeaderboardScreen(k: KaboomCtx, onClose: () => void) {
   const renderTableRows = (entries: LeaderboardEntry[]) => {
     // Destrói elementos da tabela anterior
     tableElements.forEach((el) => {
-      try { k.destroy(el); } catch {}
+      try {
+        k.destroy(el);
+      } catch {}
     });
     tableElements = [];
 
@@ -164,15 +166,21 @@ export function showLeaderboardScreen(k: KaboomCtx, onClose: () => void) {
       const isTop2 = idx === 1;
       const isTop3 = idx === 2;
 
-      const medal = isTop1 ? "🥇" : isTop2 ? "🥈" : isTop3 ? "🥉" : `${(idx + 1).toString().padStart(2, " ")}º`;
+      const medal = isTop1
+        ? "🥇"
+        : isTop2
+          ? "🥈"
+          : isTop3
+            ? "🥉"
+            : `${(idx + 1).toString().padStart(2, " ")}º`;
       const modeLabel =
         entry.mode === "weekly"
           ? "Semanal"
           : entry.mode === "quick_challenge"
-          ? "Desafio 60s"
-          : entry.mode === "serene"
-          ? "Serena"
-          : "Clássico";
+            ? "Desafio 60s"
+            : entry.mode === "serene"
+              ? "Serena"
+              : "Clássico";
 
       const posCol = medal.padEnd(5, " ");
       const initCol = (entry.initials || "AAA").padEnd(11, " ");
@@ -201,10 +209,10 @@ export function showLeaderboardScreen(k: KaboomCtx, onClose: () => void) {
       const textColor = isTop1
         ? k.rgb(255, 220, 80)
         : isTop2
-        ? k.rgb(220, 235, 255)
-        : isTop3
-        ? k.rgb(240, 180, 120)
-        : k.rgb(200, 230, 255);
+          ? k.rgb(220, 235, 255)
+          : isTop3
+            ? k.rgb(240, 180, 120)
+            : k.rgb(200, 230, 255);
 
       const rowTxt = k.add([
         k.text(line, { size: 11, font: "monospace" }),
@@ -315,7 +323,9 @@ export function showLeaderboardScreen(k: KaboomCtx, onClose: () => void) {
     keyEsc.cancel();
     keyEnter.cancel();
     elements.forEach((el) => {
-      try { k.destroy(el); } catch {}
+      try {
+        k.destroy(el);
+      } catch {}
     });
     onClose();
   };

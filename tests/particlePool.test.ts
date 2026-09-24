@@ -41,7 +41,11 @@ function createMockKaboom() {
         len: () => Math.sqrt((x - other.x) ** 2 + (y - other.y) ** 2),
         unit: () => {
           const l = Math.sqrt((x - other.x) ** 2 + (y - other.y) ** 2) || 1;
-          return { x: (x - other.x) / l, y: (y - other.y) / l, scale: (s: number) => ({ x: ((x - other.x) / l) * s, y: ((y - other.y) / l) * s }) };
+          return {
+            x: (x - other.x) / l,
+            y: (y - other.y) / l,
+            scale: (s: number) => ({ x: ((x - other.x) / l) * s, y: ((y - other.y) / l) * s }),
+          };
         },
       }),
       add: (other: any) => ({ x: x + other.x, y: y + other.y }),
@@ -124,9 +128,24 @@ describe("ParticlePool (Object Pooling)", () => {
     const mockK = createMockKaboom();
     const pool = new ParticlePool(mockK, 3, 2);
 
-    const p1 = pool.spawnCircle({ pos: mockK.vec2(1, 1), radius: 1, color: mockK.rgb(1, 1, 1), maxLife: 10 });
-    const p2 = pool.spawnCircle({ pos: mockK.vec2(2, 2), radius: 2, color: mockK.rgb(2, 2, 2), maxLife: 10 });
-    const p3 = pool.spawnCircle({ pos: mockK.vec2(3, 3), radius: 3, color: mockK.rgb(3, 3, 3), maxLife: 10 });
+    const p1 = pool.spawnCircle({
+      pos: mockK.vec2(1, 1),
+      radius: 1,
+      color: mockK.rgb(1, 1, 1),
+      maxLife: 10,
+    });
+    const p2 = pool.spawnCircle({
+      pos: mockK.vec2(2, 2),
+      radius: 2,
+      color: mockK.rgb(2, 2, 2),
+      maxLife: 10,
+    });
+    const p3 = pool.spawnCircle({
+      pos: mockK.vec2(3, 3),
+      radius: 3,
+      color: mockK.rgb(3, 3, 3),
+      maxLife: 10,
+    });
 
     expect(p2).toBeDefined();
     expect(p3).toBeDefined();
@@ -134,7 +153,12 @@ describe("ParticlePool (Object Pooling)", () => {
     expect(pool.getStats().activeCircles).toBe(3);
 
     // 4º spawn quando o limite é 3 -> reutiliza o primeiro da fila sem erro
-    const p4 = pool.spawnCircle({ pos: mockK.vec2(4, 4), radius: 4, color: mockK.rgb(4, 4, 4), maxLife: 10 });
+    const p4 = pool.spawnCircle({
+      pos: mockK.vec2(4, 4),
+      radius: 4,
+      color: mockK.rgb(4, 4, 4),
+      maxLife: 10,
+    });
 
     expect(p4).toBe(p1);
     expect(p4?.pos.x).toBe(4);

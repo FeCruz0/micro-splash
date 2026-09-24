@@ -10,7 +10,6 @@ export function setupCollisions(
   playerController: PlayerController,
   gameState: GameState
 ) {
-
   // colisão com lixo
   k.onCollide(TAGS.PLAYER, TAGS.TRASH, (_player, trash) => {
     if (playerController.isFrozen()) return;

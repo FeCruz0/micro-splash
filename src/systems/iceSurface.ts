@@ -12,7 +12,7 @@ export interface IceGap {
 
 // Fendas de respiração pré-definidas na camada de gelo (0m a 5.000m) - Modelo Imutável
 export const DEFAULT_ICE_GAPS: IceGap[] = [
-  { start: 60, end: 240 },   // Fenda inicial de respiração e salto no ponto de largada (120m)
+  { start: 60, end: 240 }, // Fenda inicial de respiração e salto no ponto de largada (120m)
   { start: 600, end: 750 },
   { start: 1400, end: 1550 },
   { start: 2200, end: 2350 },
@@ -38,7 +38,10 @@ export function isPositionInIceGap(x: number): boolean {
 /**
  * Cria a camada de gelo, o iceberg de parede inicial e as aberturas de respiração no bioma Antártico (0m - 5000m).
  */
-export function setupIceSurfaceSystem(k: ReturnType<typeof kaboom>, playerController?: PlayerController) {
+export function setupIceSurfaceSystem(
+  k: ReturnType<typeof kaboom>,
+  playerController?: PlayerController
+) {
   let isSystemActive = true;
   // Reseta as fendas ativas para a configuração padrão limpa ao iniciar/reiniciar o jogo
   activeIceGaps = DEFAULT_ICE_GAPS.map((gap) => ({ ...gap }));
@@ -74,10 +77,7 @@ export function setupIceSurfaceSystem(k: ReturnType<typeof kaboom>, playerContro
             const shardSize = 3 + Math.random() * 5;
             const shardX = x + width * Math.random();
             const shardY = icePosY + iceHeight * Math.random();
-            const shardVel = k.vec2(
-              (Math.random() - 0.5) * 260,
-              -60 - Math.random() * 190
-            );
+            const shardVel = k.vec2((Math.random() - 0.5) * 260, -60 - Math.random() * 190);
 
             if (pool) {
               pool.spawnRect({
@@ -135,7 +135,7 @@ export function setupIceSurfaceSystem(k: ReturnType<typeof kaboom>, playerContro
       },
     ]);
 
-    // Detecção Contínua: 
+    // Detecção Contínua:
     // Quebra APENAS por cima: a baleia deve estar no ar ou caindo sobre o topo do bloco de gelo
     segment.onUpdate(() => {
       if (isBroken || !isSystemActive) return;

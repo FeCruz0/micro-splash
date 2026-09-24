@@ -40,14 +40,16 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
   elements.push(card);
 
   // Título Principal (Maior e mais nítido)
-  elements.push(k.add([
-    k.text("DIÁRIO DE BORDO DA EXPEDIÇÃO 📖", { size: 23, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 - 232),
-    k.color(255, 220, 100),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(302),
-  ]));
+  elements.push(
+    k.add([
+      k.text("DIÁRIO DE BORDO DA EXPEDIÇÃO 📖", { size: 23, font: "sans-serif" }),
+      k.pos(k.width() / 2, k.height() / 2 - 232),
+      k.color(255, 220, 100),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(302),
+    ])
+  );
 
   let contentElements: any[] = [];
 
@@ -57,10 +59,14 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
     audioSystem.playUiClick();
     escListener.cancel();
     elements.forEach((el) => {
-      try { k.destroy(el); } catch {}
+      try {
+        k.destroy(el);
+      } catch {}
     });
     contentElements.forEach((el) => {
-      try { k.destroy(el); } catch {}
+      try {
+        k.destroy(el);
+      } catch {}
     });
     onBack();
   };
@@ -83,14 +89,16 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
   ]);
   elements.push(btnX);
 
-  elements.push(k.add([
-    k.text("✕", { size: 18, font: "sans-serif" }),
-    k.pos(k.width() / 2 + cardW / 2 - 28, k.height() / 2 - cardH / 2 + 28),
-    k.color(255, 255, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(306),
-  ]));
+  elements.push(
+    k.add([
+      k.text("✕", { size: 18, font: "sans-serif" }),
+      k.pos(k.width() / 2 + cardW / 2 - 28, k.height() / 2 - cardH / 2 + 28),
+      k.color(255, 255, 255),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(306),
+    ])
+  );
 
   btnX.onHoverUpdate(() => {
     btnX.color = k.rgb(180, 50, 50);
@@ -111,7 +119,9 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
 
   const renderTabContent = () => {
     contentElements.forEach((el) => {
-      try { k.destroy(el); } catch {}
+      try {
+        k.destroy(el);
+      } catch {}
     });
     contentElements = [];
 
@@ -120,15 +130,17 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
     const contentBoxY = k.height() / 2 + 15;
 
     // Fundo do conteúdo da aba
-    contentElements.push(k.add([
-      k.rect(contentBoxW, contentBoxH, { radius: 8 }),
-      k.pos(k.width() / 2, contentBoxY),
-      k.color(6, 22, 48),
-      k.outline(1, k.rgb(50, 120, 180)),
-      k.anchor("center"),
-      k.fixed(),
-      k.z(303),
-    ]));
+    contentElements.push(
+      k.add([
+        k.rect(contentBoxW, contentBoxH, { radius: 8 }),
+        k.pos(k.width() / 2, contentBoxY),
+        k.color(6, 22, 48),
+        k.outline(1, k.rgb(50, 120, 180)),
+        k.anchor("center"),
+        k.fixed(),
+        k.z(303),
+      ])
+    );
 
     if (activeTab === "species") {
       // --- ABA ESPÉCIES ---
@@ -161,22 +173,26 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
 
       speciesData.forEach((sp, i) => {
         const itemY = contentBoxY - 144 + i * 50;
-        contentElements.push(k.add([
-          k.text(sp.name, { size: 12, font: "sans-serif" }),
-          k.pos(k.width() / 2 - 340, itemY),
-          k.color(120, 240, 255),
-          k.anchor("left"),
-          k.fixed(),
-          k.z(304),
-        ]));
-        contentElements.push(k.add([
-          k.text(sp.desc, { size: 10.5, font: "sans-serif", width: 680, lineSpacing: 2 }),
-          k.pos(k.width() / 2 - 340, itemY + 16),
-          k.color(205, 230, 250),
-          k.anchor("left"),
-          k.fixed(),
-          k.z(304),
-        ]));
+        contentElements.push(
+          k.add([
+            k.text(sp.name, { size: 12, font: "sans-serif" }),
+            k.pos(k.width() / 2 - 340, itemY),
+            k.color(120, 240, 255),
+            k.anchor("left"),
+            k.fixed(),
+            k.z(304),
+          ])
+        );
+        contentElements.push(
+          k.add([
+            k.text(sp.desc, { size: 10.5, font: "sans-serif", width: 680, lineSpacing: 2 }),
+            k.pos(k.width() / 2 - 340, itemY + 16),
+            k.color(205, 230, 250),
+            k.anchor("left"),
+            k.fixed(),
+            k.z(304),
+          ])
+        );
       });
     } else if (activeTab === "route") {
       // --- ABA FATOS DA ROTA COM PAGINAÇÃO ---
@@ -187,47 +203,56 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
 
       const countUnlocked = factsData.filter((f) => unlockedFactIds.includes(f.id)).length;
 
-      contentElements.push(k.add([
-        k.text(`Descobertas na Rota: ${countUnlocked} de ${factsData.length} desbloqueadas  •  Página ${routePage + 1} de ${totalPages}`, {
-          size: 13,
-          font: "sans-serif",
-        }),
-        k.pos(k.width() / 2, contentBoxY - 142),
-        k.color(255, 215, 100),
-        k.anchor("center"),
-        k.fixed(),
-        k.z(304),
-      ]));
+      contentElements.push(
+        k.add([
+          k.text(
+            `Descobertas na Rota: ${countUnlocked} de ${factsData.length} desbloqueadas  •  Página ${routePage + 1} de ${totalPages}`,
+            {
+              size: 13,
+              font: "sans-serif",
+            }
+          ),
+          k.pos(k.width() / 2, contentBoxY - 142),
+          k.color(255, 215, 100),
+          k.anchor("center"),
+          k.fixed(),
+          k.z(304),
+        ])
+      );
 
       currentFacts.forEach((fact, i) => {
         const isUnlocked = unlockedFactIds.includes(fact.id);
         const itemY = contentBoxY - 114 + i * 48;
 
-        contentElements.push(k.add([
-          k.text(
-            `${isUnlocked ? "✅" : "🔒"} ${fact.title} (${fact.location})`,
-            { size: 12.5, font: "sans-serif" }
-          ),
-          k.pos(k.width() / 2 - 340, itemY),
-          k.color(isUnlocked ? k.rgb(100, 240, 200) : k.rgb(140, 150, 170)),
-          k.anchor("left"),
-          k.fixed(),
-          k.z(304),
-        ]));
+        contentElements.push(
+          k.add([
+            k.text(`${isUnlocked ? "✅" : "🔒"} ${fact.title} (${fact.location})`, {
+              size: 12.5,
+              font: "sans-serif",
+            }),
+            k.pos(k.width() / 2 - 340, itemY),
+            k.color(isUnlocked ? k.rgb(100, 240, 200) : k.rgb(140, 150, 170)),
+            k.anchor("left"),
+            k.fixed(),
+            k.z(304),
+          ])
+        );
 
-        contentElements.push(k.add([
-          k.text(
-            isUnlocked
-              ? fact.description
-              : "Navegue pela rota migratória na expedição para desbloquear este conhecimento!",
-            { size: 10.5, font: "sans-serif", width: 680, lineSpacing: 2 }
-          ),
-          k.pos(k.width() / 2 - 340, itemY + 16),
-          k.color(isUnlocked ? k.rgb(205, 230, 250) : k.rgb(120, 135, 150)),
-          k.anchor("left"),
-          k.fixed(),
-          k.z(304),
-        ]));
+        contentElements.push(
+          k.add([
+            k.text(
+              isUnlocked
+                ? fact.description
+                : "Navegue pela rota migratória na expedição para desbloquear este conhecimento!",
+              { size: 10.5, font: "sans-serif", width: 680, lineSpacing: 2 }
+            ),
+            k.pos(k.width() / 2 - 340, itemY + 16),
+            k.color(isUnlocked ? k.rgb(205, 230, 250) : k.rgb(120, 135, 150)),
+            k.anchor("left"),
+            k.fixed(),
+            k.z(304),
+          ])
+        );
       });
 
       // Botão Página Anterior
@@ -244,14 +269,16 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
         ]);
         contentElements.push(btnPrev);
 
-        contentElements.push(k.add([
-          k.text("◀ Anterior", { size: 11, font: "sans-serif" }),
-          k.pos(k.width() / 2 - 80, contentBoxY + 140),
-          k.color(255, 255, 255),
-          k.anchor("center"),
-          k.fixed(),
-          k.z(306),
-        ]));
+        contentElements.push(
+          k.add([
+            k.text("◀ Anterior", { size: 11, font: "sans-serif" }),
+            k.pos(k.width() / 2 - 80, contentBoxY + 140),
+            k.color(255, 255, 255),
+            k.anchor("center"),
+            k.fixed(),
+            k.z(306),
+          ])
+        );
 
         btnPrev.onClick(() => {
           audioSystem.playUiClick();
@@ -274,14 +301,16 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
         ]);
         contentElements.push(btnNext);
 
-        contentElements.push(k.add([
-          k.text("Próxima ▶", { size: 11, font: "sans-serif" }),
-          k.pos(k.width() / 2 + 80, contentBoxY + 140),
-          k.color(255, 255, 255),
-          k.anchor("center"),
-          k.fixed(),
-          k.z(306),
-        ]));
+        contentElements.push(
+          k.add([
+            k.text("Próxima ▶", { size: 11, font: "sans-serif" }),
+            k.pos(k.width() / 2 + 80, contentBoxY + 140),
+            k.color(255, 255, 255),
+            k.anchor("center"),
+            k.fixed(),
+            k.z(306),
+          ])
+        );
 
         btnNext.onClick(() => {
           audioSystem.playUiClick();
@@ -291,14 +320,16 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
       }
     } else if (activeTab === "conservation") {
       // --- ABA CONSERVAÇÃO ---
-      contentElements.push(k.add([
-        k.text("🛡️ PRESERVAÇÃO E PROTEÇÃO DAS BALEIAS-JUBARTE", { size: 15, font: "sans-serif" }),
-        k.pos(k.width() / 2, contentBoxY - 136),
-        k.color(100, 240, 255),
-        k.anchor("center"),
-        k.fixed(),
-        k.z(304),
-      ]));
+      contentElements.push(
+        k.add([
+          k.text("🛡️ PRESERVAÇÃO E PROTEÇÃO DAS BALEIAS-JUBARTE", { size: 15, font: "sans-serif" }),
+          k.pos(k.width() / 2, contentBoxY - 136),
+          k.color(100, 240, 255),
+          k.anchor("center"),
+          k.fixed(),
+          k.z(304),
+        ])
+      );
 
       const texts = [
         "• Redes Fantasmas: Redes de pesca perdidas ou abandonadas continuam aprisionando baleias e golfinhos por décadas. O jogo simula esse perigo para conscientizar sobre a pesca sustentável e o descarte correto de petrechos.",
@@ -308,14 +339,16 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
       ];
 
       texts.forEach((txt, idx) => {
-        contentElements.push(k.add([
-          k.text(txt, { size: 12, font: "sans-serif", width: 680, lineSpacing: 4 }),
-          k.pos(k.width() / 2 - 340, contentBoxY - 105 + idx * 62),
-          k.color(205, 230, 250),
-          k.anchor("left"),
-          k.fixed(),
-          k.z(304),
-        ]));
+        contentElements.push(
+          k.add([
+            k.text(txt, { size: 12, font: "sans-serif", width: 680, lineSpacing: 4 }),
+            k.pos(k.width() / 2 - 340, contentBoxY - 105 + idx * 62),
+            k.color(205, 230, 250),
+            k.anchor("left"),
+            k.fixed(),
+            k.z(304),
+          ])
+        );
       });
     }
   };
@@ -347,14 +380,16 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
     elements.push(btnTab);
     tabButtons.push({ btn: btnTab, id: tb.id });
 
-    elements.push(k.add([
-      k.text(tb.label, { size: 13, font: "sans-serif" }),
-      k.pos(tabX, tabY),
-      k.color(255, 255, 255),
-      k.anchor("center"),
-      k.fixed(),
-      k.z(305),
-    ]));
+    elements.push(
+      k.add([
+        k.text(tb.label, { size: 13, font: "sans-serif" }),
+        k.pos(tabX, tabY),
+        k.color(255, 255, 255),
+        k.anchor("center"),
+        k.fixed(),
+        k.z(305),
+      ])
+    );
 
     btnTab.onHoverUpdate(() => {
       if (activeTab !== tb.id) {
@@ -394,14 +429,16 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
   ]);
   elements.push(btnBack);
 
-  elements.push(k.add([
-    k.text("Voltar ao Menu ↩️", { size: 12.5, font: "sans-serif" }),
-    k.pos(k.width() / 2 - 235, k.height() / 2 + 225),
-    k.color(255, 255, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(306),
-  ]));
+  elements.push(
+    k.add([
+      k.text("Voltar ao Menu ↩️", { size: 12.5, font: "sans-serif" }),
+      k.pos(k.width() / 2 - 235, k.height() / 2 + 225),
+      k.color(255, 255, 255),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(306),
+    ])
+  );
 
   btnBack.onHoverUpdate(() => {
     if (!isModalOpen) {
@@ -429,14 +466,16 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
   ]);
   elements.push(btnTutorial);
 
-  elements.push(k.add([
-    k.text("🎓 Tutorial / Guia", { size: 12.5, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 + 225),
-    k.color(255, 255, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(306),
-  ]));
+  elements.push(
+    k.add([
+      k.text("🎓 Tutorial / Guia", { size: 12.5, font: "sans-serif" }),
+      k.pos(k.width() / 2, k.height() / 2 + 225),
+      k.color(255, 255, 255),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(306),
+    ])
+  );
 
   btnTutorial.onHoverUpdate(() => {
     if (!isModalOpen) {
@@ -471,14 +510,16 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
   ]);
   elements.push(btnQuiz);
 
-  elements.push(k.add([
-    k.text("🧪 Desafio Ecológico (Quiz)", { size: 12.5, font: "sans-serif" }),
-    k.pos(k.width() / 2 + 235, k.height() / 2 + 225),
-    k.color(255, 255, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(306),
-  ]));
+  elements.push(
+    k.add([
+      k.text("🧪 Desafio Ecológico (Quiz)", { size: 12.5, font: "sans-serif" }),
+      k.pos(k.width() / 2 + 235, k.height() / 2 + 225),
+      k.color(255, 255, 255),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(306),
+    ])
+  );
 
   btnQuiz.onHoverUpdate(() => {
     if (!isModalOpen) {

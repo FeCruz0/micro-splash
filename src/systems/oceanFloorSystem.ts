@@ -17,7 +17,13 @@ export const SUBMARINE_RELIEFS: SubmarineRelief[] = [
   // =========================================================================
   // 1. BIOMA 1: ANTÁRTICA (0m – 5.000m) — Morainas e Elevações Basálticas Glaciais
   // =========================================================================
-  { startX: 850, width: 220, height: 28, type: "moraine", name: "Moraina Glacial das Ilhas Shetland" },
+  {
+    startX: 850,
+    width: 220,
+    height: 28,
+    type: "moraine",
+    name: "Moraina Glacial das Ilhas Shetland",
+  },
   { startX: 1800, width: 280, height: 35, type: "moraine", name: "Elevação Basáltica Polar" },
   { startX: 3050, width: 240, height: 30, type: "moraine", name: "Platô de Cascalho Glacial" },
   { startX: 4300, width: 300, height: 38, type: "moraine", name: "Borda da Plataforma Antártica" },
@@ -26,7 +32,13 @@ export const SUBMARINE_RELIEFS: SubmarineRelief[] = [
   // 2. BIOMA 2: MAR ABERTO / PELÁGICO (5.000m – 12.000m) — Talude e Montes Submarinos
   // =========================================================================
   { startX: 6300, width: 420, height: 52, type: "seamount", name: "Monte Submarino Austral" },
-  { startX: 8100, width: 560, height: 68, type: "seamount", name: "Dorsal Oceânica do Atlântico Sul" },
+  {
+    startX: 8100,
+    width: 560,
+    height: 68,
+    type: "seamount",
+    name: "Dorsal Oceânica do Atlântico Sul",
+  },
   { startX: 10300, width: 480, height: 58, type: "seamount", name: "Cume Abissal Pelágico" },
 
   // =========================================================================
@@ -40,17 +52,53 @@ export const SUBMARINE_RELIEFS: SubmarineRelief[] = [
   // =========================================================================
   // 4. BIOMA 4: CÂNICONS DE CABO FRIO (19.000m – 25.000m) — Paredões Escarpados de Ressurgência
   // =========================================================================
-  { startX: 19600, width: 460, height: 65, type: "canyon_ridge", name: "Garganta Ocidental do Cânion de Cabo Frio" },
-  { startX: 21100, width: 520, height: 75, type: "canyon_ridge", name: "Desfiladeiro Central da Ressurgência" },
-  { startX: 22800, width: 480, height: 72, type: "canyon_ridge", name: "Escarpa Oriental de Fenda Geológica" },
-  { startX: 24200, width: 440, height: 60, type: "canyon_ridge", name: "Contraforte Pré-Boqueirão" },
+  {
+    startX: 19600,
+    width: 460,
+    height: 65,
+    type: "canyon_ridge",
+    name: "Garganta Ocidental do Cânion de Cabo Frio",
+  },
+  {
+    startX: 21100,
+    width: 520,
+    height: 75,
+    type: "canyon_ridge",
+    name: "Desfiladeiro Central da Ressurgência",
+  },
+  {
+    startX: 22800,
+    width: 480,
+    height: 72,
+    type: "canyon_ridge",
+    name: "Escarpa Oriental de Fenda Geológica",
+  },
+  {
+    startX: 24200,
+    width: 440,
+    height: 60,
+    type: "canyon_ridge",
+    name: "Contraforte Pré-Boqueirão",
+  },
 
   // =========================================================================
   // 5. BIOMA 5: ENSEADA DE ARRAIAL (27.300m – 30.000m) — Bancos de Areia e Arrecifes Rasos
   // =========================================================================
   { startX: 27600, width: 380, height: 34, type: "reef_shoal", name: "Banco de Corais da Enseada" },
-  { startX: 28800, width: 420, height: 28, type: "reef_shoal", name: "Plataforma de Areia Branca do Santuário" },
-  { startX: 29650, width: 350, height: 42, type: "reef_shoal", name: "Soleira da Linha de Chegada" },
+  {
+    startX: 28800,
+    width: 420,
+    height: 28,
+    type: "reef_shoal",
+    name: "Plataforma de Areia Branca do Santuário",
+  },
+  {
+    startX: 29650,
+    width: 350,
+    height: 42,
+    type: "reef_shoal",
+    name: "Soleira da Linha de Chegada",
+  },
 ];
 
 /**
@@ -99,15 +147,15 @@ export function setupOceanFloorSystem(k: KaboomCtx) {
     // Desenha o monte submarino com encostas suaves e cristas naturais
     const shapeObj = k.add([
       k.polygon([
-        k.vec2(0, floorBaseY + 60),                                     // Canto inferior esquerdo
-        k.vec2(0, floorBaseY),                                          // Início na base do leito
+        k.vec2(0, floorBaseY + 60), // Canto inferior esquerdo
+        k.vec2(0, floorBaseY), // Início na base do leito
         k.vec2(relief.width * 0.22, floorBaseY - relief.height * 0.45), // Encosta ascendente suave
-        k.vec2(relief.width * 0.42, peakY + 3),                         // Ombro ocidental do cume
-        k.vec2(relief.width * 0.50, peakY),                             // Cume máximo
-        k.vec2(relief.width * 0.58, peakY + 4),                         // Ombro oriental do cume
-        k.vec2(relief.width * 0.78, floorBaseY - relief.height * 0.40), // Encosta descendente
-        k.vec2(relief.width, floorBaseY),                               // Fim na base do leito
-        k.vec2(relief.width, floorBaseY + 60),                          // Canto inferior direito
+        k.vec2(relief.width * 0.42, peakY + 3), // Ombro ocidental do cume
+        k.vec2(relief.width * 0.5, peakY), // Cume máximo
+        k.vec2(relief.width * 0.58, peakY + 4), // Ombro oriental do cume
+        k.vec2(relief.width * 0.78, floorBaseY - relief.height * 0.4), // Encosta descendente
+        k.vec2(relief.width, floorBaseY), // Fim na base do leito
+        k.vec2(relief.width, floorBaseY + 60), // Canto inferior direito
       ]),
       k.pos(relief.startX, 0),
       k.color(bodyColor),
@@ -140,11 +188,11 @@ export function setupOceanFloorSystem(k: KaboomCtx) {
       k.polygon([
         k.vec2(relief.width * 0.18, floorBaseY - relief.height * 0.38),
         k.vec2(relief.width * 0.42, peakY + 2),
-        k.vec2(relief.width * 0.50, peakY - 1),
+        k.vec2(relief.width * 0.5, peakY - 1),
         k.vec2(relief.width * 0.58, peakY + 3),
         k.vec2(relief.width * 0.82, floorBaseY - relief.height * 0.35),
         k.vec2(relief.width * 0.76, floorBaseY - relief.height * 0.32 + 6),
-        k.vec2(relief.width * 0.50, peakY + 7),
+        k.vec2(relief.width * 0.5, peakY + 7),
         k.vec2(relief.width * 0.24, floorBaseY - relief.height * 0.35 + 6),
       ]),
       k.pos(relief.startX, 0),

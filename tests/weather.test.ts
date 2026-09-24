@@ -1,8 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  calculateWeatherAtDistance,
-  setupWeatherSystem,
-} from "../src/systems/weatherSystem";
+import { calculateWeatherAtDistance, setupWeatherSystem } from "../src/systems/weatherSystem";
 
 function createMockKaboom() {
   const objects: any[] = [];

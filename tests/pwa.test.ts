@@ -46,9 +46,9 @@ describe("Fase 19.2: Modo PWA Offline-First para Totens Interativos & Feiras de 
     const swContent = fs.readFileSync(swPath, "utf-8");
 
     // Ciclo de vida obrigatório
-    expect(swContent).toContain("addEventListener(\"install\"");
-    expect(swContent).toContain("addEventListener(\"activate\"");
-    expect(swContent).toContain("addEventListener(\"fetch\"");
+    expect(swContent).toContain('addEventListener("install"');
+    expect(swContent).toContain('addEventListener("activate"');
+    expect(swContent).toContain('addEventListener("fetch"');
 
     // Pré-cache do App Shell e assets
     expect(swContent).toContain("/index.html");
@@ -88,9 +88,9 @@ describe("Fase 19.2: Modo PWA Offline-First para Totens Interativos & Feiras de 
     const indexPath = path.resolve(nodeProcess.cwd(), "index.html");
     const indexContent = fs.readFileSync(indexPath, "utf-8");
 
-    expect(indexContent).toContain("<link rel=\"manifest\" href=\"/manifest.json\"");
-    expect(indexContent).toContain("<meta name=\"theme-color\" content=\"#06122a\"");
-    expect(indexContent).toContain("<meta name=\"apple-mobile-web-app-capable\" content=\"yes\"");
-    expect(indexContent).toContain("<link rel=\"apple-touch-icon\"");
+    expect(indexContent).toContain('<link rel="manifest" href="/manifest.json"');
+    expect(indexContent).toContain('<meta name="theme-color" content="#06122a"');
+    expect(indexContent).toContain('<meta name="apple-mobile-web-app-capable" content="yes"');
+    expect(indexContent).toContain('<link rel="apple-touch-icon"');
   });
 });

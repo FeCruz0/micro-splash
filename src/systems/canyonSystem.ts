@@ -11,11 +11,11 @@ import { GAME_CONFIG, TAGS } from "../config";
  */
 export function setupCanyonSystem(k: KaboomCtx) {
   const surfaceY = GAME_CONFIG.SEA_LEVEL; // 80px (nível do mar)
-  const deepFloorY = k.height() - 40;     // Leito oceânico profundo padrão (~320px em 360p)
+  const deepFloorY = k.height() - 40; // Leito oceânico profundo padrão (~320px em 360p)
 
   // Altura do topo da laje rochosa rasa do Boqueirão:
   // Deixa uma lâmina d'água livre de cerca de 85px entre o nível do mar (80) e a rocha (165)
-  const shallowRockTopY = Math.round(surfaceY + (k.height() - surfaceY) * 0.30);
+  const shallowRockTopY = Math.round(surfaceY + (k.height() - surfaceY) * 0.3);
   const seabedThickness = deepFloorY + 140 - shallowRockTopY;
 
   // Extensão horizontal da passagem
@@ -39,10 +39,10 @@ export function setupCanyonSystem(k: KaboomCtx) {
     k.polygon([
       k.vec2(0, deepFloorY + 140),
       k.vec2(0, deepFloorY),
-      k.vec2(rampUpWidth * 0.20, deepFloorY - (deepFloorY - shallowRockTopY) * 0.22),
-      k.vec2(rampUpWidth * 0.45, deepFloorY - (deepFloorY - shallowRockTopY) * 0.50),
+      k.vec2(rampUpWidth * 0.2, deepFloorY - (deepFloorY - shallowRockTopY) * 0.22),
+      k.vec2(rampUpWidth * 0.45, deepFloorY - (deepFloorY - shallowRockTopY) * 0.5),
       k.vec2(rampUpWidth * 0.72, deepFloorY - (deepFloorY - shallowRockTopY) * 0.78),
-      k.vec2(rampUpWidth * 0.90, shallowRockTopY + 8),
+      k.vec2(rampUpWidth * 0.9, shallowRockTopY + 8),
       k.vec2(rampUpWidth, shallowRockTopY),
       k.vec2(rampUpWidth, deepFloorY + 140),
     ]),
@@ -82,14 +82,14 @@ export function setupCanyonSystem(k: KaboomCtx) {
   k.add([
     k.polygon([
       k.vec2(0, deepFloorY),
-      k.vec2(rampUpWidth * 0.20, deepFloorY - (deepFloorY - shallowRockTopY) * 0.22),
-      k.vec2(rampUpWidth * 0.45, deepFloorY - (deepFloorY - shallowRockTopY) * 0.50),
+      k.vec2(rampUpWidth * 0.2, deepFloorY - (deepFloorY - shallowRockTopY) * 0.22),
+      k.vec2(rampUpWidth * 0.45, deepFloorY - (deepFloorY - shallowRockTopY) * 0.5),
       k.vec2(rampUpWidth * 0.72, deepFloorY - (deepFloorY - shallowRockTopY) * 0.78),
       k.vec2(rampUpWidth, shallowRockTopY),
       k.vec2(rampUpWidth, shallowRockTopY + 8),
       k.vec2(rampUpWidth * 0.72, deepFloorY - (deepFloorY - shallowRockTopY) * 0.78 + 8),
-      k.vec2(rampUpWidth * 0.45, deepFloorY - (deepFloorY - shallowRockTopY) * 0.50 + 8),
-      k.vec2(rampUpWidth * 0.20, deepFloorY - (deepFloorY - shallowRockTopY) * 0.22 + 8),
+      k.vec2(rampUpWidth * 0.45, deepFloorY - (deepFloorY - shallowRockTopY) * 0.5 + 8),
+      k.vec2(rampUpWidth * 0.2, deepFloorY - (deepFloorY - shallowRockTopY) * 0.22 + 8),
       k.vec2(0, deepFloorY + 8),
     ]),
     k.pos(boqueiraoStartX, 0),
@@ -123,7 +123,7 @@ export function setupCanyonSystem(k: KaboomCtx) {
     const cragX = rampUpEndX + 20 + c * 78;
     const cragW = 46 + (c % 4) * 14;
     const cragH = 9 + (c % 5) * 3;
-    const peakOffset = (c % 2 === 0 ? -cragH : -cragH * 0.7);
+    const peakOffset = c % 2 === 0 ? -cragH : -cragH * 0.7;
     k.add([
       k.polygon([
         k.vec2(0, cragH + 4),
@@ -143,14 +143,14 @@ export function setupCanyonSystem(k: KaboomCtx) {
 
   // 2. Fendas submarinas profundas e fraturas geológicas tectônicas verticais/diagonais
   const fissurePositions = [
-    { x: rampUpEndX + 80,  h: 55, w: 5,  tilt: -12 },
-    { x: rampUpEndX + 210, h: 70, w: 6,  tilt: 8 },
-    { x: rampUpEndX + 350, h: 48, w: 4,  tilt: -6 },
-    { x: rampUpEndX + 490, h: 80, w: 7,  tilt: 14 },
-    { x: rampUpEndX + 620, h: 62, w: 5,  tilt: -10 },
-    { x: rampUpEndX + 740, h: 75, w: 6,  tilt: 7 },
-    { x: rampUpEndX + 870, h: 50, w: 4,  tilt: -8 },
-    { x: rampUpEndX + 1010,h: 65, w: 6,  tilt: 11 },
+    { x: rampUpEndX + 80, h: 55, w: 5, tilt: -12 },
+    { x: rampUpEndX + 210, h: 70, w: 6, tilt: 8 },
+    { x: rampUpEndX + 350, h: 48, w: 4, tilt: -6 },
+    { x: rampUpEndX + 490, h: 80, w: 7, tilt: 14 },
+    { x: rampUpEndX + 620, h: 62, w: 5, tilt: -10 },
+    { x: rampUpEndX + 740, h: 75, w: 6, tilt: 7 },
+    { x: rampUpEndX + 870, h: 50, w: 4, tilt: -8 },
+    { x: rampUpEndX + 1010, h: 65, w: 6, tilt: 11 },
   ];
 
   for (const fp of fissurePositions) {
@@ -204,13 +204,7 @@ export function setupCanyonSystem(k: KaboomCtx) {
 
   for (const up of urchinPockets) {
     // Corpo esférico central
-    k.add([
-      k.circle(3),
-      k.pos(up.x, up.y),
-      k.color(18, 18, 22),
-      k.z(4),
-      "boqueirao_urchin",
-    ]);
+    k.add([k.circle(3), k.pos(up.x, up.y), k.color(18, 18, 22), k.z(4), "boqueirao_urchin"]);
     // Espinhos radiais
     for (let s = 0; s < 6; s++) {
       const angle = (s / 6) * Math.PI * 2;
@@ -241,7 +235,11 @@ export function setupCanyonSystem(k: KaboomCtx) {
     k.add([
       k.circle(3.5),
       k.pos(ap.x, ap.y + 2),
-      k.color(Math.round(ap.col[0] * 0.7), Math.round(ap.col[1] * 0.7), Math.round(ap.col[2] * 0.7)),
+      k.color(
+        Math.round(ap.col[0] * 0.7),
+        Math.round(ap.col[1] * 0.7),
+        Math.round(ap.col[2] * 0.7)
+      ),
       k.z(4),
       "boqueirao_anemone",
     ]);
@@ -267,7 +265,7 @@ export function setupCanyonSystem(k: KaboomCtx) {
     k.polygon([
       k.vec2(0, shallowRockTopY),
       k.vec2(rampDownWidth * 0.15, shallowRockTopY + 6),
-      k.vec2(rampDownWidth * 0.35, shallowRockTopY + (deepFloorY - shallowRockTopY) * 0.30),
+      k.vec2(rampDownWidth * 0.35, shallowRockTopY + (deepFloorY - shallowRockTopY) * 0.3),
       k.vec2(rampDownWidth * 0.62, shallowRockTopY + (deepFloorY - shallowRockTopY) * 0.65),
       k.vec2(rampDownWidth * 0.85, shallowRockTopY + (deepFloorY - shallowRockTopY) * 0.88),
       k.vec2(rampDownWidth, deepFloorY),
@@ -310,12 +308,12 @@ export function setupCanyonSystem(k: KaboomCtx) {
   k.add([
     k.polygon([
       k.vec2(0, shallowRockTopY),
-      k.vec2(rampDownWidth * 0.35, shallowRockTopY + (deepFloorY - shallowRockTopY) * 0.30),
+      k.vec2(rampDownWidth * 0.35, shallowRockTopY + (deepFloorY - shallowRockTopY) * 0.3),
       k.vec2(rampDownWidth * 0.62, shallowRockTopY + (deepFloorY - shallowRockTopY) * 0.65),
       k.vec2(rampDownWidth, deepFloorY),
       k.vec2(rampDownWidth, deepFloorY + 8),
       k.vec2(rampDownWidth * 0.62, shallowRockTopY + (deepFloorY - shallowRockTopY) * 0.65 + 8),
-      k.vec2(rampDownWidth * 0.35, shallowRockTopY + (deepFloorY - shallowRockTopY) * 0.30 + 8),
+      k.vec2(rampDownWidth * 0.35, shallowRockTopY + (deepFloorY - shallowRockTopY) * 0.3 + 8),
       k.vec2(0, shallowRockTopY + 8),
     ]),
     k.pos(plateauEndX, 0),
@@ -338,7 +336,7 @@ export function setupCanyonSystem(k: KaboomCtx) {
       k.vec2(0, surfaceY),
       k.vec2(180, surfaceY - 45),
       k.vec2(islandWidth * 0.45, islandPeakY - 12),
-      k.vec2(islandWidth * 0.60, islandPeakY - 8),
+      k.vec2(islandWidth * 0.6, islandPeakY - 8),
       k.vec2(islandWidth * 0.85, surfaceY - 40),
       k.vec2(islandWidth, surfaceY),
       k.vec2(islandWidth, surfaceY + 15),
@@ -353,13 +351,13 @@ export function setupCanyonSystem(k: KaboomCtx) {
   // B. Promontório Rochoso Principal da Ilha do Farol (Falésias Costeiras)
   const cliffObj = k.add([
     k.polygon([
-      k.vec2(0, surfaceY),                                      // Entrada no nível da água
-      k.vec2(220, surfaceY - 38),                               // Encosta ocidental
-      k.vec2(lighthouseX - islandStartX - 90, islandPeakY + 16),// Ombro do farol
-      k.vec2(lighthouseX - islandStartX, islandPeakY),          // Cume do farol
-      k.vec2(lighthouseX - islandStartX + 85, islandPeakY + 18),// Encosta oriental
-      k.vec2(islandWidth - 190, surfaceY - 32),                 // Desfiladeiro
-      k.vec2(islandWidth, surfaceY),                            // Saída no nível da água
+      k.vec2(0, surfaceY), // Entrada no nível da água
+      k.vec2(220, surfaceY - 38), // Encosta ocidental
+      k.vec2(lighthouseX - islandStartX - 90, islandPeakY + 16), // Ombro do farol
+      k.vec2(lighthouseX - islandStartX, islandPeakY), // Cume do farol
+      k.vec2(lighthouseX - islandStartX + 85, islandPeakY + 18), // Encosta oriental
+      k.vec2(islandWidth - 190, surfaceY - 32), // Desfiladeiro
+      k.vec2(islandWidth, surfaceY), // Saída no nível da água
       k.vec2(islandWidth, surfaceY + 12),
       k.vec2(0, surfaceY + 12),
     ]),
@@ -459,11 +457,7 @@ export function setupCanyonSystem(k: KaboomCtx) {
 
   // Feixe cônico de luz do Farol (varredura angular realista)
   const lighthouseBeam = k.add([
-    k.polygon([
-      k.vec2(0, 0),
-      k.vec2(-400, -70),
-      k.vec2(-460, 50),
-    ]),
+    k.polygon([k.vec2(0, 0), k.vec2(-400, -70), k.vec2(-460, 50)]),
     k.pos(lighthouseX, lighthouseBaseY - 88),
     k.color(255, 245, 180),
     k.opacity(0.22),

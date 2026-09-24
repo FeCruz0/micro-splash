@@ -231,7 +231,11 @@ export function createDebugDistanceUI(k: KaboomCtx, playerController?: PlayerCon
 
       routeText.text = `📍 Distância: ${Math.floor(clampedDist)}m / ${GAME_CONFIG.ROUTE_TOTAL_DISTANCE}m (${percent}%)\n🌊 Bioma: ${biome.name}`;
       progressBarFill.width = (clampedDist / GAME_CONFIG.ROUTE_TOTAL_DISTANCE) * barWidth;
-      progressBarFill.color = k.rgb(biome.surfaceColor[0], biome.surfaceColor[1], biome.surfaceColor[2]);
+      progressBarFill.color = k.rgb(
+        biome.surfaceColor[0],
+        biome.surfaceColor[1],
+        biome.surfaceColor[2]
+      );
 
       // Atualiza fôlego, velocidade e status se o playerController foi fornecido
       if (playerController) {

@@ -144,13 +144,19 @@ export function showOnboardingModal(k: KaboomCtx, onDone: () => void) {
     if (isClosed) return;
     isClosed = true;
     keyListeners.forEach((l) => {
-      try { l.cancel(); } catch {}
+      try {
+        l.cancel();
+      } catch {}
     });
     dynamicElements.forEach((el) => {
-      try { k.destroy(el); } catch {}
+      try {
+        k.destroy(el);
+      } catch {}
     });
     elements.forEach((el) => {
-      try { k.destroy(el); } catch {}
+      try {
+        k.destroy(el);
+      } catch {}
     });
   };
 
@@ -163,41 +169,49 @@ export function showOnboardingModal(k: KaboomCtx, onDone: () => void) {
 
   const renderSlide = (slideIndex: number) => {
     dynamicElements.forEach((el) => {
-      try { k.destroy(el); } catch {}
+      try {
+        k.destroy(el);
+      } catch {}
     });
     dynamicElements = [];
 
     const slide = ONBOARDING_SLIDES[slideIndex];
 
     // Badge de etapa
-    dynamicElements.push(k.add([
-      k.text(slide.badge, { size: 10.5, font: "sans-serif" }),
-      k.pos(cX, cY - cardH / 2 + 25),
-      k.color(100, 220, 255),
-      k.anchor("center"),
-      k.fixed(),
-      k.z(553),
-    ]));
+    dynamicElements.push(
+      k.add([
+        k.text(slide.badge, { size: 10.5, font: "sans-serif" }),
+        k.pos(cX, cY - cardH / 2 + 25),
+        k.color(100, 220, 255),
+        k.anchor("center"),
+        k.fixed(),
+        k.z(553),
+      ])
+    );
 
     // Título do slide
-    dynamicElements.push(k.add([
-      k.text(slide.title, { size: 16.5, font: "sans-serif" }),
-      k.pos(cX, cY - cardH / 2 + 48),
-      k.color(255, 225, 90),
-      k.anchor("center"),
-      k.fixed(),
-      k.z(553),
-    ]));
+    dynamicElements.push(
+      k.add([
+        k.text(slide.title, { size: 16.5, font: "sans-serif" }),
+        k.pos(cX, cY - cardH / 2 + 48),
+        k.color(255, 225, 90),
+        k.anchor("center"),
+        k.fixed(),
+        k.z(553),
+      ])
+    );
 
     // Subtítulo
-    dynamicElements.push(k.add([
-      k.text(slide.subtitle, { size: 11.5, font: "sans-serif" }),
-      k.pos(cX, cY - cardH / 2 + 70),
-      k.color(190, 230, 255),
-      k.anchor("center"),
-      k.fixed(),
-      k.z(553),
-    ]));
+    dynamicElements.push(
+      k.add([
+        k.text(slide.subtitle, { size: 11.5, font: "sans-serif" }),
+        k.pos(cX, cY - cardH / 2 + 70),
+        k.color(190, 230, 255),
+        k.anchor("center"),
+        k.fixed(),
+        k.z(553),
+      ])
+    );
 
     // 3 Cards de Conteúdo
     const startY = cY - cardH / 2 + 96;
@@ -208,42 +222,50 @@ export function showOnboardingModal(k: KaboomCtx, onDone: () => void) {
       const boxW = cardW - 40;
 
       // Fundo do tópico
-      dynamicElements.push(k.add([
-        k.rect(boxW, 58, { radius: 8 }),
-        k.pos(cX, itemY + 29),
-        k.color(16, 46, 88),
-        k.outline(1, k.rgb(40, 110, 175)),
-        k.anchor("center"),
-        k.fixed(),
-        k.z(552),
-      ]));
+      dynamicElements.push(
+        k.add([
+          k.rect(boxW, 58, { radius: 8 }),
+          k.pos(cX, itemY + 29),
+          k.color(16, 46, 88),
+          k.outline(1, k.rgb(40, 110, 175)),
+          k.anchor("center"),
+          k.fixed(),
+          k.z(552),
+        ])
+      );
 
       // Ícone do tópico
-      dynamicElements.push(k.add([
-        k.text(pt.icon, { size: 20 }),
-        k.pos(cX - boxW / 2 + 25, itemY + 29),
-        k.anchor("center"),
-        k.fixed(),
-        k.z(553),
-      ]));
+      dynamicElements.push(
+        k.add([
+          k.text(pt.icon, { size: 20 }),
+          k.pos(cX - boxW / 2 + 25, itemY + 29),
+          k.anchor("center"),
+          k.fixed(),
+          k.z(553),
+        ])
+      );
 
       // Título do tópico
-      dynamicElements.push(k.add([
-        k.text(pt.title, { size: 12, font: "sans-serif" }),
-        k.pos(cX - boxW / 2 + 50, itemY + 14),
-        k.color(255, 235, 150),
-        k.fixed(),
-        k.z(553),
-      ]));
+      dynamicElements.push(
+        k.add([
+          k.text(pt.title, { size: 12, font: "sans-serif" }),
+          k.pos(cX - boxW / 2 + 50, itemY + 14),
+          k.color(255, 235, 150),
+          k.fixed(),
+          k.z(553),
+        ])
+      );
 
       // Descrição do tópico
-      dynamicElements.push(k.add([
-        k.text(pt.desc, { size: 10.5, font: "sans-serif", width: boxW - 65, lineSpacing: 2 }),
-        k.pos(cX - boxW / 2 + 50, itemY + 31),
-        k.color(210, 235, 255),
-        k.fixed(),
-        k.z(553),
-      ]));
+      dynamicElements.push(
+        k.add([
+          k.text(pt.desc, { size: 10.5, font: "sans-serif", width: boxW - 65, lineSpacing: 2 }),
+          k.pos(cX - boxW / 2 + 50, itemY + 31),
+          k.color(210, 235, 255),
+          k.fixed(),
+          k.z(553),
+        ])
+      );
     });
 
     // Indicadores visuais de bolinhas no rodapé
@@ -251,14 +273,16 @@ export function showOnboardingModal(k: KaboomCtx, onDone: () => void) {
     for (let i = 0; i < ONBOARDING_SLIDES.length; i++) {
       const dotX = cX + (i - 1) * 24;
       const isActive = i === slideIndex;
-      dynamicElements.push(k.add([
-        k.circle(isActive ? 5 : 3.5),
-        k.pos(dotX, dotsY),
-        k.color(isActive ? k.rgb(100, 230, 255) : k.rgb(45, 90, 140)),
-        k.anchor("center"),
-        k.fixed(),
-        k.z(553),
-      ]));
+      dynamicElements.push(
+        k.add([
+          k.circle(isActive ? 5 : 3.5),
+          k.pos(dotX, dotsY),
+          k.color(isActive ? k.rgb(100, 230, 255) : k.rgb(45, 90, 140)),
+          k.anchor("center"),
+          k.fixed(),
+          k.z(553),
+        ])
+      );
     }
 
     // --- BOTÕES DE AÇÃO ---
@@ -277,14 +301,16 @@ export function showOnboardingModal(k: KaboomCtx, onDone: () => void) {
     ]);
     dynamicElements.push(btnSkip);
 
-    dynamicElements.push(k.add([
-      k.text("Pular ✕", { size: 10.5, font: "sans-serif" }),
-      k.pos(cX + cardW / 2 - 48, cY - cardH / 2 + 24),
-      k.color(200, 225, 250),
-      k.anchor("center"),
-      k.fixed(),
-      k.z(555),
-    ]));
+    dynamicElements.push(
+      k.add([
+        k.text("Pular ✕", { size: 10.5, font: "sans-serif" }),
+        k.pos(cX + cardW / 2 - 48, cY - cardH / 2 + 24),
+        k.color(200, 225, 250),
+        k.anchor("center"),
+        k.fixed(),
+        k.z(555),
+      ])
+    );
 
     btnSkip.onClick(closeAndFinish);
 
@@ -302,14 +328,16 @@ export function showOnboardingModal(k: KaboomCtx, onDone: () => void) {
       ]);
       dynamicElements.push(btnPrev);
 
-      dynamicElements.push(k.add([
-        k.text("◀ Anterior", { size: 12, font: "sans-serif" }),
-        k.pos(cX - 120, btnY),
-        k.color(255, 255, 255),
-        k.anchor("center"),
-        k.fixed(),
-        k.z(555),
-      ]));
+      dynamicElements.push(
+        k.add([
+          k.text("◀ Anterior", { size: 12, font: "sans-serif" }),
+          k.pos(cX - 120, btnY),
+          k.color(255, 255, 255),
+          k.anchor("center"),
+          k.fixed(),
+          k.z(555),
+        ])
+      );
 
       btnPrev.onClick(() => {
         audioSystem.playUiClick();
@@ -335,14 +363,16 @@ export function showOnboardingModal(k: KaboomCtx, onDone: () => void) {
     ]);
     dynamicElements.push(btnNext);
 
-    dynamicElements.push(k.add([
-      k.text(isLast ? "Começar Migração 🌊▶" : "Próximo ▶", { size: 12, font: "sans-serif" }),
-      k.pos(nextBtnX, btnY),
-      k.color(255, 255, 255),
-      k.anchor("center"),
-      k.fixed(),
-      k.z(555),
-    ]));
+    dynamicElements.push(
+      k.add([
+        k.text(isLast ? "Começar Migração 🌊▶" : "Próximo ▶", { size: 12, font: "sans-serif" }),
+        k.pos(nextBtnX, btnY),
+        k.color(255, 255, 255),
+        k.anchor("center"),
+        k.fixed(),
+        k.z(555),
+      ])
+    );
 
     btnNext.onClick(() => {
       audioSystem.playUiClick();
@@ -357,40 +387,48 @@ export function showOnboardingModal(k: KaboomCtx, onDone: () => void) {
 
   // Teclas de atalho para avançar / retroceder / pular
   keyListeners.push(k.onKeyPress("escape", closeAndFinish));
-  keyListeners.push(k.onKeyPress("right", () => {
-    if (currentSlide < ONBOARDING_SLIDES.length - 1) {
-      audioSystem.playUiClick();
-      currentSlide++;
-      renderSlide(currentSlide);
-    } else {
-      closeAndFinish();
-    }
-  }));
-  keyListeners.push(k.onKeyPress("space", () => {
-    if (currentSlide < ONBOARDING_SLIDES.length - 1) {
-      audioSystem.playUiClick();
-      currentSlide++;
-      renderSlide(currentSlide);
-    } else {
-      closeAndFinish();
-    }
-  }));
-  keyListeners.push(k.onKeyPress("enter", () => {
-    if (currentSlide < ONBOARDING_SLIDES.length - 1) {
-      audioSystem.playUiClick();
-      currentSlide++;
-      renderSlide(currentSlide);
-    } else {
-      closeAndFinish();
-    }
-  }));
-  keyListeners.push(k.onKeyPress("left", () => {
-    if (currentSlide > 0) {
-      audioSystem.playUiClick();
-      currentSlide--;
-      renderSlide(currentSlide);
-    }
-  }));
+  keyListeners.push(
+    k.onKeyPress("right", () => {
+      if (currentSlide < ONBOARDING_SLIDES.length - 1) {
+        audioSystem.playUiClick();
+        currentSlide++;
+        renderSlide(currentSlide);
+      } else {
+        closeAndFinish();
+      }
+    })
+  );
+  keyListeners.push(
+    k.onKeyPress("space", () => {
+      if (currentSlide < ONBOARDING_SLIDES.length - 1) {
+        audioSystem.playUiClick();
+        currentSlide++;
+        renderSlide(currentSlide);
+      } else {
+        closeAndFinish();
+      }
+    })
+  );
+  keyListeners.push(
+    k.onKeyPress("enter", () => {
+      if (currentSlide < ONBOARDING_SLIDES.length - 1) {
+        audioSystem.playUiClick();
+        currentSlide++;
+        renderSlide(currentSlide);
+      } else {
+        closeAndFinish();
+      }
+    })
+  );
+  keyListeners.push(
+    k.onKeyPress("left", () => {
+      if (currentSlide > 0) {
+        audioSystem.playUiClick();
+        currentSlide--;
+        renderSlide(currentSlide);
+      }
+    })
+  );
 
   renderSlide(0);
 }

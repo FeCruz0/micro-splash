@@ -63,13 +63,20 @@ export function generateProceduralLayout(
   bubbleVentPositions.push({ x: Math.round(2200 + rand() * 200), y: floorNetY, height: 210 });
   bubbleVentPositions.push({ x: Math.round(4100 + rand() * 200), y: floorNetY, height: 220 });
 
-
   // =========================================================================
   // 2. BIOMA 2: TRAVESSIA PELÁGICA (5.000m - 12.000m)
   // =========================================================================
   const oceanNetCount = 6 + Math.floor(rand() * 2); // 6 a 7 redes
   const oceanNetStep = 6400 / oceanNetCount;
-  const oceanNetLayers = [shallowNetY, floorNetY, midNetY1, midNetY2, shallowNetY, floorNetY, midNetY2];
+  const oceanNetLayers = [
+    shallowNetY,
+    floorNetY,
+    midNetY1,
+    midNetY2,
+    shallowNetY,
+    floorNetY,
+    midNetY2,
+  ];
   for (let i = 0; i < oceanNetCount; i++) {
     const x = Math.round(5500 + i * oceanNetStep + (rand() - 0.5) * 150);
     const y = oceanNetLayers[i % oceanNetLayers.length];
@@ -117,13 +124,13 @@ export function generateProceduralLayout(
   for (let i = 0; i < urbanTrashCount; i++) {
     const x = Math.round(12200 + i * trashStep + (rand() - 0.5) * 80);
     const zone = i % 3;
-    let y = 0;
+    let y: number;
     if (zone === 0) {
       y = Math.round(minY + usableHeight * 0.05 + rand() * (usableHeight * 0.28));
     } else if (zone === 1) {
       y = Math.round(minY + usableHeight * 0.35 + rand() * (usableHeight * 0.32));
     } else {
-      y = Math.round(minY + usableHeight * 0.70 + rand() * (usableHeight * 0.28));
+      y = Math.round(minY + usableHeight * 0.7 + rand() * (usableHeight * 0.28));
     }
     trashPositions.push({ x, y });
   }
@@ -192,11 +199,11 @@ export function generateProceduralLayout(
   for (let i = 0; i < nurseryTrashCount; i++) {
     const x = Math.round(25200 + i * nurseryTrashStep + (rand() - 0.5) * 80);
     const zone = i % 3;
-    let y = 0;
+    let y: number;
     if (zone === 0) {
       y = Math.round(minY + usableHeight * 0.08 + rand() * (usableHeight * 0.25));
     } else if (zone === 1) {
-      y = Math.round(minY + usableHeight * 0.35 + rand() * (usableHeight * 0.30));
+      y = Math.round(minY + usableHeight * 0.35 + rand() * (usableHeight * 0.3));
     } else {
       y = Math.round(minY + usableHeight * 0.68 + rand() * (usableHeight * 0.28));
     }
@@ -210,7 +217,10 @@ export function generateProceduralLayout(
   // Cardumes de Krill nutritivo no berçário (no Boqueirão, flutua rente à superfície)
   krillPositions.push({ x: Math.round(26000 + rand() * 200), y: shallowNetY });
   krillPositions.push({ x: Math.round(27700 + rand() * 200), y: midNetY2 });
-  krillPositions.push({ x: Math.round(29100 + rand() * 200), y: Math.round(minY + usableHeight * 0.2) });
+  krillPositions.push({
+    x: Math.round(29100 + rand() * 200),
+    y: Math.round(minY + usableHeight * 0.2),
+  });
 
   // Bolsão de Ar sereno no berçário
   bubbleVentPositions.push({ x: Math.round(27200 + rand() * 200), y: floorNetY, height: 230 });

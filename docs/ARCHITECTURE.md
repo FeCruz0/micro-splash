@@ -70,7 +70,7 @@ graph TD
 - **`menu`**: Tela inicial receptiva com partículas bioluminescentes, recordes persistentes e interface modal bloqueante (`isModalOpen`).
 - **`game`**: Instancia o mundo de 27.000m, o jogador, os sistemas de bioma, áudio, fauna e colisões de acordo com o modo selecionado.
 - **`gameover`**: Sequência dramática com tentativa de resgate pela Guarda Marítima na Costa Urbana.
-- **`victory`**: Clímax do Salto Majestoso (*Breach*), cálculo do Eco-Score e exibição da Sabedoria Ancestral herdada.
+- **`victory`**: Clímax do Salto Majestoso (_Breach_), cálculo do Eco-Score e exibição da Sabedoria Ancestral herdada.
 
 ---
 
@@ -80,13 +80,13 @@ A Baleia-Jubarte é uma entidade multifacetada que unifica mecânicas de física
 
 1. **Hidrodinâmica Senoidal:**
    - A propulsão via `Espaço` atinge o ápice de aceleração aos `0.3s` e decai a zero se segurada indefinidamente, incentivando o ritmo biológico natural de batida de cauda.
-   - Arrasto hidrodinâmico (*drag*) e inércia contínua de fluido desaceleram suavemente o animal ao cessar o esforço.
+   - Arrasto hidrodinâmico (_drag_) e inércia contínua de fluido desaceleram suavemente o animal ao cessar o esforço.
 2. **Spritesheet & Animações (`public/sprites/whale.png`):**
    - **`glide` (quadro 0):** Nado planado hidrodinâmico.
    - **`stroke_up` (quadro 1) & `stroke_down` (quadro 2):** Batida vigorosa dos flukes da cauda.
-   - **`feed` (quadro 3):** Distensão das pregas ventrais e exposição de cerdas filtradoras (*baleen*) ao engolir krill.
-3. **Esguicho do Espiráculo (*Blowhole Spout*):**
-   - Ao emergir à superfície (`SEA_LEVEL`), dispara um esguicho duplo vertical em "V" com 32 partículas e ruído sibilante (*whoosh*) de descompressão pulmonar.
+   - **`feed` (quadro 3):** Distensão das pregas ventrais e exposição de cerdas filtradoras (_baleen_) ao engolir krill.
+3. **Esguicho do Espiráculo (_Blowhole Spout_):**
+   - Ao emergir à superfície (`SEA_LEVEL`), dispara um esguicho duplo vertical em "V" com 32 partículas e ruído sibilante (_whoosh_) de descompressão pulmonar.
 4. **Biosonar 360° Omnidirecional:**
    - Varredura de onda acústica em tela inteira (raio de 650px) ativada por `Shift`, `E` ou `X`.
    - Ilumina e destaca com contorno fluorescente objetos camuflados nas profundezas (lixo plástico, redes e paredes de cânions).
@@ -104,7 +104,7 @@ graph LR
         C2["Canal 2: Gemido Cello Sine/Saw (Lowpass 190->70Hz)"]
         C3["Canal 3: Percussão Zíper Square Sub-Grave (C0)"]
     end
-    
+
     subgraph DELAY_OCEAN["Barramento de Eco do SNES"]
         DELAY["Delay 180ms"] --> FILTRO["Lowpass 420Hz (Escurecimento)"]
         FILTRO --> FEEDBACK["Feedback 52%"]
@@ -132,19 +132,20 @@ graph LR
 
 A rota de 27.000 metros é particionada em zonas geográficas e comportamentais estritas:
 
-| Faixa (Metros) | Bioma | Tom da Água | Elementos Chave |
-| :--- | :--- | :--- | :--- |
-| **0m – 5.000m** | Antártica (Alimentação Polar) | Azul Gélido (`#051c38`) | Teto de gelo, fendas de respiração, fartura de Krill, silhuetas de orcas. |
-| **5.000m – 12.000m** | Oceano Aberto (Travessia) | Azul Escuro (`#0a2850`) | Jejum total de Krill, correntes, nado de jubartes adultas ao fundo. |
-| **12.000m – 19.000m** | Costa Urbana (Ameaças) | Verde Urbano (`#0d3c5e`) | Navios industriais, poluição sonora, lixo camuflado, redes e Guarda Marítima. |
-| **19.000m – 25.000m** | Cânions de Ressurgência | Turquesa (`#0e668b`) | Jatos d'água ascensionais, fendas estreitas do Boqueirão e nutrientes. |
-| **25.000m – 27.000m** | Santuário de Arraial | Turquesa Claro (`#1490b8`) | Águas rasas, berçário (mãe e filhote) e evento de Salto Majestoso. |
+| Faixa (Metros)        | Bioma                         | Tom da Água                | Elementos Chave                                                               |
+| :-------------------- | :---------------------------- | :------------------------- | :---------------------------------------------------------------------------- |
+| **0m – 5.000m**       | Antártica (Alimentação Polar) | Azul Gélido (`#051c38`)    | Teto de gelo, fendas de respiração, fartura de Krill, silhuetas de orcas.     |
+| **5.000m – 12.000m**  | Oceano Aberto (Travessia)     | Azul Escuro (`#0a2850`)    | Jejum total de Krill, correntes, nado de jubartes adultas ao fundo.           |
+| **12.000m – 19.000m** | Costa Urbana (Ameaças)        | Verde Urbano (`#0d3c5e`)   | Navios industriais, poluição sonora, lixo camuflado, redes e Guarda Marítima. |
+| **19.000m – 25.000m** | Cânions de Ressurgência       | Turquesa (`#0e668b`)       | Jatos d'água ascensionais, fendas estreitas do Boqueirão e nutrientes.        |
+| **25.000m – 27.000m** | Santuário de Arraial          | Turquesa Claro (`#1490b8`) | Águas rasas, berçário (mãe e filhote) e evento de Salto Majestoso.            |
 
 ---
 
 ## 💾 5. Persistência de Dados
 
 O jogo utiliza o `localStorage` do navegador para manter o estado persistente entre sessões:
+
 - **`micro_splash_options`**: Volumes (Master, Música, SFX).
 - **`micro_splash_highscore`**: Maior distância e pontuação Eco-Score acumulada.
 - **`micro_splash_unlocked_facts`**: Array com os IDs dos fatos ecológicos desbloqueados para consulta no Diário de Bordo.

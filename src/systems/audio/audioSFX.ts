@@ -76,7 +76,7 @@ export class AudioSFX {
     };
 
     playFmPing(now, 0.32);
-    playFmPing(now + 0.11, 0.10);
+    playFmPing(now + 0.11, 0.1);
   }
 
   public playSonarEcho(delayMs: number = 60) {
@@ -481,7 +481,7 @@ export class AudioSFX {
     if (!ctx || !masterGain) return;
 
     const now = ctx.currentTime;
-    const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99];
+    const notes = [261.63, 329.63, 392.0, 523.25, 659.25, 783.99];
 
     notes.forEach((freq, idx) => {
       const noteStart = now + idx * 0.11;
@@ -644,13 +644,13 @@ export class AudioSFX {
     wOsc.frequency.exponentialRampToValueAtTime(2400, whistleStart + 0.28);
 
     wGain.gain.setValueAtTime(0.16, whistleStart);
-    wGain.gain.exponentialRampToValueAtTime(0.001, whistleStart + 0.30);
+    wGain.gain.exponentialRampToValueAtTime(0.001, whistleStart + 0.3);
 
     wOsc.connect(wGain);
     wGain.connect(masterGain);
 
     wOsc.start(whistleStart);
-    wOsc.stop(whistleStart + 0.30);
+    wOsc.stop(whistleStart + 0.3);
   }
 
   public playPenguinChirp() {
@@ -669,7 +669,7 @@ export class AudioSFX {
     osc.frequency.exponentialRampToValueAtTime(2400, now + 0.05);
     osc.frequency.exponentialRampToValueAtTime(900, now + 0.12);
 
-    gain.gain.setValueAtTime(0.20, now);
+    gain.gain.setValueAtTime(0.2, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
 
     osc.connect(gain);

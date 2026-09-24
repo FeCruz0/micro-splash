@@ -45,7 +45,13 @@ export class BiomeLifecycleManager {
     return this.modules.filter((m) => m.isActive()).map((m) => m.name);
   }
 
-  public getAllModules(): { id: string; name: string; active: boolean; minX: number; maxX: number }[] {
+  public getAllModules(): {
+    id: string;
+    name: string;
+    active: boolean;
+    minX: number;
+    maxX: number;
+  }[] {
     return this.modules.map((m) => ({
       id: m.id,
       name: m.name,

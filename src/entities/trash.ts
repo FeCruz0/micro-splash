@@ -44,4 +44,3 @@ export function createTrash(k: KaboomCtx, position: Vec2) {
 
   return trash;
 }
-

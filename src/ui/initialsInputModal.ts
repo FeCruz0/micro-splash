@@ -49,7 +49,10 @@ export function showInitialsInputModal(
   // Título e Subtítulo
   elements.push(
     k.add([
-      k.text(mode === "weekly" ? "📅 NOVO RECORDE SEMANAL!" : "🏆 NOVO RECORDE NO TOP 10!", { size: 19, font: "sans-serif" }),
+      k.text(mode === "weekly" ? "📅 NOVO RECORDE SEMANAL!" : "🏆 NOVO RECORDE NO TOP 10!", {
+        size: 19,
+        font: "sans-serif",
+      }),
       k.pos(centerX, centerY - 140),
       k.color(255, 220, 80),
       k.anchor("center"),
@@ -271,17 +274,11 @@ export function showInitialsInputModal(
   // Captura de teclado para totens e desktop
   const keyHandlers: any[] = [];
 
-  keyHandlers.push(
-    k.onKeyPress("enter", doSubmit)
-  );
+  keyHandlers.push(k.onKeyPress("enter", doSubmit));
 
-  keyHandlers.push(
-    k.onKeyPress("up", () => cycleChar(activeIndex, 1))
-  );
+  keyHandlers.push(k.onKeyPress("up", () => cycleChar(activeIndex, 1)));
 
-  keyHandlers.push(
-    k.onKeyPress("down", () => cycleChar(activeIndex, -1))
-  );
+  keyHandlers.push(k.onKeyPress("down", () => cycleChar(activeIndex, -1)));
 
   keyHandlers.push(
     k.onKeyPress("left", () => {

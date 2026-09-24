@@ -1,8 +1,5 @@
 import { describe, it, expect } from "vitest";
-import {
-  createRNG,
-  generateProceduralLayout,
-} from "../src/systems/proceduralObstacles";
+import { createRNG, generateProceduralLayout } from "../src/systems/proceduralObstacles";
 
 describe("Procedural Obstacles & Environmental Generator", () => {
   it("gera sequência pseudo-aleatória determinística para a mesma seed", () => {
@@ -48,17 +45,13 @@ describe("Procedural Obstacles & Environmental Generator", () => {
     // 3. Costa Urbana (12000m a 19000m):
     // Alta densidade de lixo e bolsões de ar profundos para proteção
     const urbanTrash = layout.trashPositions.filter((t) => t.x >= 12000 && t.x <= 19000);
-    const urbanVents = layout.bubbleVentPositions.filter(
-      (v) => v.x >= 12000 && v.x <= 19000
-    );
+    const urbanVents = layout.bubbleVentPositions.filter((v) => v.x >= 12000 && v.x <= 19000);
     expect(urbanTrash.length).toBeGreaterThanOrEqual(18);
     expect(urbanVents.length).toBeGreaterThanOrEqual(2);
 
     // 4. Cânions de Ressurgência (19000m a 25000m):
     // Fendas ativas de ressurgência com múltiplos bolsões de ar
-    const canyonVents = layout.bubbleVentPositions.filter(
-      (v) => v.x >= 19000 && v.x <= 25000
-    );
+    const canyonVents = layout.bubbleVentPositions.filter((v) => v.x >= 19000 && v.x <= 25000);
     expect(canyonVents.length).toBeGreaterThanOrEqual(2);
 
     // 5. Santuário de Arraial (25000m a 29500m):

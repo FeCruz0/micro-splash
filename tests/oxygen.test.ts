@@ -23,15 +23,15 @@ describe("PlayerOxygenManager: Sistema de Fôlego Inteligente", () => {
 
     // 1. Em repouso (velocidade 0)
     const restMult = oxMgr.calculateDrainMultiplier(0);
-    expect(restMult).toBeCloseTo(0.40, 2);
+    expect(restMult).toBeCloseTo(0.4, 2);
 
     // 2. Em velocidade moderada de cruzeiro (120 px/s ~ metade da vel. máxima)
     const cruiseMult = oxMgr.calculateDrainMultiplier(120);
-    expect(cruiseMult).toBeCloseTo(1.00, 2);
+    expect(cruiseMult).toBeCloseTo(1.0, 2);
 
     // 3. Em velocidade máxima (240 px/s)
     const maxMult = oxMgr.calculateDrainMultiplier(GAME_CONFIG.MAX_SPEED);
-    expect(maxMult).toBeCloseTo(1.60, 2);
+    expect(maxMult).toBeCloseTo(1.6, 2);
 
     // 4. Verificação de monotonia: quanto maior a velocidade, maior o gasto de fôlego
     expect(oxMgr.calculateDrainMultiplier(200)).toBeGreaterThan(oxMgr.calculateDrainMultiplier(80));
@@ -45,7 +45,7 @@ describe("PlayerOxygenManager: Sistema de Fôlego Inteligente", () => {
     const normalMaxDrain = oxMgr.calculateDrainMultiplier(GAME_CONFIG.MAX_SPEED, false);
     const draftingMaxDrain = oxMgr.calculateDrainMultiplier(GAME_CONFIG.MAX_SPEED, true);
 
-    expect(draftingMaxDrain).toBeCloseTo(normalMaxDrain * 0.60, 2);
+    expect(draftingMaxDrain).toBeCloseTo(normalMaxDrain * 0.6, 2);
     expect(draftingMaxDrain).toBeLessThan(normalMaxDrain);
   });
 

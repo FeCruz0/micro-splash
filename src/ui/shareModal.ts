@@ -7,11 +7,7 @@ import {
   shareVictoryCard,
 } from "./victoryCard";
 
-export function showShareModal(
-  k: KaboomCtx,
-  data: VictoryCardData,
-  onClose: () => void
-) {
+export function showShareModal(k: KaboomCtx, data: VictoryCardData, onClose: () => void) {
   audioSystem.playUiClick();
 
   const elements: any[] = [];
@@ -184,7 +180,8 @@ export function showShareModal(
   const btnH = 34;
 
   const shareText = getShareText(data);
-  const currentUrl = typeof window !== "undefined" ? window.location.href : "https://micro-splash.local";
+  const currentUrl =
+    typeof window !== "undefined" ? window.location.href : "https://micro-splash.local";
 
   // 1. WhatsApp
   const btnWhatsApp = k.add([
@@ -276,7 +273,10 @@ export function showShareModal(
   elements.push(btnCopy);
 
   const copyLabel = k.add([
-    k.text("📋 Copiar Texto do Certificado (Instagram / Discord)", { size: 12, font: "sans-serif" }),
+    k.text("📋 Copiar Texto do Certificado (Instagram / Discord)", {
+      size: 12,
+      font: "sans-serif",
+    }),
     k.pos(cX, startBtnY + btnSpacing * 2),
     k.color(255, 255, 255),
     k.anchor("center"),
@@ -324,10 +324,15 @@ export function showShareModal(
   elements.push(btnAction);
 
   const actionLabel = k.add([
-    k.text(hasNativeShare ? "✨ Compartilhar Imagem com App (Nativo)" : "📥 Baixar Imagem PNG do Certificado", {
-      size: 12.5,
-      font: "sans-serif",
-    }),
+    k.text(
+      hasNativeShare
+        ? "✨ Compartilhar Imagem com App (Nativo)"
+        : "📥 Baixar Imagem PNG do Certificado",
+      {
+        size: 12.5,
+        font: "sans-serif",
+      }
+    ),
     k.pos(cX, startBtnY + btnSpacing * 3),
     k.color(255, 255, 255),
     k.anchor("center"),

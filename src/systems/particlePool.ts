@@ -321,7 +321,12 @@ export class ParticlePool {
     r.obj.opacity = 0;
   }
 
-  public getStats(): { activeCircles: number; totalCircles: number; activeRects: number; totalRects: number } {
+  public getStats(): {
+    activeCircles: number;
+    totalCircles: number;
+    activeRects: number;
+    totalRects: number;
+  } {
     let activeCircles = 0;
     for (let i = 0; i < this.circlePool.length; i++) {
       if (this.circlePool[i].active) activeCircles++;

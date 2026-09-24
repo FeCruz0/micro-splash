@@ -28,8 +28,8 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
   // ===========================================================================
   const kelpForest: KelpPlant[] = [];
   const kelpSpawnX = [
-    250, 420, 600, 780, 1100, 1350, 1600, 1950, 2200, 2550, 
-    2850, 3100, 3450, 3800, 4200, 4550, 4850
+    250, 420, 600, 780, 1100, 1350, 1600, 1950, 2200, 2550, 2850, 3100, 3450, 3800, 4200, 4550,
+    4850,
   ];
 
   kelpSpawnX.forEach((xPos, plantIdx) => {
@@ -39,9 +39,7 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
     const segments: GameObj[] = [];
 
     // Tonalidades dourado-esverdeadas autênticas de Macrocystis pyrifera (Kelp)
-    const baseColor = (plantIdx % 2 === 0) 
-      ? k.rgb(75, 95, 45) 
-      : k.rgb(105, 115, 40);
+    const baseColor = plantIdx % 2 === 0 ? k.rgb(75, 95, 45) : k.rgb(105, 115, 40);
 
     for (let s = 0; s < segmentCount; s++) {
       // Largura afunilando em direção ao topo
@@ -59,7 +57,7 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
       ]);
 
       // Lâmina foliar lateral ondulante
-      const leafSide = (s % 2 === 0) ? 1 : -1;
+      const leafSide = s % 2 === 0 ? 1 : -1;
       const leafWidth = 18 + s * 2;
       const leafHeight = 8 + s * 1.2;
       const leaf = k.add([
@@ -92,13 +90,12 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
   // ===========================================================================
   const corals: CoralDetail[] = [];
   const coralSpawnX = [
-    19250, 19600, 20100, 20450, 20900, 21350, 21650, 22100,
-    22450, 22950, 23400, 23750, 24150, 24600, 25100, 25550, 26100, 26450,
-    26850, 27250, 27650, 28100, 28550, 29000, 29450
+    19250, 19600, 20100, 20450, 20900, 21350, 21650, 22100, 22450, 22950, 23400, 23750, 24150,
+    24600, 25100, 25550, 26100, 26450, 26850, 27250, 27650, 28100, 28550, 29000, 29450,
   ];
 
   coralSpawnX.forEach((xPos, cIdx) => {
-    const coralType = (cIdx % 3 === 0) ? "brain" : (cIdx % 3 === 1) ? "fan" : "anemone";
+    const coralType = cIdx % 3 === 0 ? "brain" : cIdx % 3 === 1 ? "fan" : "anemone";
 
     if (coralType === "brain") {
       // Coral-Cérebro maciço e arredondado (tons quentes de coral rosado)
@@ -172,14 +169,9 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
 
     // Pequenos Peixes de Recife coloridos passeando próximos aos corais (Donzelas e Cirurgiões)
     if (cIdx % 2 === 0) {
-      const fishColor = (cIdx % 4 === 0) ? k.rgb(255, 225, 60) : k.rgb(50, 160, 255);
+      const fishColor = cIdx % 4 === 0 ? k.rgb(255, 225, 60) : k.rgb(50, 160, 255);
       const reefFish = k.add([
-        k.polygon([
-          k.vec2(-8, -4),
-          k.vec2(6, 0),
-          k.vec2(-8, 4),
-          k.vec2(-12, 0),
-        ]),
+        k.polygon([k.vec2(-8, -4), k.vec2(6, 0), k.vec2(-8, 4), k.vec2(-12, 0)]),
         k.pos(xPos + 15, floorY - 45 - (cIdx % 3) * 15),
         k.color(fishColor),
         k.z(-3),
@@ -193,7 +185,8 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
 
       reefFish.onUpdate(() => {
         const t = k.time();
-        reefFish.pos.x = reefFish.basePos.x + Math.sin(t * reefFish.swimSpeed + reefFish.phase) * 18;
+        reefFish.pos.x =
+          reefFish.basePos.x + Math.sin(t * reefFish.swimSpeed + reefFish.phase) * 18;
         reefFish.pos.y = reefFish.basePos.y + Math.cos(t * 1.8 + reefFish.phase) * 6;
       });
     }

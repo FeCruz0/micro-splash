@@ -14,7 +14,9 @@ describe("Sistema da Ilha do Farol & Boqueirão (Passagem Rasa entre Continente 
         const obj: any = {
           comps,
           hasTag: (tag: string) => comps.includes(tag),
-          isStaticBody: comps.some((c) => c && typeof c === "object" && "isStatic" in c && c.isStatic),
+          isStaticBody: comps.some(
+            (c) => c && typeof c === "object" && "isStatic" in c && c.isStatic
+          ),
           hasArea: comps.some((c) => c && typeof c === "object"),
           onUpdate: () => {},
         };
@@ -72,7 +74,9 @@ describe("Sistema da Ilha do Farol & Boqueirão (Passagem Rasa entre Continente 
         const obj: any = {
           comps,
           hasTag: (tag: string) => comps.includes(tag),
-          isStaticBody: comps.some((c) => c && typeof c === "object" && "isStatic" in c && c.isStatic),
+          isStaticBody: comps.some(
+            (c) => c && typeof c === "object" && "isStatic" in c && c.isStatic
+          ),
           hasArea: comps.some((c) => c && typeof c === "object"),
           onUpdate: () => {},
         };

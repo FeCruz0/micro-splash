@@ -1,20 +1,43 @@
 {
-  "name": "temp",
+  "name": "micro-splash",
+  "version": "1.0.0",
+  "description": "Micro Splash — Jogo educativo e arcade sobre a migração épica da baleia-jubarte",
   "private": true,
-  "version": "0.0.0",
   "type": "module",
+  "author": "Felipe Cruz",
+  "license": "MIT",
+  "homepage": "https://github.com/FeCruz0/micro-splash",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "coverage": "vitest run --coverage",
+    "lint": "eslint src tests",
+    "lint:fix": "eslint src tests --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "generate": "node scripts/generateWhaleSprite.cjs && node scripts/generatePwaIcons.cjs",
+    "generate:whale": "node scripts/generateWhaleSprite.cjs",
+    "generate:icons": "node scripts/generatePwaIcons.cjs",
+    "validate:data": "node scripts/validateData.cjs",
+    "prepare": "husky"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@vitest/coverage-v8": "^4.1.11",
+    "eslint": "^10.11.0",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.5.1",
+    "prettier": "^3.9.9",
     "typescript": "~6.0.2",
+    "typescript-eslint": "^8.70.1",
     "vite": "^8.2.2",
     "vitest": "^4.1.11"
   },
   "dependencies": {
-    "kaboom": "^3000.1.17"
+    "kaboom": "^3000.1.17",
+    "zod": "^4.6.5"
   }
 }

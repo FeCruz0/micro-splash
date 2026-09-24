@@ -122,11 +122,11 @@ export class GamepadSystem {
     const dpadRight = isBtnDown(15);
 
     // Eixos Analógicos com Deadzone
-    let rawAxisX = pad.axes[0] ?? 0;
-    let rawAxisY = pad.axes[1] ?? 0;
+    const rawAxisX = pad.axes[0] ?? 0;
+    const rawAxisY = pad.axes[1] ?? 0;
 
-    let axisX = Math.abs(rawAxisX) > this.deadzone ? rawAxisX : 0;
-    let axisY = Math.abs(rawAxisY) > this.deadzone ? rawAxisY : 0;
+    const axisX = Math.abs(rawAxisX) > this.deadzone ? rawAxisX : 0;
+    const axisY = Math.abs(rawAxisY) > this.deadzone ? rawAxisY : 0;
 
     const up = dpadUp || axisY < -this.deadzone;
     const down = dpadDown || axisY > this.deadzone;

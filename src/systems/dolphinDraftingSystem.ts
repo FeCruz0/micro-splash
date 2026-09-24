@@ -11,7 +11,7 @@ import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
  *   - Cardume 1 (Entrada da Travessia & Recifes): 5.400m a 6.500m (Loop de 1.100m)
  *   - Cardume 2 (Alto Mar / Bacia Central): 7.600m a 8.800m (Loop de 1.200m)
  *   - Cardume 3 (Fossas Pelágicas / Pré-Cânion): 10.000m a 11.200m (Loop de 1.200m)
- * 
+ *
  * Cada cardume já está no mapa e executa um circuito pré-programado permanente:
  * navega até o ponto de retorno, salta fora d'água no meio da rota, realiza mergulho de U-turn 180°
  * e volta para a origem, repetindo o loop indefinidamente sem sumir do cenário.
@@ -193,21 +193,19 @@ export function setupDolphinDraftingSystem(k: KaboomCtx, playerController: Playe
       // 2. Interpolação Matemática da Formação e Perspectiva
       const p = turnState === "turn" ? Math.min(1.0, turnTimer / turnDuration) : 0;
       const turnYOffset = turnState === "turn" ? Math.sin(p * Math.PI) * 45 : 0;
-      
+
       // Fator de formação contínuo: interpola de turnFromDir a targetDir via cosseno
-      const formationFactor = turnState === "turn" 
-        ? turnFromDir * Math.cos(p * Math.PI) 
-        : dir;
+      const formationFactor = turnState === "turn" ? turnFromDir * Math.cos(p * Math.PI) : dir;
 
       // Escala horizontal em perspectiva 3D
       const currentFacing = turnState === "turn" ? (p < 0.5 ? turnFromDir : targetDir) : dir;
-      const scaleSquash = turnState === "turn" ? Math.max(0.18, Math.abs(Math.cos(p * Math.PI))) : 1.0;
+      const scaleSquash =
+        turnState === "turn" ? Math.max(0.18, Math.abs(Math.cos(p * Math.PI))) : 1.0;
       const effectiveScaleX = currentFacing * scaleSquash;
 
       // Inclinação suave do corpo na curva
-      const turnPitchAngle = turnState === "turn" 
-        ? currentFacing * Math.sin(p * Math.PI * 2) * 16 
-        : 0;
+      const turnPitchAngle =
+        turnState === "turn" ? currentFacing * Math.sin(p * Math.PI * 2) * 16 : 0;
 
       let leapYOffset = 0;
       let leapPitch = 0;
@@ -224,7 +222,10 @@ export function setupDolphinDraftingSystem(k: KaboomCtx, playerController: Playe
           if (player && Math.abs(podX - player.pos.x) < 800) {
             if (leapProgress < 0.12 || leapProgress > 0.88) {
               if (Math.random() < 0.3) {
-                const splashPos = k.vec2(podX + (Math.random() - 0.5) * 40, GAME_CONFIG.SEA_LEVEL + 3);
+                const splashPos = k.vec2(
+                  podX + (Math.random() - 0.5) * 40,
+                  GAME_CONFIG.SEA_LEVEL + 3
+                );
                 const pool = getParticlePool();
                 if (pool) {
                   pool.spawnCircle({
@@ -265,7 +266,8 @@ export function setupDolphinDraftingSystem(k: KaboomCtx, playerController: Playe
 
       dolphins.forEach((d, i) => {
         const swimWave = Math.sin(time * 6 + i * 1.2) * 7;
-        const targetY = GAME_CONFIG.SEA_LEVEL + route.depth + d.offset.y + swimWave + leapYOffset + turnYOffset;
+        const targetY =
+          GAME_CONFIG.SEA_LEVEL + route.depth + d.offset.y + swimWave + leapYOffset + turnYOffset;
 
         d.obj.pos.x = podX + d.offset.x * formationFactor;
         d.obj.pos.y = targetY;
@@ -287,9 +289,10 @@ export function setupDolphinDraftingSystem(k: KaboomCtx, playerController: Playe
       const leadDolphin = dolphins[0].obj;
       const distToPod = player.pos.dist(leadDolphin.pos);
 
-      const isAlignedWithPod = dir === 1 
-        ? (player.pos.x <= leadDolphin.pos.x + 85 && player.pos.x >= leadDolphin.pos.x - 180)
-        : (player.pos.x >= leadDolphin.pos.x - 85 && player.pos.x <= leadDolphin.pos.x + 180);
+      const isAlignedWithPod =
+        dir === 1
+          ? player.pos.x <= leadDolphin.pos.x + 85 && player.pos.x >= leadDolphin.pos.x - 180
+          : player.pos.x >= leadDolphin.pos.x - 85 && player.pos.x <= leadDolphin.pos.x + 180;
 
       const isEligibleForDrafting = distToPod < 165 && isAlignedWithPod && turnState === "cruise";
 
@@ -345,4 +348,3 @@ export function setupDolphinDraftingSystem(k: KaboomCtx, playerController: Playe
     isActive: () => isSystemActive,
   };
 }
-

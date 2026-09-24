@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { PlayerControlsManager, type PlayerInputSnapshot } from "../src/entities/player/playerControls";
+import {
+  PlayerControlsManager,
+  type PlayerInputSnapshot,
+} from "../src/entities/player/playerControls";
 
 function createMockKaboom() {
   return {
@@ -103,7 +106,9 @@ describe("PlayerControlsManager: Controle de Orientação", () => {
       rotate: (r: number) => ({ rotate: r }),
       color: (r: number, g: number, b: number) => ({ r, g, b }),
       anchor: (_a: string) => ({ anchor: _a }),
-      Rect: class { constructor(_pos: any, _w: number, _h: number) {} },
+      Rect: class {
+        constructor(_pos: any, _w: number, _h: number) {}
+      },
       vec2: (x: number, y: number) => ({
         x,
         y,
@@ -130,7 +135,9 @@ describe("PlayerControlsManager: Controle de Orientação", () => {
           color: { r: 255, g: 255, b: 255 },
           play: () => {},
           move: () => {},
-          onUpdate: (cb: () => void) => { registeredUpdate = cb; },
+          onUpdate: (cb: () => void) => {
+            registeredUpdate = cb;
+          },
         };
         return obj;
       },
@@ -179,7 +186,9 @@ describe("PlayerControlsManager: Controle de Orientação", () => {
       z: (z: number) => ({ z }),
       rect: (w: number, h: number) => ({ type: "rect", w, h }),
       circle: (r: number) => ({ type: "circle", r }),
-      Rect: class { constructor(_pos: any, _w: number, _h: number) {} },
+      Rect: class {
+        constructor(_pos: any, _w: number, _h: number) {}
+      },
       vec2: (x: number, y: number) => ({
         x,
         y,
@@ -209,7 +218,9 @@ describe("PlayerControlsManager: Controle de Orientação", () => {
         color: { r: 255, g: 255, b: 255 },
         play: () => {},
         move: () => {},
-        onUpdate: (cb: () => void) => { registeredUpdate = cb; },
+        onUpdate: (cb: () => void) => {
+          registeredUpdate = cb;
+        },
         onDestroy: () => {},
       }),
     };

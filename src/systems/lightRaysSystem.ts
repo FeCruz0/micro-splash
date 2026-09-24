@@ -12,7 +12,7 @@ export function setupLightRaysSystem(k: ReturnType<typeof kaboom>) {
   // Criação dos feixes ultrafinos e cristalinos de luz solar (1.5px a 3.5px de largura)
   for (let i = 0; i < rayCount; i++) {
     const baseWidth = 1.5 + (i % 3) * 1.0;
-    const baseAngle = -18 + (i * 2.6); // Ângulos graduais
+    const baseAngle = -18 + i * 2.6; // Ângulos graduais
 
     const ray = k.add([
       k.rect(baseWidth, 420),
@@ -72,7 +72,7 @@ export function setupLightRaysSystem(k: ReturnType<typeof kaboom>) {
       biomeLightFactor = 0.05;
       rayColor = k.rgb(160, 210, 255); // Azul polar
     } else if (camX < 12000) {
-      biomeLightFactor = 0.10;
+      biomeLightFactor = 0.1;
       rayColor = k.rgb(180, 230, 255);
     } else if (camX < 19000) {
       biomeLightFactor = 0.07;

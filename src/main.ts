@@ -142,8 +142,10 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
   // Posição inicial no mapa com base no modo selecionado
   let initialX = 120;
   if (options.mode === "quick_challenge") {
-    if (options.startBiome === 2) initialX = 12200; // Costa Urbana
-    else if (options.startBiome === 3) initialX = 19200; // Arraial do Cabo
+    if (options.startBiome === 2)
+      initialX = 12200; // Costa Urbana
+    else if (options.startBiome === 3)
+      initialX = 19200; // Arraial do Cabo
     else initialX = 120; // Antártica
   }
 
@@ -157,9 +159,15 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
     k.z(100),
   ]);
 
-  k.tween(1, 0, 0.8, (val) => {
-    fadeOverlay.opacity = val;
-  }, k.easings.easeOutQuad).then(() => {
+  k.tween(
+    1,
+    0,
+    0.8,
+    (val) => {
+      fadeOverlay.opacity = val;
+    },
+    k.easings.easeOutQuad
+  ).then(() => {
     k.destroy(fadeOverlay);
   });
 
@@ -197,7 +205,12 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
     touchControls.destroy();
   });
   const gameState = createGameState(options);
-  const playerController = createPlayer(k, initialX, options.mode === "serene", touchControls.state);
+  const playerController = createPlayer(
+    k,
+    initialX,
+    options.mode === "serene",
+    touchControls.state
+  );
   const debugDistanceUI = createDebugDistanceUI(k, playerController);
 
   // HUD adicional de modo no topo direito
@@ -220,7 +233,10 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
     ]);
   } else if (options.mode === "weekly") {
     k.add([
-      k.text(`📅 Desafio Semanal (#${options.seed || "Semanal"})`, { size: 14, font: "sans-serif" }),
+      k.text(`📅 Desafio Semanal (#${options.seed || "Semanal"})`, {
+        size: 14,
+        font: "sans-serif",
+      }),
       k.pos(k.width() - 260, 18),
       k.color(255, 220, 80),
       k.fixed(),
@@ -357,7 +373,7 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
         activeModules: modsText,
       });
     }
-    
+
     // Fallback de segurança para conclusão caso alcance ou ultrapasse a rota
     if (playerXPosition >= GAME_CONFIG.ROUTE_TOTAL_DISTANCE) {
       isGameFinished = true;
@@ -412,7 +428,10 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
       audioSystem.updateBiomeTrack(playerXPosition);
     } else if (playerController.isFainting() && !isRescueSequenceStarted && !isGameFinished) {
       // Se a baleia já alcançou a enseada final (>= 29.600m) ou está saltando no breach, não inicia resgate de derrota
-      if (playerXPosition >= GAME_CONFIG.ROUTE_TOTAL_DISTANCE - 400 || playerController.isBreaching()) {
+      if (
+        playerXPosition >= GAME_CONFIG.ROUTE_TOTAL_DISTANCE - 400 ||
+        playerController.isBreaching()
+      ) {
         return;
       }
 
@@ -441,7 +460,7 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
     oceanFloor.pos.y = k.height() - 40;
     waterSurface.pos.x = k.camPos().x - k.width();
     skyBand.pos.x = k.camPos().x - k.width();
-    
+
     // Atualiza cores do oceano
     updateOceanColors(k, playerXPosition, waterSurface, oceanFloor, skyBand);
   });

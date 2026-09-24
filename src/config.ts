@@ -1,34 +1,34 @@
 export const GAME_CONFIG = {
   GRAVITY: 0,
-  SINK_RATE: 20,              // Afundamento suave constante da água
-  MAX_SPEED: 240,             // Teto máximo de velocidade acumulada
-  MAX_STROKE_TIME: 0.5,       // Duração máxima de uma batida de cauda (0.5s)
-  STROKE_COOLDOWN: 1.0,       // Intervalo mínimo de 1 segundo entre batidas consecutivas de cauda
-  BASE_THRUST: 90,            // Impulso inicial suave e orgânico da batida (reduzido de 125)
-  PEAK_THRUST: 450,           // Adicional de impulso no pico da batida (reduzido de 625)
-  WATER_DRAG: 0.955,          // Resistência da água com perda de momentum acentuada (desacelera rápido da velocidade máxima)
-  ROTATION_SPEED: 40,         // Velocidade de rotação das nadadeiras
-  TRASH_SLOWDOWN: 0.5,        // Fator de desaceleração ao atingir lixo plástico (perde 50% da velocidade)
-  KRILL_BOOST: 1.2,           // Fator de aceleração do cardume krill
-  KRILL_POINTS: 100,          // Pontos por cardume krill
-  OXYGEN_DRAIN_RATE: 5,       // taxa de perde de oxygenio
-  TRASH_OXYGEN_PENALTY: 15,   // penalidade de oxygenio por lixo
-  KRILL_OXYGEN_RESTORE: 15,   // bonus de oxigenio por krill
-  BLACKOUT_GRACE_TIME: 4,     // tempo de tolerancia quando oxygenio é zerado
-  SONAR_RANGE: 650,           // raio expansivo do sonar em 360°
-  SONAR_ANGLE: 360,           // cobertura omnidirecional total
-  SONAR_COOLDOWN: 2.0,        // tempo de recarga entre emissões do sonar
+  SINK_RATE: 20, // Afundamento suave constante da água
+  MAX_SPEED: 240, // Teto máximo de velocidade acumulada
+  MAX_STROKE_TIME: 0.5, // Duração máxima de uma batida de cauda (0.5s)
+  STROKE_COOLDOWN: 1.0, // Intervalo mínimo de 1 segundo entre batidas consecutivas de cauda
+  BASE_THRUST: 90, // Impulso inicial suave e orgânico da batida (reduzido de 125)
+  PEAK_THRUST: 450, // Adicional de impulso no pico da batida (reduzido de 625)
+  WATER_DRAG: 0.955, // Resistência da água com perda de momentum acentuada (desacelera rápido da velocidade máxima)
+  ROTATION_SPEED: 40, // Velocidade de rotação das nadadeiras
+  TRASH_SLOWDOWN: 0.5, // Fator de desaceleração ao atingir lixo plástico (perde 50% da velocidade)
+  KRILL_BOOST: 1.2, // Fator de aceleração do cardume krill
+  KRILL_POINTS: 100, // Pontos por cardume krill
+  OXYGEN_DRAIN_RATE: 5, // taxa de perde de oxygenio
+  TRASH_OXYGEN_PENALTY: 15, // penalidade de oxygenio por lixo
+  KRILL_OXYGEN_RESTORE: 15, // bonus de oxigenio por krill
+  BLACKOUT_GRACE_TIME: 4, // tempo de tolerancia quando oxygenio é zerado
+  SONAR_RANGE: 650, // raio expansivo do sonar em 360°
+  SONAR_ANGLE: 360, // cobertura omnidirecional total
+  SONAR_COOLDOWN: 2.0, // tempo de recarga entre emissões do sonar
   SONAR_REVEAL_DURATION: 5.5, // tempo de iluminação de objetos escaneados no escuro
   BLOWHOLE_OXYGEN_THRESHOLD: 92, // gatilho do esguicho ao recarregar ar na superfície
-  NET_ESCAPE_COUNT: 5,        // toques no espaço para se soltar da rede
-  UPWELLING_INTERVAL: 18,     // intervalo entre ressurgencias
-  UPWELLING_DURATION: 4,      // duração da ressurgência
-  UPWELLING_PUSH_X: 120,      // força horizontal da ressurgência
-  UPWELLING_PUSH_Y: -150,     // força vertical da ressurgência
+  NET_ESCAPE_COUNT: 5, // toques no espaço para se soltar da rede
+  UPWELLING_INTERVAL: 18, // intervalo entre ressurgencias
+  UPWELLING_DURATION: 4, // duração da ressurgência
+  UPWELLING_PUSH_X: 120, // força horizontal da ressurgência
+  UPWELLING_PUSH_Y: -150, // força vertical da ressurgência
   UPWELLING_ZONE_START: 19000, // início da zona de ressurgência em Arraial do Cabo (19.000m)
-  UPWELLING_ZONE_END: 25000,   // fim da zona de ressurgência em Arraial do Cabo (25.000m)
+  UPWELLING_ZONE_END: 25000, // fim da zona de ressurgência em Arraial do Cabo (25.000m)
   ROUTE_TOTAL_DISTANCE: 30000, // distancia total do percurso (30.000m - ~4 a 5 min de partida)
-  SEA_LEVEL: 80,               // Nível do mar dobrado para 80px para dar espaço visível ao céu
+  SEA_LEVEL: 80, // Nível do mar dobrado para 80px para dar espaço visível ao céu
 };
 
 export const TAGS = {
@@ -112,10 +112,17 @@ export const RESOLUTION_PRESETS = {
 
 export type ResolutionKey = keyof typeof RESOLUTION_PRESETS;
 
-export function getSavedResolution(): { width: number; height: number; key: ResolutionKey; label: string } {
-  const saved = (typeof localStorage !== "undefined"
-    ? localStorage.getItem("micro_splash_resolution") || "720p"
-    : "720p") as ResolutionKey;
+export function getSavedResolution(): {
+  width: number;
+  height: number;
+  key: ResolutionKey;
+  label: string;
+} {
+  const saved = (
+    typeof localStorage !== "undefined"
+      ? localStorage.getItem("micro_splash_resolution") || "720p"
+      : "720p"
+  ) as ResolutionKey;
 
   const preset = RESOLUTION_PRESETS[saved] || RESOLUTION_PRESETS["720p"];
   return {
@@ -139,4 +146,3 @@ export function setSavedDisplayMode(mode: DisplayMode): void {
     localStorage.setItem("micro_splash_display_mode", mode);
   }
 }
-

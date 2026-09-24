@@ -12,7 +12,7 @@ export function spawnOilSpout(k: KaboomCtx, pos: Vec2, isFacingRight: boolean, h
     const spread = (Math.random() - 0.5) * 0.35;
     const speed = 110 + Math.random() * 90;
     const dir = k.vec2(Math.cos(-Math.PI / 2 + spread), Math.sin(-Math.PI / 2 + spread));
-    let vel = dir.scale(speed);
+    const vel = dir.scale(speed);
     vel.x += hSpeed * 0.2;
     const pPos = k.vec2(spoutOrigin.x + (Math.random() - 0.5) * 6, spoutOrigin.y);
     const radius = 1.8 + Math.random() * 2.2;
@@ -90,7 +90,12 @@ export function spawnPurifyBubbles(k: KaboomCtx, pos: Vec2) {
   }
 }
 
-export function spawnBlowholeSpout(k: KaboomCtx, pos: Vec2, isFacingRight: boolean, hSpeed: number) {
+export function spawnBlowholeSpout(
+  k: KaboomCtx,
+  pos: Vec2,
+  isFacingRight: boolean,
+  hSpeed: number
+) {
   audioSystem.playBlowholeSpout();
 
   const spoutOrigin = pos.add(k.vec2(isFacingRight ? 22 : -22, -13));
@@ -105,7 +110,7 @@ export function spawnBlowholeSpout(k: KaboomCtx, pos: Vec2, isFacingRight: boole
     const speed = 190 + Math.random() * 170;
     const dir = k.vec2(Math.cos(baseAngle + spread), Math.sin(baseAngle + spread));
 
-    let vel = dir.scale(speed);
+    const vel = dir.scale(speed);
     vel.x += hSpeed * 0.35; // herda parte do movimento horizontal da baleia
 
     const pPos = k.vec2(spoutOrigin.x + (Math.random() - 0.5) * 6, spoutOrigin.y);
@@ -263,10 +268,9 @@ export function spawnTailWaterRipples(
     const growthRate = 45 + Math.random() * 15;
     const life = 0.35 + i * 0.08;
     // O centro da ondulação fica na água onde a cauda bateu, com quase nenhum arrasto artificial
-    const ripplePos = tailPos.add(k.vec2(
-      (isFacingRight ? -1 : 1) * (i * 4),
-      (Math.random() - 0.5) * 3
-    ));
+    const ripplePos = tailPos.add(
+      k.vec2((isFacingRight ? -1 : 1) * (i * 4), (Math.random() - 0.5) * 3)
+    );
     const driftVel = k.vec2((isFacingRight ? -1 : 1) * (8 + i * 4), 0);
     // Tom ciano-aquático translúcido e suave
     const color = k.rgb(160, 235, 255);
@@ -322,5 +326,3 @@ export function spawnTailBubbleTrail(
 ) {
   spawnTailWaterRipples(k, pos, angleDeg, isFacingRight, speedRatio);
 }
-
-
