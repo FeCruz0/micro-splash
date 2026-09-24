@@ -217,26 +217,23 @@ Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Pro
 ### 🏆 FASE 22: Progressão, Competição & Rejogabilidade
 *Objetivo: Criar motivação para retorno e competição saudável entre jogadores e turmas escolares.*
 
-- [ ] **22.1 Ranking Online Global (Cloudflare Worker + KV):**
-  - Substituir o ranking local pelo envio de score ao backend (Cloudflare Worker gratuito + KV Store). O nome/iniciais já é coletado pelo `initialsInputModal.ts`. Exibir top 10 global e filtro por escola/turma se aplicável.
-- [ ] **22.2 Desafios Semanais por Semente Procedural:**
-  - Usar a data da semana como semente para um layout de obstáculos diferente a cada 7 dias. Ranking semanal separado do ranking padrão. Ao completar, gera um certificado único com a data e a semente. Motivo concreto para retornar toda semana — especialmente forte em contextos escolares.
-- [ ] **22.3 Modo Rota Reversa — De Arraial à Antártica:**
-  - Modo desbloqueável após completar a migração principal com Breach. A jubarte retorna para a Antártica em sentido oposto, com posicionamento espelhado de obstáculos, correntes invertidas e novos fatos ecológicos sobre a viagem de retorno.
-- [ ] **22.4 Exportação & Assistir Replay de Partida:**
-  - Gravar o array de inputs (timestamp, tipo, valor) durante a partida e serializar em `localStorage`. Botão "Assistir Replay" na tela de vitória que reproduz a partida em modo automático via input injection na cena `game`. Feature de showcase ideal para totens — demonstra a migração completa sem ninguém jogando.
+- [x] **22.1 Ranking Online Global (Cloudflare Worker + KV):**
+  - Substituir o ranking local pelo envio de score ao backend (Cloudflare Worker gratuito + KV Store) com arquitetura offline-first transparente. O nome/iniciais já é coletado pelo `initialsInputModal.ts`. Exibir top 10 global, semanal e local com abas de navegação.
+- [x] **22.2 Desafios Semanais por Semente Procedural:**
+  - Usar a data da semana como semente determinística para um layout de obstáculos idêntico no mundo todo a cada 7 dias. Ranking semanal separado do ranking padrão. Ao completar, gera um Certificado Oficial com selo único, data e semente no Victory Card.
+
 
 ### 🔧 FASE 23: Qualidade Técnica & Plataformas
 *Objetivo: Reduzir débito técnico, ampliar alcance de plataformas e garantir robustez de longo prazo do projeto.*
 
-- [ ] **23.1 Refatoração Modular do `audioSystem.ts`:**
-  - O `audioSystem.ts` possui 1.338 linhas — o maior arquivo do projeto. Quebrar em módulos coesos: `audioEngine.ts` (AudioContext, gain, mute/volume), `audioSFX.ts` (todos os efeitos sonoros), `audioWhale.ts` (síntese dos cantos de baleia em 3 canais) e integração com o `audioMusic.ts` já existente. Viabiliza testes unitários mais focados.
-- [ ] **23.2 Suporte a Gamepad/Joystick (Gamepad API):**
-  - Mapear `navigator.getGamepads()` no loop de update: botão A → batida de cauda, analógico esquerdo Y → direção vertical, botão B → Biosonar, botão Start → Pausa. Usar o sistema de `touchControls.ts` como referência de interface. Essencial para totens físicos com joystick dedicado em museus.
-- [ ] **23.3 HUD de Diagnóstico com Histórico de FPS (Expandir F3):**
-  - Expandir o HUD F3 atual para registrar um histórico de 60 amostras de FPS e plotar um mini-gráfico de barras inline com caracteres unicode (`▁▂▃▄▅▆▇█`). Alertas visuais quando FPS cair abaixo de 45 FPS — útil para identificar gargalos em hardware limitado de totens escolares.
-- [ ] **23.4 Sprite da Jubarte com 8 Frames (vs. 4 Atuais):**
-  - Dobrar o spritesheet de 4 para 8 frames adicionando quadros intermediários de transição suave no ciclo de batida de cauda. Requer atualizar apenas `scripts/generateWhaleSprite.cjs` e o mapeamento de animações no `main.ts`. A animação passará de funcional para cinematográfica.
+- [x] **23.1 Refatoração Modular do `audioSystem.ts`:**
+  - O `audioSystem.ts` possuía 1.338 linhas — o maior arquivo do projeto. Quebrado em módulos coesos: `audioEngine.ts` (AudioContext, gain, mute/volume, loop de áudio ambiente), `audioSFX.ts` (todos os efeitos sonoros procedurais e aquáticos), `audioWhale.ts` (síntese dos cantos de baleia em 3 canais e chamados abissais) e integração harmônica com o `audioMusic.ts`, mantendo `audioSystem.ts` como fachada 100% retrocompatível.
+- [x] **23.2 Suporte a Gamepad/Joystick (Gamepad API):**
+  - Mapeamento de `navigator.getGamepads()` no loop de update: botão A (sul) → batida de cauda, direcional/analógico esquerdo Y → controle de profundidade vertical, botão B/X → Biosonar, botão Start → Pausa/Apresentação. Deadzone calibrada em 0.22 para joysticks de totens e consoles.
+- [x] **23.3 HUD de Diagnóstico com Histórico de FPS (Expandir F3):**
+  - Expandido o HUD F3 para registrar buffer circular de 60 amostras de FPS com gráfico sparkline inline em caracteres unicode (` ▂▃▄▅▆▇█`), métricas de mínimo, média e máximo, e alerta visual com destaque em vermelho para gargalos críticos (< 45 FPS).
+- [x] **23.4 Sprite da Jubarte com 8 Frames (vs. 4 Anteriores):**
+  - Spritesheet expandido de 4 para 8 frames (1024x64 px) em `scripts/generateWhaleSprite.cjs`, gerando nova folha de sprites biológica com ciclos suaves de subida (upstroke), descida potente (downstroke), retorno elástico, deslizamento e engolfamento alimentar (feed). Atualizado no `main.ts` com animações fluídas.
 
 ### 🛠️ FASE 24: Developer Experience & Qualidade de Código
 *Objetivo: Estabelecer ferramentas de qualidade, padronização e observabilidade do código que sustentem o crescimento do projeto a longo prazo.*

@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const zlib = require('node:zlib');
 
-const WIDTH = 512;
+const WIDTH = 1024;
 const HEIGHT = 64;
 const FRAME_W = 128;
 
@@ -168,16 +168,32 @@ function renderWhaleFrame(frameIndex) {
   let tailYOffset = 0;
   let flukeTilt = 0;
   let pecYOffset = 0;
-  const isFeeding = (frameIndex === 3);
+  const isFeeding = (frameIndex === 7);
 
-  if (frameIndex === 1) { // stroke_up (arco convexo)
-    tailYOffset = -7.0;
-    flukeTilt = -0.44;
+  if (frameIndex === 1) { // Upstroke 1 (início da elevação caudal)
+    tailYOffset = -4.0;
+    flukeTilt = -0.25;
+    pecYOffset = -1.2;
+  } else if (frameIndex === 2) { // Upstroke 2 (ápice da elevação caudal / arco convexo)
+    tailYOffset = -7.5;
+    flukeTilt = -0.48;
     pecYOffset = -2.2;
-  } else if (frameIndex === 2) { // stroke_down (arco côncavo)
-    tailYOffset = 7.6;
-    flukeTilt = 0.48;
-    pecYOffset = 2.2;
+  } else if (frameIndex === 3) { // Mid Down (transição inicial descendente)
+    tailYOffset = -1.5;
+    flukeTilt = 0.10;
+    pecYOffset = 0.5;
+  } else if (frameIndex === 4) { // Downstroke 1 (descida da cauda)
+    tailYOffset = 4.2;
+    flukeTilt = 0.32;
+    pecYOffset = 1.4;
+  } else if (frameIndex === 5) { // Downstroke 2 (ápice da batida de propulsão / arco côncavo)
+    tailYOffset = 7.8;
+    flukeTilt = 0.52;
+    pecYOffset = 2.4;
+  } else if (frameIndex === 6) { // Return (retorno elástico em direção à linha neutra)
+    tailYOffset = 2.0;
+    flukeTilt = 0.15;
+    pecYOffset = 0.8;
   }
 
   // ===========================================================================
@@ -187,7 +203,7 @@ function renderWhaleFrame(frameIndex) {
     const bBaseX = offsetX + 80;
     const bBaseY = 36.5 + pecYOffset * 0.7;
     const bTipX = offsetX + 71;
-    const bTipY = bBaseY + 14.0 + (frameIndex === 1 ? -2.5 : (frameIndex === 2 ? 3.0 : 0));
+    const bTipY = bBaseY + 14.0 + (pecYOffset * 1.25);
 
     drawQuadCurve(bBaseX, bBaseY, bBaseX - 3, bBaseY + 7, bTipX, bTipY, 3.8, PALETTE.pectoralBackDark);
     drawQuadCurve(bBaseX - 1, bBaseY + 1, bBaseX - 4, bBaseY + 8, bTipX + 1, bTipY, 2.5, PALETTE.pectoralBack);
@@ -560,7 +576,7 @@ function renderWhaleFrame(frameIndex) {
     const pCtrlY = pBaseY + 11.5;
 
     const pTipX = offsetX + 42;
-    const pTipY = pBaseY + 21.0 + (frameIndex === 1 ? -3.5 : (frameIndex === 2 ? 1.0 : 0));
+    const pTipY = pBaseY + 21.0 + (pecYOffset < 0 ? pecYOffset * 1.6 : pecYOffset * 0.45);
 
     // Renderiza a lâmina por fatias transversais contínuas (fita preenchida)
     const ribbonSteps = 40;
@@ -674,8 +690,8 @@ function renderWhaleFrame(frameIndex) {
   }
 }
 
-// Renderiza os 4 frames da folha de sprites
-for (let f = 0; f < 4; f++) {
+// Renderiza os 8 frames da folha de sprites (1024x64)
+for (let f = 0; f < 8; f++) {
   renderWhaleFrame(f);
 }
 

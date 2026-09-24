@@ -1,6 +1,7 @@
 import type { GameObj, KaboomCtx } from "kaboom";
 import { GAME_CONFIG } from "../../config";
 import type { TouchControlsState } from "../../ui/touchControls";
+import { gamepadSystem } from "../../systems/gamepadSystem";
 
 export interface PlayerInputSnapshot {
   isStrokePressed: boolean;
@@ -52,21 +53,22 @@ export class PlayerControlsManager {
   public pollInputs(strokeTimer: number): PlayerInputSnapshot {
     const k = this.k;
     const touch = this.touchState;
+    const pad = gamepadSystem.pollGamepadState();
 
-    const isLeftDown = Boolean(k.isKeyDown("left") || k.isKeyDown("a") || (touch && touch.left));
-    const isRightDown = Boolean(k.isKeyDown("right") || k.isKeyDown("d") || (touch && touch.right));
-    const isUpDown = Boolean(k.isKeyDown("up") || k.isKeyDown("w") || (touch && touch.up));
-    const isDownDown = Boolean(k.isKeyDown("down") || k.isKeyDown("s") || (touch && touch.down));
+    const isLeftDown = Boolean(k.isKeyDown("left") || k.isKeyDown("a") || (touch && touch.left) || pad.left);
+    const isRightDown = Boolean(k.isKeyDown("right") || k.isKeyDown("d") || (touch && touch.right) || pad.right);
+    const isUpDown = Boolean(k.isKeyDown("up") || k.isKeyDown("w") || (touch && touch.up) || pad.up);
+    const isDownDown = Boolean(k.isKeyDown("down") || k.isKeyDown("s") || (touch && touch.down) || pad.down);
 
-    const isStrokePressed = Boolean(k.isKeyPressed("space") || (touch && touch.strokePressed));
-    const isStrokeDown = Boolean(k.isKeyDown("space") || (touch && touch.strokeDown));
+    const isStrokePressed = Boolean(k.isKeyPressed("space") || (touch && touch.strokePressed) || pad.strokePressed);
+    const isStrokeDown = Boolean(k.isKeyDown("space") || (touch && touch.strokeDown) || pad.strokeDown);
     const isStrokeReleased = Boolean(
       k.isKeyReleased("space") ||
-      (touch && !touch.strokeDown && strokeTimer > 0 && !k.isKeyDown("space"))
+      (touch && !touch.strokeDown && strokeTimer > 0 && !k.isKeyDown("space") && !pad.strokeDown)
     );
 
     const isSonarTriggered = Boolean(
-      k.isKeyDown("shift") || k.isKeyDown("e") || (touch && touch.sonarPressed)
+      k.isKeyDown("shift") || k.isKeyDown("e") || (touch && touch.sonarPressed) || pad.sonarPressed
     );
 
     return {

@@ -184,6 +184,15 @@ export class BiomeMusicEngine {
     this.musicGain.gain.setTargetAtTime(enabled ? 0.35 : 0, this.ctx.currentTime, 0.05);
   }
 
+  public setVolume(val: number) {
+    if (!this.musicGain || !this.ctx) return;
+    this.musicGain.gain.setTargetAtTime(val, this.ctx.currentTime, 0.05);
+  }
+
+  public stop() {
+    this.pause();
+  }
+
   private scheduleLoop() {
     if (!this.isRunning || !this.ctx) return;
 

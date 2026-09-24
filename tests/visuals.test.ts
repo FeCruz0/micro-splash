@@ -156,14 +156,14 @@ describe("Fase 13: Polimento Visual, Atmosfera & Identidade", () => {
         pos += 12 + len;
       }
 
-      expect(width).toBe(512);
+      expect(width).toBe(1024);
       expect(height).toBe(64);
 
       const raw = zlib.inflateSync(nodeBuffer.concat(chunks));
       const frameWidth = 128;
 
-      // Cada um dos 4 frames deve ter pixels renderizados sem estourar as margens de 64px
-      for (let f = 0; f < 4; f++) {
+      // Cada um dos 8 frames deve ter pixels renderizados sem estourar as margens de 64px
+      for (let f = 0; f < 8; f++) {
         let minY = 999;
         let maxY = -1;
         let nonTransparentPixels = 0;

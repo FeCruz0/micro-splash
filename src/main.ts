@@ -37,6 +37,7 @@ import { initBiomeLifecycleManager } from "./systems/biomeLifecycleManager";
 import { recordMigrationStart, recordMigrationEnd } from "./systems/cumulativeStats";
 import { initPresentationMode } from "./systems/presentationMode";
 import { accessibilitySystem } from "./systems/accessibilitySystem";
+import { gamepadSystem } from "./systems/gamepadSystem";
 
 // Interfaces da Fase 6: Menu Principal, Seleção de Modo, Opções e Codex
 import { createMainMenu } from "./ui/mainMenu";
@@ -68,14 +69,14 @@ k.onKeyPress("f11", () => {
 });
 
 k.loadSprite("baleia", "/sprites/whale.png", {
-  sliceX: 4,
+  sliceX: 8,
   sliceY: 1,
   anims: {
     glide: 0,
-    stroke_up: 1,
-    stroke_down: 2,
-    swim: { from: 1, to: 2, loop: true, speed: 6 },
-    feed: 3,
+    stroke_up: { from: 1, to: 2, speed: 10 },
+    stroke_down: { from: 3, to: 6, speed: 12 },
+    swim: { from: 1, to: 6, loop: true, speed: 8 },
+    feed: 7,
   },
 });
 
@@ -217,6 +218,14 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
       k.fixed(),
       k.z(150),
     ]);
+  } else if (options.mode === "weekly") {
+    k.add([
+      k.text(`📅 Desafio Semanal (#${options.seed || "Semanal"})`, { size: 14, font: "sans-serif" }),
+      k.pos(k.width() - 260, 18),
+      k.color(255, 220, 80),
+      k.fixed(),
+      k.z(150),
+    ]);
   }
 
   // 1.5. Registra Início da Jornada no Dashboard Coletivo (Fase 16)
@@ -234,8 +243,8 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
     );
   };
 
-  // 2. Instancia obstáculos, krill, redes e bolsões de ar procedurais
-  const obstacleData = loadLevelLayout(k);
+  // 2. Instancia obstáculos, krill, redes e bolsões de ar procedurais (com semente determinística caso informada)
+  const obstacleData = loadLevelLayout(k, true, options.seed);
 
   // 2.5. Inicializa Núcleo de Otimização & Performance (Fase 15) e Apresentação (Fase 16)
   const particlePool = initParticlePool(k);
@@ -313,6 +322,11 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
   k.onUpdate(() => {
     if (isGameFinished) {
       return;
+    }
+
+    const pad = gamepadSystem.pollGamepadState();
+    if (pad.pausePressed) {
+      presentationMode.togglePause();
     }
 
     // Se estiver em Pausa Didática (Modo Apresentação F16), congela física e atualiza o painel

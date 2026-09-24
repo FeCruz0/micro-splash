@@ -11,19 +11,44 @@ export interface PerformanceStats {
   activeModules?: string;
 }
 
+/**
+ * Converte um valor numérico de taxa de quadros (FPS) para um caractere unicode
+ * proporcional de barra vertical.
+ */
+export function fpsToSparklineChar(fps: number): string {
+  if (fps >= 58) return "█";
+  if (fps >= 52) return "▇";
+  if (fps >= 46) return "▆";
+  if (fps >= 40) return "▅";
+  if (fps >= 34) return "▄";
+  if (fps >= 28) return "▃";
+  if (fps >= 20) return "▂";
+  return " ";
+}
+
+/**
+ * Gera uma string sparkline de barras a partir do histórico de amostras de FPS.
+ */
+export function generateFpsSparkline(history: number[], sampleCount: number = 30): string {
+  if (!history || history.length === 0) return "------------------------------";
+  const slice = history.slice(-sampleCount);
+  return slice.map(fpsToSparklineChar).join("");
+}
+
 export function createDebugDistanceUI(k: KaboomCtx, playerController?: PlayerController) {
-  // Proporções adaptativas com base na resolução virtual
   const isHighRes = k.width() >= 1920;
   const isMediumRes = k.width() >= 1280;
 
   const scale = isHighRes ? 1.25 : isMediumRes ? 1.0 : 0.85;
-  const containerWidth = Math.round(350 * scale);
-  const containerHeight = Math.round(152 * scale);
+  const containerWidth = Math.round(365 * scale);
+  const containerHeight = Math.round(172 * scale);
   const padding = Math.round(14 * scale);
 
   const fontSizeTitle = Math.round(10.5 * scale);
-  const fontSizePrimary = Math.round(11.5 * scale);
-  const fontSizeSecondary = Math.round(10 * scale);
+  const fontSizePrimary = Math.round(11 * scale);
+  const fontSizeSecondary = Math.round(9.5 * scale);
+
+  const fpsHistory: number[] = [];
 
   // Container principal: OCULTO POR PADRÃO durante a gameplay comum!
   // Ativado exclusivamente via tecla F3.
@@ -37,7 +62,7 @@ export function createDebugDistanceUI(k: KaboomCtx, playerController?: PlayerCon
     k.z(300),
     "dev_debug_telemetry_container",
   ]);
-  container.hidden = true; // Invisível por padrão!
+  container.hidden = true;
 
   // Cabeçalho de desenvolvedor
   container.add([
@@ -55,8 +80,18 @@ export function createDebugDistanceUI(k: KaboomCtx, playerController?: PlayerCon
       size: fontSizeSecondary,
       font: "monospace",
     }),
-    k.pos(Math.round(10 * scale), Math.round(24 * scale)),
+    k.pos(Math.round(10 * scale), Math.round(23 * scale)),
     k.color(180, 240, 255),
+  ]);
+
+  // Histórico de FPS em Unicode (Sparkline 60 amostras) e Alerta de Gargalo
+  const sparklineText = container.add([
+    k.text("FPS [60s]: ------------------------------", {
+      size: fontSizeSecondary - 0.5,
+      font: "monospace",
+    }),
+    k.pos(Math.round(10 * scale), Math.round(37 * scale)),
+    k.color(120, 240, 180),
   ]);
 
   // Texto de Distância & Bioma
@@ -65,9 +100,9 @@ export function createDebugDistanceUI(k: KaboomCtx, playerController?: PlayerCon
     k.text(`📍 Distância: 0m / ${totalFormatted}m (0%)\n🌊 Bioma: --`, {
       size: fontSizePrimary,
       font: "sans-serif",
-      lineSpacing: 2.5,
+      lineSpacing: 2.2,
     }),
-    k.pos(Math.round(10 * scale), Math.round(40 * scale)),
+    k.pos(Math.round(10 * scale), Math.round(52 * scale)),
     k.color(225, 240, 255),
   ]);
 
@@ -77,7 +112,7 @@ export function createDebugDistanceUI(k: KaboomCtx, playerController?: PlayerCon
       size: fontSizeSecondary,
       font: "sans-serif",
     }),
-    k.pos(Math.round(10 * scale), Math.round(76 * scale)),
+    k.pos(Math.round(10 * scale), Math.round(86 * scale)),
     k.color(140, 220, 255),
   ]);
 
@@ -87,12 +122,12 @@ export function createDebugDistanceUI(k: KaboomCtx, playerController?: PlayerCon
       size: fontSizeSecondary,
       font: "sans-serif",
     }),
-    k.pos(Math.round(10 * scale), Math.round(92 * scale)),
+    k.pos(Math.round(10 * scale), Math.round(101 * scale)),
     k.color(180, 235, 255),
   ]);
 
   // Mini-barra de medição da velocidade instantânea
-  const speedBarY = Math.round(108 * scale);
+  const speedBarY = Math.round(116 * scale);
   const barWidth = containerWidth - Math.round(20 * scale);
   const speedBarHeight = Math.round(3.5 * scale);
 
@@ -114,7 +149,7 @@ export function createDebugDistanceUI(k: KaboomCtx, playerController?: PlayerCon
       size: fontSizeSecondary,
       font: "sans-serif",
     }),
-    k.pos(Math.round(10 * scale), Math.round(116 * scale)),
+    k.pos(Math.round(10 * scale), Math.round(124 * scale)),
     k.color(255, 235, 120),
   ]);
 
@@ -138,6 +173,7 @@ export function createDebugDistanceUI(k: KaboomCtx, playerController?: PlayerCon
   return {
     getContainer: (): GameObj => container,
     isVisible: (): boolean => !container.hidden,
+    getFpsHistory: (): number[] => [...fpsHistory],
     setVisible: (visible: boolean): void => {
       container.hidden = !visible;
     },
@@ -151,13 +187,22 @@ export function createDebugDistanceUI(k: KaboomCtx, playerController?: PlayerCon
       }
     },
     update: (distance: number, perfStats?: PerformanceStats) => {
-      // Se estiver oculto, não gasta ciclos de processamento de texto/canvas
       if (container.hidden) {
         return;
       }
 
       // Atualiza métricas de hardware se fornecidas
       if (perfStats) {
+        const curFps = perfStats.fps !== undefined ? perfStats.fps : 60;
+        fpsHistory.push(curFps);
+        if (fpsHistory.length > 60) {
+          fpsHistory.shift();
+        }
+
+        const minFps = Math.min(...fpsHistory);
+        const maxFps = Math.max(...fpsHistory);
+        const avgFps = Math.round(fpsHistory.reduce((a, b) => a + b, 0) / fpsHistory.length);
+
         const fpsStr = perfStats.fps !== undefined ? `${perfStats.fps} FPS` : "--";
         const entStr = perfStats.entities !== undefined ? `${perfStats.entities} obj` : "--";
         const poolStr =
@@ -166,6 +211,18 @@ export function createDebugDistanceUI(k: KaboomCtx, playerController?: PlayerCon
             : "--";
         const modStr = perfStats.activeModules ? ` | ${perfStats.activeModules}` : "";
         perfText.text = `Taxa: ${fpsStr} | Entidades: ${entStr} | Pool: ${poolStr}${modStr}`;
+
+        // Alerta de taxa crítica (< 45 FPS)
+        const sparkline = generateFpsSparkline(fpsHistory, 28);
+        const isCritical = curFps < 45 || avgFps < 45;
+
+        if (isCritical) {
+          sparklineText.text = `⚠️ ${sparkline} Mín:${minFps} Méd:${avgFps} [GARGALO <45]`;
+          sparklineText.color = k.rgb(255, 95, 75);
+        } else {
+          sparklineText.text = `FPS ${sparkline} Mín:${minFps} Méd:${avgFps} Máx:${maxFps}`;
+          sparklineText.color = k.rgb(100, 255, 180);
+        }
       }
 
       const clampedDist = Math.min(Math.max(distance, 0), GAME_CONFIG.ROUTE_TOTAL_DISTANCE);
@@ -178,7 +235,6 @@ export function createDebugDistanceUI(k: KaboomCtx, playerController?: PlayerCon
 
       // Atualiza fôlego, velocidade e status se o playerController foi fornecido
       if (playerController) {
-        // Velocímetro em tempo real
         const vel = playerController.getSpeed?.() ?? k.vec2(0, 0);
         const speedLen = Math.round(
           typeof vel?.len === "function"
@@ -193,13 +249,13 @@ export function createDebugDistanceUI(k: KaboomCtx, playerController?: PlayerCon
         speedBarFill.width = Math.min(barWidth, ratio * barWidth);
 
         if (ratio >= 1.0) {
-          speedBarFill.color = k.rgb(255, 95, 75); // Vermelho/Laranja: pico/boost
+          speedBarFill.color = k.rgb(255, 95, 75);
           speedText.color = k.rgb(255, 125, 95);
         } else if (ratio >= 0.65) {
-          speedBarFill.color = k.rgb(255, 215, 80); // Dourado: propulsão forte
+          speedBarFill.color = k.rgb(255, 215, 80);
           speedText.color = k.rgb(255, 225, 120);
         } else {
-          speedBarFill.color = k.rgb(100, 240, 255); // Ciano suave: cruzeiro
+          speedBarFill.color = k.rgb(100, 240, 255);
           speedText.color = k.rgb(180, 235, 255);
         }
 
@@ -223,7 +279,6 @@ export function createDebugDistanceUI(k: KaboomCtx, playerController?: PlayerCon
           }
         }
 
-        // Badges dos Efeitos Ambientais Ativos
         const badges: string[] = [];
         if (playerController.isSpeedBoosted?.()) {
           const t = playerController.getSpeedBoostTimer?.().toFixed(1);
