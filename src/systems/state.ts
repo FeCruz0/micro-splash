@@ -8,12 +8,14 @@ export interface Fact {
     description: string;
 }
 
-export type GameMode = "standard" | "serene" | "quick_challenge";
+export type GameMode = "standard" | "serene" | "quick_challenge" | "weekly";
 
 export interface GameOptions {
     mode: GameMode;
     startBiome?: number; // 0: Antártica, 2: Costa Urbana, 3: Arraial do Cabo
     timeLimit?: number;  // 60 segundos padrão para o modo rápido
+    seed?: number;       // Semente para desafios procedurais semanais
+    weekKey?: string;    // Identificador da semana (ex: 2026-W39)
 }
 
 export type GameState = ReturnType<typeof createGameState>;
@@ -40,6 +42,8 @@ export function createGameState(options: GameOptions = { mode: "standard" }) {
         // leitores de estado
         getMode: () => options.mode,
         getOptions: () => options,
+        getSeed: () => options.seed,
+        getWeekKey: () => options.weekKey,
         getDistance: () => Math.floor(distance),
         getKrillCount: () => krillCount,
         getTrashCount: () => trashCount,

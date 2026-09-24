@@ -24,10 +24,10 @@ function proceedToVictoryContent(k: KaboomCtx, gameState: GameState, onRestart: 
     const distance = gameState.getDistance();
     const mode = gameState.getMode();
 
-    if (isTop10Score(finalScore)) {
+    if (isTop10Score(finalScore) || mode === "weekly") {
         showInitialsInputModal(k, finalScore, distance, mode, () => {
             renderVictoryContent(k, gameState, onRestart);
-        });
+        }, gameState.getWeekKey());
     } else {
         renderVictoryContent(k, gameState, onRestart);
     }

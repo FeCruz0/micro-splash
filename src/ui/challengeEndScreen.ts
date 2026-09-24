@@ -17,10 +17,10 @@ export function showChallengeEndScreen(
   const distance = gameState.getDistance();
   const mode = gameState.getMode();
 
-  if (isTop10Score(score)) {
+  if (isTop10Score(score) || mode === "weekly") {
     showInitialsInputModal(k, score, distance, mode, () => {
       renderChallengeEndContent(k, gameState, onPlayAgain, onReturnMenu);
-    });
+    }, gameState.getWeekKey());
   } else {
     renderChallengeEndContent(k, gameState, onPlayAgain, onReturnMenu);
   }

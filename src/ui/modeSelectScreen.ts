@@ -1,6 +1,7 @@
 import type { KaboomCtx } from "kaboom";
 import { audioSystem } from "../systems/audioSystem";
 import type { GameOptions } from "../systems/state";
+import { getWeeklyChallengeInfo } from "../systems/weeklyChallenge";
 
 export function showModeSelectScreen(
   k: KaboomCtx,
@@ -31,8 +32,8 @@ export function showModeSelectScreen(
   elements.push(backdrop);
 
   // Modal Card Principal
-  const cardW = 740;
-  const cardH = 540;
+  const cardW = 760;
+  const cardH = 590;
   const card = k.add([
     k.rect(cardW, cardH, { radius: 14 }),
     k.pos(k.width() / 2, k.height() / 2),
@@ -47,8 +48,8 @@ export function showModeSelectScreen(
 
   // Título do Modal
   elements.push(k.add([
-    k.text("ESCOLHA SEU ESTILO DE MIGRAÇÃO 🐋", { size: 22, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 - 225),
+    k.text("ESCOLHA SEU ESTILO DE MIGRAÇÃO 🐋", { size: 21, font: "sans-serif" }),
+    k.pos(k.width() / 2, k.height() / 2 - 258),
     k.color(255, 230, 100),
     k.anchor("center"),
     k.fixed(),
@@ -109,8 +110,8 @@ export function showModeSelectScreen(
   // CARD 1: MIGRAÇÃO NORMAL
   // ==========================================
   const card1 = k.add([
-    k.rect(660, 85, { radius: 10 }),
-    k.pos(k.width() / 2, k.height() / 2 - 145),
+    k.rect(700, 72, { radius: 10 }),
+    k.pos(k.width() / 2, k.height() / 2 - 198),
     k.color(16, 50, 95),
     k.outline(2, k.rgb(50, 150, 230)),
     k.scale(1),
@@ -122,8 +123,8 @@ export function showModeSelectScreen(
   elements.push(card1);
 
   elements.push(k.add([
-    k.text("🌊 MIGRAÇÃO NORMAL", { size: 16, font: "sans-serif" }),
-    k.pos(k.width() / 2 - 310, k.height() / 2 - 165),
+    k.text("🌊 MIGRAÇÃO NORMAL (CLÁSSICA)", { size: 15, font: "sans-serif" }),
+    k.pos(k.width() / 2 - 330, k.height() / 2 - 215),
     k.color(100, 240, 255),
     k.anchor("left"),
     k.fixed(),
@@ -131,12 +132,11 @@ export function showModeSelectScreen(
   ]));
 
   elements.push(k.add([
-    k.text("Rota clássica completa de 27.000m. Fôlego limitado por mergulho, desvio de navios,\nredes de pesca, poluição e pontuação ancestral no Eco-Score.", {
-      size: 12,
+    k.text("Rota de 27.000m. Fôlego limitado por mergulho, desvio de redes, lixo e navios com Eco-Score.", {
+      size: 11,
       font: "sans-serif",
-      lineSpacing: 4,
     }),
-    k.pos(k.width() / 2 - 310, k.height() / 2 - 135),
+    k.pos(k.width() / 2 - 330, k.height() / 2 - 190),
     k.color(200, 230, 250),
     k.anchor("left"),
     k.fixed(),
@@ -165,8 +165,8 @@ export function showModeSelectScreen(
   // CARD 2: MIGRAÇÃO SERENA
   // ==========================================
   const card2 = k.add([
-    k.rect(660, 85, { radius: 10 }),
-    k.pos(k.width() / 2, k.height() / 2 - 45),
+    k.rect(700, 72, { radius: 10 }),
+    k.pos(k.width() / 2, k.height() / 2 - 116),
     k.color(16, 50, 95),
     k.outline(2, k.rgb(120, 210, 180)),
     k.scale(1),
@@ -178,8 +178,8 @@ export function showModeSelectScreen(
   elements.push(card2);
 
   elements.push(k.add([
-    k.text("🌸 MIGRAÇÃO SERENA", { size: 16, font: "sans-serif" }),
-    k.pos(k.width() / 2 - 310, k.height() / 2 - 65),
+    k.text("🌸 MIGRAÇÃO SERENA (CONTEMPLATIVA)", { size: 15, font: "sans-serif" }),
+    k.pos(k.width() / 2 - 330, k.height() / 2 - 133),
     k.color(140, 255, 200),
     k.anchor("left"),
     k.fixed(),
@@ -187,12 +187,11 @@ export function showModeSelectScreen(
   ]));
 
   elements.push(k.add([
-    k.text("Oxigênio infinito (∞) e zero risco de desmaio. Modo acessível e contemplativo,\nideal para crianças, novatos ou para relaxar com a trilha sonora.", {
-      size: 12,
+    k.text("Oxigênio infinito (∞) e zero risco de desmaio. Modo acessível e relaxante para todas as idades.", {
+      size: 11,
       font: "sans-serif",
-      lineSpacing: 4,
     }),
-    k.pos(k.width() / 2 - 310, k.height() / 2 - 35),
+    k.pos(k.width() / 2 - 330, k.height() / 2 - 108),
     k.color(200, 245, 230),
     k.anchor("left"),
     k.fixed(),
@@ -218,13 +217,75 @@ export function showModeSelectScreen(
   });
 
   // ==========================================
-  // CARD 3: MIGRAÇÃO RÁPIDA (60s)
+  // CARD 3: DESAFIO SEMANAL PROCEDURAL (FASE 22)
+  // ==========================================
+  const weeklyInfo = getWeeklyChallengeInfo();
+
+  const cardWeekly = k.add([
+    k.rect(700, 78, { radius: 10 }),
+    k.pos(k.width() / 2, k.height() / 2 - 32),
+    k.color(16, 55, 90),
+    k.outline(2, k.rgb(255, 215, 60)),
+    k.scale(1),
+    k.anchor("center"),
+    k.area(),
+    k.fixed(),
+    k.z(302),
+  ]);
+  elements.push(cardWeekly);
+
+  elements.push(k.add([
+    k.text(`📅 DESAFIO SEMANAL DA ROTA — ${weeklyInfo.weekLabel}`, { size: 15, font: "sans-serif" }),
+    k.pos(k.width() / 2 - 330, k.height() / 2 - 53),
+    k.color(255, 225, 90),
+    k.anchor("left"),
+    k.fixed(),
+    k.z(303),
+  ]));
+
+  elements.push(k.add([
+    k.text(`Semente #${weeklyInfo.seed} • Rota idêntica para o mundo todo • ⏳ ${weeklyInfo.daysLeft} dia(s) restantes\nComplete a rota para conquistar o Certificado Oficial da Semana com selo digital!`, {
+      size: 11,
+      font: "sans-serif",
+      lineSpacing: 4,
+    }),
+    k.pos(k.width() / 2 - 330, k.height() / 2 - 27),
+    k.color(225, 245, 255),
+    k.anchor("left"),
+    k.fixed(),
+    k.z(303),
+  ]));
+
+  cardWeekly.onHoverUpdate(() => {
+    if (!canInteract) return;
+    cardWeekly.color = k.rgb(28, 80, 130);
+    cardWeekly.outline.color = k.rgb(255, 235, 120);
+    cardWeekly.scale = k.vec2(1.01, 1.01);
+  });
+  cardWeekly.onHoverEnd(() => {
+    cardWeekly.color = k.rgb(16, 55, 90);
+    cardWeekly.outline.color = k.rgb(255, 215, 60);
+    cardWeekly.scale = k.vec2(1, 1);
+  });
+  cardWeekly.onClick(() => {
+    if (!canInteract) return;
+    audioSystem.playUiClick();
+    destroyAll();
+    onSelectMode({
+      mode: "weekly",
+      seed: weeklyInfo.seed,
+      weekKey: weeklyInfo.weekKey,
+    });
+  });
+
+  // ==========================================
+  // CARD 4: MIGRAÇÃO RÁPIDA (60s)
   // ==========================================
   let selectedBiomeIndex = 0; // 0: Antártica, 2: Costa Urbana, 3: Arraial
 
   const card3 = k.add([
-    k.rect(660, 130, { radius: 10 }),
-    k.pos(k.width() / 2, k.height() / 2 + 80),
+    k.rect(700, 108, { radius: 10 }),
+    k.pos(k.width() / 2, k.height() / 2 + 72),
     k.color(16, 50, 95),
     k.outline(2, k.rgb(255, 180, 80)),
     k.anchor("center"),
@@ -234,8 +295,8 @@ export function showModeSelectScreen(
   elements.push(card3);
 
   elements.push(k.add([
-    k.text("⚡ MIGRAÇÃO RÁPIDA (60 SEGUNDOS)", { size: 16, font: "sans-serif" }),
-    k.pos(k.width() / 2 - 310, k.height() / 2 + 32),
+    k.text("⚡ MIGRAÇÃO RÁPIDA (60 SEGUNDOS)", { size: 15, font: "sans-serif" }),
+    k.pos(k.width() / 2 - 330, k.height() / 2 + 32),
     k.color(255, 210, 120),
     k.anchor("left"),
     k.fixed(),
@@ -243,11 +304,11 @@ export function showModeSelectScreen(
   ]));
 
   elements.push(k.add([
-    k.text("Desafio cronometrado dinâmico de 1 minuto. Escolha o trecho inicial:", {
-      size: 12,
+    k.text("Desafio cronometrado de 1 min. Trecho:", {
+      size: 11,
       font: "sans-serif",
     }),
-    k.pos(k.width() / 2 - 310, k.height() / 2 + 58),
+    k.pos(k.width() / 2 - 330, k.height() / 2 + 56),
     k.color(240, 220, 190),
     k.anchor("left"),
     k.fixed(),
@@ -256,18 +317,18 @@ export function showModeSelectScreen(
 
   // Botões seletores de Bioma
   const biomes = [
-    { label: "❄️ Antártica (Gelo)", index: 0 },
-    { label: "🚢 Costa Urbana (Navios)", index: 2 },
-    { label: "🏝️ Arraial (Cânions)", index: 3 },
+    { label: "❄️ Antártica", index: 0 },
+    { label: "🚢 Costa Urbana", index: 2 },
+    { label: "🏝️ Arraial", index: 3 },
   ];
 
   const biomeButtons: any[] = [];
   biomes.forEach((biome, idx) => {
-    const bX = k.width() / 2 - 200 + idx * 200;
-    const bY = k.height() / 2 + 90;
+    const bX = k.width() / 2 - 50 + idx * 140;
+    const bY = k.height() / 2 + 56;
 
     const bBtn = k.add([
-      k.rect(180, 28, { radius: 6 }),
+      k.rect(130, 24, { radius: 5 }),
       k.pos(bX, bY),
       k.color(selectedBiomeIndex === biome.index ? k.rgb(200, 120, 20) : k.rgb(20, 45, 80)),
       k.outline(1, selectedBiomeIndex === biome.index ? k.rgb(255, 230, 150) : k.rgb(100, 140, 190)),
@@ -281,7 +342,7 @@ export function showModeSelectScreen(
     biomeButtons.push(bBtn);
 
     const bText = k.add([
-      k.text(biome.label, { size: 11, font: "sans-serif" }),
+      k.text(biome.label, { size: 10, font: "sans-serif" }),
       k.pos(bX, bY),
       k.color(255, 255, 255),
       k.anchor("center"),
@@ -304,8 +365,8 @@ export function showModeSelectScreen(
 
   // Botão dedicado para iniciar a Migração Rápida
   const btnStartQuick = k.add([
-    k.rect(260, 30, { radius: 6 }),
-    k.pos(k.width() / 2, k.height() / 2 + 126),
+    k.rect(260, 28, { radius: 6 }),
+    k.pos(k.width() / 2, k.height() / 2 + 96),
     k.color(220, 130, 20),
     k.outline(1, k.rgb(255, 230, 140)),
     k.scale(1),
@@ -317,8 +378,8 @@ export function showModeSelectScreen(
   elements.push(btnStartQuick);
 
   elements.push(k.add([
-    k.text("⚡ INICIAR MIGRAÇÃO RÁPIDA (60s)", { size: 12, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 + 126),
+    k.text("⚡ INICIAR MIGRAÇÃO RÁPIDA (60s)", { size: 11, font: "sans-serif" }),
+    k.pos(k.width() / 2, k.height() / 2 + 96),
     k.color(255, 255, 255),
     k.anchor("center"),
     k.fixed(),
@@ -349,8 +410,8 @@ export function showModeSelectScreen(
   // BOTÃO VOLTAR AO MENU
   // ==========================================
   const btnBack = k.add([
-    k.rect(240, 40, { radius: 8 }),
-    k.pos(k.width() / 2, k.height() / 2 + 225),
+    k.rect(240, 36, { radius: 8 }),
+    k.pos(k.width() / 2, k.height() / 2 + 162),
     k.color(20, 60, 100),
     k.outline(1, k.rgb(100, 200, 255)),
     k.scale(1),
@@ -362,8 +423,8 @@ export function showModeSelectScreen(
   elements.push(btnBack);
 
   elements.push(k.add([
-    k.text("Voltar ao Menu ↩️", { size: 15, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 + 225),
+    k.text("Voltar ao Menu ↩️", { size: 14, font: "sans-serif" }),
+    k.pos(k.width() / 2, k.height() / 2 + 162),
     k.color(220, 240, 255),
     k.anchor("center"),
     k.fixed(),
@@ -381,3 +442,4 @@ export function showModeSelectScreen(
   });
   btnBack.onClick(close);
 }
+

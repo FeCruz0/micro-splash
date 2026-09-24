@@ -8,7 +8,8 @@ export function showInitialsInputModal(
   score: number,
   distance: number,
   mode: GameMode,
-  onSubmitted: () => void
+  onSubmitted: () => void,
+  weekKey?: string
 ) {
   const elements: any[] = [];
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".split("");
@@ -48,7 +49,7 @@ export function showInitialsInputModal(
   // Título e Subtítulo
   elements.push(
     k.add([
-      k.text("🏆 NOVO RECORDE NO TOP 10!", { size: 19, font: "sans-serif" }),
+      k.text(mode === "weekly" ? "📅 NOVO RECORDE SEMANAL!" : "🏆 NOVO RECORDE NO TOP 10!", { size: 19, font: "sans-serif" }),
       k.pos(centerX, centerY - 140),
       k.color(255, 220, 80),
       k.anchor("center"),
@@ -256,6 +257,7 @@ export function showInitialsInputModal(
       distance,
       mode,
       date: new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
+      weekKey,
     });
 
     elements.forEach((el) => k.destroy(el));

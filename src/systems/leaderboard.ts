@@ -1,4 +1,6 @@
 import type { GameMode } from "./state";
+import { submitOnlineScore } from "../services/leaderboardApi";
+import { addWeeklyLeaderboardEntry } from "./weeklyChallenge";
 
 export interface LeaderboardEntry {
   initials: string;
@@ -6,6 +8,7 @@ export interface LeaderboardEntry {
   distance: number;
   mode: GameMode;
   date: string;
+  weekKey?: string;
 }
 
 const STORAGE_KEY = "micro_splash_top10";
@@ -25,6 +28,7 @@ export const DEFAULT_LEADERBOARD: LeaderboardEntry[] = [
 
 export function getTop10Entries(): LeaderboardEntry[] {
   try {
+    if (typeof localStorage === "undefined") return [...DEFAULT_LEADERBOARD];
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
       return [...DEFAULT_LEADERBOARD];
@@ -60,17 +64,32 @@ export function addLeaderboardEntry(entry: LeaderboardEntry): boolean {
     distance: Math.max(0, Math.floor(entry.distance)),
     mode: entry.mode || "standard",
     date: entry.date || new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
+    weekKey: entry.weekKey,
   };
+
+  // Se for modo semanal, insere também no leaderboard semanal dedicado
+  if (newEntry.mode === "weekly") {
+    addWeeklyLeaderboardEntry(newEntry, entry.weekKey);
+  }
 
   entries.push(newEntry);
   entries.sort((a, b) => b.score - a.score);
 
   const top10 = entries.slice(0, 10);
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(top10));
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(top10));
+    }
   } catch (err) {
     console.warn("Erro ao salvar leaderboard no localStorage:", err);
   }
+
+  // Tenta submeter em segundo plano ao backend Cloudflare Worker (não bloqueia UI)
+  try {
+    submitOnlineScore(newEntry, entry.weekKey).catch((err) => {
+      console.warn("Falha silenciosa ao sincronizar pontuação online:", err);
+    });
+  } catch {}
 
   return top10.some(
     (e) =>
@@ -82,6 +101,9 @@ export function addLeaderboardEntry(entry: LeaderboardEntry): boolean {
 
 export function resetLeaderboard(): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_LEADERBOARD));
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_LEADERBOARD));
+    }
   } catch {}
 }
+
