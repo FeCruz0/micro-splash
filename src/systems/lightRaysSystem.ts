@@ -11,7 +11,7 @@ export function setupLightRaysSystem(k: ReturnType<typeof kaboom>) {
 
   // Criação dos feixes ultrafinos e cristalinos de luz solar (1.5px a 3.5px de largura)
   for (let i = 0; i < rayCount; i++) {
-    const baseWidth = 1.5 + (i % 3) * 1.0;
+    const baseWidth = 6 + (i % 3) * 4; // 6–14px — visíveis sem parecerem tiras sólidas
     const baseAngle = -18 + i * 2.6; // Ângulos graduais
 
     const ray = k.add([
@@ -95,7 +95,7 @@ export function setupLightRaysSystem(k: ReturnType<typeof kaboom>) {
 
       // Pulsação suave de intensidade
       const pulseOpacity = (0.7 + sway * 0.3) * biomeLightFactor;
-      ray.opacity = Math.max(0.02, Math.min(0.35, pulseOpacity));
+      ray.opacity = Math.max(0.02, Math.min(0.22, pulseOpacity));
     });
 
     // Atualiza cáusticos de refração na superfície

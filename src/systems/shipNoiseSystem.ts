@@ -29,8 +29,24 @@ export function setupShipNoiseSystem(
 
     allShipBodies.push(ship);
 
-    // Chaminé do Navio (adicionada como filha do navio para navegar junto)
-    ship.add([k.rect(20, 25), k.pos(30, -25), k.color(180, 50, 50), k.anchor("center"), k.z(9)]);
+    // Linha de flutuação (faixa vermelha na metade inferior do casco)
+    ship.add([k.rect(140, 8), k.pos(0, 8), k.color(160, 40, 40), k.anchor("center"), k.z(9)]);
+
+    // Janelas de convés (5 vigias)
+    for (let w = 0; w < 5; w++) {
+      ship.add([
+        k.rect(5, 4, { radius: 1 }),
+        k.pos(-46 + w * 22, -6),
+        k.color(255, 230, 120),
+        k.opacity(0.9),
+        k.anchor("center"),
+        k.z(9),
+      ]);
+    }
+
+    // Chaminé (corpo + anel de topo escuro)
+    ship.add([k.rect(18, 28), k.pos(30, -28), k.color(180, 50, 50), k.anchor("center"), k.z(9)]);
+    ship.add([k.rect(22, 6), k.pos(30, -43), k.color(40, 40, 44), k.anchor("center"), k.z(9)]);
 
     let noiseTimer = 0;
     let trashEjectTimer = 3.0 + Math.random() * 4.0;

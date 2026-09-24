@@ -6,7 +6,7 @@
  * interativos de museus, feiras de ciências escolares e tablets públicos.
  */
 
-const CACHE_NAME = "micro-splash-v1";
+const CACHE_NAME = "micro-splash-v2";
 
 const PRECACHE_ASSETS = [
   "/",
@@ -14,6 +14,9 @@ const PRECACHE_ASSETS = [
   "/manifest.json",
   "/favicon.svg",
   "/sprites/whale.png",
+  "/sprites/orca_bg.png",
+  "/sprites/humpback_bg.png",
+  "/sprites/cachalote_bg.png",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
 ];

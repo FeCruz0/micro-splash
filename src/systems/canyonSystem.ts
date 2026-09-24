@@ -390,6 +390,55 @@ export function setupCanyonSystem(k: KaboomCtx) {
     k.z(-4),
   ]);
 
+  // Tufos de vegetação de restinga procedural ao longo da encosta da ilha
+  const bushDefs = [
+    { rx: 150, ry: surfaceY - 34, r: 8 },
+    { rx: 280, ry: surfaceY - 46, r: 9 },
+    { rx: 420, ry: surfaceY - 58, r: 7 },
+    { rx: lighthouseX - islandStartX - 165, ry: islandPeakY + 30, r: 8 },
+    { rx: lighthouseX - islandStartX - 82, ry: islandPeakY + 14, r: 6 },
+    { rx: lighthouseX - islandStartX + 68, ry: islandPeakY + 18, r: 7 },
+    { rx: lighthouseX - islandStartX + 148, ry: islandPeakY + 28, r: 8 },
+    { rx: 855, ry: surfaceY - 48, r: 9 },
+    { rx: 962, ry: surfaceY - 38, r: 7 },
+    { rx: 1058, ry: surfaceY - 28, r: 8 },
+  ];
+  const bushCols: [number, number, number][] = [
+    [40, 100, 55],
+    [55, 130, 65],
+    [35, 85, 45],
+  ];
+  for (let b = 0; b < bushDefs.length; b++) {
+    const bd = bushDefs[b];
+    const c0 = bushCols[b % 3];
+    const c1 = bushCols[(b + 1) % 3];
+    const c2 = bushCols[(b + 2) % 3];
+    k.add([
+      k.circle(bd.r),
+      k.pos(islandStartX + bd.rx, bd.ry),
+      k.color(c0[0], c0[1], c0[2]),
+      k.anchor("center"),
+      k.z(-4),
+      "island_bush",
+    ]);
+    k.add([
+      k.circle(bd.r - 2),
+      k.pos(islandStartX + bd.rx - 9, bd.ry + 3),
+      k.color(c1[0], c1[1], c1[2]),
+      k.anchor("center"),
+      k.z(-4),
+      "island_bush",
+    ]);
+    k.add([
+      k.circle(Math.max(2, bd.r - 3)),
+      k.pos(islandStartX + bd.rx + 8, bd.ry + 2),
+      k.color(c2[0], c2[1], c2[2]),
+      k.anchor("center"),
+      k.z(-4),
+      "island_bush",
+    ]);
+  }
+
   // C. Colisor Físico Sólido da Ilha (Impede a baleia de saltar/atravessar a montanha)
   k.add([
     k.rect(islandWidth - 90, surfaceY - islandPeakY + 15),
@@ -407,48 +456,70 @@ export function setupCanyonSystem(k: KaboomCtx) {
     },
   ]);
 
-  // D. O Farol Histórico de Arraial no Cume da Ilha
+  // D. O Farol Histórico de Arraial — Versão Detalhada com Listras, Varandim e Para-raios
   const lighthouseBaseY = islandPeakY;
 
-  // Base de alvenaria do Farol
+  // Base de alvenaria
   k.add([
-    k.rect(34, 12, { radius: 2 }),
+    k.rect(36, 14, { radius: 2 }),
     k.pos(lighthouseX, lighthouseBaseY),
     k.color(58, 66, 78),
     k.anchor("bot"),
     k.z(-4),
   ]);
 
-  // Torre clássica do Farol (Branca com anel vermelho)
+  // Torre branca principal
   k.add([
     k.rect(26, 68, { radius: 3 }),
-    k.pos(lighthouseX, lighthouseBaseY - 12),
+    k.pos(lighthouseX, lighthouseBaseY - 14),
     k.color(245, 245, 250),
     k.anchor("bot"),
     k.z(-4),
   ]);
 
+  // Listras vermelhas alternadas na torre (3 faixas)
+  for (let s = 0; s < 3; s++) {
+    k.add([
+      k.rect(26, 5),
+      k.pos(lighthouseX, lighthouseBaseY - 22 - s * 18),
+      k.color(210, 45, 45),
+      k.anchor("bot"),
+      k.z(-3),
+    ]);
+  }
+
+  // Varandim / galeria circular entre torre e cúpula
   k.add([
-    k.rect(26, 18),
-    k.pos(lighthouseX, lighthouseBaseY - 38),
-    k.color(210, 45, 45),
+    k.rect(34, 5, { radius: 1 }),
+    k.pos(lighthouseX, lighthouseBaseY - 80),
+    k.color(190, 195, 210),
+    k.outline(1, k.rgb(140, 145, 160)),
     k.anchor("bot"),
     k.z(-3),
   ]);
 
-  // Cúpula / Lanterna do Farol
+  // Cúpula / Lanterna
   k.add([
-    k.rect(20, 15, { radius: 4 }),
-    k.pos(lighthouseX, lighthouseBaseY - 80),
+    k.rect(22, 16, { radius: 4 }),
+    k.pos(lighthouseX, lighthouseBaseY - 82),
     k.color(40, 45, 55),
     k.anchor("bot"),
-    k.z(-4),
+    k.z(-3),
+  ]);
+
+  // Para-raios no topo
+  k.add([
+    k.rect(2, 12),
+    k.pos(lighthouseX, lighthouseBaseY - 100),
+    k.color(80, 88, 96),
+    k.anchor("bot"),
+    k.z(-3),
   ]);
 
   // Lâmpada brilhante da lanterna
   const lanternGlow = k.add([
     k.circle(7),
-    k.pos(lighthouseX, lighthouseBaseY - 88),
+    k.pos(lighthouseX, lighthouseBaseY - 90),
     k.color(255, 240, 140),
     k.opacity(0.9),
     k.anchor("center"),
@@ -458,7 +529,7 @@ export function setupCanyonSystem(k: KaboomCtx) {
   // Feixe cônico de luz do Farol (varredura angular realista)
   const lighthouseBeam = k.add([
     k.polygon([k.vec2(0, 0), k.vec2(-400, -70), k.vec2(-460, 50)]),
-    k.pos(lighthouseX, lighthouseBaseY - 88),
+    k.pos(lighthouseX, lighthouseBaseY - 90),
     k.color(255, 245, 180),
     k.opacity(0.22),
     k.rotate(0),
@@ -466,12 +537,63 @@ export function setupCanyonSystem(k: KaboomCtx) {
     "lighthouse_beam",
   ]);
 
+  // E. Reflexo difuso do farol na superfície da água
+  const reflectionSegments: any[] = [];
+  for (let r = 0; r < 4; r++) {
+    reflectionSegments.push(
+      k.add([
+        k.rect(Math.max(1, 6 - r), Math.max(1, 9 - r * 2)),
+        k.pos(lighthouseX, surfaceY + 12 + r * 14),
+        k.color(255, 245, 180),
+        k.opacity(0.1 - r * 0.02),
+        k.anchor("center"),
+        k.z(-2),
+        "lighthouse_reflection",
+      ])
+    );
+  }
+
+  // F. Espuma costeira animada na base da ilha (Praia dos Anjos)
+  const foamParticles: { obj: any; baseX: number; speed: number; phase: number }[] = [];
+  for (let f = 0; f < 8; f++) {
+    const foamBaseX = islandStartX + 60 + Math.round((f * (islandEndX - islandStartX - 120)) / 7);
+    foamParticles.push({
+      obj: k.add([
+        k.rect(10, 2, { radius: 1 }),
+        k.pos(foamBaseX, surfaceY + 2),
+        k.color(240, 250, 255),
+        k.opacity(0.3),
+        k.z(-2),
+        "island_foam",
+      ]),
+      baseX: foamBaseX,
+      speed: 14 + (f % 3) * 5,
+      phase: f * 0.85,
+    });
+  }
+
+  // G. Veios de estratificação rochosa no promontório
+  for (const sd of [
+    { yOff: -18, lenFrac: 0.55, op: 0.13 },
+    { yOff: -36, lenFrac: 0.44, op: 0.1 },
+    { yOff: -52, lenFrac: 0.3, op: 0.08 },
+  ]) {
+    k.add([
+      k.rect(Math.round(islandWidth * sd.lenFrac), 2),
+      k.pos(islandStartX + 80, surfaceY + sd.yOff),
+      k.color(68, 86, 108),
+      k.opacity(sd.op),
+      k.z(-4),
+      "island_strata",
+    ]);
+  }
+
   // =========================================================================
   // 3. ATUALIZAÇÃO CONTÍNUA & FEEDBACK DE BIOSONAR
   // =========================================================================
   let time = 0;
   k.onUpdate(() => {
-    // Só atualiza rotação do feixe do Farol se estiver próximo de Arraial (x > 23500) ou durante reveal
+    // Só atualiza se estiver próximo de Arraial (x > 23500) ou durante reveal do biosonar
     const camX = k.camPos().x;
     if (camX < 23500 && revealTimer <= 0) return;
 
@@ -484,6 +606,21 @@ export function setupCanyonSystem(k: KaboomCtx) {
     lighthouseBeam.opacity = beamBrightness;
     lanternGlow.opacity = 0.5 + Math.abs(beamPhase) * 0.5;
     lighthouseBeam.angle = Math.sin(time * 1.2) * 16;
+
+    // Reflexo do farol na água — distorção senoidal
+    for (let r = 0; r < reflectionSegments.length; r++) {
+      reflectionSegments[r].pos.x = lighthouseX + Math.sin(time * 1.8 + r * 0.7) * 5;
+      reflectionSegments[r].opacity = Math.max(
+        0,
+        (0.1 - r * 0.02) * (0.4 + Math.abs(beamPhase) * 0.6)
+      );
+    }
+
+    // Espuma costeira — deriva suave da direita para a esquerda
+    for (const fp of foamParticles) {
+      fp.obj.pos.x = fp.baseX - ((time * fp.speed) % 55);
+      fp.obj.opacity = 0.22 + Math.sin(time * 2.2 + fp.phase) * 0.12;
+    }
 
     // Biosonar: iluminação dos contornos da rocha
     if (revealTimer > 0) {

@@ -17,8 +17,12 @@
     "lint:fix": "eslint src tests --fix",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "generate": "node scripts/generateWhaleSprite.cjs && node scripts/generatePwaIcons.cjs",
+    "generate": "node scripts/generateWhaleSprite.cjs && node scripts/generateOrcaSprite.cjs && node scripts/generateHumpbackBgSprite.cjs && node scripts/generateSpermWhaleSprite.cjs && node scripts/generatePwaIcons.cjs",
     "generate:whale": "node scripts/generateWhaleSprite.cjs",
+    "generate:orca": "node scripts/generateOrcaSprite.cjs",
+    "generate:humpback-bg": "node scripts/generateHumpbackBgSprite.cjs",
+    "generate:cachalote": "node scripts/generateSpermWhaleSprite.cjs",
+    "generate:fauna": "node scripts/generateOrcaSprite.cjs && node scripts/generateHumpbackBgSprite.cjs && node scripts/generateSpermWhaleSprite.cjs",
     "generate:icons": "node scripts/generatePwaIcons.cjs",
     "validate:data": "node scripts/validateData.cjs",
     "prepare": "husky"

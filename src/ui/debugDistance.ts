@@ -51,7 +51,7 @@ export function createDebugDistanceUI(k: KaboomCtx, playerController?: PlayerCon
   const fpsHistory: number[] = [];
 
   // Container principal: OCULTO POR PADRÃO durante a gameplay comum!
-  // Ativado exclusivamente via tecla F3.
+  // Ativado exclusivamente via tecla F8.
   const container = k.add([
     k.rect(containerWidth, containerHeight, { radius: 10 }),
     k.pos(padding, padding),
@@ -66,7 +66,7 @@ export function createDebugDistanceUI(k: KaboomCtx, playerController?: PlayerCon
 
   // Cabeçalho de desenvolvedor
   container.add([
-    k.text("⚡ [F3] TELEMETRIA & DIAGNÓSTICO (DEV)", {
+    k.text("⚡ [F8] TELEMETRIA & DIAGNÓSTICO (DEV)", {
       size: fontSizeTitle,
       font: "monospace",
     }),

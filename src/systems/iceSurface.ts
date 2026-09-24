@@ -135,6 +135,20 @@ export function setupIceSurfaceSystem(
       },
     ]);
 
+    // Veios glaciais diagonais translúcidos (destruídos automaticamente com o segmento)
+    const veinCount = 2 + Math.floor((width / 80) % 2);
+    for (let v = 0; v < veinCount; v++) {
+      const veinRelX = (width / (veinCount + 1)) * (v + 1);
+      segment.add([
+        k.rect(1.5, iceHeight * 0.7),
+        k.pos(veinRelX, iceHeight * 0.15),
+        k.color(30, 80, 140),
+        k.opacity(0.15),
+        k.rotate(-12 + v * 8),
+        k.z(11),
+      ]);
+    }
+
     // Detecção Contínua:
     // Quebra APENAS por cima: a baleia deve estar no ar ou caindo sobre o topo do bloco de gelo
     segment.onUpdate(() => {

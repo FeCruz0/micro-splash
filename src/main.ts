@@ -80,6 +80,31 @@ k.loadSprite("baleia", "/sprites/whale.png", {
   },
 });
 
+// Fauna de Fundo e Cenário (Fase 11 / Polimento Visual)
+k.loadSprite("orca_bg", "/sprites/orca_bg.png", {
+  sliceX: 4,
+  sliceY: 1,
+  anims: {
+    swim: { from: 0, to: 3, loop: true, speed: 5 },
+  },
+});
+
+k.loadSprite("jubarte_bg", "/sprites/humpback_bg.png", {
+  sliceX: 4,
+  sliceY: 1,
+  anims: {
+    swim: { from: 0, to: 3, loop: true, speed: 3.2 },
+  },
+});
+
+k.loadSprite("cachalote_bg", "/sprites/cachalote_bg.png", {
+  sliceX: 4,
+  sliceY: 1,
+  anims: {
+    swim: { from: 0, to: 3, loop: true, speed: 2.4 },
+  },
+});
+
 // =============================================================================
 // CENA DE SPLASH SCREEN / INTRODUÇÃO ANIMADA (Fase 13)
 // =============================================================================
@@ -304,8 +329,8 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
     audioSystem.toggleMute();
   });
 
-  // Tecla 'F3': Alterna o Painel de Telemetria e Diagnóstico de Desenvolvedor (Fôlego, Distância, Velocidade, FPS, etc.)
-  k.onKeyPress("f3", () => {
+  // Tecla 'F8': Alterna o Painel de Telemetria e Diagnóstico de Desenvolvedor (Fôlego, Distância, Velocidade, FPS, etc.)
+  k.onKeyPress("f8", () => {
     debugDistanceUI.toggle();
   });
 
@@ -470,15 +495,32 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
 k.go("splash");
 
 // Registro do PWA Service Worker Offline-First para Totens e Tablets (Fase 19.2)
+// Em desenvolvimento (DEV), desregistra e limpa caches para assegurar código sempre atualizado em tempo real
 if (typeof window !== "undefined" && "serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("/sw.js")
-      .then((registration) => {
-        console.log(`[PWA] Micro Splash Service Worker ativo (Escopo: ${registration.scope})`);
-      })
-      .catch((err) => {
-        console.warn("[PWA] Falha no registro do Service Worker:", err);
+  if (import.meta.env.DEV) {
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      for (const registration of registrations) {
+        registration.unregister();
+        console.log("[PWA] Service Worker desregistrado para desenvolvimento ativo.");
+      }
+    });
+    if ("caches" in window) {
+      caches.keys().then((names) => {
+        for (const name of names) {
+          caches.delete(name);
+        }
       });
-  });
+    }
+  } else {
+    window.addEventListener("load", () => {
+      navigator.serviceWorker
+        .register("/sw.js")
+        .then((registration) => {
+          console.log(`[PWA] Micro Splash Service Worker ativo (Escopo: ${registration.scope})`);
+        })
+        .catch((err) => {
+          console.warn("[PWA] Falha no registro do Service Worker:", err);
+        });
+    });
+  }
 }

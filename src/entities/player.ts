@@ -24,7 +24,7 @@ export function createPlayer(
   const comps: any[] = [
     k.sprite("baleia", { anim: "glide" }),
     k.pos(initialX, 200),
-    k.area({ shape: new k.Rect(k.vec2(0, 0), 108, 38) }),
+    k.area({ shape: new k.Rect(k.vec2(-54, -19), 108, 42) }),
     k.body(),
     k.rotate(0),
     k.color(255, 255, 255),
