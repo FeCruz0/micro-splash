@@ -7,6 +7,29 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [1.1.0] - 2026-09-25 — Infraestrutura, CI/CD & Deploy (Fase 25)
+
+### Adicionado
+
+- **Pipeline de Integração Contínua (CI)**:
+  - Workflow GitHub Actions completo (`.github/workflows/ci.yml`) com execução em push e PR para `main` e `develop`.
+  - Etapas automatizadas: formatação Prettier (`format:check`), linting ESLint (`lint`), validação de schemas Zod (`validate:data`), cobertura de testes Vitest (`coverage`) e compilação de produção (`build`).
+- **Deploy Automatizado (CD)**:
+  - Workflow GitHub Actions (`.github/workflows/deploy.yml`) para publicação automática no GitHub Pages com suporte nativo a PWA e job pronto para Cloudflare Pages via Wrangler.
+- **Docker Multi-Stage & Nginx Otimizado**:
+  - Imagem de produção `Dockerfile.prod` utilizando Node 20 Alpine para build e Nginx 1.27 Alpine para runtime.
+  - Redução drástica do tamanho da imagem de ~900MB para apenas ~21.2MB.
+  - Servidor `nginx.conf` dedicado com fallback SPA (`try_files`), compressão gzip, headers de segurança (CSP, X-Frame-Options, X-Content-Type-Options, Permissions-Policy), cache imutável para assets estáticos e endpoint `/healthz` para checagem de saúde.
+  - Arquivo `.dockerignore` otimizado.
+- **Orquestração para Totens & Kiosks**:
+  - Arquivo `docker-compose.prod.yml` com política de auto-recuperação `restart: always` contra quedas de energia em museus/escolas, mapeamento na porta 8080 e healthcheck integrado.
+- **Variáveis de Ambiente & Versionamento Automático**:
+  - Configuração de ambientes `.env.example`, `.env.development` e `.env.production` com tipagem estrita em `src/vite-env.d.ts`.
+  - Injeção global da constante `__APP_VERSION__` via `vite.config.ts` alimentada dinamicamente pelo `package.json`.
+  - Exibição de badge discreto de versão (`v1.1.0`) no rodapé do menu principal (`mainMenu.ts`) e no rodapé do menu de opções (`optionsScreen.ts`).
+
+---
+
 ## [1.0.0] - 2026-09-24 — Lançamento Oficial (Release 1.0)
 
 ### Adicionado

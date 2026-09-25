@@ -1,4 +1,5 @@
 import type { KaboomCtx } from "kaboom";
+import { APP_VERSION } from "../config";
 import { audioSystem } from "../systems/audioSystem";
 import { showStatsModal } from "./statsModal";
 
@@ -224,6 +225,17 @@ export function createMainMenu(
     k.pos(k.width() / 2, k.height() - 35),
     k.color(140, 180, 220),
     k.anchor("center"),
+    k.fixed(),
+    k.z(11),
+  ]);
+
+  // Versão da aplicação (Fase 25 - Diagnóstico de Totem & PWA)
+  k.add([
+    k.text(`v${APP_VERSION}`, { size: 10, font: "sans-serif" }),
+    k.pos(k.width() - 14, k.height() - 12),
+    k.anchor("botright"),
+    k.color(120, 160, 210),
+    k.opacity(0.65),
     k.fixed(),
     k.z(11),
   ]);

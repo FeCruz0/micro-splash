@@ -1,0 +1,22 @@
+# =============================================================================
+# Docker Compose de Produção — Micro Splash (Totens, Museus e Estandes)
+# Uso: docker compose -f docker-compose.prod.yml up -d --build
+# =============================================================================
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    container_name: micro-splash-prod
+    restart: always
+    ports:
+      - "8080:80"
+    environment:
+      - KIOSK_MODE=true
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s

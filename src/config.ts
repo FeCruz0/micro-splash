@@ -146,3 +146,5 @@ export function setSavedDisplayMode(mode: DisplayMode): void {
     localStorage.setItem("micro_splash_display_mode", mode);
   }
 }
+
+export const APP_VERSION = typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "1.1.0";

@@ -11,6 +11,7 @@ import {
   getSavedDisplayMode,
   setSavedDisplayMode,
   type DisplayMode,
+  APP_VERSION,
 } from "../config";
 
 export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
@@ -706,4 +707,17 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   });
 
   btnBack.onClick(close);
+
+  // Selo de versão do Micro Splash (Fase 25)
+  elements.push(
+    k.add([
+      k.text(`Micro Splash v${APP_VERSION}`, { size: 10, font: "sans-serif" }),
+      k.pos(k.width() / 2, k.height() / 2 + 224),
+      k.color(120, 160, 200),
+      k.opacity(0.65),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(303),
+    ])
+  );
 }

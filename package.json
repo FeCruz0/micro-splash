@@ -1,6 +1,6 @@
 {
   "name": "micro-splash",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Micro Splash — Jogo educativo e arcade sobre a migração épica da baleia-jubarte",
   "private": true,
   "type": "module",

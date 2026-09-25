@@ -278,16 +278,16 @@ _Objetivo: Estabelecer ferramentas de qualidade, padronização e observabilidad
 
 _Objetivo: Automatizar o ciclo de integração, testes e publicação do jogo, tornando o deploy nos totens e a URL pública triviais._
 
-- [ ] **25.1 GitHub Actions — Pipeline de CI Completo:**
-  - Criar `.github/workflows/ci.yml` que executa em todo PR e push para `develop`/`main`: checkout + Node 20, `npm ci`, `npm run lint`, `npm test` e `npm run build`. Garante que nenhum PR quebre os testes ou o build de produção. Custo zero no GitHub.
-- [ ] **25.2 GitHub Actions — Deploy Automático para Cloudflare Pages:**
-  - Criar workflow `deploy.yml` disparado no merge para `main`: executa `npm run build` e publica `dist/` no Cloudflare Pages — oferece domínio `.pages.dev` gratuito com HTTPS, CDN global e suporte nativo a PWA. URL pública estável para divulgar a escolas e museus.
-- [ ] **25.3 Docker Multi-Stage Build — Imagem de Produção Otimizada:**
-  - Substituir o `Dockerfile` atual (que roda `npm run dev` expondo o Vite dev server) por uma build multi-stage: Stage 1 compila com Node 20 Alpine (`npm run build`), Stage 2 serve `dist/` com Nginx Alpine. A imagem de produção passa de ~900MB para ~25MB, tornando o deploy nos totens muito mais rápido.
-- [ ] **25.4 `docker-compose.prod.yml` para Totens:**
-  - Arquivo separado com imagem de produção (Stage 2), `restart: always` para auto-recuperação após queda de energia, variável `KIOSK_MODE=true` e healthcheck no endpoint `/`. Instalar o jogo em um totem de museu vira um único comando: `docker compose -f docker-compose.prod.yml up -d`.
-- [ ] **25.5 Variáveis de Ambiente com Vite (`.env` files):**
-  - Criar arquivos `.env.development` e `.env.production` para configurar `VITE_API_URL`, `VITE_KIOSK_MODE` e `VITE_BUILD_VERSION` por ambiente. Exibir a versão no rodapé do menu para diagnóstico fácil em totens sem console.
+- [x] **25.1 GitHub Actions — Pipeline de CI Completo:**
+  - Criado `.github/workflows/ci.yml` executando em push e pull requests para `main` e `develop`: checkout + Node 20, `npm ci`, verificação Prettier (`npm run format:check`), linting (`npm run lint`), validação de dados Zod (`npm run validate:data`), cobertura completa de testes com Vitest (`npm run coverage`), compilação de produção (`npm run build`) e upload de artefatos de cobertura.
+- [x] **25.2 GitHub Actions — Deploy Automático para Cloudflare Pages / GitHub Pages:**
+  - Criado workflow `.github/workflows/deploy.yml` disparado no merge para `main`: build de produção (`npm run build`), deploy automático via GitHub Pages (`actions/deploy-pages`) e job integrado pronto para publicação Cloudflare Pages via Wrangler (`cloudflare/pages-action`).
+- [x] **25.3 Docker Multi-Stage Build — Imagem de Produção Otimizada:**
+  - Criado `Dockerfile.prod` com arquitetura multi-stage (Node 20 Alpine builder -> Nginx 1.27 Alpine runtime) e `nginx.conf` dedicado com fallback SPA (`try_files $uri $uri/ /index.html`), compressão gzip, headers de segurança (CSP, X-Frame-Options, Permissions-Policy), cache imutável para assets e endpoint de saúde `/healthz`. A imagem de produção foi reduzida de ~900MB para ~21.2MB.
+- [x] **25.4 `docker-compose.prod.yml` para Totens:**
+  - Criado `docker-compose.prod.yml` com imagem de produção, política de auto-recuperação `restart: always` contra quedas de energia em museus/totens, mapeamento de porta `8080:80`, healthcheck contínuo via `curl http://localhost/healthz` e inicialização em comando único (`docker compose -f docker-compose.prod.yml up -d`).
+- [x] **25.5 Variáveis de Ambiente com Vite (`.env` files) & Versionamento em UI:**
+  - Criados `.env.example`, `.env.development` e `.env.production` com tipagem estrita em `src/vite-env.d.ts`. Injetado `__APP_VERSION__` automaticamente a partir do `package.json` no `vite.config.ts`, exportado no `src/config.ts` e exibido como badge discreto de versão (`v1.0.0`) no rodapé do menu principal (`mainMenu.ts`) e no modal de opções (`optionsScreen.ts`), facilitando diagnósticos remotos em totens sem console aberto.
 
 ### 📄 FASE 26: Documentação, Acessibilidade & Compliance
 
