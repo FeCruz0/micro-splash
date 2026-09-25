@@ -58,7 +58,7 @@ export function createSplashScreen(k: KaboomCtx, onFinish: () => void) {
   let whaleObj: any = null;
   try {
     whaleObj = k.add([
-      k.sprite("baleia", { anim: "glide" }),
+      k.sprite("baleia", { anim: "idle_swim" }),
       k.pos(cx, cy - 75),
       k.scale(0.85),
       k.anchor("center"),
@@ -178,8 +178,12 @@ export function createSplashScreen(k: KaboomCtx, onFinish: () => void) {
     titleShadow.scale = k.vec2(1 + pulse, 1 + pulse);
 
     if (whaleObj && whaleObj.exists()) {
-      whaleObj.pos.y = cy - 75 + Math.sin(elapsed * 3) * 6;
-      whaleObj.angle = Math.sin(elapsed * 2.5) * 6;
+      const idleBreath = Math.sin(elapsed * 1.4) * 0.016;
+      whaleObj.scale = k.vec2(0.85 * (1 - idleBreath * 0.35), 0.85 * (1 + idleBreath));
+      whaleObj.pos.y = cy - 75 + Math.sin(elapsed * 1.0) * 5;
+      const swell = Math.sin(elapsed * 0.8) * 2.2;
+      const ripple = Math.sin(elapsed * 2.1) * 0.6;
+      whaleObj.angle = swell + ripple;
     }
 
     // Pulsação do texto de pular

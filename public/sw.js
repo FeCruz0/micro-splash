@@ -6,7 +6,7 @@
  * interativos de museus, feiras de ciências escolares e tablets públicos.
  */
 
-const CACHE_NAME = "micro-splash-v2";
+const CACHE_NAME = "micro-splash-v6";
 
 const PRECACHE_ASSETS = [
   "/",

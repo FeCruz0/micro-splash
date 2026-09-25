@@ -2,13 +2,22 @@ const fs = require("node:fs");
 const path = require("node:path");
 const zlib = require("node:zlib");
 
+// =============================================================================
+// GERADOR PROCEDURAL DA JUBARTE PROTAGONISTA (Megaptera novaeangliae)
+// Polimento Visual Total — 8 frames × 128×64 px = 1024×64 px
+// Proporções anatômicas reais: corpo achatado dorsoventralmente, ventre volumoso,
+// cabeça larga com rostro achatado, peitorais gigantes em foice.
+// =============================================================================
+
 const WIDTH = 1024;
 const HEIGHT = 64;
 const FRAME_W = 128;
 
-// Buffer RGBA
 const buffer = Buffer.alloc(WIDTH * HEIGHT * 4, 0);
 
+// -----------------------------------------------------------------------------
+// PRIMITIVAS DE RENDERIZAÇÃO
+// -----------------------------------------------------------------------------
 function setPixel(x, y, r, g, b, a = 255) {
   x = Math.round(x);
   y = Math.round(y);
@@ -21,948 +30,823 @@ function setPixel(x, y, r, g, b, a = 255) {
     buffer[idx + 2] = b;
     buffer[idx + 3] = a;
   } else {
-    const alpha = a / 255;
-    const inv = 1 - alpha;
-    buffer[idx] = Math.round(r * alpha + buffer[idx] * inv);
-    buffer[idx + 1] = Math.round(g * alpha + buffer[idx + 1] * inv);
-    buffer[idx + 2] = Math.round(b * alpha + buffer[idx + 2] * inv);
-    buffer[idx + 3] = Math.min(255, Math.round(buffer[idx + 3] * inv + a));
+    const al = a / 255;
+    const iv = 1 - al;
+    buffer[idx] = Math.round(r * al + buffer[idx] * iv);
+    buffer[idx + 1] = Math.round(g * al + buffer[idx + 1] * iv);
+    buffer[idx + 2] = Math.round(b * al + buffer[idx + 2] * iv);
+    buffer[idx + 3] = Math.min(255, Math.round(buffer[idx + 3] * iv + a));
   }
+}
+
+function getPixelAlpha(x, y) {
+  x = Math.round(x);
+  y = Math.round(y);
+  if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) return 0;
+  return buffer[(y * WIDTH + x) * 4 + 3];
 }
 
 function fillCircle(cx, cy, r, color) {
   const r2 = r * r;
-  const yStart = Math.max(0, Math.floor(cy - r));
-  const yEnd = Math.min(HEIGHT - 1, Math.ceil(cy + r));
-  const xStart = Math.max(0, Math.floor(cx - r));
-  const xEnd = Math.min(WIDTH - 1, Math.ceil(cx + r));
-
-  for (let y = yStart; y <= yEnd; y++) {
-    for (let x = xStart; x <= xEnd; x++) {
-      const d2 = (x - cx) * (x - cx) + (y - cy) * (y - cy);
-      if (d2 <= r2) {
+  for (let y = Math.max(0, Math.floor(cy - r)); y <= Math.min(HEIGHT - 1, Math.ceil(cy + r)); y++) {
+    for (
+      let x = Math.max(0, Math.floor(cx - r));
+      x <= Math.min(WIDTH - 1, Math.ceil(cx + r));
+      x++
+    ) {
+      if ((x - cx) * (x - cx) + (y - cy) * (y - cy) <= r2)
         setPixel(x, y, color[0], color[1], color[2], color[3] ?? 255);
-      }
     }
   }
 }
 
 function fillEllipse(cx, cy, rx, ry, color) {
-  const yStart = Math.max(0, Math.floor(cy - ry));
-  const yEnd = Math.min(HEIGHT - 1, Math.ceil(cy + ry));
-  const xStart = Math.max(0, Math.floor(cx - rx));
-  const xEnd = Math.min(WIDTH - 1, Math.ceil(cx + rx));
-
-  for (let y = yStart; y <= yEnd; y++) {
-    for (let x = xStart; x <= xEnd; x++) {
-      const nx = (x - cx) / rx;
-      const ny = (y - cy) / ry;
-      if (nx * nx + ny * ny <= 1.0) {
-        setPixel(x, y, color[0], color[1], color[2], color[3] ?? 255);
-      }
+  for (
+    let y = Math.max(0, Math.floor(cy - ry));
+    y <= Math.min(HEIGHT - 1, Math.ceil(cy + ry));
+    y++
+  ) {
+    for (
+      let x = Math.max(0, Math.floor(cx - rx));
+      x <= Math.min(WIDTH - 1, Math.ceil(cx + rx));
+      x++
+    ) {
+      const nx = (x - cx) / rx,
+        ny = (y - cy) / ry;
+      if (nx * nx + ny * ny <= 1.0) setPixel(x, y, color[0], color[1], color[2], color[3] ?? 255);
     }
   }
 }
 
-function drawLine(x0, y0, x1, y1, width, color) {
-  const dx = x1 - x0;
-  const dy = y1 - y0;
+function drawLine(x0, y0, x1, y1, w, color) {
+  const dx = x1 - x0,
+    dy = y1 - y0;
   const len = Math.hypot(dx, dy);
   if (len === 0) {
-    fillCircle(x0, y0, width / 2, color);
+    fillCircle(x0, y0, w / 2, color);
     return;
   }
   const steps = Math.ceil(len * 2.5);
-  const r = width / 2;
   for (let s = 0; s <= steps; s++) {
     const t = s / steps;
-    const px = x0 + dx * t;
-    const py = y0 + dy * t;
-    fillCircle(px, py, r, color);
+    fillCircle(x0 + dx * t, y0 + dy * t, w / 2, color);
   }
 }
 
-function drawQuadCurve(x0, y0, cx, cy, x1, y1, width, color) {
+function drawQuadCurve(x0, y0, cx, cy, x1, y1, w, color) {
   const steps = Math.max(16, Math.ceil(Math.hypot(x1 - x0, y1 - y0) * 1.8));
-  let prevX = x0,
-    prevY = y0;
+  let px = x0,
+    py = y0;
   for (let i = 1; i <= steps; i++) {
-    const t = i / steps;
-    const it = 1 - t;
-    const px = it * it * x0 + 2 * it * t * cx + t * t * x1;
-    const py = it * it * y0 + 2 * it * t * cy + t * t * y1;
-    drawLine(prevX, prevY, px, py, width, color);
-    prevX = px;
-    prevY = py;
+    const t = i / steps,
+      it = 1 - t;
+    const nx = it * it * x0 + 2 * it * t * cx + t * t * x1;
+    const ny = it * it * y0 + 2 * it * t * cy + t * t * y1;
+    drawLine(px, py, nx, ny, w, color);
+    px = nx;
+    py = ny;
   }
 }
 
-// =============================================================================
-// PALETA COERENTE COM A ILUSTRAÇÃO DE DANIELA WEIL (Megaptera novaeangliae)
-// =============================================================================
-const PALETTE = {
-  // Dorso / corpo superior (Charcoal-Umber ardósia quente)
-  dorsalDarkest: [30, 22, 16, 255], // #1e1610 contorno escuro e sombras
-  dorsalDark: [52, 40, 32, 255], // #342820 corpo dorsal escuro
-  dorsalMid: [78, 64, 52, 255], // #4e4034 tom médio terroso
-  dorsalLight: [114, 96, 78, 255], // #72604e crista dorsal iluminada
-  dorsalHighlight: [146, 126, 104, 255], // #927e68 reflexo suave na crista
+// -----------------------------------------------------------------------------
+// DITHERING BAYER 2×2 — anti-banding para gradientes suaves
+// -----------------------------------------------------------------------------
+const BAYER = [
+  [0, 2],
+  [3, 1],
+];
+function dither(x, y, strength = 10) {
+  return (BAYER[y & 1][x & 1] / 4.0 - 0.5) * 2.0 * strength;
+}
+function lerpC(a, b, t, x, y, ds = 10) {
+  const tc = Math.max(0, Math.min(1, t));
+  const d = dither(x, y, ds);
+  return [
+    Math.max(0, Math.min(255, Math.round(a[0] + (b[0] - a[0]) * tc + d))),
+    Math.max(0, Math.min(255, Math.round(a[1] + (b[1] - a[1]) * tc + d))),
+    Math.max(0, Math.min(255, Math.round(a[2] + (b[2] - a[2]) * tc + d))),
+    255,
+  ];
+}
 
-  // Ventre e bolsa gular (Creme marfim e bege quente)
-  bellyWhite: [248, 244, 236, 255], // #f8f4ec marfim puro
-  bellyMid: [224, 214, 198, 255], // #e0d6c6 tom médio do ventre gular
-  bellyShade: [172, 156, 138, 255], // #ac9c8a sombra gular suave
-  bellyPatch: [252, 250, 244, 255], // #fcfaf4 mancha branca do flanco posterior
+// -----------------------------------------------------------------------------
+// PRNG determinístico para sardas
+// -----------------------------------------------------------------------------
+function mulberry32(seed) {
+  return function () {
+    seed |= 0;
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
 
-  // Pregas gulares (Sulcos ventrais profundos característicos)
-  grooveDeep: [34, 24, 16, 255], // #221810 fenda escura bem definida
-  grooveMid: [68, 52, 38, 255], // #443426 borda da fenda
-  grooveRidge: [254, 252, 246, 255], // #fefcf6 crista clara entre pregas
+// -----------------------------------------------------------------------------
+// PALETA — Megaptera novaeangliae (Daniela Weil reference + polimento)
+// -----------------------------------------------------------------------------
+const P = {
+  // Dorso (carvão-umber com nuances quentes)
+  d0: [24, 18, 12, 255], // contorno mais escuro
+  d1: [44, 34, 26, 255], // dorso profundo
+  d2: [68, 54, 42, 255], // dorso médio
+  d3: [98, 80, 62, 255], // flanco dorsal iluminado
+  d4: [132, 110, 88, 255], // crista dorsal / highlight
 
-  // Nadadeiras Peitorais (Megaptera - longas asas de foice)
-  pectoralWhite: [250, 248, 242, 255], // #faf8f2 superfície ventral branca
-  pectoralCream: [232, 226, 216, 255], // #e8e2d8 tom suave de transição
-  pectoralMottle: [112, 96, 80, 255], // #706050 sardas/manchas escuras
-  pectoralDark: [38, 28, 20, 255], // #261c14 bordo anterior escuro
-  pectoralBack: [106, 90, 76, 240], // Nadadeira oposta ao fundo (3D)
-  pectoralBackDark: [54, 42, 32, 255],
+  // Ventre (marfim creme)
+  v0: [160, 148, 132, 255], // ventre sombreado
+  v1: [200, 190, 174, 255], // ventre médio
+  v2: [232, 226, 214, 255], // ventre claro
+  v3: [250, 246, 238, 255], // marfim puro (peitoral, patch)
 
-  // Tubérculos (Nódulos sensoriais na cabeça, queixo e nadadeira)
-  tubercleBase: [34, 24, 18, 255],
-  tubercleTip: [184, 166, 146, 255],
-  tubercleGlint: [240, 230, 215, 255],
+  // Transição lateral (azul-acinzentado oceânico)
+  lat: [82, 72, 62, 255], // flanco lateral
 
-  // Olho e Espiráculo
-  eyeRing: [64, 48, 36, 255],
-  eyeDark: [14, 10, 8, 255],
-  eyeGlint: [245, 250, 255, 255],
-  blowhole: [22, 14, 10, 255],
+  // Pregas gulares
+  gDeep: [28, 18, 12, 255],
+  gRidge: [252, 250, 244, 255],
 
-  // Boca, Cavidade Oral e Barbas Filtradoras (Baleen - Megaptera novaeangliae)
-  baleenPlate: [250, 240, 205, 255], // #faf0cd cerdas douradas brilhantes
-  baleenMid: [225, 205, 165, 255], // #e1cda5 lâmina de queratina marfim-dourada
-  baleenShadow: [145, 125, 90, 255], // #917d5a franja e sombra das cerdas
-  mouthGape: [46, 16, 22, 255], // #2e1016 cavidade oral profunda / garganta
-  mouthTongue: [84, 28, 38, 255], // #541c26 assoalho da boca / língua carnosa
-  mouthStream: [190, 230, 255, 160], // fluxo translúcido de água entrando na boca
-  krillBody: [255, 110, 70, 255], // #ff6e46 corpo do krill coral bioluminescente
-  krillGlow: [255, 220, 160, 230], // #ffdca0 brilho dourado do krill
-  krillEye: [24, 16, 14, 255], // olho minúsculo do krill
+  // Boca / barbas
+  baleenPlate: [248, 238, 200, 255],
+  baleenMid: [222, 202, 160, 255],
+  baleenTip: [140, 120, 85, 255],
+  mouthDark: [40, 14, 18, 255],
+  mouthTongue: [78, 26, 34, 255],
+  mouthStream: [185, 228, 255, 150],
+  krillBody: [255, 105, 60, 255],
+  krillGlow: [255, 215, 150, 220],
+
+  // Nadadeiras peitorais
+  pWhite: [248, 246, 240, 255],
+  pCream: [228, 220, 208, 255],
+  pDark: [34, 26, 18, 255],
+  pMottle: [108, 90, 74, 255],
+  // Peitoral oposta (mais escura/azulada — perspectiva)
+  pBack: [58, 50, 42, 200],
+  pBackDark: [36, 26, 18, 255],
+
+  // Tubérculos
+  tbBase: [30, 22, 16, 255],
+  tbTip: [178, 160, 138, 255],
+  tbGlint: [238, 228, 212, 255],
+
+  // Olho
+  eyeRing: [58, 44, 32, 255],
+  eyeDark: [12, 8, 6, 255],
+  eyeGlit: [242, 248, 255, 255],
+
+  // Espiráculo
+  blow: [20, 12, 8, 255],
+
+  // Cracas (Coronula diadema)
+  bcOuter: [205, 200, 190, 255],
+  bcInner: [28, 20, 14, 255],
+  bcRidge: [238, 234, 226, 255],
+
+  // Sombra projetada oceânica
+  shadow: [8, 16, 32, 60],
 };
 
-/**
- * Curvatura anatômica progressiva da coluna vertebral da jubarte.
- * Começa suavemente após a inserção torácica (lx ~ 76) e atinge flexão máxima
- * no pedúnculo caudal (lx = 18), gerando ondas de downstroke côncavo e upstroke convexo.
- */
-function getSpineYOffset(lx, tailYOffset) {
-  if (lx >= 76 || tailYOffset === 0) return 0;
+// -----------------------------------------------------------------------------
+// Sardas determinísticas (seed fixa — mesma aparência em todos os frames)
+// -----------------------------------------------------------------------------
+const SPECKLES = (() => {
+  const rng = mulberry32(0x4a55424152); // "JUBAR"
+  const s = [];
+  for (let i = 0; i < 20; i++) {
+    s.push({
+      lx: 28 + rng() * 78, // ao longo do corpo
+      relY: 0.04 + rng() * 0.48, // dorso e flanco superior
+      r: 0.5 + rng() * 1.1,
+    });
+  }
+  return s;
+})();
+
+// (Cracas e tubérculos do rostro removidos para eliminar efeito de bolhas na boca)
+
+// -----------------------------------------------------------------------------
+// Curvatura espinhal — flexão biológica da coluna da jubarte
+// Propulsão oscila lx 18-72, tórax fixo 72-114
+// -----------------------------------------------------------------------------
+function spineY(lx, tailOff) {
+  if (lx >= 76 || tailOff === 0) return 0;
   const t = Math.min(1, Math.max(0, (76 - lx) / 58));
-  // Interpolação cúbica de Hermite suave (smoothstep) para flexão biológica contínua
-  const factor = t * t * (3 - 2 * t);
-  return tailYOffset * factor;
+  return tailOff * t * t * (3 - 2 * t);
 }
 
-function renderWhaleFrame(frameIndex) {
-  const offsetX = frameIndex * FRAME_W;
+// =============================================================================
+// RENDERIZAÇÃO DE CADA FRAME
+// =============================================================================
+function renderFrame(fi) {
+  const ox = fi * FRAME_W; // origin X do frame
 
-  let tailYOffset = 0;
-  let flukeTilt = 0;
-  let pecYOffset = 0;
-  const isFeeding = frameIndex === 7;
+  // Parâmetros de animação de batida de cauda
+  let tailOff = 0,
+    flukeTilt = 0,
+    pecOff = 0;
+  const isFeed = fi === 7;
 
-  if (frameIndex === 1) {
-    // Upstroke 1 (início da elevação caudal)
-    tailYOffset = -4.0;
-    flukeTilt = -0.25;
-    pecYOffset = -1.2;
-  } else if (frameIndex === 2) {
-    // Upstroke 2 (ápice da elevação caudal / arco convexo)
-    tailYOffset = -7.5;
-    flukeTilt = -0.48;
-    pecYOffset = -2.2;
-  } else if (frameIndex === 3) {
-    // Mid Down (transição inicial descendente)
-    tailYOffset = -1.5;
-    flukeTilt = 0.1;
-    pecYOffset = 0.5;
-  } else if (frameIndex === 4) {
-    // Downstroke 1 (descida da cauda)
-    tailYOffset = 4.2;
-    flukeTilt = 0.32;
-    pecYOffset = 1.4;
-  } else if (frameIndex === 5) {
-    // Downstroke 2 (ápice da batida de propulsão / arco côncavo)
-    tailYOffset = 7.8;
-    flukeTilt = 0.52;
-    pecYOffset = 2.4;
-  } else if (frameIndex === 6) {
-    // Return (retorno elástico em direção à linha neutra)
-    tailYOffset = 2.0;
-    flukeTilt = 0.15;
-    pecYOffset = 0.8;
+  if (fi === 1) {
+    tailOff = -3.5;
+    flukeTilt = -0.22;
+    pecOff = -1.0;
+  } else if (fi === 2) {
+    tailOff = -5.8;
+    flukeTilt = -0.36;
+    pecOff = -1.6;
+  } else if (fi === 3) {
+    tailOff = -1.2;
+    flukeTilt = 0.08;
+    pecOff = 0.4;
+  } else if (fi === 4) {
+    tailOff = 3.5;
+    flukeTilt = 0.25;
+    pecOff = 1.1;
+  } else if (fi === 5) {
+    tailOff = 5.8;
+    flukeTilt = 0.38;
+    pecOff = 1.6;
+  } else if (fi === 6) {
+    tailOff = 1.6;
+    flukeTilt = 0.12;
+    pecOff = 0.5;
   }
 
-  // ===========================================================================
-  // 1. NADADEIRA PEITORAL OPOSTA (Ao fundo - dá profundidade 3D imediata)
-  // ===========================================================================
+  // ─────────────────────────────────────────────────────────────────────────
+  // A. NADADEIRA PEITORAL OPOSTA (atrás do corpo, perspectiva 3D)
+  //    Versão comprimida + escurecida. Renderizada ANTES do corpo.
+  // ─────────────────────────────────────────────────────────────────────────
   {
-    const bBaseX = offsetX + 80;
-    const bBaseY = 36.5 + pecYOffset * 0.7;
-    const bTipX = offsetX + 71;
-    const bTipY = bBaseY + 14.0 + pecYOffset * 1.25;
+    // Base inserção no tórax (lx=77), ponta inferior (lx=60, y=56)
+    const bBx = ox + 78,
+      bBy = 35.5 + pecOff * 0.6;
+    const bCx = ox + 68,
+      bCy = bBy + 7.0;
+    const bTx = ox + 58,
+      bTy = bBy + 12.5 + pecOff * 1.0;
 
-    drawQuadCurve(
-      bBaseX,
-      bBaseY,
-      bBaseX - 3,
-      bBaseY + 7,
-      bTipX,
-      bTipY,
-      3.8,
-      PALETTE.pectoralBackDark
-    );
-    drawQuadCurve(
-      bBaseX - 1,
-      bBaseY + 1,
-      bBaseX - 4,
-      bBaseY + 8,
-      bTipX + 1,
-      bTipY,
-      2.5,
-      PALETTE.pectoralBack
-    );
-    fillCircle(bTipX, bTipY, 1.3, PALETTE.bellyMid);
+    const steps = 20;
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps,
+        it = 1 - t;
+      const cx = it * it * bBx + 2 * it * t * bCx + t * t * bTx;
+      const cy = it * it * bBy + 2 * it * t * bCy + t * t * bTy;
+      const dx = 2 * (1 - t) * (bCx - bBx) + 2 * t * (bTx - bCx);
+      const dy = 2 * (1 - t) * (bCy - bBy) + 2 * t * (bTy - bCy);
+      const len = Math.hypot(dx, dy);
+      const nx = -dy / (len || 1),
+        ny = dx / (len || 1);
+      const hw = 2.2 * (1 - t * 0.65) + 0.3;
+      drawLine(cx - nx * hw, cy - ny * hw, cx + nx * hw, cy + ny * hw, 1.0, P.pBack);
+      setPixel(cx + nx * hw, cy + ny * hw, P.pBackDark[0], P.pBackDark[1], P.pBackDark[2]);
+    }
+    // 2 tubérculos comprimidos
+    for (const tf of [0.3, 0.65]) {
+      const it = 1 - tf;
+      const cx = it * it * bBx + 2 * it * tf * bCx + tf * tf * bTx;
+      const cy = it * it * bBy + 2 * it * tf * bCy + tf * tf * bTy;
+      fillCircle(cx, cy, 0.9, P.pBackDark);
+    }
   }
 
-  // ===========================================================================
-  // 2. CORPO FUSIFORME VOLUMOSO DA JUBARTE (Megaptera novaeangliae)
-  // ===========================================================================
-  // Guardamos os limites verticais da bolsa gular para renderizar as pregas com perfeição
+  // ─────────────────────────────────────────────────────────────────────────
+  // B. CORPO PRINCIPAL — perfil anatômico da Megaptera novaeangliae
+  //
+  //  Proporções reais:
+  //   - Dorso quase reto, levemente inclinado do rostro à corcunda
+  //   - Ventre muito convexo (volumoso) — não torpedo!
+  //   - Cabeça achatada em cima, arredondada embaixo (rostro de balaenopterídeo)
+  //   - Pedúnculo caudal estreito e alto
+  //
+  //  Coordenadas em espaço de frame (lx 16..120, y 14..60):
+  //   lx: 16 = ponta da cauda, 120 = ponta do rostro
+  //   y:  14 = dorso/crista, 56 = ventre máximo
+  // ─────────────────────────────────────────────────────────────────────────
   const pouchBounds = [];
 
-  for (let lx = 18; lx <= 114; lx++) {
-    const currentTailY = getSpineYOffset(lx, tailYOffset);
+  for (let lx = 16; lx <= 120; lx++) {
+    const sy = spineY(lx, tailOff);
+    const ax = ox + lx;
 
-    let topY, botY, jawY;
+    let topY,
+      botY,
+      jawY = 0;
 
-    if (lx > 88) {
-      // CABEÇA / ROSTRO / BOLSA GULAR ANTERIOR
-      const t = (lx - 88) / 26; // 0 em 88, 1 em 114
-
-      if (isFeeding) {
-        // ROSTRO SUPERIOR: achatado, típico de baleinídeo
-        topY = 19.5 + t * 4.0; // 19.5 -> 23.5 (linha reta do dorso superior)
-        jawY = 23.5 + t * 2.5; // teto do palato (interior): 23.5 -> 26.0
-        // BOLSA GULAR: expansão máxima do engolfamento
-        botY = 57.0 - Math.pow(t, 1.8) * 9.0; // 57.0 -> 48.0 no queixo
+    if (lx >= 92) {
+      // ── CABEÇA: rostro longo e achatado ──
+      const t = (lx - 92) / 28; // 0..1 da testa ao rostro
+      if (isFeed) {
+        // Boca aberta: bolsa gular expandida
+        topY = 16.5 + t * 6.0; // dorso desce levemente
+        jawY = 25.0 + t * 2.0; // palato
+        botY = 55.0 - Math.pow(t, 1.5) * 10.0; // ventre = bolsa inflada
       } else {
-        topY = 20.0 + t * 6.5; // de 20.0 a 26.5
-        jawY = 28.5 - t * 0.5; // de 28.5 a 28.0
-        botY = 42.0 - Math.pow(t, 1.2) * 12.5; // de 42.0 até 29.5 no queixo
+        topY = 16.5 + t * 7.5; // dorso da cabeça (queda suave)
+        jawY = 30.0 - t * 0.5; // comissura da boca
+        botY = 44.0 - Math.pow(t, 1.1) * 14.0; // queixo arredondado
       }
-    } else if (lx > 50) {
-      // TÓRAX, ABDÔMEN E CORCUNDA
-      const t = (lx - 50) / 38; // 0 em 50, 1 em 88
-      jawY = 28.5;
-
+    } else if (lx > 52) {
+      // ── TÓRAX E ABDÔMEN: ventre muito volumoso ──
+      const t = (lx - 52) / 40; // 0..1
+      // Dorso: suave com corcunda (58..72)
       let hump = 0;
-      if (lx >= 50 && lx <= 66) {
-        const ht = (lx - 50) / 16;
-        hump = Math.sin(ht * Math.PI) * 2.8;
+      if (lx >= 56 && lx <= 72) {
+        const ht = (lx - 56) / 16;
+        hump = Math.sin(ht * Math.PI) * 3.2;
       }
-      topY = 18.2 - hump + currentTailY;
+      topY = 15.5 - hump + sy;
 
-      if (isFeeding) {
-        // BOLSA GULAR: Cresce a partir de lx=54, atingindo ~57px em lx=88
-        if (lx < 54) {
-          botY = 34.0 + (lx - 50) * 0.5;
+      if (isFeed) {
+        if (lx < 56) {
+          botY = 38.0 + (lx - 52) * 0.8;
         } else {
-          const bt = (lx - 54) / 34; // 0 em 54, 1 em 88
-          botY = 36.0 + Math.pow(bt, 0.7) * 21.0; // 36 -> 57px
+          const bt = (lx - 56) / 36;
+          botY = 41.0 + Math.pow(bt, 0.65) * 16.0;
         }
       } else {
-        const bellyFactor = Math.sin(t * Math.PI * 0.9);
-        botY = 35.5 + bellyFactor * 7.5 + currentTailY;
+        // Ventre convexo orgânico — MÁXIMO em lx≈74 (40px de altura total)
+        const bellyPeak = Math.sin(t * Math.PI * 0.88) * 0.95 + 0.05;
+        botY = 36.0 + bellyPeak * 13.0 + sy;
       }
     } else {
-      // PEDÚNCULO CAUDAL COM NÓDULOS DORSAIS
-      const t = (lx - 18) / 32;
-      jawY = 32.0;
-
-      let knuckle = 0;
-      if (lx >= 24 && lx <= 46) {
-        knuckle = Math.max(0, Math.sin((lx - 24) * 0.78) * 1.2);
-      }
-
-      topY = 29.5 - t * 11.3 - knuckle + currentTailY;
-      botY = 33.5 + t * 2.0 + currentTailY;
+      // ── PEDÚNCULO CAUDAL: estreito e alto ──
+      const t = (lx - 16) / 36;
+      topY = 30.0 - t * 14.5 + sy;
+      botY = 33.5 + t * 3.5 + sy;
     }
 
-    const colX = offsetX + lx;
     const colH = Math.max(1, botY - topY);
 
-    // Salva os limites da bolsa gular
-    if (lx >= 54 && lx <= 114) {
+    // Salva limites da bolsa gular
+    if (lx >= 56 && lx <= 120) {
       const pTop =
-        isFeeding && lx >= 88
-          ? // Para a cabeça: o topo da bolsa começa abaixo da mandíbula
-            29.0 + Math.pow((lx - 88) / 25, 0.6) * 20.0 + 2.2
-          : lx >= 88
-            ? jawY + 0.8
-            : topY + (botY - topY) * 0.5;
+        isFeed && lx >= 92
+          ? 31.0 + Math.pow((lx - 92) / 26, 0.55) * 18.0 + 2.0
+          : lx >= 92
+            ? jawY + 1.0
+            : topY + colH * 0.52;
       pouchBounds[lx] = { top: pTop, bot: botY };
     }
 
+    // Preenche coluna com gradiente suave
     for (let py = Math.floor(topY); py <= Math.ceil(botY); py++) {
       const relY = (py - topY) / colH;
 
-      if (lx >= 88) {
-        const t = (lx - 88) / 26;
-
-        if (isFeeding) {
-          const palateY = 23.5 + t * 2.5; // teto do palato: 23.5 -> 26.0
-          const jawY_f = 29.0 + Math.pow(t, 0.6) * 20.0; // mandíbula: 29.0 -> 49.0
-
-          if (py <= Math.ceil(palateY)) {
-            // MAXILA SUPERIOR (ROSTRO)
-            if (py <= topY + 1.0) {
-              setPixel(
-                colX,
-                py,
-                PALETTE.dorsalDarkest[0],
-                PALETTE.dorsalDarkest[1],
-                PALETTE.dorsalDarkest[2]
-              );
-            } else if (py <= topY + 2.5) {
-              setPixel(
-                colX,
-                py,
-                PALETTE.dorsalLight[0],
-                PALETTE.dorsalLight[1],
-                PALETTE.dorsalLight[2]
-              );
-            } else if (py >= Math.ceil(palateY) - 1) {
-              setPixel(
-                colX,
-                py,
-                PALETTE.dorsalDarkest[0],
-                PALETTE.dorsalDarkest[1],
-                PALETTE.dorsalDarkest[2]
-              );
-            } else {
-              setPixel(
-                colX,
-                py,
-                PALETTE.dorsalDark[0],
-                PALETTE.dorsalDark[1],
-                PALETTE.dorsalDark[2]
-              );
-            }
-          } else if (py < Math.floor(jawY_f)) {
-            // CAVIDADE BUCAL (INTERIOR DA BOCA)
-            const depthT = (py - palateY) / (jawY_f - palateY);
-            if (depthT > 0.7) {
-              setPixel(
-                colX,
-                py,
-                PALETTE.mouthTongue[0],
-                PALETTE.mouthTongue[1],
-                PALETTE.mouthTongue[2]
-              );
-            } else {
-              setPixel(colX, py, PALETTE.mouthGape[0], PALETTE.mouthGape[1], PALETTE.mouthGape[2]);
-            }
-          } else if (py <= Math.ceil(jawY_f) + 2) {
-            // OSSO DA MANDÍBULA INFERIOR
+      if (lx >= 92) {
+        // Região cefálica
+        const t = (lx - 92) / 28;
+        if (isFeed) {
+          const palY = 25.0 + t * 2.0;
+          const jawF = 31.0 + Math.pow(t, 0.55) * 18.0;
+          if (py <= Math.ceil(palY)) {
             setPixel(
-              colX,
+              ax,
               py,
-              py === Math.floor(jawY_f) ? PALETTE.dorsalDarkest[0] : PALETTE.dorsalDark[0],
-              py === Math.floor(jawY_f) ? PALETTE.dorsalDarkest[1] : PALETTE.dorsalDark[1],
-              py === Math.floor(jawY_f) ? PALETTE.dorsalDarkest[2] : PALETTE.dorsalDark[2]
+              py <= topY + 1.0 ? P.d4[0] : P.d1[0],
+              py <= topY + 1.0 ? P.d4[1] : P.d1[1],
+              py <= topY + 1.0 ? P.d4[2] : P.d1[2]
             );
+          } else if (py < Math.floor(jawF)) {
+            const dt = (py - palY) / (jawF - palY);
+            setPixel(
+              ax,
+              py,
+              dt > 0.65 ? P.mouthTongue[0] : P.mouthDark[0],
+              dt > 0.65 ? P.mouthTongue[1] : P.mouthDark[1],
+              dt > 0.65 ? P.mouthTongue[2] : P.mouthDark[2]
+            );
+          } else if (py <= Math.ceil(jawF) + 2) {
+            setPixel(ax, py, P.d0[0], P.d0[1], P.d0[2]);
           } else {
-            // BOLSA GULAR INFLADA ABAIXO DA MANDÍBULA
-            const jawBotY = Math.ceil(jawY_f) + 2;
-            const pouchT = (py - jawBotY) / (botY - jawBotY);
-            if (pouchT < 0.4) {
-              setPixel(
-                colX,
-                py,
-                PALETTE.bellyShade[0],
-                PALETTE.bellyShade[1],
-                PALETTE.bellyShade[2]
-              );
-            } else {
-              setPixel(colX, py, PALETTE.bellyMid[0], PALETTE.bellyMid[1], PALETTE.bellyMid[2]);
-            }
+            const pt = (py - Math.ceil(jawF) - 2) / (botY - Math.ceil(jawF) - 2);
+            const c = lerpC(P.v0, P.v2, pt, ax, py, 7);
+            setPixel(ax, py, c[0], c[1], c[2]);
           }
         } else {
-          // REGIÃO CEFÁLICA COM BOCA FECHADA
           if (py < jawY) {
-            if (py <= topY + 1.2) {
-              setPixel(
-                colX,
-                py,
-                PALETTE.dorsalLight[0],
-                PALETTE.dorsalLight[1],
-                PALETTE.dorsalLight[2]
-              );
-            } else {
-              setPixel(
-                colX,
-                py,
-                PALETTE.dorsalDark[0],
-                PALETTE.dorsalDark[1],
-                PALETTE.dorsalDark[2]
-              );
-            }
-          } else if (Math.abs(py - jawY) < 1.0) {
             setPixel(
-              colX,
+              ax,
               py,
-              PALETTE.dorsalDarkest[0],
-              PALETTE.dorsalDarkest[1],
-              PALETTE.dorsalDarkest[2]
+              py <= topY + 1.5 ? P.d4[0] : P.d1[0],
+              py <= topY + 1.5 ? P.d4[1] : P.d1[1],
+              py <= topY + 1.5 ? P.d4[2] : P.d1[2]
             );
+          } else if (Math.abs(py - jawY) < 1.2) {
+            setPixel(ax, py, P.d0[0], P.d0[1], P.d0[2]);
           } else {
-            setPixel(colX, py, PALETTE.bellyMid[0], PALETTE.bellyMid[1], PALETTE.bellyMid[2]);
+            const c = lerpC(P.v1, P.v2, (py - jawY) / (botY - jawY), ax, py, 6);
+            setPixel(ax, py, c[0], c[1], c[2]);
           }
         }
       } else {
-        // CORPO MÉDIO E POSTERIOR
-        if (relY < 0.16) {
-          setPixel(
-            colX,
-            py,
-            PALETTE.dorsalLight[0],
-            PALETTE.dorsalLight[1],
-            PALETTE.dorsalLight[2]
-          );
-        } else if (relY < 0.44) {
-          setPixel(colX, py, PALETTE.dorsalDark[0], PALETTE.dorsalDark[1], PALETTE.dorsalDark[2]);
-        } else if (relY < 0.56) {
-          setPixel(colX, py, PALETTE.dorsalMid[0], PALETTE.dorsalMid[1], PALETTE.dorsalMid[2]);
+        // ── Corpo: gradiente 5 zonas com dithering ──
+        // Gradiente longitudinal: tórax 5% mais claro que pedúnculo
+        const longi = Math.max(0, Math.min(1, (lx - 16) / 96)) * 6;
+
+        if (relY < 0.07) {
+          // Crista dorsal
+          const c = lerpC(P.d4, P.d3, relY / 0.07, ax, py, 7);
+          setPixel(ax, py, Math.min(255, (c[0] + longi) | 0), c[1], c[2]);
+        } else if (relY < 0.32) {
+          // Dorso superior
+          const c = lerpC(P.d3, P.d2, (relY - 0.07) / 0.25, ax, py, 12);
+          setPixel(ax, py, c[0], c[1], c[2]);
+        } else if (relY < 0.52) {
+          // Flanco médio (transição dorso→ventre)
+          const c = lerpC(P.d2, P.d1, (relY - 0.32) / 0.2, ax, py, 10);
+          setPixel(ax, py, c[0], c[1], c[2]);
+        } else if (relY < 0.68) {
+          // Flanco ventral
+          const c = lerpC(P.d1, P.v0, (relY - 0.52) / 0.16, ax, py, 9);
+          setPixel(ax, py, c[0], c[1], c[2]);
         } else {
-          // Ventre
-          if (lx >= 46 && lx <= 64 && relY > 0.6 && !isFeeding) {
-            setPixel(colX, py, PALETTE.bellyPatch[0], PALETTE.bellyPatch[1], PALETTE.bellyPatch[2]);
-          } else if (lx > 64) {
-            setPixel(colX, py, PALETTE.bellyMid[0], PALETTE.bellyMid[1], PALETTE.bellyMid[2]);
-          } else {
-            setPixel(colX, py, PALETTE.bellyShade[0], PALETTE.bellyShade[1], PALETTE.bellyShade[2]);
-          }
+          // Ventre — mancha branca posterior (lx 48-72)
+          const isPatch = lx >= 48 && lx <= 74 && !isFeed;
+          const ca = isPatch ? P.v2 : P.v0;
+          const cb = isPatch ? P.v3 : P.v2;
+          const c = lerpC(ca, cb, (relY - 0.68) / 0.32, ax, py, 7);
+          setPixel(ax, py, c[0], c[1], c[2]);
         }
       }
     }
   }
 
-  // ===========================================================================
-  // 3. PREGAS GULARES / SULCOS VENTRAIS DISTRIBUÍDAS COM PRECISÃO ANATÔMICA
-  // ===========================================================================
+  // ─────────────────────────────────────────────────────────────────────────
+  // C. SARDAS DORSAIS (SPECKLES determinísticos)
+  // ─────────────────────────────────────────────────────────────────────────
+  if (!isFeed) {
+    for (const sp of SPECKLES) {
+      const lxi = Math.round(sp.lx);
+      const sy = spineY(lxi, tailOff);
+      let topYs = 15.5 + sy,
+        botYs = 38.0 + sy;
+      if (lxi <= 52) {
+        const t = (lxi - 16) / 36;
+        topYs = 30.0 - t * 14.5 + sy;
+        botYs = 33.5 + t * 3.5 + sy;
+      }
+      const spY = topYs + sp.relY * (botYs - topYs);
+      fillCircle(ox + lxi, spY, sp.r, P.d0);
+      fillCircle(ox + lxi, spY, sp.r * 0.42, P.d1);
+    }
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // D. PREGAS GULARES (sulcos ventrais)
+  // ─────────────────────────────────────────────────────────────────────────
   {
-    const numGrooves = isFeeding ? 11 : 7;
-    for (let g = 0; g < numGrooves; g++) {
-      const frac = (g + 0.5) / numGrooves;
-
-      const startLx = isFeeding ? 113 : g < 2 ? 104 : g < 4 ? 109 : 112;
-      const endLx = isFeeding ? 54 : g < 2 ? 68 : 62;
-
+    const ng = isFeed ? 12 : 8;
+    for (let g = 0; g < ng; g++) {
+      const frac = (g + 0.5) / ng;
+      const startLx = isFeed ? 119 : g < 3 ? 108 : 115;
+      const endLx = isFeed ? 58 : g < 3 ? 70 : 65;
       for (let lx = startLx; lx >= endLx; lx--) {
-        const bounds = pouchBounds[lx];
-        if (!bounds) continue;
-        const gy = bounds.top + frac * (bounds.bot - bounds.top);
-        const colX = offsetX + lx;
-        const rowY = Math.round(gy);
-
-        if (rowY > bounds.top && rowY < bounds.bot) {
-          setPixel(colX, rowY, PALETTE.grooveDeep[0], PALETTE.grooveDeep[1], PALETTE.grooveDeep[2]);
-          if (rowY - 1 > bounds.top) {
-            setPixel(
-              colX,
-              rowY - 1,
-              PALETTE.grooveRidge[0],
-              PALETTE.grooveRidge[1],
-              PALETTE.grooveRidge[2]
-            );
-          }
+        const b = pouchBounds[lx];
+        if (!b || b.top < 24) continue;
+        const gy = b.top + frac * (b.bot - b.top);
+        const ry = Math.round(gy);
+        if (ry > b.top && ry < b.bot) {
+          setPixel(ox + lx, ry, P.gDeep[0], P.gDeep[1], P.gDeep[2]);
+          if (ry - 1 > b.top) setPixel(ox + lx, ry - 1, P.gRidge[0], P.gRidge[1], P.gRidge[2]);
         }
       }
     }
   }
 
-  // ===========================================================================
-  // 4. CONTORNO DORSAL PRECISO E DESTAQUE NA CRISTA
-  // ===========================================================================
-  for (let lx = 18; lx <= 114; lx++) {
-    const currentTailY = getSpineYOffset(lx, tailYOffset);
+  // ─────────────────────────────────────────────────────────────────────────
+  // E. CONTORNO DORSAL NÍTIDO + HIGHLIGHT DE CRISTA
+  // ─────────────────────────────────────────────────────────────────────────
+  for (let lx = 16; lx <= 120; lx++) {
+    const sy = spineY(lx, tailOff);
     let topY;
-    if (lx > 88) {
-      const t = (lx - 88) / 26;
-      topY = isFeeding ? 19.5 + t * 4.0 : 20.0 + t * 6.5;
-    } else if (lx > 50) {
+    if (lx >= 92) {
+      const t = (lx - 92) / 28;
+      topY = isFeed ? 16.5 + t * 6.0 : 16.5 + t * 7.5;
+    } else if (lx > 52) {
       let hump = 0;
-      if (lx >= 50 && lx <= 66) {
-        const ht = (lx - 50) / 16;
-        hump = Math.sin(ht * Math.PI) * 2.8;
+      if (lx >= 56 && lx <= 72) {
+        const ht = (lx - 56) / 16;
+        hump = Math.sin(ht * Math.PI) * 3.2;
       }
-      topY = 18.2 - hump + currentTailY;
+      topY = 15.5 - hump + sy;
     } else {
-      const t = (lx - 18) / 32;
-      let knuckle = 0;
-      if (lx >= 24 && lx <= 46) {
-        knuckle = Math.max(0, Math.sin((lx - 24) * 0.78) * 1.2);
-      }
-      topY = 29.5 - t * 11.3 - knuckle + currentTailY;
+      const t = (lx - 16) / 36;
+      topY = 30.0 - t * 14.5 + sy;
     }
-    setPixel(
-      offsetX + lx,
-      Math.floor(topY),
-      PALETTE.dorsalDarkest[0],
-      PALETTE.dorsalDarkest[1],
-      PALETTE.dorsalDarkest[2]
-    );
-    if (lx >= 60 && lx <= 84) {
-      setPixel(
-        offsetX + lx,
-        Math.floor(topY) + 1,
-        PALETTE.dorsalHighlight[0],
-        PALETTE.dorsalHighlight[1],
-        PALETTE.dorsalHighlight[2]
-      );
-    }
+    setPixel(ox + lx, Math.floor(topY), P.d0[0], P.d0[1], P.d0[2]);
+    // Highlight de crista só no tórax
+    if (lx >= 62 && lx <= 88) setPixel(ox + lx, Math.floor(topY) + 1, P.d4[0], P.d4[1], P.d4[2]);
   }
 
-  // ===========================================================================
-  // 5. NADADEIRA DORSAL FALCADA (Sólida, curvada sobre a corcunda a 2/3 do corpo)
-  // ===========================================================================
+  // ─────────────────────────────────────────────────────────────────────────
+  // F. NADADEIRA DORSAL FALCADA
+  // ─────────────────────────────────────────────────────────────────────────
   {
-    const dX = offsetX + 53;
-    const dY = 15.4 + getSpineYOffset(53, tailYOffset);
-    drawLine(dX + 4.5, dY + 3.2, dX - 0.5, dY - 3.2, 2.8, PALETTE.dorsalDark);
-    drawLine(dX - 0.5, dY - 3.2, dX - 4.2, dY + 3.0, 2.2, PALETTE.dorsalDarkest);
-    fillCircle(dX - 1.0, dY - 1.5, 1.5, PALETTE.dorsalDark);
-    setPixel(
-      dX - 0.5,
-      Math.round(dY - 3.2),
-      PALETTE.dorsalLight[0],
-      PALETTE.dorsalLight[1],
-      PALETTE.dorsalLight[2]
-    );
-    setPixel(
-      dX - 1.5,
-      Math.round(dY - 2.5),
-      PALETTE.dorsalDarkest[0],
-      PALETTE.dorsalDarkest[1],
-      PALETTE.dorsalDarkest[2]
-    );
+    const dX = ox + 57;
+    const dY = 12.8 + spineY(57, tailOff);
+    drawLine(dX + 5.0, dY + 3.8, dX - 0.5, dY - 4.2, 3.0, P.d1);
+    drawLine(dX - 0.5, dY - 4.2, dX - 5.0, dY + 3.5, 2.4, P.d0);
+    fillCircle(dX - 0.8, dY - 2.2, 1.6, P.d1);
+    setPixel(dX - 0.5, Math.round(dY - 4.2), P.d4[0], P.d4[1], P.d4[2]); // glint no topo
+    setPixel(dX - 1.5, Math.round(dY - 3.4), P.d0[0], P.d0[1], P.d0[2]); // sombra
   }
 
-  // ===========================================================================
-  // 6. BOCA, BARBAS FILTRADORAS E MANDÍBULA
-  // ===========================================================================
-  if (isFeeding) {
-    // Linha escura da mandíbula inferior em arco bem pronunciado (29 -> 49px!)
-    drawQuadCurve(
-      offsetX + 113,
-      49.5,
-      offsetX + 101,
-      41.0,
-      offsetX + 88,
-      29.0,
-      2.2,
-      PALETTE.dorsalDarkest
-    );
-    drawQuadCurve(
-      offsetX + 113,
-      48.0,
-      offsetX + 101,
-      39.5,
-      offsetX + 88,
-      29.5,
-      1.2,
-      PALETTE.mouthTongue
-    );
+  // ─────────────────────────────────────────────────────────────────────────
+  // G. KNUCKLES DO PEDÚNCULO (6 nódulos dorsais progressivos)
+  // ─────────────────────────────────────────────────────────────────────────
+  {
+    const kdata = [
+      { lx: 48, r: 2.3 },
+      { lx: 42, r: 2.0 },
+      { lx: 36, r: 1.7 },
+      { lx: 30, r: 1.4 },
+      { lx: 24, r: 1.1 },
+      { lx: 19, r: 0.9 },
+    ];
+    for (const kn of kdata) {
+      const sy2 = spineY(kn.lx, tailOff);
+      const t = (kn.lx - 16) / 36;
+      const baseTop = 30.0 - t * 14.5 + sy2;
+      const ky = baseTop - kn.r * 0.4;
+      fillCircle(ox + kn.lx, ky + kn.r * 0.35, kn.r, P.d0); // sombra
+      fillCircle(ox + kn.lx, ky, kn.r * 0.82, P.d1); // corpo
+      setPixel(ox + kn.lx, Math.round(ky - kn.r * 0.5), P.d4[0], P.d4[1], P.d4[2]); // highlight
+    }
+  }
 
-    // Borda do palato / maxila superior
-    drawQuadCurve(
-      offsetX + 113,
-      25.8,
-      offsetX + 101,
-      24.8,
-      offsetX + 88,
-      23.5,
-      1.5,
-      PALETTE.dorsalDarkest
-    );
+  // ─────────────────────────────────────────────────────────────────────────
+  // H. BOCA E BARBAS (feed frame) / COMISSURA (frames normais)
+  // ─────────────────────────────────────────────────────────────────────────
+  if (isFeed) {
+    // Arco da mandíbula inferior
+    drawQuadCurve(ox + 119, 51.0, ox + 106, 42.0, ox + 92, 31.0, 2.4, P.d0);
+    drawQuadCurve(ox + 119, 49.5, ox + 106, 40.5, ox + 92, 31.5, 1.4, P.mouthTongue);
+    // Palato superior
+    drawQuadCurve(ox + 119, 27.0, ox + 106, 26.0, ox + 92, 25.0, 1.6, P.d0);
 
-    // BARBAS FILTRADORAS: pente dourado pendente do palato
-    for (let b = 90; b <= 112; b++) {
-      const t2 = (b - 88) / 26;
-      const palY = 23.5 + t2 * 2.5;
-      const midT = (b - 90) / 22;
-      const hangLen = 3.5 + Math.sin(midT * Math.PI) * 8.5;
-
-      const bx = offsetX + b;
-      for (let py = Math.floor(palY + 1.2); py <= Math.floor(palY + hangLen); py++) {
-        const fracDown = (py - (palY + 1.2)) / (hangLen - 1.2);
-        const isTip = fracDown > 0.85;
-        const isPlate = b % 2 === 0;
-        if (isTip) {
-          setPixel(
-            bx,
-            py,
-            PALETTE.baleenShadow[0],
-            PALETTE.baleenShadow[1],
-            PALETTE.baleenShadow[2]
-          );
-        } else if (isPlate) {
-          setPixel(bx, py, PALETTE.baleenPlate[0], PALETTE.baleenPlate[1], PALETTE.baleenPlate[2]);
-        } else {
-          setPixel(bx, py, PALETTE.baleenMid[0], PALETTE.baleenMid[1], PALETTE.baleenMid[2]);
-        }
+    // Barbas filtradoras pendentes
+    for (let b = 94; b <= 118; b++) {
+      const t2 = (b - 92) / 28;
+      const palY = 25.0 + t2 * 2.0;
+      const midT = (b - 94) / 24;
+      const hang = 4.0 + Math.sin(midT * Math.PI) * 9.5;
+      for (let py = Math.floor(palY + 1.5); py <= Math.floor(palY + hang); py++) {
+        const fd = (py - (palY + 1.5)) / (hang - 1.5);
+        setPixel(
+          ox + b,
+          py,
+          fd > 0.85 ? P.baleenTip[0] : b % 2 === 0 ? P.baleenPlate[0] : P.baleenMid[0],
+          fd > 0.85 ? P.baleenTip[1] : b % 2 === 0 ? P.baleenPlate[1] : P.baleenMid[1],
+          fd > 0.85 ? P.baleenTip[2] : b % 2 === 0 ? P.baleenPlate[2] : P.baleenMid[2]
+        );
       }
     }
 
-    // Fluxo de água sendo succionada
-    drawLine(offsetX + 112, 32, offsetX + 99, 34, 1.0, PALETTE.mouthStream);
-    drawLine(offsetX + 115, 38, offsetX + 97, 40, 1.2, PALETTE.mouthStream);
-    drawLine(offsetX + 112, 44, offsetX + 95, 41, 0.8, PALETTE.mouthStream);
+    // Fluxo de água
+    drawLine(ox + 118, 33, ox + 102, 35, 1.0, P.mouthStream);
+    drawLine(ox + 120, 40, ox + 100, 42, 1.2, P.mouthStream);
+    drawLine(ox + 117, 46, ox + 98, 43, 0.8, P.mouthStream);
 
-    // Cardume de Krill sendo engolfado
-    const krillSwarm = [
-      { x: 98, y: 36 },
-      { x: 105, y: 39 },
-      { x: 111, y: 35 },
-      { x: 116, y: 33 },
-      { x: 114, y: 41 },
-    ];
-
-    for (const kr of krillSwarm) {
-      const kx = offsetX + kr.x;
-      const ky = kr.y;
-      fillCircle(kx, ky, 1.3, PALETTE.krillGlow);
-      setPixel(kx, ky, PALETTE.krillBody[0], PALETTE.krillBody[1], PALETTE.krillBody[2]);
-      setPixel(kx - 1, ky, PALETTE.krillBody[0], PALETTE.krillBody[1], PALETTE.krillBody[2]);
+    // Krill
+    for (const kr of [
+      { x: 100, y: 37 },
+      { x: 107, y: 40 },
+      { x: 113, y: 36 },
+      { x: 119, y: 34 },
+      { x: 115, y: 43 },
+    ]) {
+      const kx = ox + kr.x;
+      fillCircle(kx, kr.y, 1.4, P.krillGlow);
+      setPixel(kx, kr.y, P.krillBody[0], P.krillBody[1], P.krillBody[2]);
     }
   } else {
-    drawQuadCurve(
-      offsetX + 114,
-      28.5,
-      offsetX + 103,
-      31.0,
-      offsetX + 88,
-      28.5,
-      1.5,
-      PALETTE.dorsalDarkest
-    );
+    // Comissura da boca fechada
+    drawQuadCurve(ox + 119, 30.0, ox + 108, 32.0, ox + 92, 30.0, 1.6, P.d0);
   }
 
-  // ===========================================================================
-  // 7. TUBÉRCULOS SENSORIAIS DA CABEÇA E DO QUEIXO (Megaptera)
-  // ===========================================================================
-  const tubercles = isFeeding
-    ? [
-        // Crista medial do rostro superior
-        { x: 113, y: 23.5, r: 1.4 },
-        { x: 108, y: 22.2, r: 1.4 },
-        { x: 102, y: 21.0, r: 1.4 },
-        { x: 96, y: 20.2, r: 1.3 },
-        { x: 90, y: 19.8, r: 1.2 },
-        // Laterais do rostro
-        { x: 106, y: 24.0, r: 1.2 },
-        { x: 100, y: 23.0, r: 1.2 },
-        { x: 94, y: 22.0, r: 1.1 },
-        // Queixo e mandíbula inferior REBAIXADA (em arco)
-        { x: 113.0, y: 50.5, r: 1.7 }, // Grande tubérculo no queixo rebaixado
-        { x: 107.0, y: 46.5, r: 1.4 },
-        { x: 100.0, y: 41.5, r: 1.3 },
-        { x: 93.0, y: 35.5, r: 1.2 },
-        { x: 88.0, y: 29.5, r: 1.1 },
-      ]
-    : [
-        // Crista medial do rostro (frame normal)
-        { x: 113, y: 27.2, r: 1.4 },
-        { x: 108, y: 24.8, r: 1.4 },
-        { x: 102, y: 23.2, r: 1.4 },
-        { x: 96, y: 21.8, r: 1.3 },
-        { x: 90, y: 20.8, r: 1.2 },
-        // Laterais do rostro (acima da boca)
-        { x: 106, y: 27.5, r: 1.2 },
-        { x: 100, y: 26.2, r: 1.2 },
-        { x: 94, y: 25.0, r: 1.1 },
-        // Queixo e mandíbula inferior (proeminência clássica)
-        { x: 113.5, y: 30.5, r: 1.6 },
-        { x: 108, y: 33.5, r: 1.3 },
-        { x: 102, y: 36.5, r: 1.3 },
-        { x: 96, y: 39.0, r: 1.2 },
-      ];
+  // I. Tubérculos do rostro/queixo removidos (eliminado efeito de bolhas saindo da boca)
 
-  for (const t of tubercles) {
-    fillCircle(offsetX + t.x, t.y, t.r, PALETTE.tubercleBase);
-    fillCircle(offsetX + t.x - 0.3, t.y - 0.4, t.r * 0.65, PALETTE.tubercleTip);
-    setPixel(
-      offsetX + t.x - 0.4,
-      t.y - 0.6,
-      PALETTE.tubercleGlint[0],
-      PALETTE.tubercleGlint[1],
-      PALETTE.tubercleGlint[2]
-    );
-  }
-
-  // ===========================================================================
-  // 8. ESPIRÁCULO DUPLO (Com montículo splashguard)
-  // ===========================================================================
+  // ─────────────────────────────────────────────────────────────────────────
+  // J. ESPIRÁCULO DUPLO
+  // ─────────────────────────────────────────────────────────────────────────
   {
-    const blowX = offsetX + 86;
-    const blowY = 19.0;
-    fillEllipse(blowX, blowY, 2.6, 1.2, PALETTE.dorsalDarkest);
-    setPixel(blowX - 0.8, blowY, PALETTE.blowhole[0], PALETTE.blowhole[1], PALETTE.blowhole[2]);
-    setPixel(blowX + 0.8, blowY, PALETTE.blowhole[0], PALETTE.blowhole[1], PALETTE.blowhole[2]);
-    setPixel(
-      blowX,
-      blowY - 0.8,
-      PALETTE.dorsalLight[0],
-      PALETTE.dorsalLight[1],
-      PALETTE.dorsalLight[2]
-    );
+    const bx = ox + 90,
+      by = 16.8;
+    fillEllipse(bx, by, 2.8, 1.3, P.d0);
+    setPixel(bx - 0.9, by, P.blow[0], P.blow[1], P.blow[2]);
+    setPixel(bx + 0.9, by, P.blow[0], P.blow[1], P.blow[2]);
+    setPixel(bx, by - 0.9, P.d4[0], P.d4[1], P.d4[2]); // glint superior
   }
 
-  // ===========================================================================
-  // 9. OLHO COM ÓRBITA E REFLEXO AQUÁTICO
-  // ===========================================================================
+  // ─────────────────────────────────────────────────────────────────────────
+  // K. OLHO
+  // ─────────────────────────────────────────────────────────────────────────
   {
-    const eyeX = isFeeding ? offsetX + 83.5 : offsetX + 88.5;
-    const eyeY = isFeeding ? 22.0 : 26.5; // No feeding, olho fica no dorso lateral acima da boca
-    fillCircle(eyeX, eyeY, 2.2, PALETTE.eyeRing);
-    fillCircle(eyeX, eyeY, 1.4, PALETTE.eyeDark);
-    setPixel(eyeX + 0.4, eyeY - 0.4, PALETTE.eyeGlint[0], PALETTE.eyeGlint[1], PALETTE.eyeGlint[2]);
+    const ex = isFeed ? ox + 87.0 : ox + 92.0;
+    const ey = isFeed ? 23.5 : 27.5;
+    fillCircle(ex, ey, 2.4, P.eyeRing);
+    fillCircle(ex, ey, 1.5, P.eyeDark);
+    setPixel(ex + 0.5, ey - 0.5, P.eyeGlit[0], P.eyeGlit[1], P.eyeGlit[2]);
+    // Pequeno arco de pálpebra
+    setPixel(ex - 1.2, ey - 1.2, P.d0[0], P.d0[1], P.d0[2]);
+    setPixel(ex + 1.2, ey - 1.2, P.d0[0], P.d0[1], P.d0[2]);
   }
 
-  // ===========================================================================
-  // 10. NADADEIRA PEITORAL GIGANTE EM FOICE (Fiel à ilustração de Daniela Weil)
-  // ===========================================================================
+  // ─────────────────────────────────────────────────────────────────────────
+  // L. NADADEIRA PEITORAL GIGANTE EM FOICE (face ventral clara)
+  //    Proporção real: 30% do comprimento do corpo = ~32px de ponta a base
+  //    Base em lx=78, ponta em lx=40 (fora do frame é cortado pelo ventre)
+  // ─────────────────────────────────────────────────────────────────────────
   {
-    const pBaseX = offsetX + 74;
-    const pBaseY = 35.0 + pecYOffset;
+    const pBx = ox + 78,
+      pBy = 37.0 + pecOff;
+    const pCx = ox + 62,
+      pCy = pBy + 12.0;
+    const pTx = ox + 44,
+      pTy = pBy + 20.0 + (pecOff < 0 ? pecOff * 1.5 : pecOff * 0.4);
 
-    const pCtrlX = offsetX + 61;
-    const pCtrlY = pBaseY + 11.5;
-
-    const pTipX = offsetX + 42;
-    const pTipY = pBaseY + 21.0 + (pecYOffset < 0 ? pecYOffset * 1.6 : pecYOffset * 0.45);
-
-    // Renderiza a lâmina por fatias transversais contínuas (fita preenchida)
-    const ribbonSteps = 40;
-    for (let i = 0; i <= ribbonSteps; i++) {
-      const t = i / ribbonSteps;
-      const it = 1 - t;
-
-      const cx = it * it * pBaseX + 2 * it * t * pCtrlX + t * t * pTipX;
-      const cy = it * it * pBaseY + 2 * it * t * pCtrlY + t * t * pTipY;
-
-      const dx = 2 * (1 - t) * (pCtrlX - pBaseX) + 2 * t * (pTipX - pCtrlX);
-      const dy = 2 * (1 - t) * (pCtrlY - pBaseY) + 2 * t * (pTipY - pCtrlY);
+    const rSteps = 44;
+    for (let i = 0; i <= rSteps; i++) {
+      const t = i / rSteps,
+        it = 1 - t;
+      const cx = it * it * pBx + 2 * it * t * pCx + t * t * pTx;
+      const cy = it * it * pBy + 2 * it * t * pCy + t * t * pTy;
+      const dx = 2 * (1 - t) * (pCx - pBx) + 2 * t * (pTx - pCx);
+      const dy = 2 * (1 - t) * (pCy - pBy) + 2 * t * (pTy - pCy);
       const len = Math.hypot(dx, dy);
-      const nx = -dy / (len || 1);
-      const ny = dx / (len || 1);
-
-      const halfW = 2.9 * (1 - t * 0.68) + 0.5;
-
-      const pTopX = cx + nx * halfW;
-      const pTopY = cy + ny * halfW;
-      const pBotX = cx - nx * halfW;
-      const pBotY = cy - ny * halfW;
-
-      // Face ventral clara (marfim/branco)
-      drawLine(pBotX, pBotY, pTopX, pTopY, 1.6, PALETTE.pectoralWhite);
-
-      // Bordo anterior escuro integrado
-      setPixel(
-        pTopX,
-        pTopY,
-        PALETTE.pectoralDark[0],
-        PALETTE.pectoralDark[1],
-        PALETTE.pectoralDark[2]
-      );
-      setPixel(
-        pTopX - nx * 0.5,
-        pTopY - ny * 0.5,
-        PALETTE.pectoralDark[0],
-        PALETTE.pectoralDark[1],
-        PALETTE.pectoralDark[2]
-      );
+      const nx = -dy / (len || 1),
+        ny = dx / (len || 1);
+      const hw = 3.1 * (1 - t * 0.66) + 0.5;
+      // Face ventral clara
+      drawLine(cx - nx * hw, cy - ny * hw, cx + nx * hw, cy + ny * hw, 1.7, P.pWhite);
+      // Bordo anterior escuro
+      setPixel(cx + nx * hw, cy + ny * hw, P.pDark[0], P.pDark[1], P.pDark[2]);
+      setPixel(cx + nx * (hw - 0.5), cy + ny * (hw - 0.5), P.pDark[0], P.pDark[1], P.pDark[2]);
     }
 
-    // 5 Tubérculos da borda anterior suaves e orgânicos
-    const tubFracs = [0.18, 0.36, 0.54, 0.72, 0.88];
-    for (const t of tubFracs) {
-      const it = 1 - t;
-      const cx = it * it * pBaseX + 2 * it * t * pCtrlX + t * t * pTipX;
-      const cy = it * it * pBaseY + 2 * it * t * pCtrlY + t * t * pTipY;
-      const dx = 2 * (1 - t) * (pCtrlX - pBaseX) + 2 * t * (pTipX - pCtrlX);
-      const dy = 2 * (1 - t) * (pCtrlY - pBaseY) + 2 * t * (pTipY - pCtrlY);
+    // 5 tubérculos da borda anterior
+    for (const tf of [0.16, 0.34, 0.52, 0.7, 0.87]) {
+      const it = 1 - tf;
+      const cx = it * it * pBx + 2 * it * tf * pCx + tf * tf * pTx;
+      const cy = it * it * pBy + 2 * it * tf * pCy + tf * tf * pTy;
+      const dx = 2 * (1 - tf) * (pCx - pBx) + 2 * tf * (pTx - pCx);
+      const dy = 2 * (1 - tf) * (pCy - pBy) + 2 * tf * (pTy - pCy);
       const len = Math.hypot(dx, dy);
-      const nx = -dy / (len || 1);
-      const ny = dx / (len || 1);
-      const halfW = 2.9 * (1 - t * 0.68) + 0.5;
-
-      const kx = cx + nx * halfW;
-      const ky = cy + ny * halfW;
-      fillCircle(kx, ky, 1.2, PALETTE.pectoralDark);
-      setPixel(
-        kx - nx * 0.3,
-        ky - ny * 0.3,
-        PALETTE.tubercleTip[0],
-        PALETTE.tubercleTip[1],
-        PALETTE.tubercleTip[2]
-      );
+      const nx = -dy / (len || 1),
+        ny = dx / (len || 1);
+      const hw = 3.1 * (1 - tf * 0.66) + 0.5;
+      fillCircle(cx + nx * hw, cy + ny * hw, 1.3, P.pDark);
+      setPixel(cx + nx * (hw - 0.4), cy + ny * (hw - 0.4), P.tbTip[0], P.tbTip[1], P.tbTip[2]);
     }
 
-    // Manchas/sardas escuras na face ventral
-    const mottles = [
-      { t: 0.28, shift: 0.0 },
-      { t: 0.44, shift: -0.7 },
-      { t: 0.58, shift: 0.4 },
-      { t: 0.72, shift: -0.4 },
-      { t: 0.84, shift: 0.2 },
-    ];
-    for (const m of mottles) {
+    // Sardas/manchas na face ventral
+    for (const m of [
+      { t: 0.26, s: 0 },
+      { t: 0.42, s: -0.6 },
+      { t: 0.57, s: 0.4 },
+      { t: 0.71, s: -0.3 },
+      { t: 0.84, s: 0.2 },
+    ]) {
       const it = 1 - m.t;
-      const cx = it * it * pBaseX + 2 * it * m.t * pCtrlX + m.t * m.t * pTipX;
-      const cy = it * it * pBaseY + 2 * it * m.t * pCtrlY + m.t * m.t * pTipY;
-      fillCircle(cx + m.shift, cy + m.shift, 0.9, PALETTE.pectoralMottle);
+      const cx = it * it * pBx + 2 * it * m.t * pCx + m.t * m.t * pTx;
+      const cy = it * it * pBy + 2 * it * m.t * pCy + m.t * m.t * pTy;
+      fillCircle(cx + m.s, cy + m.s, 1.0, P.pMottle);
     }
-
-    fillCircle(pTipX, pTipY, 1.2, PALETTE.pectoralWhite);
+    fillCircle(pTx, pTy, 1.3, P.pWhite); // ponta arredondada
   }
 
-  // ===========================================================================
-  // 11. CAUDA E FLUKES (Asas caudais amplas com bordo serrilhado e entalhe)
-  // ===========================================================================
+  // ─────────────────────────────────────────────────────────────────────────
+  // M. CAUDA E FLUKES — Pigmentação ventral individual (padrão tipo 3)
+  // ─────────────────────────────────────────────────────────────────────────
   {
-    const tailX = offsetX + 18;
-    const tailY = 30.5 + tailYOffset;
-    const span = 15.0;
-    const sweep = 11.5;
+    const tX = ox + 16,
+      tY = 32.0 + tailOff;
+    const span = 15.0,
+      sweep = 12.0;
+    const topX = tX - sweep,
+      topY = tY - span + flukeTilt * 8.0;
+    const botX = tX - sweep,
+      botY = tY + span + flukeTilt * 8.0;
 
-    const topX = tailX - sweep;
-    const topY = tailY - span + flukeTilt * 7.5;
-    const botX = tailX - sweep;
-    const botY = tailY + span + flukeTilt * 7.5;
+    // Lobo superior (dorsal escuro)
+    drawQuadCurve(tX, tY, tX - 4.5, topY + 5, topX, topY, 3.6, P.d1);
+    drawQuadCurve(tX - 2, tY, tX - 6, topY + 6, topX + 2, topY + 2, 2.5, P.d2);
+    // Lobo inferior (dorsal)
+    drawQuadCurve(tX, tY, tX - 4.5, botY - 5, botX, botY, 3.6, P.d1);
+    drawQuadCurve(tX - 2, tY, tX - 6, botY - 6, botX + 2, botY - 2, 2.5, P.d2);
 
-    // Lobo superior
-    drawQuadCurve(tailX, tailY, tailX - 4, topY + 4, topX, topY, 3.4, PALETTE.dorsalDark);
-    drawQuadCurve(
-      tailX - 2,
-      tailY,
-      tailX - 6,
-      topY + 5,
-      topX + 2,
-      topY + 1.5,
-      2.4,
-      PALETTE.dorsalMid
-    );
+    // Pigmentação ventral individual — patches assimétricos tipo 3 (mesclado)
+    // Lobo superior: patch claro proximal
+    drawQuadCurve(tX - 2, tY - 3, tX - 6, topY + 9, topX + 4, topY + 4, 2.2, P.v1);
+    drawQuadCurve(tX - 3, tY - 5, tX - 7, topY + 10, topX + 5, topY + 5, 1.4, P.v3);
+    // Lobo inferior: patch claro na ponta (assimetria individual)
+    fillCircle(botX + 2.5, botY - 3.5, 3.0, P.v1);
+    fillCircle(botX + 3.0, botY - 4.0, 1.8, P.v3);
 
-    // Lobo inferior
-    drawQuadCurve(tailX, tailY, tailX - 4, botY - 4, botX, botY, 3.4, PALETTE.dorsalDark);
-    drawQuadCurve(
-      tailX - 2,
-      tailY,
-      tailX - 6,
-      botY - 5,
-      botX + 2,
-      botY - 1.5,
-      2.4,
-      PALETTE.dorsalMid
-    );
+    // Manchas brancas nas pontas (trailing edge)
+    drawLine(topX + 1, topY + 1, topX + 6, topY + 5.5, 2.0, P.v3);
+    drawLine(botX + 1, botY - 1, botX + 6, botY - 5.5, 2.0, P.v3);
 
-    // Manchas claras nas pontas
-    drawLine(topX + 1, topY + 1, topX + 5, topY + 4.5, 1.8, PALETTE.bellyWhite);
-    drawLine(botX + 1, botY - 1, botX + 5, botY - 4.5, 1.8, PALETTE.bellyWhite);
-
-    // Bordo serrilhado
+    // Serrilhado do bordo posterior (mais pronunciado)
     for (let i = 1; i <= 5; i++) {
-      const frac = i / 6;
-      const stX = topX + (tailX - topX) * frac - Math.sin(frac * Math.PI) * 1.3;
-      const stY = topY + (tailY - topY) * frac;
-      setPixel(
-        stX - 0.5,
-        stY,
-        PALETTE.dorsalDarkest[0],
-        PALETTE.dorsalDarkest[1],
-        PALETTE.dorsalDarkest[2]
-      );
-
-      const sbX = botX + (tailX - botX) * frac - Math.sin(frac * Math.PI) * 1.3;
-      const sbY = botY + (tailY - botY) * frac;
-      setPixel(
-        sbX - 0.5,
-        sbY,
-        PALETTE.dorsalDarkest[0],
-        PALETTE.dorsalDarkest[1],
-        PALETTE.dorsalDarkest[2]
-      );
+      const f = i / 6;
+      const stX = topX + (tX - topX) * f - Math.sin(f * Math.PI) * 2.0;
+      const stY = topY + (tY - topY) * f;
+      setPixel(stX - 0.5, stY, P.d0[0], P.d0[1], P.d0[2]);
+      setPixel(stX - 1.5, stY + 0.5, P.d0[0], P.d0[1], P.d0[2], 140);
+      const sbX = botX + (tX - botX) * f - Math.sin(f * Math.PI) * 2.0;
+      const sbY = botY + (tY - botY) * f;
+      setPixel(sbX - 0.5, sbY, P.d0[0], P.d0[1], P.d0[2]);
+      setPixel(sbX - 1.5, sbY - 0.5, P.d0[0], P.d0[1], P.d0[2], 140);
     }
 
-    // Entalhe central (notch em V)
-    setPixel(tailX - 0.5, tailY, 0, 0, 0, 0);
-    setPixel(tailX - 1.5, tailY, 0, 0, 0, 0);
-    setPixel(tailX - 2.5, tailY, 0, 0, 0, 0);
+    // Entalhe central em V
+    setPixel(tX - 0.5, tY, 0, 0, 0, 0);
+    setPixel(tX - 1.5, tY, 0, 0, 0, 0);
+    setPixel(tX - 2.5, tY, 0, 0, 0, 0);
+    setPixel(tX - 3.5, tY, 0, 0, 0, 0);
   }
 }
 
-// Renderiza os 8 frames da folha de sprites (1024x64)
-for (let f = 0; f < 8; f++) {
-  renderWhaleFrame(f);
+// Renderiza os 8 frames
+for (let f = 0; f < 8; f++) renderFrame(f);
+
+// =============================================================================
+// FASE 7: SELF-SHADOW — borda inferior de cada pixel opaco recebe sombra oceânica
+// =============================================================================
+for (let y = 0; y < HEIGHT - 1; y++) {
+  for (let x = 0; x < WIDTH; x++) {
+    const idx = (y * WIDTH + x) * 4;
+    const below = ((y + 1) * WIDTH + x) * 4;
+    if (buffer[idx + 3] > 128 && buffer[below + 3] === 0) {
+      buffer[below] = P.shadow[0];
+      buffer[below + 1] = P.shadow[1];
+      buffer[below + 2] = P.shadow[2];
+      buffer[below + 3] = P.shadow[3];
+    }
+  }
+}
+
+// =============================================================================
+// AMBIENT OCCLUSION LEVE — contorno externo de 1px semi-transparente
+// Otimizado: verificação inline sem alocação de array por pixel
+// =============================================================================
+// Passe 1: marca pixels de borda em buffer de flags (1 byte por pixel)
+const aoMask = new Uint8Array(WIDTH * HEIGHT);
+for (let y = 1; y < HEIGHT - 1; y++) {
+  for (let x = 1; x < WIDTH - 1; x++) {
+    if (buffer[(y * WIDTH + x) * 4 + 3] === 0) {
+      if (
+        buffer[((y - 1) * WIDTH + x) * 4 + 3] > 180 ||
+        buffer[((y + 1) * WIDTH + x) * 4 + 3] > 180 ||
+        buffer[(y * WIDTH + x - 1) * 4 + 3] > 180 ||
+        buffer[(y * WIDTH + x + 1) * 4 + 3] > 180
+      )
+        aoMask[y * WIDTH + x] = 1;
+    }
+  }
+}
+// Passe 2: aplica AO diretamente no buffer
+for (let i = 0; i < WIDTH * HEIGHT; i++) {
+  if (aoMask[i]) {
+    const idx = i * 4;
+    buffer[idx] = P.d0[0];
+    buffer[idx + 1] = P.d0[1];
+    buffer[idx + 2] = P.d0[2];
+    buffer[idx + 3] = 45;
+  }
 }
 
 // =============================================================================
 // ENCODER PNG NATIVO
 // =============================================================================
-function createPNG(w, h, rgbaBuffer) {
-  const scanlines = Buffer.alloc(h * (w * 4 + 1));
+function createPNG(w, h, buf) {
+  const scans = Buffer.alloc(h * (w * 4 + 1));
   for (let y = 0; y < h; y++) {
-    const scanlineOffset = y * (w * 4 + 1);
-    scanlines[scanlineOffset] = 0;
-    rgbaBuffer.copy(scanlines, scanlineOffset + 1, y * w * 4, (y + 1) * w * 4);
+    scans[y * (w * 4 + 1)] = 0;
+    buf.copy(scans, y * (w * 4 + 1) + 1, y * w * 4, (y + 1) * w * 4);
   }
-
-  const deflated = zlib.deflateSync(scanlines, { level: 9 });
-
+  const deflated = zlib.deflateSync(scans, { level: 9 });
   const crcTable = new Uint32Array(256);
   for (let n = 0; n < 256; n++) {
     let c = n;
-    for (let k = 0; k < 8; k++) {
-      if (c & 1) c = 0xedb88320 ^ (c >>> 1);
-      else c = c >>> 1;
-    }
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
     crcTable[n] = c;
   }
-
-  function crc32(buf) {
+  function crc32(b) {
     let c = 0xffffffff;
-    for (let i = 0; i < buf.length; i++) {
-      c = crcTable[(c ^ buf[i]) & 0xff] ^ (c >>> 8);
-    }
+    for (let i = 0; i < b.length; i++) c = crcTable[(c ^ b[i]) & 0xff] ^ (c >>> 8);
     return (c ^ 0xffffffff) >>> 0;
   }
-
-  function makeChunk(type, data) {
-    const len = data.length;
-    const chunk = Buffer.alloc(4 + 4 + len + 4);
-    chunk.writeUInt32BE(len, 0);
-    chunk.write(type, 4, 4, "ascii");
-    data.copy(chunk, 8);
-    const typeAndData = chunk.subarray(4, 8 + len);
-    const crcVal = crc32(typeAndData);
-    chunk.writeUInt32BE(crcVal, 8 + len);
-    return chunk;
+  function chunk(type, data) {
+    const ch = Buffer.alloc(4 + 4 + data.length + 4);
+    ch.writeUInt32BE(data.length, 0);
+    ch.write(type, 4, 4, "ascii");
+    data.copy(ch, 8);
+    ch.writeUInt32BE(crc32(ch.subarray(4, 8 + data.length)), 8 + data.length);
+    return ch;
   }
-
-  const signature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
-
   const ihdr = Buffer.alloc(13);
   ihdr.writeUInt32BE(w, 0);
   ihdr.writeUInt32BE(h, 4);
@@ -971,19 +855,15 @@ function createPNG(w, h, rgbaBuffer) {
   ihdr[10] = 0;
   ihdr[11] = 0;
   ihdr[12] = 0;
-
-  const ihdrChunk = makeChunk("IHDR", ihdr);
-  const idatChunk = makeChunk("IDAT", deflated);
-  const iendChunk = makeChunk("IEND", Buffer.alloc(0));
-
-  return Buffer.concat([signature, ihdrChunk, idatChunk, iendChunk]);
+  return Buffer.concat([
+    Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+    chunk("IHDR", ihdr),
+    chunk("IDAT", deflated),
+    chunk("IEND", Buffer.alloc(0)),
+  ]);
 }
 
 const pngData = createPNG(WIDTH, HEIGHT, buffer);
-const outDir = path.join(__dirname, "../public/sprites");
-if (!fs.existsSync(outDir)) {
-  fs.mkdirSync(outDir, { recursive: true });
-}
-const outFile = path.join(outDir, "whale.png");
+const outFile = path.join(__dirname, "../public/sprites/whale.png");
 fs.writeFileSync(outFile, pngData);
-console.log(`Sprite autêntico da Jubarte salvo em: ${outFile} (${pngData.length} bytes)`);
+console.log(`Jubarte polida salva: ${outFile} (${pngData.length} bytes)`);

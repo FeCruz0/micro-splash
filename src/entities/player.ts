@@ -22,7 +22,7 @@ export function createPlayer(
   touchState?: TouchControlsState
 ): PlayerController {
   const comps: any[] = [
-    k.sprite("baleia", { anim: "glide" }),
+    k.sprite("baleia", { anim: "idle_swim" }),
     k.pos(initialX, 200),
     k.area({ shape: new k.Rect(k.vec2(-54, -19), 108, 42) }),
     k.body(),
@@ -41,7 +41,8 @@ export function createPlayer(
   const sonarMgr = new PlayerSonarManager(k);
   const controlsMgr = new PlayerControlsManager(k, touchState);
 
-  let animState: "glide" | "stroke_up" | "stroke_down" | "feed" = "glide";
+  let animState: "glide" | "idle_swim" | "stroke_up" | "stroke_down" | "swim" | "feed" =
+    "idle_swim";
   let feedTimer = 0;
 
   let isTrapped = false;
@@ -252,9 +253,20 @@ export function createPlayer(
           animState = targetAnim;
           baleia.play(targetAnim);
         }
-      } else if (animState !== "glide") {
-        animState = "glide";
-        baleia.play("glide");
+      } else {
+        const inWater = baleia.pos.y >= GAME_CONFIG.SEA_LEVEL;
+        if (inWater && !isTrapped && !isFrozen && !oxygenMgr.isFaintingState()) {
+          // Quando o jogador não estiver controlando com uma batida ativa, a jubarte executa
+          // um movimento natural de nado calmo contínuo para se manter flutuando enquanto cai devagar
+          // (idêntico ao nado gracioso das orcas e jubartes passantes)
+          if (animState !== "idle_swim") {
+            animState = "idle_swim";
+            baleia.play("idle_swim");
+          }
+        } else if (animState !== "glide") {
+          animState = "glide";
+          baleia.play("glide");
+        }
       }
     }
 
@@ -264,6 +276,10 @@ export function createPlayer(
 
     const currentSpeed = physicsMgr.getSpeed();
     const speedLen = currentSpeed.len();
+    const inWater = baleia.pos.y >= GAME_CONFIG.SEA_LEVEL;
+
+    // Fator de blend suave para repouso (0 quando em alta velocidade, 1 quando completamente estática)
+    const idleBlend = k.clamp((35 - speedLen) / 35, 0, 1);
 
     // Roll em Perspectiva ao mudar bruscamente de profundidade (Fase 17.2)
     const pitchAngle = controlsMgr.getAngle();
@@ -272,7 +288,7 @@ export function createPlayer(
     currentRoll = k.lerp(currentRoll, targetRoll, dt * 6);
     const rollForeshortening = 1.0 - Math.abs(currentRoll) * 0.12;
 
-    // Squash & Stretch muscular na batida (alongamento hidrodinâmico e relaxamento)
+    // Squash & Stretch muscular na batida (alongamento hidrodinâmico e relaxamento) e respiração calma em repouso
     if (baleia.scale) {
       let targetScaleX = 1.0;
       let targetScaleY = 1.0;
@@ -282,10 +298,15 @@ export function createPlayer(
         const muscularThrust = Math.sin(strokeProgress * Math.PI) * 0.07;
         targetScaleX = 1.0 + muscularThrust;
         targetScaleY = 1.0 - muscularThrust * 0.65;
-      } else if (speedLen > 40) {
+      } else if (speedLen > 35) {
         const glideBreathing = Math.sin(k.time() * 3) * 0.015;
         targetScaleX = 1.0 + glideBreathing;
         targetScaleY = 1.0 - glideBreathing;
+      } else if (!isTrapped && !isFrozen && !oxygenMgr.isFaintingState()) {
+        // Animação de repouso (idle): respiração torácica/abdominal rítmica e profunda (~0.22 Hz, ~4.5s/ciclo)
+        const idleBreath = Math.sin(k.time() * 1.4) * 0.016 * idleBlend;
+        targetScaleX = 1.0 - idleBreath * 0.35;
+        targetScaleY = 1.0 + idleBreath;
       }
 
       // Aplica a compressão em perspectiva da rolagem longitudinal
@@ -295,15 +316,20 @@ export function createPlayer(
       baleia.scale.y = k.lerp(baleia.scale.y, targetScaleY, dt * 8);
     }
 
-    // Ondulação da coluna vertebral sincronizada com o ciclo de nado (substitui a rotação rígida de torpedo)
+    // Ondulação da coluna vertebral sincronizada com o ciclo de nado ou com o swell oceânico
     let swimSway = 0;
-    if (!oxygenMgr.isFaintingState()) {
+    if (!oxygenMgr.isFaintingState() && !isFrozen) {
       if (isMuscularStroke) {
         const strokeProgress = physicsMgr.getStrokeTimer() / GAME_CONFIG.MAX_STROKE_TIME;
         swimSway = Math.sin(strokeProgress * Math.PI * 2) * 3.2;
       } else if (speedLen > 30) {
         // Balanço suave e majestoso em planeio hidrodinâmico
         swimSway = Math.sin(k.time() * 3.2) * Math.min(1.2, speedLen / 100);
+      } else if (!isTrapped && inWater) {
+        // Balanço do mar quando estática — composto por swell oceânico longo (0.8 rad/s) e ripple de ondas (2.1 rad/s)
+        const swell = Math.sin(k.time() * 0.8) * 2.2;
+        const ripple = Math.sin(k.time() * 2.1) * 0.6;
+        swimSway = (swell + ripple) * idleBlend;
       }
     }
 
@@ -341,11 +367,15 @@ export function createPlayer(
       spawnDraftingTrail(k, baleia.pos, controlsMgr.isFacingRight());
     }
 
-    // 10. Deslocamento sutil dorsoventral (onda vertical suave na água durante a propulsão)
+    // 10. Deslocamento sutil dorsoventral (onda vertical de propulsão ou balanço do mar em repouso)
     if (isMuscularStroke && !movementResult.inAir && !isTrapped) {
       const strokeProgress = physicsMgr.getStrokeTimer() / GAME_CONFIG.MAX_STROKE_TIME;
       const dorsoventralHeave = Math.sin(strokeProgress * Math.PI * 2) * 0.7;
       baleia.pos.y += dorsoventralHeave;
+    } else if (!movementResult.inAir && !isTrapped && !isFrozen && speedLen < 30) {
+      // Balanço vertical oceânico (heave) e flutuabilidade neutra em repouso
+      const oceanHeaveVel = Math.cos(k.time() * 1.0) * 4.5 * idleBlend;
+      baleia.pos.y += oceanHeaveVel * dt;
     }
 
     // 10. Cor conforme perda de oxigênio e rede

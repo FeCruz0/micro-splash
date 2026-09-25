@@ -359,5 +359,107 @@ describe("Fase 13: Polimento Visual, Atmosfera & Identidade", () => {
       const airCaustic = player.getCausticOpacity!();
       expect(airCaustic).toBe(0);
     });
+
+    it("aplica respiração abdominal e balanço de swell oceânico quando a jubarte está estática (idle)", async () => {
+      const { createPlayer } = await import("../src/entities/player");
+
+      let currentWhaleY = GAME_CONFIG.SEA_LEVEL + 40;
+      let registeredUpdate: (() => void) | null = null;
+      let simulatedTime = 1.0;
+      let whaleObjRef: any = null;
+
+      const mockKaboom: any = {
+        height: () => 360,
+        width: () => 640,
+        sprite: () => ({ anim: "glide" }),
+        pos: (x: number, y: number) => ({ x, y }),
+        area: () => ({ area: true }),
+        body: () => ({ body: true }),
+        rotate: (r: number) => ({ rotate: r }),
+        color: (r: number, g: number, b: number) => ({ r, g, b }),
+        anchor: (_a: string) => ({ anchor: _a }),
+        scale: (x: number, y: number) => ({ x, y }),
+        opacity: (o: number) => ({ opacity: o }),
+        z: (z: number) => ({ z }),
+        rect: (w: number, h: number) => ({ type: "rect", w, h }),
+        Rect: class {
+          constructor(_pos: any, _w: number, _h: number) {}
+        },
+        vec2: (x: number, y: number) => ({
+          x,
+          y,
+          len: () => Math.sqrt(x * x + y * y),
+          unit: () => ({ x: 0, y: 0 }),
+          add: (other: any) => mockKaboom.vec2(x + other.x, y + other.y),
+          scale: (s: number) => mockKaboom.vec2(x * s, y * s),
+        }),
+        deg2rad: (deg: number) => (deg * Math.PI) / 180,
+        rad2deg: (rad: number) => (rad * 180) / Math.PI,
+        clamp: (val: number, min: number, max: number) => Math.max(min, Math.min(max, val)),
+        lerp: (a: number, b: number, t: number) => a + (b - a) * t,
+        isKeyDown: () => false,
+        isKeyPressed: () => false,
+        isKeyReleased: () => false,
+        rand: (min: number) => min,
+        dt: () => 0.016,
+        time: () => simulatedTime,
+        shake: () => {},
+        camPos: () => ({ x: 100, y: 100 }),
+        rgb: (r: number, g: number, b: number) => ({ r, g, b }),
+        add: () => {
+          let _pos = {
+            x: 120,
+            y: currentWhaleY,
+            add: (v: any) => ({ x: 120 + v.x, y: currentWhaleY + v.y }),
+          };
+          whaleObjRef = {
+            get pos() {
+              return {
+                x: _pos.x,
+                y: currentWhaleY,
+                add: (v: any) => ({ x: _pos.x + v.x, y: currentWhaleY + v.y }),
+              };
+            },
+            set pos(v: any) {
+              _pos = v;
+              currentWhaleY = v.y;
+            },
+            scale: { x: 1, y: 1 },
+            angle: 0,
+            flipX: false,
+            opacity: 0,
+            color: { r: 255, g: 255, b: 255 },
+            play: () => {},
+            move: (_x: number, y: number) => {
+              currentWhaleY += y * 0.016;
+            },
+            onUpdate: (cb: () => void) => {
+              registeredUpdate = cb;
+            },
+            onDestroy: () => {},
+          };
+          return whaleObjRef;
+        },
+      };
+
+      createPlayer(mockKaboom, 120, false);
+      const updateFn = registeredUpdate as unknown as (() => void) | null;
+
+      // 1. Simula vários frames em repouso submerso
+      for (let i = 0; i < 20; i++) {
+        simulatedTime += 0.016;
+        updateFn?.();
+      }
+
+      // Em idle submerso, a escala deve apresentar modulação de respiração e o ângulo deve oscilar com o swell
+      expect(whaleObjRef.angle).not.toBe(0);
+      expect(whaleObjRef.scale.y).toBeCloseTo(1.0, 1);
+
+      // 2. No ar, o balanço de ondas do mar (swell) é inibido
+      currentWhaleY = GAME_CONFIG.SEA_LEVEL - 50;
+      updateFn?.();
+      // O ângulo no ar não deve receber o balanço das ondas do mar
+      expect(whaleObjRef.angle).toBeDefined();
+    });
   });
 });

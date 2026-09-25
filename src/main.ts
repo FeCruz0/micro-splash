@@ -59,6 +59,7 @@ const k = kaboom({
   letterbox: isLetterbox,
   stretch: !isLetterbox,
   background: [6, 18, 42],
+  debug: false,
 });
 
 accessibilitySystem.init();
@@ -73,6 +74,7 @@ k.loadSprite("baleia", "/sprites/whale.png", {
   sliceY: 1,
   anims: {
     glide: 0,
+    idle_swim: { from: 1, to: 6, loop: true, speed: 3.6 },
     stroke_up: { from: 1, to: 2, speed: 10 },
     stroke_down: { from: 3, to: 6, speed: 12 },
     swim: { from: 1, to: 6, loop: true, speed: 8 },
@@ -330,7 +332,11 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
   });
 
   // Tecla 'F8': Alterna o Painel de Telemetria e Diagnóstico de Desenvolvedor (Fôlego, Distância, Velocidade, FPS, etc.)
+  // Garante que o menu de debug seja estritamente visual e não pause a partida
   k.onKeyPress("f8", () => {
+    if (k.debug) {
+      k.debug.paused = false;
+    }
     debugDistanceUI.toggle();
   });
 
@@ -361,6 +367,11 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
 
   // 6. Loop Principal
   k.onUpdate(() => {
+    // Garante que o motor permaneça em execução contínua
+    if (k.debug && k.debug.paused) {
+      k.debug.paused = false;
+    }
+
     if (isGameFinished) {
       return;
     }

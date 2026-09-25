@@ -43,6 +43,35 @@ export function createMainMenu(
     particles.push(p);
   }
 
+  // Jubarte cenográfica de fundo navegando no menu principal com nado orgânico
+  try {
+    const menuWhale = k.add([
+      k.sprite("baleia", { anim: "idle_swim" }),
+      k.pos(k.width() / 2, k.height() / 2 + 10),
+      k.scale(1.15),
+      k.rotate(0),
+      k.anchor("center"),
+      k.color(140, 210, 245),
+      k.opacity(0.18),
+      k.fixed(),
+      k.z(2),
+    ]);
+
+    let menuWhaleTime = 0;
+    menuWhale.onUpdate(() => {
+      menuWhaleTime += k.dt();
+      const idleBreath = Math.sin(menuWhaleTime * 1.4) * 0.016;
+      menuWhale.scale = k.vec2(1.15 * (1 - idleBreath * 0.35), 1.15 * (1 + idleBreath));
+      menuWhale.pos.y = k.height() / 2 + 10 + Math.sin(menuWhaleTime * 0.9) * 8;
+      menuWhale.pos.x = k.width() / 2 + Math.sin(menuWhaleTime * 0.35) * 22;
+      const swell = Math.sin(menuWhaleTime * 0.8) * 2.2;
+      const ripple = Math.sin(menuWhaleTime * 2.1) * 0.6;
+      menuWhale.angle = swell + ripple;
+    });
+  } catch {
+    // Ignora silenciosamente caso mock de teste não forneça sprite baleia
+  }
+
   // Título Sombra
   k.add([
     k.text("MICRO SPLASH", { size: 48, font: "sans-serif" }),

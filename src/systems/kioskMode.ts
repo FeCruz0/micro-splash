@@ -57,8 +57,9 @@ export function createKioskScene(k: KaboomCtx) {
   // BALEIA-JUBARTE AUTÔNOMA (CENOGRÁFICA)
   // =========================================================================
   const baleia = k.add([
-    k.sprite("baleia", { anim: "glide" }),
+    k.sprite("baleia", { anim: "idle_swim" }),
     k.pos(120, 220),
+    k.scale(1, 1),
     k.anchor("center"),
     k.rotate(0),
     k.z(10),
@@ -68,7 +69,7 @@ export function createKioskScene(k: KaboomCtx) {
   let animTimer = 0;
   let songTimer = 2.0; // Primeiro canto após 2s
   let sonarTimer = 4.0;
-  let currentAnim = "glide";
+  let currentAnim = "idle_swim";
 
   baleia.onUpdate(() => {
     const dt = k.dt();
@@ -81,12 +82,28 @@ export function createKioskScene(k: KaboomCtx) {
     baleia.pos.x += dt * 55;
     baleia.pos.y = 210 + Math.sin(whaleTimer * 0.9) * 45;
 
-    // Inclinação suave do corpo acompanhando a trajetória vertical
-    const targetAngle = Math.cos(whaleTimer * 0.9) * 12;
+    // Inclinação suave do corpo acompanhando a trajetória vertical com swell oceânico
+    const swell = Math.sin(whaleTimer * 0.8) * 2.2;
+    const ripple = Math.sin(whaleTimer * 2.1) * 0.6;
+    const trajectoryAngle = Math.cos(whaleTimer * 0.9) * 12;
+    const targetAngle = trajectoryAngle + (currentAnim === "idle_swim" ? swell + ripple : 0);
     baleia.angle = k.lerp(baleia.angle, targetAngle, 0.08);
 
-    // Ciclo de nado (glide -> stroke -> glide)
-    if (animTimer > 2.8) {
+    // Respiração abdominal e squash & stretch orgânico
+    const idleBreath = Math.sin(whaleTimer * 1.4) * 0.016;
+    if (baleia.scale) {
+      if (currentAnim === "swim") {
+        const strokePhase = Math.sin((animTimer / 1.2) * Math.PI) * 0.06;
+        baleia.scale.x = k.lerp(baleia.scale.x, 1.0 + strokePhase, dt * 8);
+        baleia.scale.y = k.lerp(baleia.scale.y, 1.0 - strokePhase * 0.65, dt * 8);
+      } else {
+        baleia.scale.x = k.lerp(baleia.scale.x, 1.0 - idleBreath * 0.35, dt * 8);
+        baleia.scale.y = k.lerp(baleia.scale.y, 1.0 + idleBreath, dt * 8);
+      }
+    }
+
+    // Ciclo de nado (idle_swim calmo contínuo -> batida muscular ativa -> idle_swim)
+    if (animTimer > 3.2) {
       animTimer = 0;
       currentAnim = "swim";
       baleia.play("swim");
@@ -109,8 +126,8 @@ export function createKioskScene(k: KaboomCtx) {
         });
       }
     } else if (animTimer > 1.2 && currentAnim === "swim") {
-      currentAnim = "glide";
-      baleia.play("glide");
+      currentAnim = "idle_swim";
+      baleia.play("idle_swim");
     }
 
     // Wrap da tela: quando a baleia cruza o canto direito, reentra pelo esquerdo
