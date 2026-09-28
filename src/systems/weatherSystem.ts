@@ -10,13 +10,24 @@ import type { GameObj, KaboomCtx } from "kaboom";
 import { GAME_CONFIG } from "../config";
 import type { PlayerController } from "../entities/player";
 
+/**
+ * Tipo identificador do micro-clima em execução.
+ */
 export type WeatherType = "polar_blizzard" | "open_sea_gale" | "arraial_solar_calm" | "clear";
 
+/**
+ * Interface que delimita uma região climática ao longo do mapa de migração.
+ */
 export interface WeatherZone {
+  /** Categoria do fenômeno meteorológico */
   type: WeatherType;
+  /** Coordenada X inicial do evento em metros de migração */
   startX: number;
+  /** Coordenada X final do evento em metros de migração */
   endX: number;
+  /** Distância de transição suave de entrada (fade-in) em metros */
   fadeInDist: number;
+  /** Distância de transição suave de saída (fade-out) em metros */
   fadeOutDist: number;
 }
 
@@ -48,7 +59,11 @@ export const WEATHER_ZONES: WeatherZone[] = [
 ];
 
 /**
- * Calcula o clima ativo e sua intensidade (0.0 a 1.0) para uma dada coordenada X.
+ * Calcula deterministicamente o micro-clima ativo e sua intensidade (0.0 a 1.0)
+ * para uma dada coordenada X da rota migratória.
+ *
+ * @param x - Distância horizontal atual da jubarte no mundo em metros.
+ * @returns Objeto com o tipo de clima ativo e fator de intensidade normalizado [0, 1].
  */
 export function calculateWeatherAtDistance(x: number): {
   weather: WeatherType;
@@ -90,7 +105,15 @@ interface WeatherParticle {
 }
 
 /**
- * Inicializa os geradores de partículas atmosféricas e micro-climas.
+ * Inicializa os geradores de partículas atmosféricas e micro-climas dinâmicos.
+ *
+ * Cria três emissores ambientais:
+ * 1. Flocos de nevasca polar com deriva horizontal pela força do vento antártico.
+ * 2. Gotas oblíquas de tempestade/vendaval e borrifos de superfície em alto-mar.
+ * 3. Raios solares dourados radiantes com cáusticos intensificados na calmaria de Arraial do Cabo.
+ *
+ * @param k - Instância do contexto Kaboom.js.
+ * @param playerController - Controlador físico da jubarte para rastreamento da posição de câmera.
  */
 export function setupWeatherSystem(k: KaboomCtx, playerController: PlayerController) {
   const cam = k.camPos();

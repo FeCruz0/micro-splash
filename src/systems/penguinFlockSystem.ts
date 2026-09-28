@@ -5,16 +5,16 @@ import { getParticlePool } from "./particlePool";
 import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 
 /**
- * Sistema de Colônias Residentes de Pinguins-de-Magalhães em Loop Contínuo (Fase 9.5)
- * Colônias distribuídas pelo Oceano Antártico (0m a 5.000m):
- *   - Colônia 1 (Largada Antártica): 180m a 720m (Loop de 540m - VISÍVEL DESDE O INÍCIO DO JOGO)
- *   - Colônia 2 (Fendas Glaciais Médias): 1.350m a 2.050m (Loop de 700m)
- *   - Colônia 3 (Geleiras Profundas): 2.900m a 3.700m (Loop de 800m)
- *   - Colônia 4 (Borda Polar & Saída Mar Aberto): 4.400m a 5.250m (Loop de 850m)
+ * Sistema de Colônias Residentes de Pinguins-de-Magalhães (*Spheniscus magellanicus*) em Loop Contínuo.
  *
- * Cada colônia já habita o cenário e executa um percurso pré-programado permanente:
- * nada até o ponto de retorno, salta fora d'água no meio da rota (porpoising),
- * executa mergulho suave em U de 180° e volta para o início, repetindo o loop infinitamente.
+ * Modela o ecossistema polar antártico (0m a 5.000m) através de bandos autônomos (Fase 9.5):
+ * 1. Quatro colônias familiares distribuídas ao longo das fendas glaciais antárticas.
+ * 2. Comportamento de Porpoising: os pinguins alternam nado veloz subaquático com saltos rasantes
+ *    fora da lâmina d'água para respirar e reduzir o arrasto hidrodinâmico em alta velocidade.
+ * 3. Inteligência de Bando (Flocking/Boid): os indivíduos mantêm espaçamento elástico,
+ *    curvas em U sincronizadas e emissão de micro-bolhas de mergulho.
+ *
+ * @param k - Instância do contexto Kaboom.js.
  */
 export function setupPenguinFlockSystem(k: KaboomCtx) {
   let isSystemActive = true;

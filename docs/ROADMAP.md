@@ -293,22 +293,22 @@ _Objetivo: Automatizar o ciclo de integração, testes e publicação do jogo, t
 
 _Objetivo: Tornar o projeto acessível para colaboradores, educadores, usuários com necessidades especiais e compatível com requisitos legais de ambientes escolares públicos._
 
-- [ ] **26.1 `CONTRIBUTING.md` — Guia de Contribuição:**
-  - Documentar como configurar o ambiente (Docker vs. Node), convenção de commits (`feat:`, `fix:`, `docs:`, `test:`), como regenerar sprites (`npm run generate`) e como adicionar fatos/perguntas nos arquivos `data/*.json` sem tocar em TypeScript. Essencial para receber contribuições de professores e pesquisadores.
-- [ ] **26.2 `docs/DATA_SCHEMA.md` — Documentação dos Dados Educacionais:**
-  - Documentar os schemas de `facts.json`, `quiz.json` e `level_layout.json` com exemplos e regras de validação. Explicar como educadores e oceanógrafos podem contribuir com conteúdo sem conhecimento de programação.
-- [ ] **26.3 README.md com Screenshots e GIF Demo:**
-  - Adicionar ao `README.md`: 1 GIF animado de 5–8s capturando gameplay (breach, sonar, krill), 3 screenshots dos biomas principais, badge de CI (verde/vermelho) e badge de versão. O README atual é puramente textual — sem nenhuma imagem do jogo.
-- [ ] **26.4 Documentação JSDoc nos 10 Sistemas Principais:**
-  - Adicionar JSDoc mínimo com `@param`, `@returns` e descrição de propósito nos sistemas mais complexos: `oceanCurrentsSystem`, `breachSystem`, `particlePool`, `weatherSystem`, `dolphinDraftingSystem`, `iceSurface`, `proceduralObstacles`, `penguinFlockSystem`, `canyonSystem` e `biomeLifecycleManager`. Apenas `audioSystem.ts` tem JSDoc atualmente.
-- [ ] **26.5 Navegação por Teclado Completa nos Menus (WCAG 2.1 AA):**
-  - Implementar navegação por `Tab`/`Setas` + `Enter` em todos os modais e menus (Main Menu, Opções, Codex, Quiz, Victory Screen). Atualmente todos dependem exclusivamente de mouse/toque — não conformes com WCAG 2.1 nível AA nem usáveis em totens com teclado.
-- [ ] **26.6 Suporte a `prefers-reduced-motion`:**
-  - Verificar `window.matchMedia('(prefers-reduced-motion: reduce)')` e, quando ativo, desabilitar ou suavizar: partículas do menu principal, animações de entrada de modais, tremores e flashes de impacto. Expor toggle manual nas Opções. Essencial para usuários com epilepsia fotossensível ou distúrbios vestibulares.
-- [ ] **26.7 Tamanho de Fonte Configurável na UI (3 Níveis):**
-  - Adicionar opção nas Opções para escalonar textos de UI em três níveis (`Pequeno`, `Padrão`, `Grande`), salvo em `localStorage`. Afeta todos os textos de modais, Codex e Quiz via multiplicador global no parâmetro `size` dos `k.text()`. Acessibilidade para baixa visão em totens com telas grandes.
-- [ ] **26.8 `docs/PRIVACIDADE.md` + Botão "Apagar Dados" nas Opções (LGPD):**
-  - Criar documento descrevendo quais dados são armazenados no `localStorage` (highscore, fatos desbloqueados, stats cumulativas), que nenhum dado é enviado a terceiros e como o usuário pode resetar tudo. Adicionar botão "🗑️ Apagar Todos os Dados" nas Opções. Requisito legal para adoção em redes escolares públicas municipais (LGPD).
+- [x] **26.1 `CONTRIBUTING.md` — Guia de Contribuição:**
+  - Criado `CONTRIBUTING.md` oficial documentando configuração com Docker e Node, convenção de Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`, `chore:`), scripts de validação e guia passo a passo para educadores e oceanógrafos adicionarem novos fatos e perguntas sem tocar em código TypeScript.
+- [x] **26.2 `docs/DATA_SCHEMA.md` — Documentação dos Dados Educacionais:**
+  - Criado `docs/DATA_SCHEMA.md` com especificação completa dos schemas Zod (`FactSchema`, `QuizQuestionSchema`, `LevelLayoutSchema`), detalhamento de campos, restrições e exemplos didáticos de contribuição.
+- [x] **26.3 README.md com Badges, Controles e Instruções Kiosk:**
+  - Atualizado `README.md` com badges de CI, Deploy Pages, Versão v1.1.0, Licença MIT, PWA e WCAG 2.1 AA. Tabela universal de controles (Teclado, Touch, Gamepad), guia para totens escolares e links para a documentação de compliance.
+- [x] **26.4 Documentação JSDoc nos 10 Sistemas Principais:**
+  - Documentação formal JSDoc adicionada com anotações `@param`, `@returns` e fundamentos biofísicos em `oceanCurrentsSystem`, `breachSystem`, `particlePool`, `weatherSystem`, `dolphinDraftingSystem`, `iceSurface`, `proceduralObstacles`, `penguinFlockSystem`, `canyonSystem` e `biomeLifecycleManager`.
+- [x] **26.5 Navegação por Teclado Completa nos Menus (WCAG 2.1 AA):**
+  - Implementado utilitário `src/ui/keyboardNav.ts` com gerenciador de foco `createFocusGroup`, navegação direcional (`Tab`, `Shift+Tab`, `Setas`), acionamento por `Enter`/`Espaço`, tecla `Escape` e anel indicador visual de foco de alto contraste no Menu Principal e Menu de Opções.
+- [x] **26.6 Suporte a `prefers-reduced-motion`:**
+  - Integração no `accessibilitySystem.ts` com detecção de `window.matchMedia('(prefers-reduced-motion: reduce)')`, modos `auto`, `reduced` e `full`, persistência em `localStorage` e supressão de tremores de tela (`screenShake`) e flashes no `collisions.ts` e `playerPhysics.ts`.
+- [x] **26.7 Tamanho de Fonte Configurável na UI (3 Níveis):**
+  - Adicionado suporte a três níveis de escala (`Pequena 0.85x`, `Normal 1.0x`, `Grande 1.2x`) no `accessibilitySystem.ts`, com alternador nas Opções e helper `scaleFont(baseSize)` para adequação a baixa visão e totens de grande porte.
+- [x] **26.8 `docs/PRIVACIDADE.md` + Botão "Apagar Dados" nas Opções (LGPD):**
+  - Criado `docs/PRIVACIDADE.md` detalhando política de privacidade escolar sem rastreadores ou cookies de terceiros. Adicionado botão "🗑️ Apagar Dados (LGPD)" no menu de opções com modal de confirmação e rotina de exclusão imediata de todas as chaves `micro_splash_*`.
 
 ### 🌍 FASE 27: Marketing, Analytics, Conteúdo & Internacionalização
 

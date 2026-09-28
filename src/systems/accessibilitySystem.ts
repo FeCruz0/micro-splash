@@ -1,9 +1,13 @@
+import type { KaboomCtx } from "kaboom";
+
 /**
- * Sistema de Acessibilidade Visual e Filtros Daltonismo / Alto Contraste
- * Fase 18.2 do Micro Splash
+ * Sistema de Acessibilidade Universal, Filtros Daltonismo, Movimento Reduzido e Fontes Dinâmicas
+ * Fases 18.2 e 26 do Micro Splash (WCAG 2.1 nível AA & LGPD)
  */
 
 export type ColorMode = "normal" | "protanopia" | "deuteranopia" | "high_contrast";
+export type ReducedMotionMode = "auto" | "reduced" | "full";
+export type FontScaleKey = "small" | "normal" | "large";
 
 export const COLOR_MODE_LABELS: Record<ColorMode, string> = {
   normal: "Cores: PADRÃO 🎨",
@@ -12,8 +16,31 @@ export const COLOR_MODE_LABELS: Record<ColorMode, string> = {
   high_contrast: "Cores: ALTO CONTRASTE ⚡",
 };
 
-const STORAGE_KEY = "micro_splash_color_mode";
+export const REDUCED_MOTION_LABELS: Record<ReducedMotionMode, string> = {
+  auto: "Movimento: AUTOMÁTICO 🌊",
+  reduced: "Movimento: REDUZIDO 🧘",
+  full: "Movimento: COMPLETO ⚡",
+};
+
+export const FONT_SCALE_LABELS: Record<FontScaleKey, string> = {
+  small: "Fonte: PEQUENA 🔡",
+  normal: "Fonte: NORMAL 🔤",
+  large: "Fonte: GRANDE 🔠",
+};
+
+export const FONT_SCALE_MULTIPLIERS: Record<FontScaleKey, number> = {
+  small: 0.85,
+  normal: 1.0,
+  large: 1.2,
+};
+
+const STORAGE_KEY_COLOR = "micro_splash_color_mode";
+const STORAGE_KEY_REDUCED_MOTION = "micro_splash_reduced_motion";
+const STORAGE_KEY_FONT_SCALE = "micro_splash_font_scale";
+
 let currentColorMode: ColorMode = "normal";
+let currentReducedMotion: ReducedMotionMode = "auto";
+let currentFontScale: FontScaleKey = "normal";
 
 /**
  * Cria e injeta no DOM os filtros SVG baseados nas matrizes padrão Brettel/Machado
@@ -85,7 +112,7 @@ function applyCanvasFilter(mode: ColorMode): void {
   }
 }
 
-class AccessibilitySystem {
+export class AccessibilitySystem {
   constructor() {
     this.loadSettings();
   }
@@ -95,6 +122,8 @@ class AccessibilitySystem {
     applyCanvasFilter(currentColorMode);
   }
 
+  // --- FILTROS DE CORES & DALTONISMO ---
+
   public getColorMode(): ColorMode {
     return currentColorMode;
   }
@@ -103,7 +132,7 @@ class AccessibilitySystem {
     currentColorMode = mode;
     try {
       if (typeof localStorage !== "undefined") {
-        localStorage.setItem(STORAGE_KEY, mode);
+        localStorage.setItem(STORAGE_KEY_COLOR, mode);
       }
     } catch {}
     applyCanvasFilter(mode);
@@ -126,18 +155,157 @@ class AccessibilitySystem {
     return currentColorMode === "high_contrast";
   }
 
+  // --- MOVIMENTO REDUZIDO (PREFERS-REDUCED-MOTION) ---
+
+  public getReducedMotionMode(): ReducedMotionMode {
+    return currentReducedMotion;
+  }
+
+  public setReducedMotion(mode: ReducedMotionMode): void {
+    currentReducedMotion = mode;
+    try {
+      if (typeof localStorage !== "undefined") {
+        localStorage.setItem(STORAGE_KEY_REDUCED_MOTION, mode);
+      }
+    } catch {}
+  }
+
+  public cycleReducedMotion(): ReducedMotionMode {
+    const modes: ReducedMotionMode[] = ["auto", "reduced", "full"];
+    const currentIdx = modes.indexOf(currentReducedMotion);
+    const nextIdx = (currentIdx + 1) % modes.length;
+    const nextMode = modes[nextIdx];
+    this.setReducedMotion(nextMode);
+    return nextMode;
+  }
+
+  public getReducedMotionLabel(): string {
+    return REDUCED_MOTION_LABELS[currentReducedMotion] || REDUCED_MOTION_LABELS.auto;
+  }
+
+  /**
+   * Determina se animações intensas, tremores de tela e flashes devem ser desativados
+   */
+  public isReducedMotion(): boolean {
+    if (currentReducedMotion === "reduced") return true;
+    if (currentReducedMotion === "full") return false;
+
+    // Modo "auto": detecta consulta de mídia do SO
+    try {
+      if (typeof window !== "undefined" && typeof window.matchMedia === "function") {
+        return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      }
+    } catch {}
+    return false;
+  }
+
+  // --- ESCALONAMENTO DE TAMANHO DE FONTE NA UI ---
+
+  public getFontScaleKey(): FontScaleKey {
+    return currentFontScale;
+  }
+
+  public getFontScale(): number {
+    return FONT_SCALE_MULTIPLIERS[currentFontScale] || 1.0;
+  }
+
+  public setFontScale(key: FontScaleKey): void {
+    currentFontScale = key;
+    try {
+      if (typeof localStorage !== "undefined") {
+        localStorage.setItem(STORAGE_KEY_FONT_SCALE, key);
+      }
+    } catch {}
+  }
+
+  public cycleFontScale(): FontScaleKey {
+    const scales: FontScaleKey[] = ["normal", "large", "small"];
+    const currentIdx = scales.indexOf(currentFontScale);
+    const nextIdx = (currentIdx + 1) % scales.length;
+    const nextScale = scales[nextIdx];
+    this.setFontScale(nextScale);
+    return nextScale;
+  }
+
+  public getFontScaleLabel(): string {
+    return FONT_SCALE_LABELS[currentFontScale] || FONT_SCALE_LABELS.normal;
+  }
+
+  /**
+   * Aplica o multiplicador de fonte atual a um tamanho base
+   */
+  public scaleFont(baseSize: number): number {
+    return Math.round(baseSize * this.getFontScale());
+  }
+
+  /**
+   * Dispara um tremor de tela (screen shake) respeitando a preferência de movimento reduzido
+   */
+  public triggerShake(k: KaboomCtx, intensity: number): void {
+    if (this.isReducedMotion()) return;
+    try {
+      k.shake(intensity);
+    } catch {}
+  }
+
+  // --- COMPLIANCE LGPD & EXCLUSÃO TOTAL DE DADOS ---
+
+  /**
+   * Remove todas as chaves do Micro Splash salvas no localStorage e redefine o estado
+   */
+  public clearAllUserData(): void {
+    try {
+      if (typeof localStorage !== "undefined") {
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && key.startsWith("micro_splash_")) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach((key) => localStorage.removeItem(key));
+      }
+    } catch {}
+
+    currentColorMode = "normal";
+    currentReducedMotion = "auto";
+    currentFontScale = "normal";
+    applyCanvasFilter("normal");
+  }
+
   private loadSettings(): void {
     try {
       if (typeof localStorage !== "undefined") {
-        const saved = localStorage.getItem(STORAGE_KEY) as ColorMode | null;
+        // Cores
+        const savedColor = localStorage.getItem(STORAGE_KEY_COLOR) as ColorMode | null;
         if (
-          saved &&
-          (saved === "normal" ||
-            saved === "protanopia" ||
-            saved === "deuteranopia" ||
-            saved === "high_contrast")
+          savedColor &&
+          (savedColor === "normal" ||
+            savedColor === "protanopia" ||
+            savedColor === "deuteranopia" ||
+            savedColor === "high_contrast")
         ) {
-          currentColorMode = saved;
+          currentColorMode = savedColor;
+        }
+
+        // Movimento reduzido
+        const savedMotion = localStorage.getItem(
+          STORAGE_KEY_REDUCED_MOTION
+        ) as ReducedMotionMode | null;
+        if (
+          savedMotion &&
+          (savedMotion === "auto" || savedMotion === "reduced" || savedMotion === "full")
+        ) {
+          currentReducedMotion = savedMotion;
+        }
+
+        // Tamanho de fonte
+        const savedFont = localStorage.getItem(STORAGE_KEY_FONT_SCALE) as FontScaleKey | null;
+        if (
+          savedFont &&
+          (savedFont === "small" || savedFont === "normal" || savedFont === "large")
+        ) {
+          currentFontScale = savedFont;
         }
       }
     } catch {}

@@ -15,6 +15,13 @@ export interface ProceduralObstacleData {
   powerupPositions: Array<{ x: number; y: number; type: "air_pocket" | "tailwind" }>;
 }
 
+/**
+ * Cria um gerador de números pseudoaleatórios determinístico (Park-Miller LCG).
+ * Garante que a mesma semente gere rigorosamente o mesmo layout em qualquer máquina.
+ *
+ * @param seed - Semente inteira inicial (padrão: 42).
+ * @returns Função que retorna um número pseudoaleatório normalizado no intervalo [0, 1).
+ */
 export function createRNG(seed: number = 42) {
   let s = Math.abs(seed) % 2147483647;
   if (s === 0) s = 1;
@@ -24,6 +31,21 @@ export function createRNG(seed: number = 42) {
   };
 }
 
+/**
+ * Gera proceduralmente o layout completo de obstáculos, cardumes de krill, redes fantasmas,
+ * bolsões de ar hidrotermais e correntezas marinhas para todos os 5 biomas da rota (0m a 30.000m).
+ *
+ * Utiliza faixas verticais e densidades calibradas para o equilíbrio ecológico e arcade:
+ * 1. Antártica: Alta concentração de krill, lixo esparso e fendas de gelo.
+ * 2. Travessia Pelágica: Mar aberto de jejum, correntezas velozes e redes oceânicas.
+ * 3. Costa Urbana: Alta densidade de resíduos plásticos, redes de emalhar e tráfego portuário.
+ * 4. Cânions do Boqueirão: Relevo rochoso com bolsões hidrotermais e jatos de ressurgência.
+ * 5. Santuário de Arraial: Águas límpidas, krill superficial e correntes mornas de acolhimento.
+ *
+ * @param seed - Semente de geração determinística (ex: timestamp ou semente semanal).
+ * @param worldHeight - Altura da viewport em pixels para calibração das camadas de profundidade.
+ * @returns Objeto com as coordenadas de todos os elementos distribuídos no mundo.
+ */
 export function generateProceduralLayout(
   seed: number = Date.now(),
   worldHeight: number = 720
@@ -255,6 +277,15 @@ export function generateProceduralLayout(
   };
 }
 
+/**
+ * Instancia e insere no mundo do jogo todas as entidades físicas calculadas pelo layout procedural.
+ *
+ * Cria os componentes de lixo plástico, cardumes de krill, redes fantasmas e colunas de bolhas hidrotermais.
+ *
+ * @param k - Instância do contexto Kaboom.js.
+ * @param seed - Semente opcional de inicialização (se omitida, gera aleatória).
+ * @returns Objeto com os metadados das posições geradas.
+ */
 export function spawnProceduralLevel(k: KaboomCtx, seed?: number): ProceduralObstacleData {
   const actualSeed = seed ?? Math.floor(Math.random() * 1000000);
   const layout = generateProceduralLayout(actualSeed, k.height());

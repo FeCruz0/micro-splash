@@ -2,6 +2,7 @@ import type { GameObj, KaboomCtx, Vec2 } from "kaboom";
 import { GAME_CONFIG } from "../../config";
 import { createWaterSplash } from "../../systems/breachSystem";
 import { audioSystem } from "../../systems/audioSystem";
+import { accessibilitySystem } from "../../systems/accessibilitySystem";
 
 export class PlayerPhysicsManager {
   private k: KaboomCtx;
@@ -110,7 +111,7 @@ export class PlayerPhysicsManager {
     if (this.wasInAir && !inAir) {
       createWaterSplash(this.k, this.k.vec2(baleia.pos.x, GAME_CONFIG.SEA_LEVEL), 28);
       audioSystem.playWaterSplash();
-      this.k.shake(3.0);
+      accessibilitySystem.triggerShake(this.k, 3.0);
     }
     this.wasInAir = inAir;
 

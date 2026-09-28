@@ -2,12 +2,17 @@ import type { KaboomCtx } from "kaboom";
 import { GAME_CONFIG, TAGS } from "../config";
 
 /**
- * Sistema da Ilha do Farol e Boqueirão (Arraial do Cabo - 25.400m a 27.300m).
- * - Fundo rochoso submarino do Boqueirão com relevo geológico orgânico e contínuo (sem degraus retos),
- *   que se eleva gradualmente das profundezas até próximo à superfície, obrigando o nado raso.
- * - Falésias e montanha da Ilha do Farol acima do nível do mar com camadas de profundidade e colisão sólida.
- * - Farol Histórico de Arraial no topo com feixe de luz rotativo.
- * - Detecção, reverberação e eco por Biosonar em toda a formação rochosa.
+ * Sistema Geológico da Ilha do Farol e Garganta do Boqueirão (Arraial do Cabo — 25.400m a 27.300m).
+ *
+ * Simula a geografia costeira real da entrada do berçário de reprodução (Fase 16):
+ * 1. Fundo Rochoso Submarino do Boqueirão: elevação gradual da placa continental que reduz a profundidade
+ *    da água de ~320px para apenas ~85px, exigindo pilotagem de precisão em nado raso.
+ * 2. Falésias Monumentais da Ilha do Farol: paredões rochosos acima da linha da maré com vegetação atlântica.
+ * 3. Farol Histórico de Arraial do Cabo: cúpula no cume da ilha com feixe de luz volumétrico giratório de 360°.
+ * 4. Reverberação de Biosonar: toda a formação rochosa responde com contornos fluorescentes e retorno de eco
+ *    ao ser atingida pelos pulsos de ecolocalização da jubarte.
+ *
+ * @param k - Instância do contexto Kaboom.js.
  */
 export function setupCanyonSystem(k: KaboomCtx) {
   const surfaceY = GAME_CONFIG.SEA_LEVEL; // 80px (nível do mar)

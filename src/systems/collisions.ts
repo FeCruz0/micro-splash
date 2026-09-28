@@ -2,6 +2,7 @@ import type { KaboomCtx } from "kaboom";
 import { TAGS, GAME_CONFIG } from "../config";
 import { audioSystem } from "./audioSystem";
 import { hapticsSystem } from "./hapticsSystem";
+import { accessibilitySystem } from "./accessibilitySystem";
 import type { PlayerController } from "../entities/player";
 import type { GameState } from "./state";
 
@@ -31,7 +32,7 @@ export function setupCollisions(
     playerController.penalizeTrash();
 
     // Efeito visual rápido de impacto
-    k.shake(3);
+    accessibilitySystem.triggerShake(k, 3);
   });
 
   // Interação com Bolsão de Ar Natural (coluna de micro-bolhas de oxigênio)
@@ -41,7 +42,7 @@ export function setupCollisions(
     if (vent.collectAir && vent.collectAir()) {
       audioSystem.playPowerupCollect();
       playerController.restoreOxygen(playerController.getMaxOxygen() * 0.35);
-      k.shake(1.5);
+      accessibilitySystem.triggerShake(k, 1.5);
     }
   });
 
@@ -69,11 +70,11 @@ export function setupCollisions(
 
     if (!playerController.isTrapped()) {
       playerController.trapInNet(GAME_CONFIG.NET_ESCAPE_COUNT); // prende a baleia
-      k.shake(5);
+      accessibilitySystem.triggerShake(k, 5);
     } else {
       // Se já estiver presa e afundar em outra rede, emaranha mais
       playerController.addTrapCount(3);
-      k.shake(4);
+      accessibilitySystem.triggerShake(k, 4);
     }
   });
 
@@ -99,7 +100,7 @@ export function setupCollisions(
     if (now - lastObstacleBumpTime > 0.35) {
       lastObstacleBumpTime = now;
       audioSystem.playTrashThud(); // Impacto sólido e surdo contra a rocha
-      k.shake(2.0);
+      accessibilitySystem.triggerShake(k, 2.0);
     }
   });
 }

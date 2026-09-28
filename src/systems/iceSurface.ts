@@ -5,8 +5,13 @@ import type { PlayerController } from "../entities/player";
 import { getParticlePool } from "./particlePool";
 import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 
+/**
+ * Representa uma fenda de respiração (polínia natural) na camada de gelo polar.
+ */
 export interface IceGap {
+  /** Início da abertura em metros horizontais */
   start: number;
+  /** Término da abertura em metros horizontais */
   end: number;
 }
 
@@ -27,7 +32,10 @@ export const ICE_GAPS = DEFAULT_ICE_GAPS;
 export let activeIceGaps: IceGap[] = [];
 
 /**
- * Checa se uma posição X na Antártida (0-5000m) está em uma fenda de ar livre.
+ * Checa se uma coordenada X no Oceano Antártico (0 a 5.000m) localiza-se dentro de uma fenda de ar livre.
+ *
+ * @param x - Posição horizontal no mundo em metros.
+ * @returns `true` se o ar estiver livre para respiração (ou fora da Antártica); `false` se houver teto de gelo.
  */
 export function isPositionInIceGap(x: number): boolean {
   if (x < 0 || x > 5000) return true; // Fora do gelo antártico, ar sempre livre
@@ -36,7 +44,16 @@ export function isPositionInIceGap(x: number): boolean {
 }
 
 /**
- * Cria a camada de gelo, o iceberg de parede inicial e as aberturas de respiração no bioma Antártico (0m - 5000m).
+ * Cria e orquestra a banquisa polar, paredões de icebergs e fendas de respiração na Antártica (0m a 5.000m).
+ *
+ * Características do sistema:
+ * - Gera blocos segmentados de gelo com veios translúcidos integrados como entidades filhas.
+ * - Bloqueia a recuperação de oxigênio na superfície caso haja teto de gelo sólido acima da jubarte.
+ * - Mecânica de Rompimento: se o jogador saltar por uma fenda e cair sobre o gelo por cima (`vel.y >= 0`),
+ *   o impacto quebra o bloco em estilhaços 16-bit, destruindo os veios e abrindo uma nova polínia transitável.
+ *
+ * @param k - Instância do contexto Kaboom.js.
+ * @param playerController - Controlador opcional da baleia para vincular detecção de ruptura.
  */
 export function setupIceSurfaceSystem(
   k: ReturnType<typeof kaboom>,

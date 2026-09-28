@@ -4,16 +4,30 @@ import { audioSystem } from "./audioSystem";
 import type { PlayerController } from "../entities/player";
 import type { GameState } from "./state";
 
+/**
+ * Configuração de inicialização para o sistema do Salto Majestoso (Breach).
+ */
 export interface BreachSystemConfig {
+  /** Instância do motor Kaboom.js */
   k: ReturnType<typeof kaboom>;
+  /** Controlador físico da baleia do jogador */
   playerController: PlayerController;
+  /** Estado reativo do jogo (distância, pontuação, etc.) */
   gameState: GameState;
+  /** Callback acionado após a conclusão cinematográfica do salto e reentrada na água */
   onBreachComplete: () => void;
 }
 
 /**
- * Sistema do Salto Majestoso (Breach) no Santuário de Arraial do Cabo (Ilha do Farol).
- * Convida o jogador a executar o salto da vitória com a tecla Espaço entre 26.800m e 27.000m.
+ * Sistema do Salto Majestoso (Breach) no Santuário de Arraial do Cabo.
+ *
+ * Reproduz o clímax da migração das baleias-jubarte:
+ * 1. Ao se aproximar da Ilha do Farol, exibe um banner de incentivo para o salto triunfal.
+ * 2. Ao pressionar Espaço/toque, aplica um impulso vertical balístico que rompe a superfície marinha.
+ * 3. Simula rotação aérea orgânica e splashdown com partículas de espuma, gotas e ondas.
+ * 4. Transiciona suavemente para a tela de vitória ao término do evento.
+ *
+ * @param config - Objeto de configuração contendo o motor, jogador, estado e callback.
  */
 export function setupBreachSystem(config: BreachSystemConfig) {
   const { k, playerController, gameState, onBreachComplete } = config;
@@ -160,7 +174,16 @@ export function setupBreachSystem(config: BreachSystemConfig) {
 }
 
 /**
- * Cria partículas de espuma, borrifos e ondulações 16-bits no impacto do mergulho ou rompimento.
+ * Cria partículas de espuma, borrifos balísticos e ondulações 16-bits no impacto do mergulho ou rompimento.
+ *
+ * Gera três camadas de efeitos visuais:
+ * 1. Gotas de spray balístico com gravidade simulada e fade-out.
+ * 2. Ondas de espuma bidirecionais expandindo na superfície d'água.
+ * 3. Micro-bolhas submersas que afundam pelo impacto e retornam à superfície.
+ *
+ * @param k - Instância do contexto Kaboom.js.
+ * @param pos - Posição do ponto de contato na linha d'água (x, y).
+ * @param particleCount - Quantidade de gotículas balísticas geradas (padrão: 26).
  */
 export function createWaterSplash(
   k: ReturnType<typeof kaboom>,

@@ -1,33 +1,64 @@
 import type { KaboomCtx, Vec2, Color, GameObj } from "kaboom";
 
+/**
+ * Parâmetros de configuração para emitir uma partícula circular a partir do pool.
+ */
 export interface SpawnCircleOptions {
+  /** Posição inicial no mundo (x, y) */
   pos: Vec2;
+  /** Raio da partícula circular em pixels */
   radius: number;
+  /** Cor RGB da partícula */
   color: Color;
+  /** Opacidade inicial (0.0 a 1.0, padrão 1.0) */
   opacity?: number;
+  /** Profundidade Z na camada de renderização (padrão 15) */
   z?: number;
+  /** Vetor de velocidade inicial em px/s */
   vel?: Vec2;
+  /** Aceleração gravitacional vertical em px/s² */
   gravityY?: number;
+  /** Taxa de crescimento ou encolhimento do raio em px/s */
   growthRate?: number;
+  /** Frequência da oscilação senoidal lateral (balanço de bolhas) */
   swayFreq?: number;
+  /** Amplitude do deslocamento senoidal lateral em pixels */
   swayAmp?: number;
+  /** Taxa de esmaecimento (fade-out) de opacidade por segundo */
   fadeRate?: number;
+  /** Tempo máximo de vida útil em segundos */
   maxLife?: number;
+  /** Limite de coordenada Y no mundo para reciclagem antecipada */
   boundaryY?: number;
+  /** Critério de validação do limite: reciclado se y for maior ou menor que boundaryY */
   boundaryYMode?: "greater" | "less";
+  /** Posição alvo para atração magnética direcionada */
   targetPos?: Vec2;
+  /** Velocidade de deslocamento na direção do alvo */
   targetSpeed?: number;
 }
 
+/**
+ * Parâmetros de configuração para emitir uma partícula retangular a partir do pool.
+ */
 export interface SpawnRectOptions {
+  /** Posição inicial no mundo (x, y) */
   pos: Vec2;
+  /** Largura da partícula em pixels */
   width: number;
+  /** Altura da partícula em pixels */
   height: number;
+  /** Cor RGB da partícula */
   color: Color;
+  /** Opacidade inicial (0.0 a 1.0) */
   opacity?: number;
+  /** Camada Z de renderização */
   z?: number;
+  /** Vetor de velocidade em px/s */
   vel?: Vec2;
+  /** Taxa de esmaecimento por segundo */
   fadeRate?: number;
+  /** Tempo de vida máximo em segundos */
   maxLife?: number;
 }
 
@@ -60,6 +91,15 @@ interface PooledRect {
   fadeRate: number;
 }
 
+/**
+ * Gerenciador de Piscina de Partículas (Object Pooling) de alta performance.
+ *
+ * Elimina completamente a alocação e destruição contínua de entidades no garbage collector:
+ * - Pré-aloca buffers fixos de partículas circulares e retangulares fora da tela.
+ * - Utiliza estratégia híbrida de busca livre e fila circular (Ring Buffer / LRU).
+ * - Suporta física hidrodinâmica avançada: empuxo, gravidade, oscilação senoidal (sway) e atração magnética.
+ * - Atualiza todas as partículas ativas em uma única varredura linear de alta eficiência.
+ */
 export class ParticlePool {
   private k: KaboomCtx;
   private circlePool: PooledCircle[] = [];
@@ -67,6 +107,13 @@ export class ParticlePool {
   private circleIndex = 0;
   private rectIndex = 0;
 
+  /**
+   * Inicializa o pool de partículas pré-alocando os buffers no motor Kaboom.
+   *
+   * @param k - Instância do contexto Kaboom.js.
+   * @param circleCount - Quantidade máxima de partículas circulares pré-alocadas (padrão: 140).
+   * @param rectCount - Quantidade máxima de partículas retangulares pré-alocadas (padrão: 30).
+   */
   constructor(k: KaboomCtx, circleCount = 140, rectCount = 30) {
     this.k = k;
     this.initPools(circleCount, rectCount);

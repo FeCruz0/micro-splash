@@ -2,6 +2,7 @@ import type { KaboomCtx } from "kaboom";
 import { APP_VERSION } from "../config";
 import { audioSystem } from "../systems/audioSystem";
 import { showStatsModal } from "./statsModal";
+import { createFocusGroup, type FocusableItem } from "./keyboardNav";
 
 export function createMainMenu(
   k: KaboomCtx,
@@ -167,10 +168,13 @@ export function createMainMenu(
     },
   ];
 
+  const focusItems: FocusableItem[] = [];
+
   menuButtons.forEach((btnData) => {
+    const btnPos = k.vec2(k.width() / 2, btnData.y);
     const btn = k.add([
       k.rect(340, 44, { radius: 10 }),
-      k.pos(k.width() / 2, btnData.y),
+      k.pos(btnPos),
       k.color(btnData.bg),
       k.outline(2, btnData.outline),
       k.scale(1),
@@ -182,12 +186,23 @@ export function createMainMenu(
 
     k.add([
       k.text(btnData.label, { size: 15, font: "sans-serif" }),
-      k.pos(k.width() / 2, btnData.y),
+      k.pos(btnPos),
       k.color(255, 255, 255),
       k.anchor("center"),
       k.fixed(),
       k.z(13),
     ]);
+
+    const activate = () => {
+      resetIdle();
+      if (isModalOpen) return;
+      audioSystem.playUiClick();
+      isModalOpen = true;
+      btnData.action(() => {
+        isModalOpen = false;
+        resetIdle();
+      });
+    };
 
     btn.onHoverUpdate(() => {
       if (isModalOpen) return;
@@ -199,16 +214,21 @@ export function createMainMenu(
       btn.scale = k.vec2(1, 1);
     });
 
-    btn.onClick(() => {
-      resetIdle();
-      if (isModalOpen) return;
-      audioSystem.playUiClick();
-      isModalOpen = true;
-      btnData.action(() => {
-        isModalOpen = false;
-        resetIdle();
-      });
+    btn.onClick(activate);
+
+    focusItems.push({
+      pos: btnPos,
+      width: 340,
+      height: 44,
+      onActivate: activate,
     });
+  });
+
+  createFocusGroup(k, {
+    items: focusItems,
+    initialIndex: 0,
+    ringZ: 14,
+    isEnabled: () => !isModalOpen,
   });
 
   // Rodapé Educativo e Institucional

@@ -7,6 +7,27 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [1.2.0] - 2026-09-28 — Documentação, Acessibilidade & Compliance (Fase 26)
+
+### Adicionado
+
+- **Documentação para Comunidade & Educadores**:
+  - `CONTRIBUTING.md`: Guia completo de boas-vindas, setup de ambiente (Docker e Node.js 20+), padronização Conventional Commits, tabela de scripts e fluxo passo a passo para educadores e biólogos adicionarem fatos e perguntas em JSON sem necessidade de tocar em código TypeScript.
+  - `docs/DATA_SCHEMA.md`: Especificação técnica detalhada dos schemas Zod (`facts.json`, `quiz.json`, `level_layout.json`), tipagens e restrições.
+  - `README.md` reestruturado com badges de status (CI, Deploy Pages, Versão v1.2.0, Licença MIT, PWA e WCAG 2.1 AA), tabela de controles universais (Teclado, Touch e Gamepad) e guia de implantação em totens escolares.
+- **Documentação JSDoc nos 10 Sistemas Centrais**:
+  - Adição de documentação formal JSDoc com `@param`, `@returns` e fundamentos biofísicos em `oceanCurrentsSystem.ts`, `breachSystem.ts`, `particlePool.ts`, `weatherSystem.ts`, `dolphinDraftingSystem.ts`, `iceSurface.ts`, `proceduralObstacles.ts`, `penguinFlockSystem.ts`, `canyonSystem.ts` e `biomeLifecycleManager.ts`.
+- **Acessibilidade Universal & WCAG 2.1 Nível AA**:
+  - `src/ui/keyboardNav.ts`: Utilitário universal de gerenciamento de foco acessível (`createFocusGroup`) com suporte a `Tab`, `Shift+Tab`, setas direcionais, acionamento por `Enter`/`Espaço`, tecla `Escape` e anel visual pulsante de alto contraste.
+  - Navegação por teclado integrada no Menu Principal (`mainMenu.ts`) e no Menu de Opções (`optionsScreen.ts`).
+  - Suporte completo a `prefers-reduced-motion` no `accessibilitySystem.ts` (modos `auto`, `reduced`, `full`), desativando tremores de tela (`screenShake`) e flashes no gameplay para pessoas com sensibilidade vestibular.
+  - Escalonamento de tamanho de fonte dinâmico na UI (3 níveis: `Pequeno 0.85x`, `Normal 1.0x`, `Grande 1.2x`).
+- **Conformidade Legal & LGPD (Lei nº 13.709/2018)**:
+  - `docs/PRIVACIDADE.md`: Declaração oficial de arquitetura _offline-first_ para redes de ensino públicas municipais e museus, com zero cookies, zero rastreadores e tabela exaustiva de chaves locais.
+  - Botão "🗑️ Apagar Dados (LGPD)" na interface de Opções com diálogo de confirmação seguro que remove todas as chaves `micro_splash_*` do navegador e restaura as configurações de fábrica.
+
+---
+
 ## [1.1.0] - 2026-09-25 — Infraestrutura, CI/CD & Deploy (Fase 25)
 
 ### Adicionado

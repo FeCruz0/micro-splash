@@ -3,12 +3,21 @@ import { TAGS } from "../config";
 import type { PlayerController } from "../entities/player";
 import { audioSystem } from "./audioSystem";
 
+/**
+ * Interface que modela uma zona delimitada de correnteza oceânica.
+ */
 export interface CurrentZone {
+  /** Coordenada horizontal de início da zona (em metros de migração) */
   startX: number;
+  /** Coordenada horizontal de término da zona (em metros de migração) */
   endX: number;
+  /** Coordenada vertical do topo da camada de correnteza (em pixels) */
   y: number;
+  /** Espessura vertical da lâmina d'água da correnteza (em pixels) */
   height: number;
+  /** Intensidade do vetor de empuxo hidrodinâmico em px/s² */
   force: number;
+  /** Classificação do vetor de fluxo: contra a migração ('opposing') ou a favor ('favorable') */
   type: "opposing" | "favorable";
 }
 
@@ -23,8 +32,16 @@ export const DEFAULT_OCEAN_CURRENTS: CurrentZone[] = [
 
 /**
  * Sistema Unificado de Correntezas Oceânicas (Favoráveis e Contrárias).
- * Cria faixas marinhas fluídas, ricas em filamentos dinâmicos, vórtices
- * e forças físicas hidrodinâmicas.
+ *
+ * Simula os corredores hidrodinâmicos da grande migração pelágica (Fases 15 e 18.1):
+ * - Filamentos dinâmicos e vórtices translúcidos que deslizam na direção do fluxo marinho.
+ * - Aplicação contínua de força hidrodinâmica ao jogador conforme alinhamento vetorial.
+ * - Modulação do consumo de oxigênio (Fase 18.1): nadar contra o fluxo intensifica o esforço (+35% dreno),
+ *   enquanto nadar a favor da esteira hidrodinâmica alivia a respiração (-35% dreno).
+ *
+ * @param k - Instância do contexto Kaboom.js.
+ * @param playerController - Controlador físico da baleia-jubarte.
+ * @param zones - Vetor de zonas de correnteza a serem geradas no mundo.
  */
 export function setupOceanCurrentsSystem(
   k: KaboomCtx,

@@ -6,15 +6,16 @@ import { getParticlePool } from "./particlePool";
 import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 
 /**
- * Sistema de Cardumes Residentes de Golfinhos-Rotadores em Loop Contínuo (Fase 9.3)
- * Cardumes distribuídos pela Travessia Oceânica:
- *   - Cardume 1 (Entrada da Travessia & Recifes): 5.400m a 6.500m (Loop de 1.100m)
- *   - Cardume 2 (Alto Mar / Bacia Central): 7.600m a 8.800m (Loop de 1.200m)
- *   - Cardume 3 (Fossas Pelágicas / Pré-Cânion): 10.000m a 11.200m (Loop de 1.200m)
+ * Sistema de Cardumes Residentes de Golfinhos-Rotadores (*Stenella longirostris*) e Vácuo Hidrodinâmico (Drafting).
  *
- * Cada cardume já está no mapa e executa um circuito pré-programado permanente:
- * navega até o ponto de retorno, salta fora d'água no meio da rota, realiza mergulho de U-turn 180°
- * e volta para a origem, repetindo o loop indefinidamente sem sumir do cenário.
+ * Reproduz o comportamento biológico cooperativo dos cetáceos pelágicos (Fases 9.3 e 15):
+ * 1. Distribui três pods familiares permanentes ao longo da Travessia Pelágica (5.400m a 11.200m).
+ * 2. Cada cardume navega em patrulha cíclica, executando saltos em arco fora d'água e mergulhos em curva (U-turn).
+ * 3. Dinâmica de Vácuo Hidrodinâmico (*Drafting*): ao nadar emparelhado com o cardume (raio < 120px),
+ *    a esteira de vórtices gerada pelos golfinhos concede bônus de velocidade (+18%) e reduz o esforço metabólico da jubarte.
+ *
+ * @param k - Instância do contexto Kaboom.js.
+ * @param playerController - Controlador físico da baleia do jogador.
  */
 export function setupDolphinDraftingSystem(k: KaboomCtx, playerController: PlayerController) {
   let isSystemActive = true;

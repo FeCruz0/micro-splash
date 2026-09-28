@@ -1,19 +1,42 @@
 import type { KaboomCtx } from "kaboom";
 
+/**
+ * Interface que define um módulo de subsistema atrelado a faixas geográficas da migração.
+ */
 export interface BiomeModule {
+  /** Identificador único do módulo */
   id: string;
+  /** Nome legível do módulo para auditoria e telemetria */
   name: string;
+  /** Distância horizontal mínima (em metros) onde o módulo deve estar ativo */
   minX: number;
+  /** Distância horizontal máxima (em metros) onde o módulo deve estar ativo */
   maxX: number;
+  /** Função de ativação executada na entrada da zona */
   activate: () => void;
+  /** Função de desativação executada na saída da zona */
   deactivate: () => void;
+  /** Função consultiva do estado de execução do módulo */
   isActive: () => boolean;
 }
 
+/**
+ * Gerenciador de Ciclo de Vida Geográfico dos Módulos e Biomas.
+ *
+ * Otimiza o uso de CPU, memória e renderização ao desativar sistemas distantes da câmera:
+ * - Suspende loops de update, áudios e partículas de fauna quando fora de alcance (ex: orcas polares após 5.000m).
+ * - Utiliza margem de histerese (padrão 500m) para impedir liga/desliga intermitente nas bordas dos biomas.
+ */
 export class BiomeLifecycleManager {
   private modules: BiomeModule[] = [];
   private hysteresis: number;
 
+  /**
+   * Construtor do gerenciador de ciclo de vida.
+   *
+   * @param _k - Instância do motor Kaboom.js.
+   * @param hysteresis - Margem de tolerância em metros além de minX e maxX para evitar oscilações.
+   */
   constructor(_k?: KaboomCtx, hysteresis = 500) {
     this.hysteresis = hysteresis;
   }
