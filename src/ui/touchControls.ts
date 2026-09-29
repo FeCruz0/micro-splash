@@ -131,7 +131,7 @@ export function setupTouchControls(k: KaboomCtx): {
       elements.push(btn);
 
       const txt = k.add([
-        k.text(label, { size: 22, font: "sans-serif" }),
+        k.text(label, { size: 24, font: "Outfit" }),
         k.pos(dpadBaseX + offsetX, dpadBaseY + offsetY),
         k.color(220, 245, 255),
         k.anchor("center"),
@@ -202,7 +202,7 @@ export function setupTouchControls(k: KaboomCtx): {
     elements.push(strokeBtn);
 
     const strokeLabel = k.add([
-      k.text("NADO\n🌊", { size: 16, font: "sans-serif", align: "center" }),
+      k.text("NADO\n🌊", { size: 16.5, font: "Outfit", align: "center" }),
       k.pos(strokeBtnX, strokeBtnY),
       k.color(255, 255, 255),
       k.anchor("center"),
@@ -262,7 +262,7 @@ export function setupTouchControls(k: KaboomCtx): {
     elements.push(sonarBtn);
 
     const sonarLabel = k.add([
-      k.text("SONAR\n📡", { size: 12, font: "sans-serif", align: "center" }),
+      k.text("SONAR\n📡", { size: 13, font: "Outfit", align: "center" }),
       k.pos(sonarBtnX, sonarBtnY),
       k.color(180, 245, 255),
       k.anchor("center"),

@@ -1,6 +1,7 @@
 import type { KaboomCtx } from "kaboom";
 import { GAME_CONFIG } from "../config";
 import { audioSystem } from "../systems/audioSystem";
+import { accessibilitySystem } from "../systems/accessibilitySystem";
 import type { GameState } from "../systems/state";
 import { isTop10Score } from "../systems/leaderboard";
 import { showInitialsInputModal } from "./initialsInputModal";
@@ -50,8 +51,8 @@ function showQuizInvitationModal(k: KaboomCtx, gameState: GameState, onFinish: (
   const cX = screenW / 2;
   const cY = screenH / 2;
 
-  const cardW = Math.min(560, screenW - 24);
-  const cardH = Math.min(320, screenH - 24);
+  const cardW = Math.min(720, screenW - 24);
+  const cardH = Math.min(410, screenH - 20);
 
   audioSystem.playVictoryFanfare();
 
@@ -71,7 +72,7 @@ function showQuizInvitationModal(k: KaboomCtx, gameState: GameState, onFinish: (
   // Card do convite
   elements.push(
     k.add([
-      k.rect(cardW, cardH, { radius: 12 }),
+      k.rect(cardW, cardH, { radius: 14 }),
       k.pos(cX, cY),
       k.color(10, 30, 64),
       k.outline(2.5, k.rgb(255, 215, 80)),
@@ -84,8 +85,11 @@ function showQuizInvitationModal(k: KaboomCtx, gameState: GameState, onFinish: (
   // Título
   elements.push(
     k.add([
-      k.text("MIGRAÇÃO CONCLUÍDA COM SUCESSO! 🐋🎉", { size: 16, font: "sans-serif" }),
-      k.pos(cX, cY - cardH / 2 + 30),
+      k.text("MIGRAÇÃO CONCLUÍDA COM SUCESSO! 🐋🎉", {
+        size: accessibilitySystem.scaleFont(23),
+        font: "Outfit",
+      }),
+      k.pos(cX, cY - cardH / 2 + 38),
       k.color(255, 215, 80),
       k.anchor("center"),
       k.fixed(),
@@ -97,10 +101,10 @@ function showQuizInvitationModal(k: KaboomCtx, gameState: GameState, onFinish: (
   elements.push(
     k.add([
       k.text("Você guiou a baleia ao Santuário de Arraial do Cabo!", {
-        size: 12,
-        font: "sans-serif",
+        size: accessibilitySystem.scaleFont(15.5),
+        font: "Inter",
       }),
-      k.pos(cX, cY - cardH / 2 + 56),
+      k.pos(cX, cY - cardH / 2 + 70),
       k.color(140, 220, 255),
       k.anchor("center"),
       k.fixed(),
@@ -109,10 +113,10 @@ function showQuizInvitationModal(k: KaboomCtx, gameState: GameState, onFinish: (
   );
 
   // Caixa de destaque do Desafio Ecológico
-  const boxY = cY - 8;
+  const boxY = cY - 2;
   elements.push(
     k.add([
-      k.rect(cardW - 50, 105, { radius: 8 }),
+      k.rect(cardW - 60, 136, { radius: 10 }),
       k.pos(cX, boxY),
       k.color(14, 42, 85),
       k.outline(1, k.rgb(80, 170, 240)),
@@ -124,8 +128,11 @@ function showQuizInvitationModal(k: KaboomCtx, gameState: GameState, onFinish: (
 
   elements.push(
     k.add([
-      k.text("🧪 DESAFIO ECOLÓGICO (+300 pts)", { size: 13, font: "sans-serif" }),
-      k.pos(cX, boxY - 30),
+      k.text("🧪 DESAFIO ECOLÓGICO (+300 pts)", {
+        size: accessibilitySystem.scaleFont(17.5),
+        font: "Outfit",
+      }),
+      k.pos(cX, boxY - 38),
       k.color(255, 225, 90),
       k.anchor("center"),
       k.fixed(),
@@ -137,9 +144,15 @@ function showQuizInvitationModal(k: KaboomCtx, gameState: GameState, onFinish: (
     k.add([
       k.text(
         "Antes de emitir seu Certificado Oficial, responda a 3 perguntas rápidas sobre a rota para conquistar até +300 pontos de bônus no seu Eco-Score!",
-        { size: 11, font: "sans-serif", width: cardW - 70, align: "center", lineSpacing: 3 }
+        {
+          size: accessibilitySystem.scaleFont(14.5),
+          font: "Inter",
+          width: cardW - 100,
+          align: "center",
+          lineSpacing: 4.5,
+        }
       ),
-      k.pos(cX, boxY + 12),
+      k.pos(cX, boxY + 14),
       k.color(210, 235, 255),
       k.anchor("center"),
       k.fixed(),
@@ -190,8 +203,8 @@ function showQuizInvitationModal(k: KaboomCtx, gameState: GameState, onFinish: (
 
   // Botão 1: Iniciar Quiz (Destaque verde)
   const btnStart = k.add([
-    k.rect(230, 38, { radius: 7 }),
-    k.pos(cX - 120, cY + cardH / 2 - 32),
+    k.rect(270, 46, { radius: 9 }),
+    k.pos(cX - 145, cY + cardH / 2 - 36),
     k.color(20, 130, 80),
     k.outline(2, k.rgb(100, 255, 180)),
     k.anchor("center"),
@@ -203,8 +216,11 @@ function showQuizInvitationModal(k: KaboomCtx, gameState: GameState, onFinish: (
 
   elements.push(
     k.add([
-      k.text("Fazer Quiz (ENTER) 🧪▶", { size: 12.5, font: "sans-serif" }),
-      k.pos(cX - 120, cY + cardH / 2 - 32),
+      k.text("Fazer Quiz (ENTER) 🧪▶", {
+        size: accessibilitySystem.scaleFont(15.5),
+        font: "Outfit",
+      }),
+      k.pos(cX - 145, cY + cardH / 2 - 36),
       k.color(255, 255, 255),
       k.anchor("center"),
       k.fixed(),
@@ -222,8 +238,8 @@ function showQuizInvitationModal(k: KaboomCtx, gameState: GameState, onFinish: (
 
   // Botão 2: Ver Certificado Direto
   const btnSkip = k.add([
-    k.rect(210, 38, { radius: 7 }),
-    k.pos(cX + 120, cY + cardH / 2 - 32),
+    k.rect(250, 46, { radius: 9 }),
+    k.pos(cX + 145, cY + cardH / 2 - 36),
     k.color(25, 55, 95),
     k.outline(1.5, k.rgb(80, 140, 210)),
     k.anchor("center"),
@@ -235,8 +251,11 @@ function showQuizInvitationModal(k: KaboomCtx, gameState: GameState, onFinish: (
 
   elements.push(
     k.add([
-      k.text("Ver Certificado Direto (ESC) 📜", { size: 12, font: "sans-serif" }),
-      k.pos(cX + 120, cY + cardH / 2 - 32),
+      k.text("Ver Certificado (ESC) 📜", {
+        size: accessibilitySystem.scaleFont(15),
+        font: "Outfit",
+      }),
+      k.pos(cX + 145, cY + cardH / 2 - 36),
       k.color(210, 235, 255),
       k.anchor("center"),
       k.fixed(),
@@ -292,10 +311,17 @@ function renderVictoryContent(k: KaboomCtx, gameState: GameState, onRestart: () 
     });
   }
 
-  // Card de vitória (620x460 com borda dourada elegante)
+  const screenW = k.width();
+  const screenH = k.height();
+  const cX = screenW / 2;
+  const cY = screenH / 2;
+  const cardW = Math.min(1000, screenW - 24);
+  const cardH = Math.min(660, screenH - 20);
+
+  // Card de vitória com borda dourada elegante
   k.add([
-    k.rect(620, 460, { radius: 14 }),
-    k.pos(k.width() / 2, k.height() / 2),
+    k.rect(cardW, cardH, { radius: 16 }),
+    k.pos(cX, cY),
     k.color(12, 45, 95),
     k.outline(3, k.rgb(255, 215, 0)), // Borda dourada
     k.anchor("center"),
@@ -305,11 +331,11 @@ function renderVictoryContent(k: KaboomCtx, gameState: GameState, onRestart: () 
 
   // Título vitória
   k.add([
-    k.text("MIGRAÇÃO CONCLUÍDA COM SUCESSO! 🐋", {
-      size: 17,
-      font: "sans-serif",
+    k.text("MIGRAÇÃO CONCLUÍDA COM SUCESSO! 🐋🎉", {
+      size: accessibilitySystem.scaleFont(26),
+      font: "Outfit",
     }),
-    k.pos(k.width() / 2, k.height() / 2 - 180),
+    k.pos(cX, cY - cardH / 2 + 40),
     k.color(255, 215, 0),
     k.anchor("center"),
     k.fixed(),
@@ -319,12 +345,12 @@ function renderVictoryContent(k: KaboomCtx, gameState: GameState, onRestart: () 
   // Subtítulo
   k.add([
     k.text("Você guiou a baleia ao Santuário Marinho de Arraial do Cabo (Ilha do Farol)!", {
-      size: 12,
-      width: 540,
-      font: "sans-serif",
+      size: accessibilitySystem.scaleFont(15.5),
+      width: cardW - 80,
+      font: "Inter",
       align: "center",
     }),
-    k.pos(k.width() / 2, k.height() / 2 - 145),
+    k.pos(cX, cY - cardH / 2 + 76),
     k.color(200, 240, 255),
     k.anchor("center"),
     k.fixed(),
@@ -354,7 +380,7 @@ function renderVictoryContent(k: KaboomCtx, gameState: GameState, onRestart: () 
       `📏 Rota Migratória: 100% Concluída (${totalDistanceFormatted}m)\n` +
       `⏱️ Tempo de Viagem: ${gameState.getElapsedTime()} seg\n` +
       `🦐 Krill Coletado: ${gameState.getKrillCount()}\n` +
-      `🗑️ Lixo Colidido: ${gameState.getTrashCount()}\n` +
+      `🗑️ Lixo Plástico Colidido: ${gameState.getTrashCount()}\n` +
       breachText +
       quizText +
       `\n📜 Sabedoria Ancestral:\n"${ancestralWisdom}"\n\n` +
@@ -366,23 +392,23 @@ function renderVictoryContent(k: KaboomCtx, gameState: GameState, onRestart: () 
   // Estatísticas na coluna esquerda
   const statsObj = k.add([
     k.text(buildStatsText(), {
-      size: 11.5,
-      font: "sans-serif",
-      lineSpacing: 4,
-      width: 290,
+      size: accessibilitySystem.scaleFont(14.5),
+      font: "Inter",
+      lineSpacing: 5.5,
+      width: 510,
     }),
-    k.pos(k.width() / 2 - 275, k.height() / 2 - 115),
+    k.pos(cX - cardW / 2 + 45, cY - cardH / 2 + 115),
     k.color(255, 255, 255),
     k.fixed(),
     k.z(202),
   ]);
 
   // Coluna Direita: Painel do Desafio Ecológico (Quiz)
-  const quizPanelX = k.width() / 2 + 140;
-  const quizPanelY = k.height() / 2 - 5;
+  const quizPanelX = cX + cardW / 2 - 200;
+  const quizPanelY = cY + 5;
 
   k.add([
-    k.rect(240, 200, { radius: 10 }),
+    k.rect(340, 340, { radius: 12 }),
     k.pos(quizPanelX, quizPanelY),
     k.color(16, 42, 82),
     k.outline(1.5, k.rgb(80, 180, 240)),
@@ -393,10 +419,10 @@ function renderVictoryContent(k: KaboomCtx, gameState: GameState, onRestart: () 
 
   k.add([
     k.text("🧪 DESAFIO ECOLÓGICO", {
-      size: 13,
-      font: "sans-serif",
+      size: accessibilitySystem.scaleFont(17.5),
+      font: "Outfit",
     }),
-    k.pos(quizPanelX, quizPanelY - 72),
+    k.pos(quizPanelX, quizPanelY - 128),
     k.color(255, 220, 90),
     k.anchor("center"),
     k.fixed(),
@@ -407,14 +433,14 @@ function renderVictoryContent(k: KaboomCtx, gameState: GameState, onRestart: () 
     k.text(
       "Responda a 3 perguntas científicas sobre os animais, oceanografia e conservação da rota migratória e conquiste até +300 pontos de bônus!",
       {
-        size: 10.5,
-        width: 215,
-        font: "sans-serif",
+        size: accessibilitySystem.scaleFont(14),
+        width: 300,
+        font: "Inter",
         align: "center",
-        lineSpacing: 3,
+        lineSpacing: 4.5,
       }
     ),
-    k.pos(quizPanelX, quizPanelY - 20),
+    k.pos(quizPanelX, quizPanelY - 45),
     k.color(200, 235, 255),
     k.anchor("center"),
     k.fixed(),
@@ -429,8 +455,8 @@ function renderVictoryContent(k: KaboomCtx, gameState: GameState, onRestart: () 
   let quizCompleted = gameState.getQuizScore() > 0;
 
   const quizBtn = k.add([
-    k.rect(210, 36, { radius: 8 }),
-    k.pos(quizPanelX, quizPanelY + 60),
+    k.rect(300, 46, { radius: 9 }),
+    k.pos(quizPanelX, quizPanelY + 118),
     k.color(quizCompleted ? k.rgb(18, 90, 60) : k.rgb(25, 120, 180)),
     k.outline(1.5, quizCompleted ? k.rgb(90, 240, 160) : k.rgb(110, 230, 255)),
     k.anchor("center"),
@@ -445,11 +471,11 @@ function renderVictoryContent(k: KaboomCtx, gameState: GameState, onRestart: () 
         ? `Quiz Concluído! (+${gameState.getQuizScore()} pts) ✓`
         : "Fazer Quiz [ENTER] (+300 pts) ▶",
       {
-        size: 11.5,
-        font: "sans-serif",
+        size: accessibilitySystem.scaleFont(15),
+        font: "Outfit",
       }
     ),
-    k.pos(quizPanelX, quizPanelY + 60),
+    k.pos(quizPanelX, quizPanelY + 118),
     k.color(255, 255, 255),
     k.anchor("center"),
     k.fixed(),
@@ -490,14 +516,15 @@ function renderVictoryContent(k: KaboomCtx, gameState: GameState, onRestart: () 
 
   quizBtn.onClick(openQuiz);
 
-  // 1. Botão de Baixar Certificado PNG
-  const btnW = 180;
-  const btnH = 38;
-  const bottomY = k.height() / 2 + 195;
+  // Botões de Ação na parte inferior do modal
+  const btnW = 280;
+  const btnH = 46;
+  const bottomY = cY + cardH / 2 - 42;
 
+  // 1. Botão de Baixar Certificado PNG
   const downloadButton = k.add([
-    k.rect(btnW, btnH, { radius: 8 }),
-    k.pos(k.width() / 2 - 195, bottomY),
+    k.rect(btnW, btnH, { radius: 9 }),
+    k.pos(cX - 300, bottomY),
     k.color(15, 105, 75),
     k.outline(2, k.rgb(120, 255, 180)),
     k.anchor("center"),
@@ -508,10 +535,10 @@ function renderVictoryContent(k: KaboomCtx, gameState: GameState, onRestart: () 
 
   const downloadLabel = k.add([
     k.text("Baixar PNG 📥", {
-      size: 12.5,
-      font: "sans-serif",
+      size: accessibilitySystem.scaleFont(15.5),
+      font: "Outfit",
     }),
-    k.pos(k.width() / 2 - 195, bottomY),
+    k.pos(cX - 300, bottomY),
     k.color(255, 255, 255),
     k.anchor("center"),
     k.fixed(),
@@ -542,8 +569,8 @@ function renderVictoryContent(k: KaboomCtx, gameState: GameState, onRestart: () 
 
   // 2. Botão de Compartilhar Certificado nas Redes Sociais
   const shareButton = k.add([
-    k.rect(btnW, btnH, { radius: 8 }),
-    k.pos(k.width() / 2, bottomY),
+    k.rect(btnW, btnH, { radius: 9 }),
+    k.pos(cX, bottomY),
     k.color(18, 105, 120),
     k.outline(2, k.rgb(90, 235, 235)),
     k.anchor("center"),
@@ -554,10 +581,10 @@ function renderVictoryContent(k: KaboomCtx, gameState: GameState, onRestart: () 
 
   k.add([
     k.text("Compartilhar 📲", {
-      size: 12.5,
-      font: "sans-serif",
+      size: accessibilitySystem.scaleFont(15.5),
+      font: "Outfit",
     }),
-    k.pos(k.width() / 2, bottomY),
+    k.pos(cX, bottomY),
     k.color(255, 255, 255),
     k.anchor("center"),
     k.fixed(),
@@ -585,8 +612,8 @@ function renderVictoryContent(k: KaboomCtx, gameState: GameState, onRestart: () 
 
   // 3. Botão de reinício (suporta toque mobile e clique)
   const restartButton = k.add([
-    k.rect(btnW, btnH, { radius: 8 }),
-    k.pos(k.width() / 2 + 195, bottomY),
+    k.rect(btnW, btnH, { radius: 9 }),
+    k.pos(cX + 300, bottomY),
     k.color(20, 90, 140),
     k.outline(2, k.rgb(100, 240, 255)),
     k.anchor("center"),
@@ -597,10 +624,10 @@ function renderVictoryContent(k: KaboomCtx, gameState: GameState, onRestart: () 
 
   const restartLabel = k.add([
     k.text(quizCompleted ? "Jogar Novamente [ENTER] 🔄" : "Jogar Novamente [R] 🔄", {
-      size: 12,
-      font: "sans-serif",
+      size: accessibilitySystem.scaleFont(15),
+      font: "Outfit",
     }),
-    k.pos(k.width() / 2 + 195, bottomY),
+    k.pos(cX + 300, bottomY),
     k.color(255, 255, 255),
     k.anchor("center"),
     k.fixed(),

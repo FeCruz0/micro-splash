@@ -1,5 +1,6 @@
 import type { KaboomCtx } from "kaboom";
 import { audioSystem } from "../systems/audioSystem";
+import { accessibilitySystem } from "../systems/accessibilitySystem";
 import { addLeaderboardEntry } from "../systems/leaderboard";
 import type { GameMode } from "../systems/state";
 
@@ -28,15 +29,15 @@ export function showInitialsInputModal(
     ])
   );
 
-  const cardW = 540;
-  const cardH = 370;
+  const cardW = Math.min(660, k.width() - 24);
+  const cardH = Math.min(450, k.height() - 20);
   const centerX = k.width() / 2;
   const centerY = k.height() / 2;
 
   // Caixa principal com contorno dourado
   elements.push(
     k.add([
-      k.rect(cardW, cardH, { radius: 14 }),
+      k.rect(cardW, cardH, { radius: 16 }),
       k.pos(centerX, centerY),
       k.color(10, 32, 68),
       k.outline(3, k.rgb(255, 215, 60)),
@@ -50,10 +51,10 @@ export function showInitialsInputModal(
   elements.push(
     k.add([
       k.text(mode === "weekly" ? "📅 NOVO RECORDE SEMANAL!" : "🏆 NOVO RECORDE NO TOP 10!", {
-        size: 19,
-        font: "sans-serif",
+        size: accessibilitySystem.scaleFont(24),
+        font: "Outfit",
       }),
-      k.pos(centerX, centerY - 140),
+      k.pos(centerX, centerY - 165),
       k.color(255, 220, 80),
       k.anchor("center"),
       k.fixed(),
@@ -64,10 +65,10 @@ export function showInitialsInputModal(
   elements.push(
     k.add([
       k.text(`⭐ ${score} Eco-Pontos  |  🌊 ${Math.floor(distance)}m`, {
-        size: 14,
-        font: "sans-serif",
+        size: accessibilitySystem.scaleFont(17.5),
+        font: "Outfit",
       }),
-      k.pos(centerX, centerY - 105),
+      k.pos(centerX, centerY - 124),
       k.color(160, 240, 255),
       k.anchor("center"),
       k.fixed(),
@@ -78,10 +79,10 @@ export function showInitialsInputModal(
   elements.push(
     k.add([
       k.text("Insira 3 letras para registrar seu nome no ranking arcade:", {
-        size: 12,
-        font: "sans-serif",
+        size: accessibilitySystem.scaleFont(15),
+        font: "Inter",
       }),
-      k.pos(centerX, centerY - 72),
+      k.pos(centerX, centerY - 88),
       k.color(210, 230, 255),
       k.anchor("center"),
       k.fixed(),
@@ -90,9 +91,9 @@ export function showInitialsInputModal(
   );
 
   // 3 Slots de iniciais
-  const slotSpacing = 85;
+  const slotSpacing = 100;
   const startX = centerX - slotSpacing;
-  const slotY = centerY + 10;
+  const slotY = centerY + 12;
 
   const slotBoxes: any[] = [];
   const slotTexts: any[] = [];
@@ -125,8 +126,8 @@ export function showInitialsInputModal(
 
     // Seta para cima (▲)
     const btnUp = k.add([
-      k.rect(50, 28, { radius: 6 }),
-      k.pos(slotX, slotY - 48),
+      k.rect(60, 34, { radius: 7 }),
+      k.pos(slotX, slotY - 56),
       k.color(20, 60, 110),
       k.outline(1.5, k.rgb(120, 200, 255)),
       k.anchor("center"),
@@ -138,8 +139,11 @@ export function showInitialsInputModal(
 
     elements.push(
       k.add([
-        k.text("▲", { size: 14, font: "sans-serif" }),
-        k.pos(slotX, slotY - 48),
+        k.text("▲", {
+          size: accessibilitySystem.scaleFont(18),
+          font: "Outfit",
+        }),
+        k.pos(slotX, slotY - 56),
         k.color(255, 255, 255),
         k.anchor("center"),
         k.fixed(),
@@ -154,7 +158,7 @@ export function showInitialsInputModal(
 
     // Caixa da letra
     const box = k.add([
-      k.rect(64, 54, { radius: 8 }),
+      k.rect(78, 66, { radius: 10 }),
       k.pos(slotX, slotY),
       k.color(14, 45, 90),
       k.outline(2, k.rgb(80, 140, 200)),
@@ -173,7 +177,10 @@ export function showInitialsInputModal(
     });
 
     const letter = k.add([
-      k.text(initials[i], { size: 28, font: "sans-serif" }),
+      k.text(initials[i], {
+        size: accessibilitySystem.scaleFont(36),
+        font: "Outfit",
+      }),
       k.pos(slotX, slotY),
       k.color(255, 255, 255),
       k.anchor("center"),
@@ -185,8 +192,8 @@ export function showInitialsInputModal(
 
     // Seta para baixo (▼)
     const btnDown = k.add([
-      k.rect(50, 28, { radius: 6 }),
-      k.pos(slotX, slotY + 48),
+      k.rect(60, 34, { radius: 7 }),
+      k.pos(slotX, slotY + 56),
       k.color(20, 60, 110),
       k.outline(1.5, k.rgb(120, 200, 255)),
       k.anchor("center"),
@@ -198,8 +205,11 @@ export function showInitialsInputModal(
 
     elements.push(
       k.add([
-        k.text("▼", { size: 14, font: "sans-serif" }),
-        k.pos(slotX, slotY + 48),
+        k.text("▼", {
+          size: accessibilitySystem.scaleFont(18),
+          font: "Outfit",
+        }),
+        k.pos(slotX, slotY + 56),
         k.color(255, 255, 255),
         k.anchor("center"),
         k.fixed(),
@@ -217,8 +227,8 @@ export function showInitialsInputModal(
 
   // Botão Confirmar Registro
   const btnSubmit = k.add([
-    k.rect(340, 44, { radius: 8 }),
-    k.pos(centerX, centerY + 125),
+    k.rect(400, 52, { radius: 10 }),
+    k.pos(centerX, centerY + 150),
     k.color(25, 145, 90),
     k.outline(2, k.rgb(120, 255, 180)),
     k.anchor("center"),
@@ -230,8 +240,11 @@ export function showInitialsInputModal(
 
   elements.push(
     k.add([
-      k.text("💾 SALVAR NO RANKING (ENTER)", { size: 14, font: "sans-serif" }),
-      k.pos(centerX, centerY + 125),
+      k.text("💾 SALVAR NO RANKING (ENTER)", {
+        size: accessibilitySystem.scaleFont(16.5),
+        font: "Outfit",
+      }),
+      k.pos(centerX, centerY + 150),
       k.color(255, 255, 255),
       k.anchor("center"),
       k.fixed(),

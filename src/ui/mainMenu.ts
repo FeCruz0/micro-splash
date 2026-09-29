@@ -1,8 +1,11 @@
 import type { KaboomCtx } from "kaboom";
 import { APP_VERSION } from "../config";
 import { audioSystem } from "../systems/audioSystem";
+import { accessibilitySystem } from "../systems/accessibilitySystem";
 import { showStatsModal } from "./statsModal";
 import { createFocusGroup, type FocusableItem } from "./keyboardNav";
+import { hasSeenOnboarding, showOnboardingModal } from "./onboardingModal";
+import { t } from "../i18n/i18n";
 
 export function createMainMenu(
   k: KaboomCtx,
@@ -75,8 +78,9 @@ export function createMainMenu(
   }
 
   // Título Sombra
+  // Sombra do Título
   k.add([
-    k.text("MICRO SPLASH", { size: 48, font: "sans-serif" }),
+    k.text("MICRO SPLASH", { size: 56, font: "Outfit" }),
     k.pos(k.width() / 2 + 3, k.height() / 2 - 170 + 3),
     k.color(2, 8, 20),
     k.anchor("center"),
@@ -86,7 +90,7 @@ export function createMainMenu(
 
   // Título Principal
   k.add([
-    k.text("MICRO SPLASH", { size: 48, font: "sans-serif" }),
+    k.text("MICRO SPLASH", { size: 56, font: "Outfit" }),
     k.pos(k.width() / 2, k.height() / 2 - 170),
     k.color(100, 240, 255),
     k.anchor("center"),
@@ -96,8 +100,11 @@ export function createMainMenu(
 
   // Subtítulo
   k.add([
-    k.text("A Grande Migração da Baleia-Jubarte 🐋", { size: 16, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 - 124),
+    k.text(`${t("menu.subtitle")} 🐋`, {
+      size: accessibilitySystem.scaleFont(20),
+      font: "Outfit",
+    }),
+    k.pos(k.width() / 2, k.height() / 2 - 120),
     k.color(200, 235, 255),
     k.anchor("center"),
     k.fixed(),
@@ -108,8 +115,11 @@ export function createMainMenu(
   const highScore = Number(localStorage.getItem("micro_splash_highscore") || 0);
   if (highScore > 0) {
     k.add([
-      k.text(`🏆 Recorde Histórico: ${highScore} Eco-Pontos`, { size: 12, font: "sans-serif" }),
-      k.pos(k.width() / 2, k.height() / 2 - 88),
+      k.text(`🏆 Recorde Histórico: ${highScore} Eco-Pontos`, {
+        size: accessibilitySystem.scaleFont(16),
+        font: "Outfit",
+      }),
+      k.pos(k.width() / 2, k.height() / 2 - 84),
       k.color(255, 215, 80),
       k.anchor("center"),
       k.fixed(),
@@ -122,7 +132,7 @@ export function createMainMenu(
   // ==========================================
   const menuButtons = [
     {
-      label: "🌊 INICIAR MIGRAÇÃO",
+      label: `🌊 ${t("menu.play")}`,
       y: k.height() / 2 - 50,
       bg: k.rgb(20, 140, 200),
       hover: k.rgb(35, 175, 240),
@@ -131,7 +141,7 @@ export function createMainMenu(
     },
     {
       label: "🏆 RANKING TOP 10",
-      y: k.height() / 2 - 2,
+      y: k.height() / 2 + 6,
       bg: k.rgb(26, 85, 150),
       hover: k.rgb(40, 120, 200),
       outline: k.rgb(255, 215, 80),
@@ -142,7 +152,7 @@ export function createMainMenu(
     },
     {
       label: "📊 IMPACTO COLETIVO",
-      y: k.height() / 2 + 46,
+      y: k.height() / 2 + 62,
       bg: k.rgb(18, 95, 130),
       hover: k.rgb(28, 135, 180),
       outline: k.rgb(0, 230, 255),
@@ -151,16 +161,16 @@ export function createMainMenu(
       },
     },
     {
-      label: "📖 DIÁRIO DE BORDO",
-      y: k.height() / 2 + 94,
+      label: `📖 ${t("menu.codex")}`,
+      y: k.height() / 2 + 118,
       bg: k.rgb(20, 50, 100),
       hover: k.rgb(30, 80, 145),
       outline: k.rgb(180, 220, 255),
       action: onCodex,
     },
     {
-      label: "⚙️ OPÇÕES",
-      y: k.height() / 2 + 142,
+      label: `⚙️ ${t("menu.options")}`,
+      y: k.height() / 2 + 174,
       bg: k.rgb(24, 65, 120),
       hover: k.rgb(35, 95, 165),
       outline: k.rgb(80, 180, 240),
@@ -173,7 +183,7 @@ export function createMainMenu(
   menuButtons.forEach((btnData) => {
     const btnPos = k.vec2(k.width() / 2, btnData.y);
     const btn = k.add([
-      k.rect(340, 44, { radius: 10 }),
+      k.rect(420, 50, { radius: 11 }),
       k.pos(btnPos),
       k.color(btnData.bg),
       k.outline(2, btnData.outline),
@@ -185,7 +195,10 @@ export function createMainMenu(
     ]);
 
     k.add([
-      k.text(btnData.label, { size: 15, font: "sans-serif" }),
+      k.text(btnData.label, {
+        size: accessibilitySystem.scaleFont(18),
+        font: "Outfit",
+      }),
       k.pos(btnPos),
       k.color(255, 255, 255),
       k.anchor("center"),
@@ -218,8 +231,8 @@ export function createMainMenu(
 
     focusItems.push({
       pos: btnPos,
-      width: 340,
-      height: 44,
+      width: 420,
+      height: 50,
       onActivate: activate,
     });
   });
@@ -236,13 +249,13 @@ export function createMainMenu(
     k.text(
       "Inspirado nas pesquisas de conservação do Instituto Baleia Jubarte\nTrilha: 'Aquatic Ambience' (David Wise) & 16-Bit Lofi Ocean",
       {
-        size: 10,
-        font: "sans-serif",
+        size: accessibilitySystem.scaleFont(13.5),
+        font: "Inter",
         align: "center",
-        lineSpacing: 4,
+        lineSpacing: 4.5,
       }
     ),
-    k.pos(k.width() / 2, k.height() - 35),
+    k.pos(k.width() / 2, k.height() - 34),
     k.color(140, 180, 220),
     k.anchor("center"),
     k.fixed(),
@@ -251,7 +264,10 @@ export function createMainMenu(
 
   // Versão da aplicação (Fase 25 - Diagnóstico de Totem & PWA)
   k.add([
-    k.text(`v${APP_VERSION}`, { size: 10, font: "sans-serif" }),
+    k.text(`v${APP_VERSION}`, {
+      size: accessibilitySystem.scaleFont(12),
+      font: "Inter",
+    }),
     k.pos(k.width() - 14, k.height() - 12),
     k.anchor("botright"),
     k.color(120, 160, 210),
@@ -283,4 +299,13 @@ export function createMainMenu(
       idleTime = 0;
     }
   });
+
+  // Fase 21: Se for a primeira inicialização do jogo (totens ou novos jogadores), exibe o onboarding contextual protegido
+  if (!hasSeenOnboarding()) {
+    isModalOpen = true;
+    showOnboardingModal(k, () => {
+      isModalOpen = false;
+      resetIdle();
+    });
+  }
 }

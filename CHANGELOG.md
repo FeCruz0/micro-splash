@@ -7,6 +7,31 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [1.3.0] - 2026-09-28 — Marketing, Analytics, Conteúdo & Internacionalização (Fase 27)
+
+### Adicionado
+
+- **Compartilhamento Social & Open Graph**:
+  - `index.html`: Inserção de meta tags completas Open Graph (`og:type`, `og:title`, `og:description`, `og:image`, `og:image:width`, `og:image:height`, `og:image:alt`) e Twitter Cards (`twitter:card`, `twitter:title`, `twitter:description`, `twitter:image`) com link canônico oficial.
+  - `scripts/generateOgImage.cjs`: Script autônomo em Node.js puro e `node:zlib` que gera o card visual oficial `public/og-image.png` (1200×630px) com gradiente marinho profundo, feixes de luz solar, silhueta estilizada da jubarte, biomas e tipografia cristalina. Mapeado no script npm `generate:og`.
+- **Landing Page Estática Educacional**:
+  - `public/about.html`: Página independente, responsiva e ultraleve para escolas, feiras de ciências, aquários e totens interativos. Apresenta os 4 pilares oceanográficos do jogo, alinhamento com a BNCC, guia de modo quiosque/kiosk, atalhos de teclado e QR Code vetorial SVG para abertura instantânea em smartphones e tablets.
+- **Analytics Ético & Observabilidade Segura**:
+  - `src/services/analytics.ts`: Serviço de métricas agregadas via Plausible Analytics, 100% sem cookies e aderente à LGPD/GDPR. Respeita o cabeçalho `Do Not Track` (`navigator.doNotTrack`), envia eventos de forma assíncrona não bloqueante via `sendBeacon`/`fetch` e opera em modo silencioso mock offline quando não configurado.
+  - Eventos tipados integrados no fluxo do jogo: `game_started`, `migration_completed`, `migration_abandoned`, `biome_reached`, `quiz_taken` e `breach_triggered`.
+  - `src/services/errorReporter.ts`: Capturador de exceções não tratadas e falhas de WebGL/AudioContext com fallback silencioso para totens sem internet.
+- **Content Security Policy (CSP) & Proteção Contra Injeção**:
+  - Diretivas rígidas de segurança em `nginx.conf` e `public/_headers` restringindo scripts, estilos e fontes a origens seguras e bloqueando sensores desnecessários via `Permissions-Policy`.
+- **CMS Lite Educacional para Professores & Pesquisadores**:
+  - `tools/editor.html`: Aplicação web autônoma client-side (sem dependências de servidor) com formulários interativos, importação por drag-and-drop, validação em tempo real alinhada aos schemas Zod e exportação com 1 clique para `facts.json` e `quiz.json`.
+- **Internacionalização (i18n) & Línguas Indígenas Brasileiras**:
+  - `src/i18n/`: Módulo i18n com dicionários estruturados para Português (`pt-BR`), Inglês (`en-US`) e **Guarani Nhandewa (`gn`)** — valorizando o conhecimento tradicional costeiro sobre cetáceos e ecossistemas marinhos.
+  - Seletor cíclico de idioma integrado ao menu de Opções (`optionsScreen.ts`) com persistência no `localStorage` sob a chave `micro_splash_locale`.
+- **Testes Automatizados**:
+  - `tests/phase27_marketing_i18n.test.ts`: 17 novos testes unitários e de integração validando tags Open Graph, geração do PNG 1200×630, landing page estática, serviços de analytics e erro, cabeçalhos CSP, CMS Lite e tradução multilíngue.
+
+---
+
 ## [1.2.0] - 2026-09-28 — Documentação, Acessibilidade & Compliance (Fase 26)
 
 ### Adicionado

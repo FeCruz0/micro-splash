@@ -1,5 +1,6 @@
 import type { KaboomCtx } from "kaboom";
 import type { GameState } from "../systems/state";
+import { accessibilitySystem } from "../systems/accessibilitySystem";
 
 export function showRescueScreen(k: KaboomCtx, gameState: GameState, onRestart: () => void) {
   const finalScore = gameState.calculateFinalScore();
@@ -15,10 +16,15 @@ export function showRescueScreen(k: KaboomCtx, gameState: GameState, onRestart: 
     k.z(200),
   ]);
 
+  const cardW = Math.min(540, k.width() - 24);
+  const cardH = Math.min(400, k.height() - 20);
+  const centerX = k.width() / 2;
+  const centerY = k.height() / 2;
+
   // Card do Relatório
   k.add([
-    k.rect(500, 360, { radius: 12 }),
-    k.pos(k.width() / 2, k.height() / 2),
+    k.rect(cardW, cardH, { radius: 14 }),
+    k.pos(centerX, centerY),
     k.color(20, 45, 90),
     k.outline(3, k.rgb(0, 200, 255)),
     k.anchor("center"),
@@ -28,8 +34,11 @@ export function showRescueScreen(k: KaboomCtx, gameState: GameState, onRestart: 
 
   // Título do Resgate
   k.add([
-    k.text("🚨 RESGATE DA GUARDA MARÍTIMA 🚨", { size: 18 }),
-    k.pos(k.width() / 2, k.height() / 2 - 140),
+    k.text("🚨 RESGATE DA GUARDA MARÍTIMA 🚨", {
+      size: accessibilitySystem.scaleFont(24),
+      font: "Outfit",
+    }),
+    k.pos(centerX, centerY - cardH / 2 + 36),
     k.color(255, 215, 0),
     k.anchor("center"),
     k.fixed(),
@@ -38,10 +47,13 @@ export function showRescueScreen(k: KaboomCtx, gameState: GameState, onRestart: 
 
   k.add([
     k.text("A baleia desmaiou por asfixia mas foi resgatada a tempo em Arraial do Cabo!", {
-      size: 12,
-      width: 440,
+      size: accessibilitySystem.scaleFont(15),
+      font: "Inter",
+      width: cardW - 40,
+      lineSpacing: 4,
+      align: "center",
     }),
-    k.pos(k.width() / 2, k.height() / 2 - 100),
+    k.pos(centerX, centerY - cardH / 2 + 76),
     k.color(200, 230, 255),
     k.anchor("center"),
     k.fixed(),
@@ -58,8 +70,12 @@ export function showRescueScreen(k: KaboomCtx, gameState: GameState, onRestart: 
     `🏆 Maior Recorde: ${highScore} pts`;
 
   k.add([
-    k.text(statsText, { size: 14, lineSpacing: 6 }),
-    k.pos(k.width() / 2 - 180, k.height() / 2 - 50),
+    k.text(statsText, {
+      size: accessibilitySystem.scaleFont(16),
+      font: "Inter",
+      lineSpacing: 6.5,
+    }),
+    k.pos(centerX - 190, centerY - cardH / 2 + 120),
     k.color(255, 255, 255),
     k.fixed(),
     k.z(202),
@@ -67,8 +83,8 @@ export function showRescueScreen(k: KaboomCtx, gameState: GameState, onRestart: 
 
   // Botão interativo para reiniciar (suporta toque mobile e clique)
   const restartButton = k.add([
-    k.rect(320, 38, { radius: 8 }),
-    k.pos(k.width() / 2, k.height() / 2 + 130),
+    k.rect(360, 48, { radius: 9 }),
+    k.pos(centerX, centerY + cardH / 2 - 36),
     k.color(20, 90, 140),
     k.outline(2, k.rgb(100, 240, 255)),
     k.anchor("center"),
@@ -78,8 +94,11 @@ export function showRescueScreen(k: KaboomCtx, gameState: GameState, onRestart: 
   ]);
 
   k.add([
-    k.text("Tentar Novamente (ou ENTER) 🔄", { size: 13, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 + 130),
+    k.text("Tentar Novamente (ou ENTER) 🔄", {
+      size: accessibilitySystem.scaleFont(16),
+      font: "Outfit",
+    }),
+    k.pos(centerX, centerY + cardH / 2 - 36),
     k.color(255, 255, 255),
     k.anchor("center"),
     k.fixed(),

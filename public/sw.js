@@ -6,7 +6,7 @@
  * interativos de museus, feiras de ciências escolares e tablets públicos.
  */
 
-const CACHE_NAME = "micro-splash-v6";
+const CACHE_NAME = "micro-splash-v8";
 
 const PRECACHE_ASSETS = [
   "/",
@@ -19,6 +19,8 @@ const PRECACHE_ASSETS = [
   "/sprites/cachalote_bg.png",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
+  "/fonts/Inter-SemiBold.ttf",
+  "/fonts/Outfit-Bold.ttf",
 ];
 
 // Instalação: Pré-cacheia os assets estruturais essenciais

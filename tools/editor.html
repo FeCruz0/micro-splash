@@ -1,0 +1,881 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Micro Splash — CMS Lite de Conteúdo Educacional</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      :root {
+        --bg-abyssal: #06122a;
+        --bg-panel: rgba(12, 35, 75, 0.85);
+        --bg-card: rgba(16, 45, 95, 0.6);
+        --border-glass: rgba(56, 189, 248, 0.25);
+        --border-hover: rgba(56, 189, 248, 0.6);
+        --text-primary: #f0f9ff;
+        --text-secondary: #94a3b8;
+        --cyan-glow: #38bdf8;
+        --emerald-glow: #34d399;
+        --red-glow: #f87171;
+        --gold-glow: #fbbf24;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        background-color: var(--bg-abyssal);
+        color: var(--text-primary);
+        font-family: "Inter", sans-serif;
+        line-height: 1.5;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        background-image:
+          radial-gradient(circle at 10% 10%, rgba(2, 132, 199, 0.15) 0%, transparent 40%),
+          radial-gradient(circle at 90% 90%, rgba(56, 189, 248, 0.1) 0%, transparent 40%);
+      }
+
+      header {
+        background: rgba(6, 18, 42, 0.95);
+        border-bottom: 1px solid var(--border-glass);
+        padding: 1rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
+
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-family: "Outfit", sans-serif;
+        font-size: 1.4rem;
+        font-weight: 800;
+      }
+
+      .brand span {
+        color: var(--cyan-glow);
+      }
+
+      .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.55rem 1.1rem;
+        border-radius: 8px;
+        font-family: "Outfit", sans-serif;
+        font-weight: 700;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 1px solid transparent;
+        text-decoration: none;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #0284c7, #38bdf8);
+        color: #041226;
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(56, 189, 248, 0.4);
+      }
+
+      .btn-secondary {
+        background: rgba(14, 116, 144, 0.3);
+        color: var(--text-primary);
+        border-color: var(--border-glass);
+      }
+
+      .btn-secondary:hover {
+        background: rgba(14, 116, 144, 0.5);
+        border-color: var(--cyan-glow);
+      }
+
+      .btn-danger {
+        background: rgba(220, 38, 38, 0.2);
+        color: var(--red-glow);
+        border-color: rgba(239, 68, 68, 0.4);
+      }
+
+      .btn-danger:hover {
+        background: rgba(220, 38, 38, 0.4);
+      }
+
+      .tab-bar {
+        background: rgba(8, 24, 56, 0.8);
+        border-bottom: 1px solid var(--border-glass);
+        padding: 0.5rem 2rem;
+        display: flex;
+        gap: 1rem;
+      }
+
+      .tab-btn {
+        background: transparent;
+        border: none;
+        color: var(--text-secondary);
+        font-family: "Outfit", sans-serif;
+        font-size: 1rem;
+        font-weight: 700;
+        padding: 0.6rem 1.2rem;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .tab-btn.active {
+        background: rgba(56, 189, 248, 0.15);
+        color: var(--cyan-glow);
+        border: 1px solid var(--border-glass);
+      }
+
+      .main-layout {
+        display: grid;
+        grid-template-columns: 420px 1fr;
+        flex-grow: 1;
+        height: calc(100vh - 130px);
+      }
+
+      @media (max-width: 900px) {
+        .main-layout {
+          grid-template-columns: 1fr;
+          height: auto;
+        }
+      }
+
+      /* Sidebar Form */
+      .sidebar {
+        background: var(--bg-panel);
+        border-right: 1px solid var(--border-glass);
+        padding: 1.5rem;
+        overflow-y: auto;
+      }
+
+      .sidebar h2 {
+        font-family: "Outfit", sans-serif;
+        font-size: 1.25rem;
+        margin-bottom: 1rem;
+        color: #fff;
+      }
+
+      .form-group {
+        margin-bottom: 1rem;
+      }
+
+      .form-group label {
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--cyan-glow);
+        margin-bottom: 0.35rem;
+      }
+
+      .form-group input,
+      .form-group textarea,
+      .form-group select {
+        width: 100%;
+        background: rgba(6, 18, 42, 0.7);
+        border: 1px solid var(--border-glass);
+        border-radius: 6px;
+        padding: 0.6rem 0.8rem;
+        color: var(--text-primary);
+        font-family: inherit;
+        font-size: 0.9rem;
+        outline: none;
+        transition: border-color 0.2s;
+      }
+
+      .form-group input:focus,
+      .form-group textarea:focus,
+      .form-group select:focus {
+        border-color: var(--cyan-glow);
+      }
+
+      .form-group textarea {
+        min-height: 80px;
+        resize: vertical;
+      }
+
+      .options-group {
+        border: 1px solid var(--border-glass);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        background: rgba(6, 18, 42, 0.4);
+      }
+
+      .option-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .option-row input[type="radio"] {
+        width: auto;
+        cursor: pointer;
+      }
+
+      /* Content Area */
+      .content-area {
+        padding: 1.5rem;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .search-bar {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .search-bar input {
+        flex-grow: 1;
+        background: rgba(6, 18, 42, 0.7);
+        border: 1px solid var(--border-glass);
+        border-radius: 8px;
+        padding: 0.6rem 1rem;
+        color: #fff;
+        font-size: 0.95rem;
+        outline: none;
+      }
+
+      .cards-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 1rem;
+      }
+
+      .item-card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-glass);
+        border-radius: 10px;
+        padding: 1.25rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        transition: all 0.2s ease;
+      }
+
+      .item-card:hover {
+        border-color: var(--border-hover);
+        transform: translateY(-2px);
+      }
+
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 0.5rem;
+      }
+
+      .card-badge {
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 0.2rem 0.5rem;
+        border-radius: 4px;
+        text-transform: uppercase;
+        background: rgba(56, 189, 248, 0.2);
+        color: var(--cyan-glow);
+      }
+
+      .item-card h3 {
+        font-family: "Outfit", sans-serif;
+        font-size: 1.1rem;
+        margin-bottom: 0.4rem;
+        color: #fff;
+      }
+
+      .item-card p {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        margin-bottom: 1rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+
+      .card-actions {
+        display: flex;
+        gap: 0.5rem;
+        border-top: 1px solid rgba(56, 189, 248, 0.15);
+        padding-top: 0.75rem;
+      }
+
+      .notice-box {
+        padding: 0.75rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        margin-bottom: 1rem;
+        display: none;
+      }
+
+      .notice-error {
+        background: rgba(220, 38, 38, 0.2);
+        border: 1px solid rgba(239, 68, 68, 0.4);
+        color: #fca5a5;
+        display: block;
+      }
+
+      .notice-success {
+        background: rgba(16, 185, 129, 0.2);
+        border: 1px solid rgba(52, 211, 153, 0.4);
+        color: #6ee7b7;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="brand">🐋 <span>Micro Splash</span> &mdash; CMS Lite Educacional</div>
+      <div class="header-actions">
+        <input type="file" id="file-input" accept=".json" style="display: none" />
+        <button class="btn btn-secondary" id="btn-import-file">📂 Carregar JSON</button>
+        <button class="btn btn-secondary" id="btn-fetch-default">🌐 Carregar do Jogo</button>
+        <button class="btn btn-primary" id="btn-export-json">💾 Baixar JSON Atualizado</button>
+      </div>
+    </header>
+
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tab-facts" data-tab="facts">
+        💡 Fatos Educativos (facts.json)
+      </button>
+      <button class="tab-btn" id="tab-quiz" data-tab="quiz">
+        ❓ Perguntas do Quiz (quiz.json)
+      </button>
+    </div>
+
+    <div class="main-layout">
+      <!-- Formulário Lateral -->
+      <aside class="sidebar" id="sidebar-editor">
+        <h2 id="form-title">Adicionar Novo Fato</h2>
+        <div id="notice-container"></div>
+
+        <!-- Form Fatos -->
+        <form id="form-fact" style="display: block">
+          <div class="form-group">
+            <label for="fact-id">ID Único (ex: antartica_krill):</label>
+            <input type="text" id="fact-id" required />
+          </div>
+          <div class="form-group">
+            <label for="fact-title">Título do Fato:</label>
+            <input type="text" id="fact-title" required />
+          </div>
+          <div class="form-group">
+            <label for="fact-location">Localização / Bioma:</label>
+            <input type="text" id="fact-location" required />
+          </div>
+          <div class="form-group">
+            <label for="fact-trigger-x">Distância de Ativação X (0 a 30.000m):</label>
+            <input type="number" id="fact-trigger-x" min="0" max="30000" required />
+          </div>
+          <div class="form-group">
+            <label for="fact-desc">Descrição Científica / Pedagógica:</label>
+            <textarea id="fact-desc" rows="4" required></textarea>
+          </div>
+          <div style="display: flex; gap: 0.5rem">
+            <button type="submit" class="btn btn-primary" style="flex-grow: 1">Salvar Fato</button>
+            <button type="button" class="btn btn-secondary" id="btn-fact-reset">Limpar</button>
+          </div>
+        </form>
+
+        <!-- Form Quiz -->
+        <form id="form-quiz" style="display: none">
+          <div class="form-group">
+            <label for="quiz-id">ID Único (ex: q_ant_krill):</label>
+            <input type="text" id="quiz-id" required />
+          </div>
+          <div class="form-group">
+            <label for="quiz-fact-id">Fact ID Associado:</label>
+            <input type="text" id="quiz-fact-id" required />
+          </div>
+          <div class="form-group">
+            <label for="quiz-biome">Bioma Oceanográfico:</label>
+            <select id="quiz-biome" required>
+              <option value="antartica">Antártica</option>
+              <option value="pelagico">Oceano Pelágico</option>
+              <option value="costa_urbana">Costa Urbana</option>
+              <option value="canyons">Canyons Abissais</option>
+              <option value="arraial">Arraial do Cabo</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="quiz-difficulty">Dificuldade Pedagógica:</label>
+            <select id="quiz-difficulty" required>
+              <option value="facil">Fácil</option>
+              <option value="medio">Médio</option>
+              <option value="dificil">Difícil</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="quiz-question">Enunciado da Pergunta:</label>
+            <textarea id="quiz-question" rows="3" required></textarea>
+          </div>
+          <div class="options-group">
+            <label style="margin-bottom: 0.5rem; display: block">
+              4 Alternativas (Selecione a Correta):
+            </label>
+            <div class="option-row">
+              <input type="radio" name="correct-opt" value="0" checked />
+              <input type="text" id="quiz-opt-0" placeholder="Alternativa 1" required />
+            </div>
+            <div class="option-row">
+              <input type="radio" name="correct-opt" value="1" />
+              <input type="text" id="quiz-opt-1" placeholder="Alternativa 2" required />
+            </div>
+            <div class="option-row">
+              <input type="radio" name="correct-opt" value="2" />
+              <input type="text" id="quiz-opt-2" placeholder="Alternativa 3" required />
+            </div>
+            <div class="option-row">
+              <input type="radio" name="correct-opt" value="3" />
+              <input type="text" id="quiz-opt-3" placeholder="Alternativa 4" required />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="quiz-explanation">Explicação Biológica / Didática:</label>
+            <textarea id="quiz-explanation" rows="3" required></textarea>
+          </div>
+          <div style="display: flex; gap: 0.5rem">
+            <button type="submit" class="btn btn-primary" style="flex-grow: 1">
+              Salvar Pergunta
+            </button>
+            <button type="button" class="btn btn-secondary" id="btn-quiz-reset">Limpar</button>
+          </div>
+        </form>
+      </aside>
+
+      <!-- Painel de Lista & Pesquisa -->
+      <section class="content-area">
+        <div class="search-bar">
+          <input
+            type="text"
+            id="search-input"
+            placeholder="🔍 Filtrar por título, bioma, ID ou conteúdo..."
+          />
+          <span
+            id="items-counter"
+            style="align-self: center; font-size: 0.85rem; color: var(--cyan-glow); min-width: 80px"
+          ></span>
+        </div>
+
+        <div class="cards-list" id="cards-container">
+          <!-- Renderizado via JS -->
+        </div>
+      </section>
+    </div>
+
+    <script>
+      // Estado dos dados em memória
+      let activeTab = "facts";
+      let factsList = [];
+      let quizList = [];
+      let editingFactId = null;
+      let editingQuizId = null;
+
+      // Dados de demonstração caso abra localmente sem servidor
+      const initialFactsSample = [
+        {
+          id: "antartica",
+          title: "Alimentação Polar & Krill",
+          location: "Oceano Antártico (600m)",
+          triggerX: 600,
+          description:
+            "As jubartes passam o verão polar nas águas geladas da Antártida consumindo até 2 toneladas de krill por dia para acumular reservas de gordura essenciais à migração.",
+        },
+        {
+          id: "morainas_gelo",
+          title: "Banquisa & Fendas de Gelo",
+          location: "Geleiras Antárticas (2.500m)",
+          triggerX: 2500,
+          description:
+            "As camadas congeladas de superfície obrigam as baleias a encontrar fendas naturais no gelo marinho para subir e respirar oxigênio antes que o mar congele.",
+        },
+      ];
+
+      const initialQuizSample = [
+        {
+          id: "q_ant_krill_tonnage",
+          factId: "antartica",
+          biome: "antartica",
+          difficulty: "facil",
+          question:
+            "Quanto alimento uma baleia-jubarte adulta consome diariamente durante o verão antártico?",
+          options: [
+            "Até 2 toneladas diárias de krill",
+            "Cerca de 50 kg de pequenos moluscos",
+            "Apenas 200 kg de peixes voadores",
+            "Elas não se alimentam na Antártica",
+          ],
+          correctIndex: 0,
+          explanation:
+            "No verão polar, as jubartes ingerem até 2 toneladas diárias de krill, acumulando uma espessa camada de gordura para resistir ao jejum migratório.",
+        },
+      ];
+
+      factsList = [...initialFactsSample];
+      quizList = [...initialQuizSample];
+
+      // Elementos do DOM
+      const tabFacts = document.getElementById("tab-facts");
+      const tabQuiz = document.getElementById("tab-quiz");
+      const formFact = document.getElementById("form-fact");
+      const formQuiz = document.getElementById("form-quiz");
+      const formTitle = document.getElementById("form-title");
+      const cardsContainer = document.getElementById("cards-container");
+      const searchInput = document.getElementById("search-input");
+      const itemsCounter = document.getElementById("items-counter");
+      const fileInput = document.getElementById("file-input");
+      const btnImportFile = document.getElementById("btn-import-file");
+      const btnFetchDefault = document.getElementById("btn-fetch-default");
+      const btnExportJson = document.getElementById("btn-export-json");
+      const noticeContainer = document.getElementById("notice-container");
+
+      function showNotice(msg, isError = false) {
+        noticeContainer.className = isError
+          ? "notice-box notice-error"
+          : "notice-box notice-success";
+        noticeContainer.innerText = msg;
+        setTimeout(() => {
+          noticeContainer.className = "notice-box";
+        }, 4000);
+      }
+
+      // Alternância de abas
+      function switchTab(tab) {
+        activeTab = tab;
+        if (tab === "facts") {
+          tabFacts.classList.add("active");
+          tabQuiz.classList.remove("active");
+          formFact.style.display = "block";
+          formQuiz.style.display = "none";
+          formTitle.innerText = editingFactId ? "Editar Fato" : "Adicionar Novo Fato";
+        } else {
+          tabQuiz.classList.add("active");
+          tabFacts.classList.remove("active");
+          formQuiz.style.display = "block";
+          formFact.style.display = "none";
+          formTitle.innerText = editingQuizId ? "Editar Pergunta" : "Adicionar Pergunta";
+        }
+        renderList();
+      }
+
+      tabFacts.addEventListener("click", () => switchTab("facts"));
+      tabQuiz.addEventListener("click", () => switchTab("quiz"));
+
+      // Renderização da lista de cards
+      function renderList() {
+        const query = searchInput.value.toLowerCase().trim();
+        cardsContainer.innerHTML = "";
+
+        if (activeTab === "facts") {
+          const filtered = factsList.filter(
+            (f) =>
+              f.id.toLowerCase().includes(query) ||
+              f.title.toLowerCase().includes(query) ||
+              f.location.toLowerCase().includes(query) ||
+              f.description.toLowerCase().includes(query)
+          );
+          itemsCounter.innerText = `${filtered.length} de ${factsList.length}`;
+
+          filtered.forEach((fact) => {
+            const card = document.createElement("div");
+            card.className = "item-card";
+            card.innerHTML = `
+              <div>
+                <div class="card-header">
+                  <span class="card-badge">${fact.triggerX}m</span>
+                  <span style="font-size: 0.75rem; color: #94a3b8;">${fact.id}</span>
+                </div>
+                <h3>${escapeHtml(fact.title)}</h3>
+                <p><strong>${escapeHtml(fact.location)}</strong><br>${escapeHtml(fact.description)}</p>
+              </div>
+              <div class="card-actions">
+                <button class="btn btn-secondary" onclick="editFact('${fact.id}')" style="flex-grow: 1;">Editar</button>
+                <button class="btn btn-danger" onclick="deleteFact('${fact.id}')">Excluir</button>
+              </div>
+            `;
+            cardsContainer.appendChild(card);
+          });
+        } else {
+          const filtered = quizList.filter(
+            (q) =>
+              q.id.toLowerCase().includes(query) ||
+              q.factId.toLowerCase().includes(query) ||
+              q.biome.toLowerCase().includes(query) ||
+              q.question.toLowerCase().includes(query)
+          );
+          itemsCounter.innerText = `${filtered.length} de ${quizList.length}`;
+
+          filtered.forEach((q) => {
+            const card = document.createElement("div");
+            card.className = "item-card";
+            card.innerHTML = `
+              <div>
+                <div class="card-header">
+                  <span class="card-badge">${q.biome} (${q.difficulty})</span>
+                  <span style="font-size: 0.75rem; color: #94a3b8;">${q.id}</span>
+                </div>
+                <h3>${escapeHtml(q.question)}</h3>
+                <p><strong>Resposta Correta:</strong> ${escapeHtml(q.options[q.correctIndex] || "")}</p>
+                <p style="font-size: 0.8rem; color: #64748b;">${escapeHtml(q.explanation)}</p>
+              </div>
+              <div class="card-actions">
+                <button class="btn btn-secondary" onclick="editQuiz('${q.id}')" style="flex-grow: 1;">Editar</button>
+                <button class="btn btn-danger" onclick="deleteQuiz('${q.id}')">Excluir</button>
+              </div>
+            `;
+            cardsContainer.appendChild(card);
+          });
+        }
+      }
+
+      function escapeHtml(str) {
+        return (str || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      }
+
+      searchInput.addEventListener("input", renderList);
+
+      // Edição e Remoção de Fatos
+      window.editFact = function (id) {
+        const item = factsList.find((f) => f.id === id);
+        if (!item) return;
+        editingFactId = id;
+        formTitle.innerText = "Editar Fato";
+        document.getElementById("fact-id").value = item.id;
+        document.getElementById("fact-id").disabled = true;
+        document.getElementById("fact-title").value = item.title;
+        document.getElementById("fact-location").value = item.location;
+        document.getElementById("fact-trigger-x").value = item.triggerX;
+        document.getElementById("fact-desc").value = item.description;
+      };
+
+      window.deleteFact = function (id) {
+        if (!confirm(`Deseja realmente excluir o fato '${id}'?`)) return;
+        factsList = factsList.filter((f) => f.id !== id);
+        if (editingFactId === id) resetFactForm();
+        renderList();
+        showNotice(`Fato '${id}' removido.`);
+      };
+
+      function resetFactForm() {
+        editingFactId = null;
+        formFact.reset();
+        document.getElementById("fact-id").disabled = false;
+        formTitle.innerText = "Adicionar Novo Fato";
+      }
+
+      document.getElementById("btn-fact-reset").addEventListener("click", resetFactForm);
+
+      formFact.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const id = document.getElementById("fact-id").value.trim();
+        const title = document.getElementById("fact-title").value.trim();
+        const location = document.getElementById("fact-location").value.trim();
+        const triggerX = Number(document.getElementById("fact-trigger-x").value);
+        const description = document.getElementById("fact-desc").value.trim();
+
+        if (description.length < 10) {
+          showNotice("A descrição deve conter no mínimo 10 caracteres.", true);
+          return;
+        }
+
+        const factData = { id, title, location, triggerX, description };
+
+        if (editingFactId) {
+          const idx = factsList.findIndex((f) => f.id === editingFactId);
+          if (idx !== -1) factsList[idx] = factData;
+          showNotice(`Fato '${id}' atualizado com sucesso!`);
+        } else {
+          if (factsList.some((f) => f.id === id)) {
+            showNotice(`Já existe um fato com o ID '${id}'.`, true);
+            return;
+          }
+          factsList.push(factData);
+          showNotice(`Fato '${id}' adicionado!`);
+        }
+
+        resetFactForm();
+        renderList();
+      });
+
+      // Edição e Remoção de Quiz
+      window.editQuiz = function (id) {
+        const item = quizList.find((q) => q.id === id);
+        if (!item) return;
+        editingQuizId = id;
+        formTitle.innerText = "Editar Pergunta";
+        document.getElementById("quiz-id").value = item.id;
+        document.getElementById("quiz-id").disabled = true;
+        document.getElementById("quiz-fact-id").value = item.factId;
+        document.getElementById("quiz-biome").value = item.biome;
+        document.getElementById("quiz-difficulty").value = item.difficulty;
+        document.getElementById("quiz-question").value = item.question;
+        document.getElementById("quiz-opt-0").value = item.options[0] || "";
+        document.getElementById("quiz-opt-1").value = item.options[1] || "";
+        document.getElementById("quiz-opt-2").value = item.options[2] || "";
+        document.getElementById("quiz-opt-3").value = item.options[3] || "";
+        document.querySelector(`input[name="correct-opt"][value="${item.correctIndex}"]`).checked =
+          true;
+        document.getElementById("quiz-explanation").value = item.explanation;
+      };
+
+      window.deleteQuiz = function (id) {
+        if (!confirm(`Deseja realmente excluir a pergunta '${id}'?`)) return;
+        quizList = quizList.filter((q) => q.id !== id);
+        if (editingQuizId === id) resetQuizForm();
+        renderList();
+        showNotice(`Pergunta '${id}' removida.`);
+      };
+
+      function resetQuizForm() {
+        editingQuizId = null;
+        formQuiz.reset();
+        document.getElementById("quiz-id").disabled = false;
+        formTitle.innerText = "Adicionar Pergunta";
+      }
+
+      document.getElementById("btn-quiz-reset").addEventListener("click", resetQuizForm);
+
+      formQuiz.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const id = document.getElementById("quiz-id").value.trim();
+        const factId = document.getElementById("quiz-fact-id").value.trim();
+        const biome = document.getElementById("quiz-biome").value;
+        const difficulty = document.getElementById("quiz-difficulty").value;
+        const question = document.getElementById("quiz-question").value.trim();
+        const options = [
+          document.getElementById("quiz-opt-0").value.trim(),
+          document.getElementById("quiz-opt-1").value.trim(),
+          document.getElementById("quiz-opt-2").value.trim(),
+          document.getElementById("quiz-opt-3").value.trim(),
+        ];
+        const correctIndex = Number(
+          document.querySelector('input[name="correct-opt"]:checked').value
+        );
+        const explanation = document.getElementById("quiz-explanation").value.trim();
+
+        if (question.length < 5) {
+          showNotice("O enunciado deve ter pelo menos 5 caracteres.", true);
+          return;
+        }
+        if (options.some((opt) => opt.length < 1)) {
+          showNotice("Todas as 4 alternativas devem ser preenchidas.", true);
+          return;
+        }
+
+        const quizData = {
+          id,
+          factId,
+          biome,
+          difficulty,
+          question,
+          options,
+          correctIndex,
+          explanation,
+        };
+
+        if (editingQuizId) {
+          const idx = quizList.findIndex((q) => q.id === editingQuizId);
+          if (idx !== -1) quizList[idx] = quizData;
+          showNotice(`Pergunta '${id}' atualizada!`);
+        } else {
+          if (quizList.some((q) => q.id === id)) {
+            showNotice(`Já existe uma pergunta com o ID '${id}'.`, true);
+            return;
+          }
+          quizList.push(quizData);
+          showNotice(`Pergunta '${id}' adicionada!`);
+        }
+
+        resetQuizForm();
+        renderList();
+      });
+
+      // Exportação para JSON
+      btnExportJson.addEventListener("click", () => {
+        const isFacts = activeTab === "facts";
+        const data = isFacts ? factsList : quizList;
+        const filename = isFacts ? "facts.json" : "quiz.json";
+
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+        showNotice(`Download de ${filename} iniciado com sucesso!`);
+      });
+
+      // Importação via arquivo local
+      btnImportFile.addEventListener("click", () => fileInput.click());
+      fileInput.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          try {
+            const parsed = JSON.parse(event.target.result);
+            if (!Array.isArray(parsed)) throw new Error("O JSON precisa conter uma lista (array).");
+
+            if (activeTab === "facts") {
+              factsList = parsed;
+              showNotice(`${parsed.length} fatos carregados com sucesso!`);
+            } else {
+              quizList = parsed;
+              showNotice(`${parsed.length} perguntas carregadas com sucesso!`);
+            }
+            renderList();
+          } catch (err) {
+            showNotice("Falha ao analisar o JSON: " + err.message, true);
+          }
+        };
+        reader.readAsText(file);
+      });
+
+      // Carregar dados originais do jogo
+      btnFetchDefault.addEventListener("click", async () => {
+        const url = activeTab === "facts" ? "/data/facts.json" : "/data/quiz.json";
+        try {
+          const res = await fetch(url);
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          if (activeTab === "facts") factsList = data;
+          else quizList = data;
+          showNotice(`${data.length} itens carregados de ${url}!`);
+          renderList();
+        } catch (err) {
+          showNotice(`Não foi possível carregar ${url} automaticamente: ${err.message}`, true);
+        }
+      });
+
+      // Inicialização
+      renderList();
+    </script>
+  </body>
+</html>

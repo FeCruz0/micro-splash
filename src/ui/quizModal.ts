@@ -1,7 +1,9 @@
 import type { KaboomCtx } from "kaboom";
 import { audioSystem } from "../systems/audioSystem";
+import { accessibilitySystem } from "../systems/accessibilitySystem";
 import type { GameState } from "../systems/state";
 import { recordQuizResult } from "../systems/cumulativeStats";
+import { analytics } from "../services/analytics";
 import quizData from "../../data/quiz.json";
 
 export interface QuizQuestion {
@@ -103,9 +105,9 @@ export function showQuizModal(
   const cX = screenW / 2;
   const cY = screenH / 2;
 
-  // Dimensões compactas e responsivas para nunca transbordar em 800x450 ou telas menores
-  const cardW = Math.min(620, screenW - 24);
-  const cardH = Math.min(410, screenH - 24);
+  // Dimensões confortáveis e responsivas expandidas
+  const cardW = Math.min(960, screenW - 24);
+  const cardH = Math.min(650, screenH - 20);
 
   // Fundo escuro semi-transparente que bloqueia cliques na tela subjacente
   const backdrop = k.add([
@@ -121,9 +123,9 @@ export function showQuizModal(
 
   // Card do Quiz com contorno ciano
   const card = k.add([
-    k.rect(cardW, cardH, { radius: 12 }),
+    k.rect(cardW, cardH, { radius: 16 }),
     k.pos(cX, cY),
-    k.color(10, 30, 64),
+    k.color(10, 28, 56),
     k.outline(2.5, k.rgb(100, 220, 255)),
     k.anchor("center"),
     k.area(),
@@ -135,8 +137,11 @@ export function showQuizModal(
   // Título do Quiz no topo do card
   elements.push(
     k.add([
-      k.text("DESAFIO DE CONHECIMENTO ECOLÓGICO 🧪🐋", { size: 16, font: "sans-serif" }),
-      k.pos(cX, cY - cardH / 2 + 28),
+      k.text("DESAFIO DE CONHECIMENTO ECOLÓGICO 🧪🐋", {
+        size: accessibilitySystem.scaleFont(26),
+        font: "Outfit",
+      }),
+      k.pos(cX, cY - cardH / 2 + 32),
       k.color(255, 215, 80),
       k.anchor("center"),
       k.fixed(),
@@ -174,8 +179,8 @@ export function showQuizModal(
 
   // Botão fechar (✕) no canto superior direito
   const btnClose = k.add([
-    k.rect(28, 28, { radius: 6 }),
-    k.pos(cX + cardW / 2 - 24, cY - cardH / 2 + 26),
+    k.rect(34, 34, { radius: 8 }),
+    k.pos(cX + cardW / 2 - 28, cY - cardH / 2 + 28),
     k.color(25, 45, 80),
     k.outline(1, k.rgb(100, 200, 255)),
     k.anchor("center"),
@@ -187,8 +192,8 @@ export function showQuizModal(
 
   elements.push(
     k.add([
-      k.text("✕", { size: 14, font: "sans-serif" }),
-      k.pos(cX + cardW / 2 - 24, cY - cardH / 2 + 26),
+      k.text("✕", { size: accessibilitySystem.scaleFont(16), font: "Outfit" }),
+      k.pos(cX + cardW / 2 - 28, cY - cardH / 2 + 28),
       k.color(255, 255, 255),
       k.anchor("center"),
       k.fixed(),
@@ -283,8 +288,11 @@ export function showQuizModal(
     // Indicador de Progresso e Pontuação com Bioma e Dificuldade
     dynamicElements.push(
       k.add([
-        k.text(metaParts.join("  •  "), { size: 10.5, font: "sans-serif" }),
-        k.pos(cX, cY - cardH / 2 + 56),
+        k.text(metaParts.join("  •  "), {
+          size: accessibilitySystem.scaleFont(15),
+          font: "Outfit",
+        }),
+        k.pos(cX, cY - cardH / 2 + 64),
         k.color(140, 220, 255),
         k.anchor("center"),
         k.fixed(),
@@ -292,17 +300,17 @@ export function showQuizModal(
       ])
     );
 
-    // Pergunta em destaque
+    // Pergunta em destaque ampliada
     dynamicElements.push(
       k.add([
         k.text(q.question, {
-          size: 13.5,
-          font: "sans-serif",
-          width: cardW - 50,
-          lineSpacing: 3,
+          size: accessibilitySystem.scaleFont(19),
+          font: "Outfit",
+          width: cardW - 64,
+          lineSpacing: 4.5,
           align: "center",
         }),
-        k.pos(cX, cY - cardH / 2 + 96),
+        k.pos(cX, cY - cardH / 2 + 112),
         k.color(255, 255, 255),
         k.anchor("center"),
         k.fixed(),
@@ -312,10 +320,10 @@ export function showQuizModal(
 
     // 4 Botões de Alternativas
     const optionLetters = ["A", "B", "C", "D"];
-    const startY = cY - cardH / 2 + 148;
-    const optionSpacing = 36;
-    const btnW = cardW - 50;
-    const btnH = 30;
+    const startY = cY - cardH / 2 + 180;
+    const optionSpacing = 56;
+    const btnW = cardW - 64;
+    const btnH = 48;
 
     const optionButtons: any[] = [];
 
@@ -324,6 +332,11 @@ export function showQuizModal(
       isAnswered = true;
 
       const isCorrect = optIdx === q.correctIndex;
+      analytics.trackQuizTaken({
+        questionId: q.id,
+        isCorrect,
+        biome: q.biome || "desconhecido",
+      });
       if (isCorrect) {
         audioSystem.playPowerupCollect();
         correctAnswers++;
@@ -355,13 +368,13 @@ export function showQuizModal(
       dynamicElements.push(
         k.add([
           k.text(`${isCorrect ? "✅ Correto! (+100 pts)" : "❌ Incorreto!"} ${q.explanation}`, {
-            size: 11,
-            font: "sans-serif",
-            width: cardW - 50,
-            lineSpacing: 2.5,
+            size: accessibilitySystem.scaleFont(14.5),
+            font: "Inter",
+            width: cardW - 64,
+            lineSpacing: 3.5,
             align: "center",
           }),
-          k.pos(cX, cY + cardH / 2 - 68),
+          k.pos(cX, cY + cardH / 2 - 76),
           k.color(isCorrect ? k.rgb(140, 255, 180) : k.rgb(255, 190, 170)),
           k.anchor("center"),
           k.fixed(),
@@ -372,10 +385,11 @@ export function showQuizModal(
       // Botão Avançar / Concluir
       const isLastQuestion = currentQuestionIdx === questions.length - 1;
       const btnNext = k.add([
-        k.rect(190, 32, { radius: 6 }),
-        k.pos(cX, cY + cardH / 2 - 26),
+        k.rect(280, 46, { radius: 9 }),
+        k.pos(cX, cY + cardH / 2 - 30),
         k.color(25, 110, 180),
         k.outline(1.5, k.rgb(100, 230, 255)),
+        k.scale(1),
         k.anchor("center"),
         k.area(),
         k.fixed(),
@@ -386,10 +400,10 @@ export function showQuizModal(
       dynamicElements.push(
         k.add([
           k.text(isLastQuestion ? "Ver Resultado 🏆 (ENTER)" : "Próxima Pergunta ▶ (ENTER)", {
-            size: 11.5,
-            font: "sans-serif",
+            size: accessibilitySystem.scaleFont(16),
+            font: "Outfit",
           }),
-          k.pos(cX, cY + cardH / 2 - 26),
+          k.pos(cX, cY + cardH / 2 - 30),
           k.color(255, 255, 255),
           k.anchor("center"),
           k.fixed(),
@@ -399,9 +413,11 @@ export function showQuizModal(
 
       btnNext.onHoverUpdate(() => {
         btnNext.color = k.rgb(35, 140, 220);
+        btnNext.scale = k.vec2(1.02, 1.02);
       });
       btnNext.onHoverEnd(() => {
         btnNext.color = k.rgb(25, 110, 180);
+        btnNext.scale = k.vec2(1, 1);
       });
 
       const advance = () => {
@@ -424,10 +440,11 @@ export function showQuizModal(
       const optY = startY + optIdx * optionSpacing;
 
       const optBtn = k.add([
-        k.rect(btnW, btnH, { radius: 6 }),
+        k.rect(btnW, btnH, { radius: 9 }),
         k.pos(cX, optY),
         k.color(18, 48, 90),
-        k.outline(1, k.rgb(80, 150, 220)),
+        k.outline(1.5, k.rgb(60, 120, 190)),
+        k.scale(1),
         k.anchor("center"),
         k.area(),
         k.fixed(),
@@ -438,11 +455,11 @@ export function showQuizModal(
 
       const optLabel = k.add([
         k.text(`${optionLetters[optIdx]}) ${optText}`, {
-          size: 11.5,
-          font: "sans-serif",
-          width: btnW - 20,
+          size: accessibilitySystem.scaleFont(16),
+          font: "Inter",
+          width: btnW - 28,
         }),
-        k.pos(cX - btnW / 2 + 12, optY),
+        k.pos(cX - btnW / 2 + 16, optY),
         k.color(230, 245, 255),
         k.anchor("left"),
         k.fixed(),
@@ -454,12 +471,14 @@ export function showQuizModal(
         if (canAnswer && !isAnswered) {
           optBtn.color = k.rgb(28, 75, 135);
           optBtn.outline.color = k.rgb(120, 230, 255);
+          optBtn.scale = k.vec2(1.01, 1.01);
         }
       });
       optBtn.onHoverEnd(() => {
         if (canAnswer && !isAnswered) {
           optBtn.color = k.rgb(18, 48, 90);
-          optBtn.outline.color = k.rgb(80, 150, 220);
+          optBtn.outline.color = k.rgb(60, 120, 190);
+          optBtn.scale = k.vec2(1, 1);
         }
       });
 
@@ -485,8 +504,11 @@ export function showQuizModal(
 
     dynamicElements.push(
       k.add([
-        k.text("PARABÉNS PELO DESEMPENHO ECOLÓGICO! 🎉", { size: 16, font: "sans-serif" }),
-        k.pos(cX, cY - 80),
+        k.text("PARABÉNS PELO DESEMPENHO ECOLÓGICO! 🎉", {
+          size: accessibilitySystem.scaleFont(26),
+          font: "Outfit",
+        }),
+        k.pos(cX, cY - 95),
         k.color(255, 215, 80),
         k.anchor("center"),
         k.fixed(),
@@ -499,9 +521,14 @@ export function showQuizModal(
         k.text(
           `Você acertou ${correctAnswers} de ${questions.length} perguntas!\n` +
             `Bônus Conquistado: +${scoreGained} Eco-Pontos somados à sua pontuação!`,
-          { size: 13.5, font: "sans-serif", lineSpacing: 5, align: "center" }
+          {
+            size: accessibilitySystem.scaleFont(18),
+            font: "Outfit",
+            lineSpacing: 6,
+            align: "center",
+          }
         ),
-        k.pos(cX, cY - 15),
+        k.pos(cX, cY - 20),
         k.color(210, 240, 255),
         k.anchor("center"),
         k.fixed(),
@@ -514,9 +541,14 @@ export function showQuizModal(
         k.text(
           "Seus conhecimentos sobre a migração e conservação marinha\n" +
             "foram registrados no seu Certificado Oficial da Expedição!",
-          { size: 11.5, font: "sans-serif", lineSpacing: 3.5, align: "center" }
+          {
+            size: accessibilitySystem.scaleFont(15),
+            font: "Inter",
+            lineSpacing: 4.5,
+            align: "center",
+          }
         ),
-        k.pos(cX, cY + 48),
+        k.pos(cX, cY + 54),
         k.color(160, 215, 245),
         k.anchor("center"),
         k.fixed(),
@@ -525,10 +557,11 @@ export function showQuizModal(
     );
 
     const btnFinish = k.add([
-      k.rect(240, 36, { radius: 7 }),
-      k.pos(cX, cY + 115),
+      k.rect(300, 50, { radius: 10 }),
+      k.pos(cX, cY + 130),
       k.color(20, 130, 80),
       k.outline(2, k.rgb(100, 255, 180)),
+      k.scale(1),
       k.anchor("center"),
       k.area(),
       k.fixed(),
@@ -538,8 +571,11 @@ export function showQuizModal(
 
     dynamicElements.push(
       k.add([
-        k.text("Concluir e Voltar 📜 (ENTER)", { size: 12.5, font: "sans-serif" }),
-        k.pos(cX, cY + 115),
+        k.text("Concluir e Voltar 📜 (ENTER)", {
+          size: accessibilitySystem.scaleFont(16.5),
+          font: "Outfit",
+        }),
+        k.pos(cX, cY + 130),
         k.color(255, 255, 255),
         k.anchor("center"),
         k.fixed(),
@@ -549,9 +585,11 @@ export function showQuizModal(
 
     btnFinish.onHoverUpdate(() => {
       btnFinish.color = k.rgb(28, 160, 100);
+      btnFinish.scale = k.vec2(1.02, 1.02);
     });
     btnFinish.onHoverEnd(() => {
       btnFinish.color = k.rgb(20, 130, 80);
+      btnFinish.scale = k.vec2(1, 1);
     });
 
     const finish = () => {

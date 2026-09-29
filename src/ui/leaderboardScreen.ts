@@ -1,8 +1,10 @@
 import type { KaboomCtx } from "kaboom";
 import { audioSystem } from "../systems/audioSystem";
+import { accessibilitySystem } from "../systems/accessibilitySystem";
 import { getTop10Entries, type LeaderboardEntry } from "../systems/leaderboard";
 import { getWeeklyTop10Entries, getWeeklyChallengeInfo } from "../systems/weeklyChallenge";
 import { fetchOnlineLeaderboard } from "../services/leaderboardApi";
+import { createFocusGroup, type FocusableItem } from "./keyboardNav";
 
 type LeaderboardTab = "global" | "weekly" | "local";
 
@@ -13,49 +15,115 @@ export function showLeaderboardScreen(k: KaboomCtx, onClose: () => void) {
   let isClosed = false;
 
   let activeTab: LeaderboardTab = "global";
-  const statusMessage = "Conectando ao servidor global...";
+  const statusMessage = "🌐 Consultando ranking mundial em tempo real...";
+  const statusColor = k.rgb(180, 220, 255);
 
-  const cardW = 720;
-  const cardH = 530;
+  const cardW = Math.min(1000, k.width() - 24);
+  const cardH = Math.min(660, k.height() - 20);
   const centerX = k.width() / 2;
   const centerY = k.height() / 2;
 
-  // Fundo translúcido
+  // Fundo escuro semitransparente
   elements.push(
     k.add([
       k.rect(k.width(), k.height()),
       k.pos(0, 0),
-      k.color(4, 12, 28),
+      k.color(4, 14, 32),
       k.opacity(0.95),
+      k.area(),
       k.fixed(),
       k.z(300),
     ])
   );
 
-  // Caixa da tabela
+  // Card do Modal Principal com contorno dourado de prestígio ampliado
   elements.push(
     k.add([
-      k.rect(cardW, cardH, { radius: 14 }),
+      k.rect(cardW, cardH, { radius: 16 }),
       k.pos(centerX, centerY),
-      k.color(10, 28, 60),
-      k.outline(3, k.rgb(255, 215, 60)),
+      k.color(10, 28, 56),
+      k.outline(2.5, k.rgb(250, 204, 21)),
       k.anchor("center"),
+      k.area(),
       k.fixed(),
       k.z(301),
     ])
   );
 
-  // Título
+  // Título Principal
   elements.push(
     k.add([
-      k.text("🏆 RANKING TOP 10 — QUADRO DE RECORDES", { size: 18, font: "sans-serif" }),
-      k.pos(centerX, centerY - 238),
-      k.color(255, 220, 80),
+      k.text("🏆 RANKING TOP 10 — QUADRO DE RECORDES", {
+        size: accessibilitySystem.scaleFont(27),
+        font: "Outfit",
+      }),
+      k.pos(centerX, centerY - cardH / 2 + 32),
+      k.color(255, 225, 100),
       k.anchor("center"),
       k.fixed(),
       k.z(302),
     ])
   );
+
+  const close = () => {
+    if (isClosed) return;
+    isClosed = true;
+    audioSystem.playUiClick();
+    if (focusGroup) {
+      focusGroup.destroy();
+    }
+    window.removeEventListener("keydown", keyHandler);
+    elements.forEach((el) => {
+      try {
+        k.destroy(el);
+      } catch {}
+    });
+    tableElements.forEach((el) => {
+      try {
+        k.destroy(el);
+      } catch {}
+    });
+    onClose();
+  };
+
+  // Botão fechar [X] no topo direito
+  const btnXPos = k.vec2(centerX + cardW / 2 - 32, centerY - cardH / 2 + 32);
+  const btnX = k.add([
+    k.rect(38, 38, { radius: 8 }),
+    k.pos(btnXPos),
+    k.color(22, 50, 90),
+    k.outline(1.5, k.rgb(100, 200, 255)),
+    k.scale(1),
+    k.anchor("center"),
+    k.area(),
+    k.fixed(),
+    k.z(305),
+  ]);
+  elements.push(btnX);
+
+  elements.push(
+    k.add([
+      k.text("✕", {
+        size: accessibilitySystem.scaleFont(20),
+        font: "Outfit",
+      }),
+      k.pos(btnXPos),
+      k.color(255, 255, 255),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(306),
+    ])
+  );
+
+  btnX.onHoverUpdate(() => {
+    btnX.color = k.rgb(180, 50, 50);
+    btnX.scale = k.vec2(1.05, 1.05);
+  });
+  btnX.onHoverEnd(() => {
+    btnX.color = k.rgb(22, 50, 90);
+    btnX.scale = k.vec2(1, 1);
+  });
+  btnX.onClick(close);
 
   // Botões de Abas
   const tabs: Array<{ id: LeaderboardTab; label: string }> = [
@@ -65,18 +133,23 @@ export function showLeaderboardScreen(k: KaboomCtx, onClose: () => void) {
   ];
 
   const tabBtns: any[] = [];
-  const tabW = 200;
-  const tabStartX = centerX - (tabs.length * (tabW + 10)) / 2 + tabW / 2;
+  const tabEntities: any[] = [];
+  const tabW = Math.min(280, (cardW - 60) / 3);
+  const tabH = 42;
+  const tabY = centerY - cardH / 2 + 82;
 
   tabs.forEach((tab, i) => {
-    const tX = tabStartX + i * (tabW + 10);
-    const tY = centerY - 198;
+    const tX = centerX - tabW - 14 + i * (tabW + 14);
 
     const btn = k.add([
-      k.rect(tabW, 28, { radius: 6 }),
-      k.pos(tX, tY),
-      k.color(activeTab === tab.id ? k.rgb(24, 85, 150) : k.rgb(15, 38, 70)),
-      k.outline(1.5, activeTab === tab.id ? k.rgb(120, 230, 255) : k.rgb(60, 110, 160)),
+      k.rect(tabW, tabH, { radius: 9 }),
+      k.pos(tX, tabY),
+      k.color(activeTab === tab.id ? k.rgb(20, 100, 165) : k.rgb(14, 32, 60)),
+      k.outline(
+        activeTab === tab.id ? 2 : 1,
+        activeTab === tab.id ? k.rgb(56, 189, 248) : k.rgb(45, 75, 115)
+      ),
+      k.scale(1),
       k.anchor("center"),
       k.area(),
       k.fixed(),
@@ -86,14 +159,29 @@ export function showLeaderboardScreen(k: KaboomCtx, onClose: () => void) {
     tabBtns.push(btn);
 
     const txt = k.add([
-      k.text(tab.label, { size: 12, font: "sans-serif" }),
-      k.pos(tX, tY),
-      k.color(activeTab === tab.id ? k.rgb(255, 255, 255) : k.rgb(180, 210, 240)),
+      k.text(tab.label, {
+        size: accessibilitySystem.scaleFont(15.5),
+        font: "Outfit",
+      }),
+      k.pos(tX, tabY),
+      k.color(activeTab === tab.id ? k.rgb(255, 255, 255) : k.rgb(175, 205, 235)),
       k.anchor("center"),
       k.fixed(),
       k.z(304),
     ]);
     elements.push(txt);
+    tabEntities.push({ btn, txt, id: tab.id });
+
+    btn.onHoverUpdate(() => {
+      if (activeTab !== tab.id) {
+        btn.color = k.rgb(25, 55, 95);
+        btn.scale = k.vec2(1.02, 1.02);
+      }
+    });
+    btn.onHoverEnd(() => {
+      btn.scale = k.vec2(1, 1);
+      updateTabsUI();
+    });
 
     btn.onClick(() => {
       if (isClosed || activeTab === tab.id) return;
@@ -105,54 +193,99 @@ export function showLeaderboardScreen(k: KaboomCtx, onClose: () => void) {
   });
 
   const updateTabsUI = () => {
-    tabs.forEach((tab, i) => {
-      const isSel = activeTab === tab.id;
-      tabBtns[i].color = isSel ? k.rgb(24, 85, 150) : k.rgb(15, 38, 70);
-      tabBtns[i].outline.color = isSel ? k.rgb(120, 230, 255) : k.rgb(60, 110, 160);
+    tabEntities.forEach((t) => {
+      const isSel = activeTab === t.id;
+      t.btn.color = isSel ? k.rgb(20, 100, 165) : k.rgb(14, 32, 60);
+      t.btn.outline = {
+        width: isSel ? 2 : 1,
+        color: isSel ? k.rgb(56, 189, 248) : k.rgb(45, 75, 115),
+      };
+      t.txt.color = isSel ? k.rgb(255, 255, 255) : k.rgb(175, 205, 235);
     });
   };
 
-  // Linha de Status de Conexão
-  const statusTxt = k.add([
-    k.text(statusMessage, { size: 11, font: "sans-serif" }),
-    k.pos(centerX, centerY - 164),
-    k.color(180, 220, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(302),
-  ]);
-  elements.push(statusTxt);
-
-  // Cabeçalho da tabela
-  const startY = centerY - 134;
-  const rowHeight = 29;
+  // Barra de Status de Conexão com fundo estilizado
+  const statusBoxW = cardW - 48;
+  const statusY = centerY - cardH / 2 + 126;
 
   elements.push(
     k.add([
-      k.rect(cardW - 40, 26, { radius: 4 }),
-      k.pos(centerX, startY),
-      k.color(18, 50, 100),
+      k.rect(statusBoxW, 32, { radius: 6 }),
+      k.pos(centerX, statusY),
+      k.color(8, 22, 46),
+      k.outline(1, k.rgb(35, 75, 125)),
       k.anchor("center"),
       k.fixed(),
       k.z(302),
     ])
   );
 
-  const headerText = "POS   INICIAIS     ECO-PONTOS     DISTÂNCIA      MODO           DATA";
+  const statusTxt = k.add([
+    k.text(statusMessage, {
+      size: accessibilitySystem.scaleFont(13.5),
+      font: "Inter",
+    }),
+    k.pos(centerX, statusY),
+    k.color(statusColor),
+    k.anchor("center"),
+    k.fixed(),
+    k.z(303),
+  ]);
+  elements.push(statusTxt);
+
+  // Largura útil da tabela e coordenadas exatas de cada coluna
+  const tableW = cardW - 48;
+  const headerY = centerY - cardH / 2 + 162;
+  const rowHeight = 37;
+  const rowStartY = headerY + 20 + 16;
+
+  const colPos = centerX - tableW / 2 + 50;
+  const colInit = centerX - tableW / 2 + 155;
+  const colScore = centerX - tableW / 2 + 315;
+  const colDist = centerX - tableW / 2 + 485;
+  const colMode = centerX - tableW / 2 + 655;
+  const colDate = centerX - tableW / 2 + 810;
+
+  // Fundo do Cabeçalho da Tabela
   elements.push(
     k.add([
-      k.text(headerText, { size: 11, font: "monospace" }),
-      k.pos(centerX - (cardW - 60) / 2, startY),
-      k.color(255, 230, 140),
-      k.anchor("left"),
+      k.rect(tableW, 36, { radius: 8 }),
+      k.pos(centerX, headerY),
+      k.color(18, 48, 95),
+      k.outline(1.5, k.rgb(56, 189, 248)),
+      k.anchor("center"),
       k.fixed(),
-      k.z(303),
+      k.z(302),
     ])
   );
 
-  // Função para renderizar as linhas da tabela
+  const headerCols = [
+    { label: "POS", x: colPos },
+    { label: "INICIAIS", x: colInit },
+    { label: "ECO-PONTOS", x: colScore },
+    { label: "DISTÂNCIA", x: colDist },
+    { label: "MODO", x: colMode },
+    { label: "DATA", x: colDate },
+  ];
+
+  headerCols.forEach((col) => {
+    elements.push(
+      k.add([
+        k.text(col.label, {
+          size: accessibilitySystem.scaleFont(14.5),
+          font: "Outfit",
+        }),
+        k.pos(col.x, headerY),
+        k.color(255, 225, 110),
+        k.anchor("center"),
+        k.fixed(),
+        k.z(303),
+      ])
+    );
+  });
+
+  // Função para renderizar as linhas da tabela com colunas alinhadas independentes
   const renderTableRows = (entries: LeaderboardEntry[]) => {
-    // Destrói elementos da tabela anterior
     tableElements.forEach((el) => {
       try {
         k.destroy(el);
@@ -161,18 +294,24 @@ export function showLeaderboardScreen(k: KaboomCtx, onClose: () => void) {
     tableElements = [];
 
     entries.slice(0, 10).forEach((entry, idx) => {
-      const y = startY + 20 + idx * rowHeight;
+      const y = rowStartY + idx * rowHeight;
       const isTop1 = idx === 0;
       const isTop2 = idx === 1;
       const isTop3 = idx === 2;
 
-      const medal = isTop1
-        ? "🥇"
-        : isTop2
-          ? "🥈"
-          : isTop3
-            ? "🥉"
-            : `${(idx + 1).toString().padStart(2, " ")}º`;
+      // Fundo individual de cada linha com efeito zebrado
+      const rowBg = k.add([
+        k.rect(tableW, 33, { radius: 6 }),
+        k.pos(centerX, y),
+        k.color(idx % 2 === 0 ? k.rgb(14, 34, 68) : k.rgb(10, 26, 52)),
+        k.outline(1, isTop1 ? k.rgb(255, 215, 80) : k.rgb(30, 68, 115)),
+        k.anchor("center"),
+        k.fixed(),
+        k.z(302),
+      ]);
+      tableElements.push(rowBg);
+
+      const medal = isTop1 ? "🥇 1º" : isTop2 ? "🥈 2º" : isTop3 ? "🥉 3º" : `${idx + 1}º`;
       const modeLabel =
         entry.mode === "weekly"
           ? "Semanal"
@@ -182,48 +321,103 @@ export function showLeaderboardScreen(k: KaboomCtx, onClose: () => void) {
               ? "Serena"
               : "Clássico";
 
-      const posCol = medal.padEnd(5, " ");
-      const initCol = (entry.initials || "AAA").padEnd(11, " ");
-      const scoreCol = `${entry.score} pts`.padEnd(15, " ");
-      const distCol = `${entry.distance}m`.padEnd(15, " ");
-      const modeCol = modeLabel.padEnd(15, " ");
-      const dateCol = entry.date || "--/--";
+      const textColor = isTop1
+        ? k.rgb(255, 225, 100)
+        : isTop2
+          ? k.rgb(220, 240, 255)
+          : isTop3
+            ? k.rgb(250, 190, 130)
+            : k.rgb(205, 230, 255);
 
-      const line = `${posCol} ${initCol} ${scoreCol} ${distCol} ${modeCol} ${dateCol}`;
-
-      // Fundo zebrado
-      if (idx % 2 === 0) {
-        const bgRow = k.add([
-          k.rect(cardW - 40, rowHeight - 4, { radius: 4 }),
-          k.pos(centerX, y + 10),
-          k.color(14, 38, 78),
-          k.opacity(0.6),
+      // Coluna 1: Posição / Medalha
+      tableElements.push(
+        k.add([
+          k.text(medal, {
+            size: accessibilitySystem.scaleFont(15),
+            font: "Outfit",
+          }),
+          k.pos(colPos, y),
+          k.color(textColor),
           k.anchor("center"),
           k.fixed(),
-          k.z(302),
-        ]);
-        tableElements.push(bgRow);
-        elements.push(bgRow);
-      }
+          k.z(303),
+        ])
+      );
 
-      const textColor = isTop1
-        ? k.rgb(255, 220, 80)
-        : isTop2
-          ? k.rgb(220, 235, 255)
-          : isTop3
-            ? k.rgb(240, 180, 120)
-            : k.rgb(200, 230, 255);
+      // Coluna 2: Iniciais
+      tableElements.push(
+        k.add([
+          k.text(entry.initials || "AAA", {
+            size: accessibilitySystem.scaleFont(15.5),
+            font: "Outfit",
+          }),
+          k.pos(colInit, y),
+          k.color(255, 255, 255),
+          k.anchor("center"),
+          k.fixed(),
+          k.z(303),
+        ])
+      );
 
-      const rowTxt = k.add([
-        k.text(line, { size: 11, font: "monospace" }),
-        k.pos(centerX - (cardW - 60) / 2, y + 10),
-        k.color(textColor),
-        k.anchor("left"),
-        k.fixed(),
-        k.z(303),
-      ]);
-      tableElements.push(rowTxt);
-      elements.push(rowTxt);
+      // Coluna 3: Eco-Pontos
+      tableElements.push(
+        k.add([
+          k.text(`${entry.score.toLocaleString()} pts`, {
+            size: accessibilitySystem.scaleFont(15),
+            font: "Outfit",
+          }),
+          k.pos(colScore, y),
+          k.color(isTop1 ? k.rgb(255, 225, 100) : k.rgb(100, 240, 255)),
+          k.anchor("center"),
+          k.fixed(),
+          k.z(303),
+        ])
+      );
+
+      // Coluna 4: Distância
+      tableElements.push(
+        k.add([
+          k.text(`${entry.distance.toLocaleString()}m`, {
+            size: accessibilitySystem.scaleFont(14.5),
+            font: "Inter",
+          }),
+          k.pos(colDist, y),
+          k.color(215, 235, 255),
+          k.anchor("center"),
+          k.fixed(),
+          k.z(303),
+        ])
+      );
+
+      // Coluna 5: Modo de Jogo
+      tableElements.push(
+        k.add([
+          k.text(modeLabel, {
+            size: accessibilitySystem.scaleFont(14),
+            font: "Inter",
+          }),
+          k.pos(colMode, y),
+          k.color(180, 220, 250),
+          k.anchor("center"),
+          k.fixed(),
+          k.z(303),
+        ])
+      );
+
+      // Coluna 6: Data
+      tableElements.push(
+        k.add([
+          k.text(entry.date || "--/--", {
+            size: accessibilitySystem.scaleFont(13.5),
+            font: "Inter",
+          }),
+          k.pos(colDate, y),
+          k.color(170, 205, 235),
+          k.anchor("center"),
+          k.fixed(),
+          k.z(303),
+        ])
+      );
     });
   };
 
@@ -238,7 +432,6 @@ export function showLeaderboardScreen(k: KaboomCtx, onClose: () => void) {
     }
 
     if (activeTab === "weekly") {
-      // Exibe imediatamente o ranking semanal local/cache
       const localWeekly = getWeeklyTop10Entries(weeklyChallenge.weekKey);
       renderTableRows(localWeekly);
 
@@ -285,12 +478,14 @@ export function showLeaderboardScreen(k: KaboomCtx, onClose: () => void) {
   // Carrega a aba inicial
   loadTabData();
 
-  // Botão Fechar
+  // Botão Fechar no rodapé
+  const btnClosePos = k.vec2(centerX, centerY + cardH / 2 - 32);
   const btnClose = k.add([
-    k.rect(220, 36, { radius: 8 }),
-    k.pos(centerX, centerY + 225),
-    k.color(24, 75, 130),
-    k.outline(2, k.rgb(100, 220, 255)),
+    k.rect(280, 46, { radius: 10 }),
+    k.pos(btnClosePos),
+    k.color(24, 85, 150),
+    k.outline(2, k.rgb(56, 189, 248)),
+    k.scale(1),
     k.anchor("center"),
     k.area(),
     k.fixed(),
@@ -300,8 +495,11 @@ export function showLeaderboardScreen(k: KaboomCtx, onClose: () => void) {
 
   elements.push(
     k.add([
-      k.text("Fechar (ESC / ENTER) ✖", { size: 12, font: "sans-serif" }),
-      k.pos(centerX, centerY + 225),
+      k.text("Fechar (ESC) ✕", {
+        size: accessibilitySystem.scaleFont(16),
+        font: "Outfit",
+      }),
+      k.pos(btnClosePos),
       k.color(255, 255, 255),
       k.anchor("center"),
       k.fixed(),
@@ -310,27 +508,53 @@ export function showLeaderboardScreen(k: KaboomCtx, onClose: () => void) {
   );
 
   btnClose.onHoverUpdate(() => {
-    btnClose.color = k.rgb(35, 110, 180);
+    btnClose.color = k.rgb(35, 115, 200);
+    btnClose.scale = k.vec2(1.02, 1.02);
   });
   btnClose.onHoverEnd(() => {
-    btnClose.color = k.rgb(24, 75, 130);
+    btnClose.color = k.rgb(24, 85, 150);
+    btnClose.scale = k.vec2(1, 1);
+  });
+  btnClose.onClick(close);
+
+  // Grupo de foco por teclado acessível
+  const focusItems: FocusableItem[] = [
+    {
+      pos: btnXPos,
+      width: 38,
+      height: 38,
+      onActivate: close,
+    },
+    ...tabEntities.map((t) => ({
+      pos: t.btn.pos,
+      width: tabW,
+      height: tabH,
+      onActivate: () => {
+        audioSystem.playUiClick();
+        activeTab = t.id;
+        updateTabsUI();
+        loadTabData();
+      },
+    })),
+    {
+      pos: btnClosePos,
+      width: 280,
+      height: 46,
+      onActivate: close,
+    },
+  ];
+
+  const focusGroup = createFocusGroup(k, {
+    items: focusItems,
+    initialIndex: focusItems.length - 1,
+    ringZ: 315,
   });
 
-  const close = () => {
+  const keyHandler = (e: KeyboardEvent) => {
     if (isClosed) return;
-    isClosed = true;
-    audioSystem.playUiClick();
-    keyEsc.cancel();
-    keyEnter.cancel();
-    elements.forEach((el) => {
-      try {
-        k.destroy(el);
-      } catch {}
-    });
-    onClose();
+    if (e.key === "Escape") {
+      close();
+    }
   };
-
-  btnClose.onClick(close);
-  const keyEsc = k.onKeyPress("escape", close);
-  const keyEnter = k.onKeyPress("enter", close);
+  window.addEventListener("keydown", keyHandler);
 }

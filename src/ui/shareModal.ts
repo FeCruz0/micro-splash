@@ -1,5 +1,6 @@
 import type { KaboomCtx } from "kaboom";
 import { audioSystem } from "../systems/audioSystem";
+import { accessibilitySystem } from "../systems/accessibilitySystem";
 import {
   type VictoryCardData,
   getShareText,
@@ -19,8 +20,8 @@ export function showShareModal(k: KaboomCtx, data: VictoryCardData, onClose: () 
   const cX = screenW / 2;
   const cY = screenH / 2;
 
-  const cardW = Math.min(580, screenW - 24);
-  const cardH = Math.min(410, screenH - 24);
+  const cardW = Math.min(680, screenW - 24);
+  const cardH = Math.min(480, screenH - 20);
 
   // Fundo escuro semi-transparente que bloqueia cliques na tela de fundo
   const backdrop = k.add([
@@ -36,7 +37,7 @@ export function showShareModal(k: KaboomCtx, data: VictoryCardData, onClose: () 
 
   // Card principal
   const card = k.add([
-    k.rect(cardW, cardH, { radius: 12 }),
+    k.rect(cardW, cardH, { radius: 14 }),
     k.pos(cX, cY),
     k.color(10, 30, 64),
     k.outline(2.5, k.rgb(100, 220, 255)),
@@ -50,8 +51,11 @@ export function showShareModal(k: KaboomCtx, data: VictoryCardData, onClose: () 
   // Título e Subtítulo
   elements.push(
     k.add([
-      k.text("COMPARTILHAR CERTIFICADO 📲🌊", { size: 16, font: "sans-serif" }),
-      k.pos(cX, cY - cardH / 2 + 28),
+      k.text("COMPARTILHAR CERTIFICADO 📲🌊", {
+        size: accessibilitySystem.scaleFont(22),
+        font: "Outfit",
+      }),
+      k.pos(cX, cY - cardH / 2 + 30),
       k.color(255, 215, 80),
       k.anchor("center"),
       k.fixed(),
@@ -62,12 +66,12 @@ export function showShareModal(k: KaboomCtx, data: VictoryCardData, onClose: () 
   elements.push(
     k.add([
       k.text("Mostre sua pontuação nas redes e ajude na conscientização da vida marinha!", {
-        size: 11,
-        font: "sans-serif",
+        size: accessibilitySystem.scaleFont(14.5),
+        font: "Inter",
         width: cardW - 50,
         align: "center",
       }),
-      k.pos(cX, cY - cardH / 2 + 54),
+      k.pos(cX, cY - cardH / 2 + 58),
       k.color(180, 225, 255),
       k.anchor("center"),
       k.fixed(),
@@ -76,13 +80,13 @@ export function showShareModal(k: KaboomCtx, data: VictoryCardData, onClose: () 
   );
 
   // Preview das Conquistas (Banner de Resumo)
-  const previewY = cY - cardH / 2 + 100;
+  const previewY = cY - cardH / 2 + 110;
   elements.push(
     k.add([
-      k.rect(cardW - 50, 52, { radius: 8 }),
+      k.rect(cardW - 50, 60, { radius: 10 }),
       k.pos(cX, previewY),
       k.color(14, 42, 85),
-      k.outline(1, k.rgb(80, 160, 230)),
+      k.outline(1.5, k.rgb(80, 160, 230)),
       k.anchor("center"),
       k.fixed(),
       k.z(502),
@@ -92,10 +96,10 @@ export function showShareModal(k: KaboomCtx, data: VictoryCardData, onClose: () 
   elements.push(
     k.add([
       k.text(`⭐ ${data.finalScore.toLocaleString("pt-BR")} Eco-Pontos   |   ${data.rank}`, {
-        size: 13,
-        font: "sans-serif",
+        size: accessibilitySystem.scaleFont(16.5),
+        font: "Outfit",
       }),
-      k.pos(cX, previewY - 11),
+      k.pos(cX, previewY - 13),
       k.color(255, 225, 90),
       k.anchor("center"),
       k.fixed(),
@@ -107,9 +111,9 @@ export function showShareModal(k: KaboomCtx, data: VictoryCardData, onClose: () 
     k.add([
       k.text(
         `📏 ${Math.floor(data.distance).toLocaleString("pt-BR")}m percorridos   •   🦐 ${data.krillCount} Krill   •   🗑️ ${data.trashCount} Lixo`,
-        { size: 11, font: "sans-serif" }
+        { size: accessibilitySystem.scaleFont(13.5), font: "Inter" }
       ),
-      k.pos(cX, previewY + 13),
+      k.pos(cX, previewY + 14),
       k.color(200, 235, 255),
       k.anchor("center"),
       k.fixed(),
@@ -142,8 +146,8 @@ export function showShareModal(k: KaboomCtx, data: VictoryCardData, onClose: () 
 
   // Botão Fechar [✕]
   const btnClose = k.add([
-    k.rect(28, 28, { radius: 6 }),
-    k.pos(cX + cardW / 2 - 24, cY - cardH / 2 + 24),
+    k.rect(34, 34, { radius: 8 }),
+    k.pos(cX + cardW / 2 - 28, cY - cardH / 2 + 28),
     k.color(25, 45, 80),
     k.outline(1, k.rgb(100, 200, 255)),
     k.anchor("center"),
@@ -155,8 +159,8 @@ export function showShareModal(k: KaboomCtx, data: VictoryCardData, onClose: () 
 
   elements.push(
     k.add([
-      k.text("✕", { size: 14, font: "sans-serif" }),
-      k.pos(cX + cardW / 2 - 24, cY - cardH / 2 + 24),
+      k.text("✕", { size: accessibilitySystem.scaleFont(16), font: "Outfit" }),
+      k.pos(cX + cardW / 2 - 28, cY - cardH / 2 + 28),
       k.color(255, 255, 255),
       k.anchor("center"),
       k.fixed(),
@@ -174,10 +178,10 @@ export function showShareModal(k: KaboomCtx, data: VictoryCardData, onClose: () 
   keyListeners.push(k.onKeyPress("escape", doClose));
 
   // Botões de Compartilhamento
-  const startBtnY = previewY + 54;
-  const btnSpacing = 42;
+  const startBtnY = previewY + 58;
+  const btnSpacing = 48;
   const btnW = cardW - 50;
-  const btnH = 34;
+  const btnH = 42;
 
   const shareText = getShareText(data);
   const currentUrl =
@@ -185,7 +189,7 @@ export function showShareModal(k: KaboomCtx, data: VictoryCardData, onClose: () 
 
   // 1. WhatsApp
   const btnWhatsApp = k.add([
-    k.rect(btnW, btnH, { radius: 7 }),
+    k.rect(btnW, btnH, { radius: 8 }),
     k.pos(cX, startBtnY),
     k.color(20, 115, 60),
     k.outline(1.5, k.rgb(80, 220, 120)),
@@ -198,7 +202,10 @@ export function showShareModal(k: KaboomCtx, data: VictoryCardData, onClose: () 
 
   elements.push(
     k.add([
-      k.text("📱 Compartilhar no WhatsApp", { size: 12.5, font: "sans-serif" }),
+      k.text("📱 Compartilhar no WhatsApp", {
+        size: accessibilitySystem.scaleFont(15),
+        font: "Outfit",
+      }),
       k.pos(cX, startBtnY),
       k.color(255, 255, 255),
       k.anchor("center"),
@@ -223,7 +230,7 @@ export function showShareModal(k: KaboomCtx, data: VictoryCardData, onClose: () 
 
   // 2. X / Twitter
   const btnTwitter = k.add([
-    k.rect(btnW, btnH, { radius: 7 }),
+    k.rect(btnW, btnH, { radius: 8 }),
     k.pos(cX, startBtnY + btnSpacing),
     k.color(20, 75, 130),
     k.outline(1.5, k.rgb(90, 180, 255)),
@@ -236,7 +243,10 @@ export function showShareModal(k: KaboomCtx, data: VictoryCardData, onClose: () 
 
   elements.push(
     k.add([
-      k.text("🐦 Compartilhar no X (Twitter)", { size: 12.5, font: "sans-serif" }),
+      k.text("🐦 Compartilhar no X (Twitter)", {
+        size: accessibilitySystem.scaleFont(15),
+        font: "Outfit",
+      }),
       k.pos(cX, startBtnY + btnSpacing),
       k.color(255, 255, 255),
       k.anchor("center"),
@@ -261,7 +271,7 @@ export function showShareModal(k: KaboomCtx, data: VictoryCardData, onClose: () 
 
   // 3. Copiar Texto Formatado
   const btnCopy = k.add([
-    k.rect(btnW, btnH, { radius: 7 }),
+    k.rect(btnW, btnH, { radius: 8 }),
     k.pos(cX, startBtnY + btnSpacing * 2),
     k.color(30, 50, 90),
     k.outline(1.5, k.rgb(110, 170, 240)),
@@ -274,8 +284,8 @@ export function showShareModal(k: KaboomCtx, data: VictoryCardData, onClose: () 
 
   const copyLabel = k.add([
     k.text("📋 Copiar Texto do Certificado (Instagram / Discord)", {
-      size: 12,
-      font: "sans-serif",
+      size: accessibilitySystem.scaleFont(14.5),
+      font: "Outfit",
     }),
     k.pos(cX, startBtnY + btnSpacing * 2),
     k.color(255, 255, 255),
@@ -312,7 +322,7 @@ export function showShareModal(k: KaboomCtx, data: VictoryCardData, onClose: () 
   const hasNativeShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
 
   const btnAction = k.add([
-    k.rect(btnW, btnH, { radius: 7 }),
+    k.rect(btnW, btnH, { radius: 8 }),
     k.pos(cX, startBtnY + btnSpacing * 3),
     k.color(hasNativeShare ? k.rgb(18, 110, 120) : k.rgb(18, 90, 75)),
     k.outline(1.5, hasNativeShare ? k.rgb(90, 230, 230) : k.rgb(90, 240, 180)),
@@ -329,8 +339,8 @@ export function showShareModal(k: KaboomCtx, data: VictoryCardData, onClose: () 
         ? "✨ Compartilhar Imagem com App (Nativo)"
         : "📥 Baixar Imagem PNG do Certificado",
       {
-        size: 12.5,
-        font: "sans-serif",
+        size: accessibilitySystem.scaleFont(15),
+        font: "Outfit",
       }
     ),
     k.pos(cX, startBtnY + btnSpacing * 3),
@@ -378,10 +388,10 @@ export function showShareModal(k: KaboomCtx, data: VictoryCardData, onClose: () 
 
   // Botão Concluir / Voltar
   const btnDone = k.add([
-    k.rect(170, 30, { radius: 6 }),
-    k.pos(cX, cY + cardH / 2 - 22),
+    k.rect(210, 40, { radius: 8 }),
+    k.pos(cX, cY + cardH / 2 - 26),
     k.color(18, 45, 80),
-    k.outline(1, k.rgb(80, 160, 220)),
+    k.outline(1.5, k.rgb(80, 160, 220)),
     k.anchor("center"),
     k.area(),
     k.fixed(),
@@ -391,8 +401,11 @@ export function showShareModal(k: KaboomCtx, data: VictoryCardData, onClose: () 
 
   elements.push(
     k.add([
-      k.text("Voltar (ESC)", { size: 11.5, font: "sans-serif" }),
-      k.pos(cX, cY + cardH / 2 - 22),
+      k.text("Voltar (ESC)", {
+        size: accessibilitySystem.scaleFont(14.5),
+        font: "Outfit",
+      }),
+      k.pos(cX, cY + cardH / 2 - 26),
       k.color(210, 235, 255),
       k.anchor("center"),
       k.fixed(),

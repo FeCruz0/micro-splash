@@ -94,16 +94,16 @@ export function setupBiomeVignetteSystem(
 
     const screenWidth = k.width();
     const screenHeight = k.height();
-    const bannerWidth = Math.min(520, screenWidth - 40);
-    const bannerHeight = 58;
-    const bannerYPosition = screenHeight - 82;
+    const bannerWidth = Math.min(560, screenWidth - 40);
+    const bannerHeight = 64;
+    const bannerYPosition = screenHeight - 85;
 
     const container = k.add([
-      k.rect(bannerWidth, bannerHeight, { radius: 8 }),
+      k.rect(bannerWidth, bannerHeight, { radius: 10 }),
       k.pos(screenWidth / 2, bannerYPosition),
       k.anchor("center"),
       k.color(8, 16, 30),
-      k.outline(1.8, k.rgb(...milestone.accentColor)),
+      k.outline(2, k.rgb(...milestone.accentColor)),
       k.opacity(0),
       k.fixed(),
       k.z(160),
@@ -113,10 +113,10 @@ export function setupBiomeVignetteSystem(
     // Ícone e Título principal do bioma
     container.add([
       k.text(`${milestone.icon} ${milestone.title}`, {
-        size: 13,
-        font: "sans-serif",
+        size: 15,
+        font: "Outfit",
       }),
-      k.pos(0, -11),
+      k.pos(0, -13),
       k.anchor("center"),
       k.color(...milestone.accentColor),
     ]);
@@ -124,11 +124,11 @@ export function setupBiomeVignetteSystem(
     // Frase narrativa poética
     container.add([
       k.text(milestone.subtitle, {
-        size: 9.5,
-        font: "sans-serif",
-        width: bannerWidth - 28,
+        size: 12,
+        font: "Inter",
+        width: bannerWidth - 32,
       }),
-      k.pos(0, 11),
+      k.pos(0, 13),
       k.anchor("center"),
       k.color(215, 235, 255),
     ]);

@@ -1,5 +1,6 @@
 import type { KaboomCtx } from "kaboom";
 import { audioSystem } from "../systems/audioSystem";
+import { accessibilitySystem } from "../systems/accessibilitySystem";
 import type { GameState } from "../systems/state";
 import { isTop10Score } from "../systems/leaderboard";
 import { showInitialsInputModal } from "./initialsInputModal";
@@ -56,12 +57,15 @@ function renderChallengeEndContent(
     ])
   );
 
-  const cardW = 580;
-  const cardH = 430;
+  const cardW = Math.min(720, k.width() - 24);
+  const cardH = Math.min(530, k.height() - 20);
+  const centerX = k.width() / 2;
+  const centerY = k.height() / 2;
+
   elements.push(
     k.add([
-      k.rect(cardW, cardH, { radius: 14 }),
-      k.pos(k.width() / 2, k.height() / 2),
+      k.rect(cardW, cardH, { radius: 16 }),
+      k.pos(centerX, centerY),
       k.color(12, 35, 75),
       k.outline(3, k.rgb(255, 180, 50)),
       k.anchor("center"),
@@ -73,8 +77,11 @@ function renderChallengeEndContent(
   // Título
   elements.push(
     k.add([
-      k.text("TEMPO ESGOTADO! FIM DA RODADA! ⏱️🎉", { size: 18, font: "sans-serif" }),
-      k.pos(k.width() / 2, k.height() / 2 - 165),
+      k.text("TEMPO ESGOTADO! FIM DA RODADA! ⏱️🎉", {
+        size: accessibilitySystem.scaleFont(25),
+        font: "Outfit",
+      }),
+      k.pos(centerX, centerY - 200),
       k.color(255, 215, 60),
       k.anchor("center"),
       k.fixed(),
@@ -84,8 +91,11 @@ function renderChallengeEndContent(
 
   elements.push(
     k.add([
-      k.text("Migração Rápida (Desafio 60s)", { size: 13, font: "sans-serif" }),
-      k.pos(k.width() / 2, k.height() / 2 - 135),
+      k.text("Migração Rápida (Desafio 60s)", {
+        size: accessibilitySystem.scaleFont(16),
+        font: "Inter",
+      }),
+      k.pos(centerX, centerY - 165),
       k.color(140, 220, 255),
       k.anchor("center"),
       k.fixed(),
@@ -97,10 +107,10 @@ function renderChallengeEndContent(
   elements.push(
     k.add([
       k.text(`🦐 Cardumes de Krill Consumidos: ${gameState.getKrillCount()}`, {
-        size: 13.5,
-        font: "sans-serif",
+        size: accessibilitySystem.scaleFont(16),
+        font: "Inter",
       }),
-      k.pos(k.width() / 2, k.height() / 2 - 95),
+      k.pos(centerX, centerY - 118),
       k.color(220, 240, 255),
       k.anchor("center"),
       k.fixed(),
@@ -111,10 +121,10 @@ function renderChallengeEndContent(
   elements.push(
     k.add([
       k.text(`🌊 Distância Percorrida: ${gameState.getDistance()}m`, {
-        size: 13.5,
-        font: "sans-serif",
+        size: accessibilitySystem.scaleFont(16),
+        font: "Inter",
       }),
-      k.pos(k.width() / 2, k.height() / 2 - 65),
+      k.pos(centerX, centerY - 86),
       k.color(220, 240, 255),
       k.anchor("center"),
       k.fixed(),
@@ -125,10 +135,10 @@ function renderChallengeEndContent(
   elements.push(
     k.add([
       k.text(`⚠️ Lixo Plástico Colidido: ${gameState.getTrashCount()}`, {
-        size: 13.5,
-        font: "sans-serif",
+        size: accessibilitySystem.scaleFont(16),
+        font: "Inter",
       }),
-      k.pos(k.width() / 2, k.height() / 2 - 35),
+      k.pos(centerX, centerY - 54),
       k.color(220, 240, 255),
       k.anchor("center"),
       k.fixed(),
@@ -145,8 +155,11 @@ function renderChallengeEndContent(
   };
 
   const scoreTextObj = k.add([
-    k.text(getScoreText(), { size: 14.5, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 - 5),
+    k.text(getScoreText(), {
+      size: accessibilitySystem.scaleFont(18),
+      font: "Outfit",
+    }),
+    k.pos(centerX, centerY - 16),
     k.color(255, 230, 110),
     k.anchor("center"),
     k.fixed(),
@@ -163,8 +176,8 @@ function renderChallengeEndContent(
   });
 
   const btnQuiz = k.add([
-    k.rect(340, 32, { radius: 7 }),
-    k.pos(k.width() / 2, k.height() / 2 + 38),
+    k.rect(420, 46, { radius: 9 }),
+    k.pos(centerX, centerY + 36),
     k.color(quizCompleted ? k.rgb(18, 95, 60) : k.rgb(25, 125, 185)),
     k.outline(1.5, quizCompleted ? k.rgb(90, 240, 160) : k.rgb(110, 230, 255)),
     k.anchor("center"),
@@ -180,11 +193,11 @@ function renderChallengeEndContent(
         ? `Quiz Concluído! (+${gameState.getQuizScore()} pts) ✓`
         : "🧪 Desafio Ecológico [ENTER] (+300 pts) ▶",
       {
-        size: 12.5,
-        font: "sans-serif",
+        size: accessibilitySystem.scaleFont(15.5),
+        font: "Outfit",
       }
     ),
-    k.pos(k.width() / 2, k.height() / 2 + 38),
+    k.pos(centerX, centerY + 36),
     k.color(255, 255, 255),
     k.anchor("center"),
     k.fixed(),
@@ -228,8 +241,8 @@ function renderChallengeEndContent(
 
   // Botão 2: Compartilhar Certificado / Redes Sociais
   const btnShare = k.add([
-    k.rect(340, 32, { radius: 7 }),
-    k.pos(k.width() / 2, k.height() / 2 + 78),
+    k.rect(420, 46, { radius: 9 }),
+    k.pos(centerX, centerY + 90),
     k.color(18, 105, 120),
     k.outline(1.5, k.rgb(90, 235, 235)),
     k.anchor("center"),
@@ -242,10 +255,10 @@ function renderChallengeEndContent(
   elements.push(
     k.add([
       k.text("📲 Compartilhar Certificado & Redes", {
-        size: 12.5,
-        font: "sans-serif",
+        size: accessibilitySystem.scaleFont(15.5),
+        font: "Outfit",
       }),
-      k.pos(k.width() / 2, k.height() / 2 + 78),
+      k.pos(centerX, centerY + 90),
       k.color(255, 255, 255),
       k.anchor("center"),
       k.fixed(),
@@ -280,8 +293,8 @@ function renderChallengeEndContent(
 
   // Botão 3: Jogar Novamente
   const btnAgain = k.add([
-    k.rect(190, 38, { radius: 8 }),
-    k.pos(k.width() / 2 - 105, k.height() / 2 + 130),
+    k.rect(220, 46, { radius: 9 }),
+    k.pos(centerX - 120, centerY + 148),
     k.color(20, 120, 180),
     k.outline(2, k.rgb(100, 240, 255)),
     k.anchor("center"),
@@ -293,10 +306,10 @@ function renderChallengeEndContent(
 
   const btnAgainLabel = k.add([
     k.text(quizCompleted ? "Jogar Novamente [ENTER] 🔄" : "Jogar Novamente [R] 🔄", {
-      size: 12,
-      font: "sans-serif",
+      size: accessibilitySystem.scaleFont(15),
+      font: "Outfit",
     }),
-    k.pos(k.width() / 2 - 105, k.height() / 2 + 130),
+    k.pos(centerX - 120, centerY + 148),
     k.color(255, 255, 255),
     k.anchor("center"),
     k.fixed(),
@@ -321,8 +334,8 @@ function renderChallengeEndContent(
 
   // Botão 4: Menu Principal
   const btnMenu = k.add([
-    k.rect(190, 38, { radius: 8 }),
-    k.pos(k.width() / 2 + 105, k.height() / 2 + 130),
+    k.rect(220, 46, { radius: 9 }),
+    k.pos(centerX + 120, centerY + 148),
     k.color(30, 60, 100),
     k.outline(2, k.rgb(120, 180, 240)),
     k.anchor("center"),
@@ -334,8 +347,11 @@ function renderChallengeEndContent(
 
   elements.push(
     k.add([
-      k.text("Menu Principal [ESC] 🏠", { size: 12, font: "sans-serif" }),
-      k.pos(k.width() / 2 + 105, k.height() / 2 + 130),
+      k.text("Menu Principal [ESC] 🏠", {
+        size: accessibilitySystem.scaleFont(15),
+        font: "Outfit",
+      }),
+      k.pos(centerX + 120, centerY + 148),
       k.color(255, 255, 255),
       k.anchor("center"),
       k.fixed(),

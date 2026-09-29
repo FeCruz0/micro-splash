@@ -99,7 +99,7 @@ export function createDebugDistanceUI(k: KaboomCtx, playerController?: PlayerCon
   const routeText = container.add([
     k.text(`📍 Distância: 0m / ${totalFormatted}m (0%)\n🌊 Bioma: --`, {
       size: fontSizePrimary,
-      font: "sans-serif",
+      font: "Inter",
       lineSpacing: 2.2,
     }),
     k.pos(Math.round(10 * scale), Math.round(52 * scale)),
@@ -110,7 +110,7 @@ export function createDebugDistanceUI(k: KaboomCtx, playerController?: PlayerCon
   const statusText = container.add([
     k.text("🫁 Fôlego: 100% | 🦐 Nutrição: 0%", {
       size: fontSizeSecondary,
-      font: "sans-serif",
+      font: "Inter",
     }),
     k.pos(Math.round(10 * scale), Math.round(86 * scale)),
     k.color(140, 220, 255),
@@ -120,7 +120,7 @@ export function createDebugDistanceUI(k: KaboomCtx, playerController?: PlayerCon
   const speedText = container.add([
     k.text(`⚡ Velocidade: 0 / ${GAME_CONFIG.MAX_SPEED} px/s (0%)`, {
       size: fontSizeSecondary,
-      font: "sans-serif",
+      font: "Inter",
     }),
     k.pos(Math.round(10 * scale), Math.round(101 * scale)),
     k.color(180, 235, 255),
@@ -147,7 +147,7 @@ export function createDebugDistanceUI(k: KaboomCtx, playerController?: PlayerCon
   const powerupText = container.add([
     k.text("", {
       size: fontSizeSecondary,
-      font: "sans-serif",
+      font: "Inter",
     }),
     k.pos(Math.round(10 * scale), Math.round(124 * scale)),
     k.color(255, 235, 120),

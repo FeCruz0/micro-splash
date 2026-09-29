@@ -5,6 +5,7 @@ import { hapticsSystem } from "../systems/hapticsSystem";
 import { ttsSystem } from "../systems/ttsSystem";
 import { showOnboardingModal } from "./onboardingModal";
 import { createFocusGroup, type FocusableItem } from "./keyboardNav";
+import { i18n } from "../i18n/i18n";
 import {
   RESOLUTION_PRESETS,
   type ResolutionKey,
@@ -20,6 +21,7 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
 
   const elements: any[] = [];
   let isClosed = false;
+  let isModalOpen = false;
 
   const initialRes = getSavedResolution();
   let currentResKey: ResolutionKey = initialRes.key;
@@ -28,12 +30,13 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   let currentDisplayMode: DisplayMode = initialDisplayMode;
 
   const initialFontScale = accessibilitySystem.getFontScaleKey();
+  const initialLocale = i18n.getLocale();
 
   // Fundo escuro semitransparente (absorve cliques e bloqueia o menu)
   const backdrop = k.add([
     k.rect(k.width(), k.height()),
     k.pos(0, 0),
-    k.color(6, 18, 38),
+    k.color(6, 16, 36),
     k.opacity(0.95),
     k.area(),
     k.fixed(),
@@ -41,14 +44,17 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   ]);
   elements.push(backdrop);
 
-  // Card de Opções
-  const cardW = 600;
-  const cardH = 580;
+  // Card do Modal de Opções com geometria ampla e adaptativa
+  const cardW = Math.min(1000, k.width() - 24);
+  const cardH = Math.min(660, k.height() - 20);
+  const cX = k.width() / 2;
+  const cY = k.height() / 2;
+
   const card = k.add([
-    k.rect(cardW, cardH, { radius: 12 }),
-    k.pos(k.width() / 2, k.height() / 2),
-    k.color(12, 35, 75),
-    k.outline(2, k.rgb(80, 200, 255)),
+    k.rect(cardW, cardH, { radius: 16 }),
+    k.pos(cX, cY),
+    k.color(10, 28, 56),
+    k.outline(2.5, k.rgb(56, 189, 248)),
     k.anchor("center"),
     k.area(),
     k.fixed(),
@@ -56,12 +62,33 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   ]);
   elements.push(card);
 
-  // Título
+  // Título Principal com destaque dourado
   elements.push(
     k.add([
-      k.text("OPÇÕES & ACESSIBILIDADE ⚙️", { size: 19, font: "sans-serif" }),
-      k.pos(k.width() / 2, k.height() / 2 - 258),
-      k.color(255, 230, 100),
+      k.text("OPÇÕES & ACESSIBILIDADE ⚙️", {
+        size: accessibilitySystem.scaleFont(27),
+        font: "Outfit",
+      }),
+      k.pos(cX, cY - cardH / 2 + 32),
+      k.color(255, 225, 100),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(302),
+    ])
+  );
+
+  // Subtítulo descritivo em azul celeste nítido
+  elements.push(
+    k.add([
+      k.text(
+        "Personalize áudio, resolução gráfica, controles e recursos de acessibilidade universal",
+        {
+          size: accessibilitySystem.scaleFont(15.5),
+          font: "Inter",
+        }
+      ),
+      k.pos(cX, cY - cardH / 2 + 58),
+      k.color(180, 225, 255),
       k.anchor("center"),
       k.fixed(),
       k.z(302),
@@ -71,10 +98,11 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   const focusItems: FocusableItem[] = [];
 
   const close = () => {
-    if (isClosed) return;
+    if (isClosed || isModalOpen) return;
     isClosed = true;
     audioSystem.playUiClick();
     focusGroup.destroy();
+    window.removeEventListener("keydown", keyHandler);
     elements.forEach((el) => {
       try {
         k.destroy(el);
@@ -83,7 +111,8 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
     if (
       (currentResKey !== initialRes.key ||
         currentDisplayMode !== initialDisplayMode ||
-        accessibilitySystem.getFontScaleKey() !== initialFontScale) &&
+        accessibilitySystem.getFontScaleKey() !== initialFontScale ||
+        i18n.getLocale() !== initialLocale) &&
       typeof window !== "undefined"
     ) {
       window.location.reload();
@@ -92,13 +121,13 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
     onBack();
   };
 
-  // Botão fechar [X]
-  const btnXPos = k.vec2(k.width() / 2 + cardW / 2 - 26, k.height() / 2 - cardH / 2 + 26);
+  // Botão fechar [X] no topo direito
+  const btnXPos = k.vec2(cX + cardW / 2 - 30, cY - cardH / 2 + 30);
   const btnX = k.add([
-    k.rect(32, 32, { radius: 6 }),
+    k.rect(34, 34, { radius: 8 }),
     k.pos(btnXPos),
-    k.color(20, 45, 80),
-    k.outline(1, k.rgb(100, 200, 255)),
+    k.color(22, 50, 90),
+    k.outline(1.5, k.rgb(100, 200, 255)),
     k.scale(1),
     k.anchor("center"),
     k.area(),
@@ -109,7 +138,10 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
 
   elements.push(
     k.add([
-      k.text("✕", { size: 16, font: "sans-serif" }),
+      k.text("✕", {
+        size: accessibilitySystem.scaleFont(16),
+        font: "Outfit",
+      }),
       k.pos(btnXPos),
       k.color(255, 255, 255),
       k.anchor("center"),
@@ -119,12 +151,19 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   );
 
   btnX.onHoverUpdate(() => {
+    if (isClosed || isModalOpen) return;
     btnX.color = k.rgb(180, 50, 50);
+    btnX.scale = k.vec2(1.05, 1.05);
   });
   btnX.onHoverEnd(() => {
-    btnX.color = k.rgb(20, 45, 80);
+    if (isClosed || isModalOpen) return;
+    btnX.color = k.rgb(22, 50, 90);
+    btnX.scale = k.vec2(1, 1);
   });
-  btnX.onClick(close);
+  btnX.onClick(() => {
+    if (isClosed || isModalOpen) return;
+    close();
+  });
   focusItems.push({
     pos: btnXPos,
     width: 32,
@@ -132,52 +171,126 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
     onActivate: close,
   });
 
-  // --- 1. CONTROLE DE VOLUME ---
-  const volY = k.height() / 2 - 222;
+  // Fechar com ESC
+  const keyHandler = (e: KeyboardEvent) => {
+    if (isClosed || isModalOpen) return;
+    if (e.key === "Escape") {
+      close();
+    }
+  };
+  window.addEventListener("keydown", keyHandler);
+
+  // --- ESTRUTURA EM 2 COLUNAS HARMONIOSAS ---
+  const colGap = 20;
+  const colW = (cardW - 56 - colGap) / 2;
+  const col0X = cX - colW / 2 - colGap / 2;
+  const col1X = cX + colW / 2 + colGap / 2;
+  const headerY = cY - cardH / 2 + 86;
+
+  // Cabeçalho Coluna 0: ÁUDIO & VÍDEO
   elements.push(
     k.add([
-      k.text("Volume Geral:", { size: 13.5, font: "sans-serif" }),
-      k.pos(k.width() / 2 - 165, volY),
-      k.color(200, 230, 255),
-      k.anchor("left"),
+      k.text("🎵 ÁUDIO & GRÁFICOS", {
+        size: accessibilitySystem.scaleFont(16.5),
+        font: "Outfit",
+      }),
+      k.pos(col0X, headerY),
+      k.color(100, 240, 255),
+      k.anchor("center"),
       k.fixed(),
       k.z(302),
     ])
   );
 
-  const volumeText = k.add([
-    k.text(`${Math.round(audioSystem.getVolume() * 100)}%`, { size: 14.5, font: "sans-serif" }),
-    k.pos(k.width() / 2 + 55, volY),
-    k.color(100, 240, 255),
+  // Cabeçalho Coluna 1: ACESSIBILIDADE & SISTEMA
+  elements.push(
+    k.add([
+      k.text("♿ ACESSIBILIDADE & SISTEMA", {
+        size: accessibilitySystem.scaleFont(16.5),
+        font: "Outfit",
+      }),
+      k.pos(col1X, headerY),
+      k.color(100, 240, 255),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(302),
+    ])
+  );
+
+  const rowStartY = cY - cardH / 2 + 120;
+  const btnH = 42;
+  const rowGap = 10;
+
+  // ========================================================
+  // COLUNA 0 (ESQUERDA): ÁUDIO & VÍDEO
+  // ========================================================
+
+  // --- Linha 0: Volume Geral ---
+  const row0Y = rowStartY + 0 * (btnH + rowGap);
+  const volBox = k.add([
+    k.rect(colW, btnH, { radius: 8 }),
+    k.pos(col0X, row0Y),
+    k.color(16, 40, 78),
+    k.outline(1.5, k.rgb(38, 78, 130)),
     k.anchor("center"),
     k.fixed(),
     k.z(302),
   ]);
+  elements.push(volBox);
+
+  elements.push(
+    k.add([
+      k.text("Volume Geral:", {
+        size: accessibilitySystem.scaleFont(15),
+        font: "Inter",
+      }),
+      k.pos(col0X - colW / 2 + 16, row0Y),
+      k.color(200, 230, 255),
+      k.anchor("left"),
+      k.fixed(),
+      k.z(303),
+    ])
+  );
+
+  const volumeText = k.add([
+    k.text(`${Math.round(audioSystem.getVolume() * 100)}%`, {
+      size: accessibilitySystem.scaleFont(16),
+      font: "Outfit",
+    }),
+    k.pos(col0X + 35, row0Y),
+    k.color(100, 240, 255),
+    k.anchor("center"),
+    k.fixed(),
+    k.z(303),
+  ]);
   elements.push(volumeText);
 
   // Botão Diminuir Volume [-]
-  const btnVolDownPos = k.vec2(k.width() / 2 + 5, volY);
+  const btnVolDownPos = k.vec2(col0X - 18, row0Y);
   const btnVolDown = k.add([
-    k.rect(34, 26, { radius: 6 }),
+    k.rect(36, 30, { radius: 6 }),
     k.pos(btnVolDownPos),
-    k.color(20, 60, 110),
+    k.color(22, 65, 120),
     k.outline(1, k.rgb(100, 200, 255)),
     k.scale(1),
     k.anchor("center"),
     k.area(),
     k.fixed(),
-    k.z(302),
+    k.z(304),
   ]);
   elements.push(btnVolDown);
 
   elements.push(
     k.add([
-      k.text("-", { size: 18 }),
+      k.text("-", {
+        size: accessibilitySystem.scaleFont(20),
+        font: "Outfit",
+      }),
       k.pos(btnVolDownPos),
       k.color(255, 255, 255),
       k.anchor("center"),
       k.fixed(),
-      k.z(303),
+      k.z(305),
     ])
   );
 
@@ -190,41 +303,46 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
 
   btnVolDown.onHoverUpdate(() => {
     btnVolDown.color = k.rgb(35, 95, 160);
+    btnVolDown.scale = k.vec2(1.05, 1.05);
   });
   btnVolDown.onHoverEnd(() => {
-    btnVolDown.color = k.rgb(20, 60, 110);
+    btnVolDown.color = k.rgb(22, 65, 120);
+    btnVolDown.scale = k.vec2(1, 1);
   });
   btnVolDown.onClick(handleVolDown);
   focusItems.push({
     pos: btnVolDownPos,
-    width: 34,
-    height: 26,
+    width: 36,
+    height: 30,
     onActivate: handleVolDown,
   });
 
   // Botão Aumentar Volume [+]
-  const btnVolUpPos = k.vec2(k.width() / 2 + 105, volY);
+  const btnVolUpPos = k.vec2(col0X + 90, row0Y);
   const btnVolUp = k.add([
-    k.rect(34, 26, { radius: 6 }),
+    k.rect(36, 30, { radius: 6 }),
     k.pos(btnVolUpPos),
-    k.color(20, 60, 110),
+    k.color(22, 65, 120),
     k.outline(1, k.rgb(100, 200, 255)),
     k.scale(1),
     k.anchor("center"),
     k.area(),
     k.fixed(),
-    k.z(302),
+    k.z(304),
   ]);
   elements.push(btnVolUp);
 
   elements.push(
     k.add([
-      k.text("+", { size: 16 }),
+      k.text("+", {
+        size: accessibilitySystem.scaleFont(20),
+        font: "Outfit",
+      }),
       k.pos(btnVolUpPos),
       k.color(255, 255, 255),
       k.anchor("center"),
       k.fixed(),
-      k.z(303),
+      k.z(305),
     ])
   );
 
@@ -237,26 +355,28 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
 
   btnVolUp.onHoverUpdate(() => {
     btnVolUp.color = k.rgb(35, 95, 160);
+    btnVolUp.scale = k.vec2(1.05, 1.05);
   });
   btnVolUp.onHoverEnd(() => {
-    btnVolUp.color = k.rgb(20, 60, 110);
+    btnVolUp.color = k.rgb(22, 65, 120);
+    btnVolUp.scale = k.vec2(1, 1);
   });
   btnVolUp.onClick(handleVolUp);
   focusItems.push({
     pos: btnVolUpPos,
-    width: 34,
-    height: 26,
+    width: 36,
+    height: 30,
     onActivate: handleVolUp,
   });
 
-  // --- 2. SELETOR DE TRILHA SONORA (JUKEBOX) ---
-  const soundtrackY = k.height() / 2 - 184;
-  const btnSoundtrackPos = k.vec2(k.width() / 2, soundtrackY);
+  // --- Linha 1: Trilha Sonora (Jukebox) ---
+  const row1Y = rowStartY + 1 * (btnH + rowGap);
+  const btnSoundtrackPos = k.vec2(col0X, row1Y);
   const btnSoundtrack = k.add([
-    k.rect(350, 28, { radius: 7 }),
+    k.rect(colW, btnH, { radius: 8 }),
     k.pos(btnSoundtrackPos),
-    k.color(22, 85, 140),
-    k.outline(1, k.rgb(100, 220, 255)),
+    k.color(20, 75, 135),
+    k.outline(1.5, k.rgb(56, 189, 248)),
     k.scale(1),
     k.anchor("center"),
     k.area(),
@@ -266,7 +386,10 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   elements.push(btnSoundtrack);
 
   const soundtrackText = k.add([
-    k.text(audioSystem.getSoundtrackModeLabel(), { size: 11.5, font: "sans-serif" }),
+    k.text(audioSystem.getSoundtrackModeLabel(), {
+      size: accessibilitySystem.scaleFont(15),
+      font: "Outfit",
+    }),
     k.pos(btnSoundtrackPos),
     k.color(255, 255, 255),
     k.anchor("center"),
@@ -282,27 +405,29 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   };
 
   btnSoundtrack.onHoverUpdate(() => {
+    btnSoundtrack.color = k.rgb(28, 100, 175);
     btnSoundtrack.scale = k.vec2(1.02, 1.02);
   });
   btnSoundtrack.onHoverEnd(() => {
+    btnSoundtrack.color = k.rgb(20, 75, 135);
     btnSoundtrack.scale = k.vec2(1, 1);
   });
   btnSoundtrack.onClick(handleSoundtrack);
   focusItems.push({
     pos: btnSoundtrackPos,
-    width: 350,
-    height: 28,
+    width: colW,
+    height: btnH,
     onActivate: handleSoundtrack,
   });
 
-  // --- 3. SFX & FEEDBACK HÁPTICO ---
-  const sfxY = k.height() / 2 - 146;
-  const btnSfxPos = k.vec2(k.width() / 2 - 90, sfxY);
+  // --- Linha 2: Efeitos Sonoros (SFX) ---
+  const row2Y = rowStartY + 2 * (btnH + rowGap);
+  const btnSfxPos = k.vec2(col0X, row2Y);
   const btnSfx = k.add([
-    k.rect(170, 28, { radius: 7 }),
+    k.rect(colW, btnH, { radius: 8 }),
     k.pos(btnSfxPos),
-    k.color(audioSystem.isSfxEnabled() ? k.rgb(20, 90, 140) : k.rgb(50, 60, 70)),
-    k.outline(1, k.rgb(100, 220, 255)),
+    k.color(audioSystem.isSfxEnabled() ? k.rgb(20, 85, 145) : k.rgb(45, 55, 75)),
+    k.outline(1.5, k.rgb(56, 189, 248)),
     k.scale(1),
     k.anchor("center"),
     k.area(),
@@ -313,8 +438,8 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
 
   const sfxText = k.add([
     k.text(`SFX: ${audioSystem.isSfxEnabled() ? "LIGADOS 🔊" : "DESLIGADOS 🔇"}`, {
-      size: 11,
-      font: "sans-serif",
+      size: accessibilitySystem.scaleFont(15),
+      font: "Outfit",
     }),
     k.pos(btnSfxPos),
     k.color(255, 255, 255),
@@ -328,7 +453,7 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
     const newState = !audioSystem.isSfxEnabled();
     audioSystem.setSfxEnabled(newState);
     audioSystem.playUiClick();
-    btnSfx.color = newState ? k.rgb(20, 90, 140) : k.rgb(50, 60, 70);
+    btnSfx.color = newState ? k.rgb(20, 85, 145) : k.rgb(45, 55, 75);
     sfxText.text = `SFX: ${newState ? "LIGADOS 🔊" : "DESLIGADOS 🔇"}`;
   };
 
@@ -341,19 +466,21 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   btnSfx.onClick(handleSfx);
   focusItems.push({
     pos: btnSfxPos,
-    width: 170,
-    height: 28,
+    width: colW,
+    height: btnH,
     onActivate: handleSfx,
   });
 
+  // --- Linha 3: Vibração / Feedback Háptico ---
+  const row3Y = rowStartY + 3 * (btnH + rowGap);
   const getHapticsLabel = () =>
     hapticsSystem.isEnabled() ? "Vibração: LIGADA 📳" : "Vibração: DESLIGADA 📴";
-  const btnHapticsPos = k.vec2(k.width() / 2 + 90, sfxY);
+  const btnHapticsPos = k.vec2(col0X, row3Y);
   const btnHaptics = k.add([
-    k.rect(170, 28, { radius: 7 }),
+    k.rect(colW, btnH, { radius: 8 }),
     k.pos(btnHapticsPos),
-    k.color(hapticsSystem.isEnabled() ? k.rgb(20, 90, 140) : k.rgb(50, 60, 70)),
-    k.outline(1, k.rgb(100, 220, 255)),
+    k.color(hapticsSystem.isEnabled() ? k.rgb(20, 85, 145) : k.rgb(45, 55, 75)),
+    k.outline(1.5, k.rgb(56, 189, 248)),
     k.scale(1),
     k.anchor("center"),
     k.area(),
@@ -363,7 +490,10 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   elements.push(btnHaptics);
 
   const hapticsText = k.add([
-    k.text(getHapticsLabel(), { size: 11, font: "sans-serif" }),
+    k.text(getHapticsLabel(), {
+      size: accessibilitySystem.scaleFont(15),
+      font: "Outfit",
+    }),
     k.pos(btnHapticsPos),
     k.color(255, 255, 255),
     k.anchor("center"),
@@ -375,7 +505,7 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   const handleHaptics = () => {
     const newState = hapticsSystem.toggle();
     audioSystem.playUiClick();
-    btnHaptics.color = newState ? k.rgb(20, 90, 140) : k.rgb(50, 60, 70);
+    btnHaptics.color = newState ? k.rgb(20, 85, 145) : k.rgb(45, 55, 75);
     hapticsText.text = getHapticsLabel();
   };
 
@@ -388,19 +518,211 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   btnHaptics.onClick(handleHaptics);
   focusItems.push({
     pos: btnHapticsPos,
-    width: 170,
-    height: 28,
+    width: colW,
+    height: btnH,
     onActivate: handleHaptics,
   });
 
-  // --- 4. CORES/DALTONISMO & NARRAÇÃO EM VOZ (TTS) ---
-  const colorsY = k.height() / 2 - 108;
-  const btnAccessibilityPos = k.vec2(k.width() / 2 - 90, colorsY);
+  // --- Linha 4: Resolução do Jogo ---
+  const row4Y = rowStartY + 4 * (btnH + rowGap);
+  const resKeys: ResolutionKey[] = ["1080p", "720p", "540p", "450p"];
+  const getResLabel = (key: ResolutionKey) => `Resolução: ${RESOLUTION_PRESETS[key].label}`;
+
+  const btnResPos = k.vec2(col0X, row4Y);
+  const btnRes = k.add([
+    k.rect(colW, btnH, { radius: 8 }),
+    k.pos(btnResPos),
+    k.color(24, 75, 135),
+    k.outline(1.5, k.rgb(56, 189, 248)),
+    k.scale(1),
+    k.anchor("center"),
+    k.area(),
+    k.fixed(),
+    k.z(302),
+  ]);
+  elements.push(btnRes);
+
+  const resText = k.add([
+    k.text(getResLabel(currentResKey), {
+      size: accessibilitySystem.scaleFont(15),
+      font: "Outfit",
+    }),
+    k.pos(btnResPos),
+    k.color(255, 255, 255),
+    k.anchor("center"),
+    k.fixed(),
+    k.z(303),
+  ]);
+  elements.push(resText);
+
+  // Dica informativa de reload ao salvar
+  const reloadHintY = cY - cardH / 2 + 398;
+  const resHintText = k.add([
+    k.text("", {
+      size: accessibilitySystem.scaleFont(14),
+      font: "Inter",
+    }),
+    k.pos(cX, reloadHintY),
+    k.color(255, 220, 100),
+    k.anchor("center"),
+    k.fixed(),
+    k.z(303),
+  ]);
+  elements.push(resHintText);
+
+  const updateReloadHint = () => {
+    if (
+      currentResKey !== initialRes.key ||
+      currentDisplayMode !== initialDisplayMode ||
+      accessibilitySystem.getFontScaleKey() !== initialFontScale ||
+      i18n.getLocale() !== initialLocale
+    ) {
+      resHintText.text =
+        "⚠️ A tela será recarregada ao salvar para aplicar as alterações de sistema";
+    } else {
+      resHintText.text = "";
+    }
+  };
+
+  const handleRes = () => {
+    const currentIdx = resKeys.indexOf(currentResKey);
+    const nextIdx = (currentIdx + 1) % resKeys.length;
+    currentResKey = resKeys[nextIdx];
+    localStorage.setItem("micro_splash_resolution", currentResKey);
+    audioSystem.playUiClick();
+    resText.text = getResLabel(currentResKey);
+    updateReloadHint();
+  };
+
+  btnRes.onHoverUpdate(() => {
+    btnRes.scale = k.vec2(1.02, 1.02);
+  });
+  btnRes.onHoverEnd(() => {
+    btnRes.scale = k.vec2(1, 1);
+  });
+  btnRes.onClick(handleRes);
+  focusItems.push({
+    pos: btnResPos,
+    width: colW,
+    height: btnH,
+    onActivate: handleRes,
+  });
+
+  // --- Linha 5: Bordas & Tela Cheia ---
+  const row5Y = rowStartY + 5 * (btnH + rowGap);
+  const splitGap = 8;
+  const displayW = (colW - splitGap) * 0.58;
+  const fsW = (colW - splitGap) * 0.42;
+
+  const btnDisplayPos = k.vec2(col0X - colW / 2 + displayW / 2, row5Y);
+  const btnDisplay = k.add([
+    k.rect(displayW, btnH, { radius: 8 }),
+    k.pos(btnDisplayPos),
+    k.color(currentDisplayMode === "stretch" ? k.rgb(18, 105, 80) : k.rgb(50, 65, 85)),
+    k.outline(1.5, k.rgb(52, 211, 153)),
+    k.scale(1),
+    k.anchor("center"),
+    k.area(),
+    k.fixed(),
+    k.z(302),
+  ]);
+  elements.push(btnDisplay);
+
+  const displayText = k.add([
+    k.text(currentDisplayMode === "stretch" ? "Bordas: PREENCHER 🖥️✓" : "Bordas: 16:9 📺", {
+      size: accessibilitySystem.scaleFont(14.5),
+      font: "Outfit",
+    }),
+    k.pos(btnDisplayPos),
+    k.color(255, 255, 255),
+    k.anchor("center"),
+    k.fixed(),
+    k.z(303),
+  ]);
+  elements.push(displayText);
+
+  const handleDisplay = () => {
+    currentDisplayMode = currentDisplayMode === "stretch" ? "letterbox" : "stretch";
+    setSavedDisplayMode(currentDisplayMode);
+    audioSystem.playUiClick();
+    displayText.text =
+      currentDisplayMode === "stretch" ? "Bordas: PREENCHER 🖥️✓" : "Bordas: 16:9 📺";
+    btnDisplay.color = currentDisplayMode === "stretch" ? k.rgb(18, 105, 80) : k.rgb(50, 65, 85);
+    updateReloadHint();
+  };
+
+  btnDisplay.onHoverUpdate(() => {
+    btnDisplay.scale = k.vec2(1.02, 1.02);
+  });
+  btnDisplay.onHoverEnd(() => {
+    btnDisplay.scale = k.vec2(1, 1);
+  });
+  btnDisplay.onClick(handleDisplay);
+  focusItems.push({
+    pos: btnDisplayPos,
+    width: displayW,
+    height: btnH,
+    onActivate: handleDisplay,
+  });
+
+  const btnFsPos = k.vec2(col0X + colW / 2 - fsW / 2, row5Y);
+  const btnFs = k.add([
+    k.rect(fsW, btnH, { radius: 8 }),
+    k.pos(btnFsPos),
+    k.color(20, 75, 125),
+    k.outline(1.5, k.rgb(56, 189, 248)),
+    k.scale(1),
+    k.anchor("center"),
+    k.area(),
+    k.fixed(),
+    k.z(302),
+  ]);
+  elements.push(btnFs);
+
+  const fsText = k.add([
+    k.text("Tela Cheia ⛶", {
+      size: accessibilitySystem.scaleFont(14.5),
+      font: "Outfit",
+    }),
+    k.pos(btnFsPos),
+    k.color(255, 255, 255),
+    k.anchor("center"),
+    k.fixed(),
+    k.z(303),
+  ]);
+  elements.push(fsText);
+
+  const handleFs = () => {
+    audioSystem.playUiClick();
+    k.setFullscreen(!k.isFullscreen());
+    fsText.text = k.isFullscreen() ? "Janela 🗗" : "Tela Cheia ⛶";
+  };
+
+  btnFs.onHoverUpdate(() => {
+    btnFs.scale = k.vec2(1.02, 1.02);
+  });
+  btnFs.onHoverEnd(() => {
+    btnFs.scale = k.vec2(1, 1);
+  });
+  btnFs.onClick(handleFs);
+  focusItems.push({
+    pos: btnFsPos,
+    width: fsW,
+    height: btnH,
+    onActivate: handleFs,
+  });
+
+  // ========================================================
+  // COLUNA 1 (DIREITA): ACESSIBILIDADE & SISTEMA
+  // ========================================================
+
+  // --- Linha 0: Filtro de Cores / Daltonismo ---
+  const btnAccessibilityPos = k.vec2(col1X, row0Y);
   const btnAccessibility = k.add([
-    k.rect(170, 28, { radius: 7 }),
+    k.rect(colW, btnH, { radius: 8 }),
     k.pos(btnAccessibilityPos),
     k.color(accessibilitySystem.isHighContrast() ? k.rgb(30, 110, 150) : k.rgb(22, 75, 125)),
-    k.outline(1, k.rgb(100, 240, 220)),
+    k.outline(1.5, k.rgb(56, 189, 248)),
     k.scale(1),
     k.anchor("center"),
     k.area(),
@@ -410,7 +732,10 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   elements.push(btnAccessibility);
 
   const accessibilityText = k.add([
-    k.text(accessibilitySystem.getLabel(), { size: 10.5, font: "sans-serif" }),
+    k.text(accessibilitySystem.getLabel(), {
+      size: accessibilitySystem.scaleFont(15),
+      font: "Outfit",
+    }),
     k.pos(btnAccessibilityPos),
     k.color(255, 255, 255),
     k.anchor("center"),
@@ -437,65 +762,18 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   btnAccessibility.onClick(handleAccessibility);
   focusItems.push({
     pos: btnAccessibilityPos,
-    width: 170,
-    height: 28,
+    width: colW,
+    height: btnH,
     onActivate: handleAccessibility,
   });
 
-  // Botão TTS
-  const btnTtsPos = k.vec2(k.width() / 2 + 90, colorsY);
-  const btnTts = k.add([
-    k.rect(170, 28, { radius: 7 }),
-    k.pos(btnTtsPos),
-    k.color(ttsSystem.isEnabled() ? k.rgb(20, 100, 140) : k.rgb(50, 60, 70)),
-    k.outline(1, k.rgb(100, 220, 255)),
-    k.scale(1),
-    k.anchor("center"),
-    k.area(),
-    k.fixed(),
-    k.z(302),
-  ]);
-  elements.push(btnTts);
-
-  const ttsText = k.add([
-    k.text(ttsSystem.getLabel(), { size: 10, font: "sans-serif" }),
-    k.pos(btnTtsPos),
-    k.color(255, 255, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(303),
-  ]);
-  elements.push(ttsText);
-
-  const handleTts = () => {
-    const newState = ttsSystem.toggle();
-    audioSystem.playUiClick();
-    btnTts.color = newState ? k.rgb(20, 100, 140) : k.rgb(50, 60, 70);
-    ttsText.text = ttsSystem.getLabel();
-  };
-
-  btnTts.onHoverUpdate(() => {
-    btnTts.scale = k.vec2(1.02, 1.02);
-  });
-  btnTts.onHoverEnd(() => {
-    btnTts.scale = k.vec2(1, 1);
-  });
-  btnTts.onClick(handleTts);
-  focusItems.push({
-    pos: btnTtsPos,
-    width: 170,
-    height: 28,
-    onActivate: handleTts,
-  });
-
-  // --- 5. MOVIMENTO REDUZIDO (FASE 26.6) & TAMANHO DE FONTE (FASE 26.7) ---
-  const a11yY = k.height() / 2 - 70;
-  const btnMotionPos = k.vec2(k.width() / 2 - 90, a11yY);
+  // --- Linha 1: Movimento de Câmera Reduzido ---
+  const btnMotionPos = k.vec2(col1X, row1Y);
   const btnMotion = k.add([
-    k.rect(170, 28, { radius: 7 }),
+    k.rect(colW, btnH, { radius: 8 }),
     k.pos(btnMotionPos),
     k.color(accessibilitySystem.isReducedMotion() ? k.rgb(30, 110, 140) : k.rgb(20, 75, 120)),
-    k.outline(1, k.rgb(100, 240, 220)),
+    k.outline(1.5, k.rgb(56, 189, 248)),
     k.scale(1),
     k.anchor("center"),
     k.area(),
@@ -505,7 +783,10 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   elements.push(btnMotion);
 
   const motionText = k.add([
-    k.text(accessibilitySystem.getReducedMotionLabel(), { size: 10, font: "sans-serif" }),
+    k.text(accessibilitySystem.getReducedMotionLabel(), {
+      size: accessibilitySystem.scaleFont(15),
+      font: "Outfit",
+    }),
     k.pos(btnMotionPos),
     k.color(255, 255, 255),
     k.anchor("center"),
@@ -532,18 +813,18 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   btnMotion.onClick(handleMotion);
   focusItems.push({
     pos: btnMotionPos,
-    width: 170,
-    height: 28,
+    width: colW,
+    height: btnH,
     onActivate: handleMotion,
   });
 
-  // Botão Tamanho de Fonte
-  const btnFontPos = k.vec2(k.width() / 2 + 90, a11yY);
+  // --- Linha 2: Tamanho da Fonte ---
+  const btnFontPos = k.vec2(col1X, row2Y);
   const btnFont = k.add([
-    k.rect(170, 28, { radius: 7 }),
+    k.rect(colW, btnH, { radius: 8 }),
     k.pos(btnFontPos),
     k.color(20, 75, 120),
-    k.outline(1, k.rgb(100, 220, 255)),
+    k.outline(1.5, k.rgb(56, 189, 248)),
     k.scale(1),
     k.anchor("center"),
     k.area(),
@@ -553,7 +834,10 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   elements.push(btnFont);
 
   const fontText = k.add([
-    k.text(accessibilitySystem.getFontScaleLabel(), { size: 10.5, font: "sans-serif" }),
+    k.text(accessibilitySystem.getFontScaleLabel(), {
+      size: accessibilitySystem.scaleFont(15),
+      font: "Outfit",
+    }),
     k.pos(btnFontPos),
     k.color(255, 255, 255),
     k.anchor("center"),
@@ -578,26 +862,123 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   btnFont.onClick(handleFont);
   focusItems.push({
     pos: btnFontPos,
-    width: 170,
-    height: 28,
+    width: colW,
+    height: btnH,
     onActivate: handleFont,
   });
 
-  // --- 6. CONTROLES TOUCH NA TELA ---
-  const touchY = k.height() / 2 - 32;
-  let touchMode = localStorage.getItem("micro_splash_touch_controls") || "auto";
-  const getTouchLabel = (mode: string) => {
-    if (mode === "on") return "Controles Touch: SEMPRE ATIVOS 📱";
-    if (mode === "off") return "Controles Touch: DESATIVADOS ❌";
-    return "Controles Touch: AUTOMÁTICO (Auto-Detect) 📱";
+  // --- Linha 3: Narração em Voz (TTS) ---
+  const btnTtsPos = k.vec2(col1X, row3Y);
+  const btnTts = k.add([
+    k.rect(colW, btnH, { radius: 8 }),
+    k.pos(btnTtsPos),
+    k.color(ttsSystem.isEnabled() ? k.rgb(20, 100, 140) : k.rgb(45, 55, 75)),
+    k.outline(1.5, k.rgb(56, 189, 248)),
+    k.scale(1),
+    k.anchor("center"),
+    k.area(),
+    k.fixed(),
+    k.z(302),
+  ]);
+  elements.push(btnTts);
+
+  const ttsText = k.add([
+    k.text(ttsSystem.getLabel(), {
+      size: accessibilitySystem.scaleFont(15),
+      font: "Outfit",
+    }),
+    k.pos(btnTtsPos),
+    k.color(255, 255, 255),
+    k.anchor("center"),
+    k.fixed(),
+    k.z(303),
+  ]);
+  elements.push(ttsText);
+
+  const handleTts = () => {
+    const newState = ttsSystem.toggle();
+    audioSystem.playUiClick();
+    btnTts.color = newState ? k.rgb(20, 100, 140) : k.rgb(45, 55, 75);
+    ttsText.text = ttsSystem.getLabel();
   };
 
-  const btnTouchPos = k.vec2(k.width() / 2, touchY);
+  btnTts.onHoverUpdate(() => {
+    btnTts.scale = k.vec2(1.02, 1.02);
+  });
+  btnTts.onHoverEnd(() => {
+    btnTts.scale = k.vec2(1, 1);
+  });
+  btnTts.onClick(handleTts);
+  focusItems.push({
+    pos: btnTtsPos,
+    width: colW,
+    height: btnH,
+    onActivate: handleTts,
+  });
+
+  // --- Linha 4: Idioma / Language ---
+  const btnLangPos = k.vec2(col1X, row4Y);
+  const btnLang = k.add([
+    k.rect(colW, btnH, { radius: 8 }),
+    k.pos(btnLangPos),
+    k.color(24, 85, 140),
+    k.outline(1.5, k.rgb(56, 189, 248)),
+    k.scale(1),
+    k.anchor("center"),
+    k.area(),
+    k.fixed(),
+    k.z(302),
+  ]);
+  elements.push(btnLang);
+
+  const langText = k.add([
+    k.text(i18n.getLocaleLabel(), {
+      size: accessibilitySystem.scaleFont(15),
+      font: "Outfit",
+    }),
+    k.pos(btnLangPos),
+    k.color(255, 255, 255),
+    k.anchor("center"),
+    k.fixed(),
+    k.z(303),
+  ]);
+  elements.push(langText);
+
+  const handleLang = () => {
+    i18n.cycleNextLocale();
+    audioSystem.playUiClick();
+    langText.text = i18n.getLocaleLabel();
+    updateReloadHint();
+  };
+
+  btnLang.onHoverUpdate(() => {
+    btnLang.scale = k.vec2(1.02, 1.02);
+  });
+  btnLang.onHoverEnd(() => {
+    btnLang.scale = k.vec2(1, 1);
+  });
+  btnLang.onClick(handleLang);
+  focusItems.push({
+    pos: btnLangPos,
+    width: colW,
+    height: btnH,
+    onActivate: handleLang,
+  });
+
+  // --- Linha 5: Controles Touch ---
+  let touchMode = localStorage.getItem("micro_splash_touch_controls") || "auto";
+  const getTouchLabel = (mode: string) => {
+    if (mode === "on") return "Touch: ATIVOS 📱";
+    if (mode === "off") return "Touch: OFF ❌";
+    return "Touch: AUTOMÁTICO 📱";
+  };
+
+  const btnTouchPos = k.vec2(col1X, row5Y);
   const btnTouch = k.add([
-    k.rect(350, 28, { radius: 7 }),
+    k.rect(colW, btnH, { radius: 8 }),
     k.pos(btnTouchPos),
-    k.color(touchMode === "off" ? k.rgb(50, 60, 70) : k.rgb(20, 90, 140)),
-    k.outline(1, k.rgb(100, 220, 255)),
+    k.color(touchMode === "off" ? k.rgb(45, 55, 75) : k.rgb(20, 90, 140)),
+    k.outline(1.5, k.rgb(56, 189, 248)),
     k.scale(1),
     k.anchor("center"),
     k.area(),
@@ -607,7 +988,10 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   elements.push(btnTouch);
 
   const touchText = k.add([
-    k.text(getTouchLabel(touchMode), { size: 11.5, font: "sans-serif" }),
+    k.text(getTouchLabel(touchMode), {
+      size: accessibilitySystem.scaleFont(15),
+      font: "Outfit",
+    }),
     k.pos(btnTouchPos),
     k.color(255, 255, 255),
     k.anchor("center"),
@@ -623,7 +1007,7 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
 
     localStorage.setItem("micro_splash_touch_controls", touchMode);
     audioSystem.playUiClick();
-    btnTouch.color = touchMode === "off" ? k.rgb(50, 60, 70) : k.rgb(20, 90, 140);
+    btnTouch.color = touchMode === "off" ? k.rgb(45, 55, 75) : k.rgb(20, 90, 140);
     touchText.text = getTouchLabel(touchMode);
   };
 
@@ -636,177 +1020,26 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   btnTouch.onClick(handleTouch);
   focusItems.push({
     pos: btnTouchPos,
-    width: 350,
-    height: 28,
+    width: colW,
+    height: btnH,
     onActivate: handleTouch,
   });
 
-  // --- 7. RESOLUÇÃO DO JOGO ---
-  const resY = k.height() / 2 + 6;
-  const resKeys: ResolutionKey[] = ["1080p", "720p", "540p", "450p"];
-  const getResLabel = (key: ResolutionKey) => `Resolução: ${RESOLUTION_PRESETS[key].label}`;
+  // ========================================================
+  // SEÇÃO INFERIOR: GUIA DE CONTROLES, AÇÕES & LGPD
+  // ========================================================
 
-  const btnResPos = k.vec2(k.width() / 2, resY);
-  const btnRes = k.add([
-    k.rect(350, 28, { radius: 7 }),
-    k.pos(btnResPos),
-    k.color(24, 80, 135),
-    k.outline(1, k.rgb(80, 210, 255)),
-    k.scale(1),
-    k.anchor("center"),
-    k.area(),
-    k.fixed(),
-    k.z(302),
-  ]);
-  elements.push(btnRes);
+  // --- Guia Rápido de Controles ---
+  const guideY = cY - cardH / 2 + 456;
+  const guideBoxW = cardW - 56;
+  const guideBoxH = 58;
 
-  const resText = k.add([
-    k.text(getResLabel(currentResKey), { size: 11, font: "sans-serif" }),
-    k.pos(btnResPos),
-    k.color(255, 255, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(303),
-  ]);
-  elements.push(resText);
-
-  const resHintText = k.add([
-    k.text("", { size: 9.5, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 + 26),
-    k.color(255, 220, 100),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(303),
-  ]);
-  elements.push(resHintText);
-
-  const updateReloadHint = () => {
-    if (
-      currentResKey !== initialRes.key ||
-      currentDisplayMode !== initialDisplayMode ||
-      accessibilitySystem.getFontScaleKey() !== initialFontScale
-    ) {
-      resHintText.text = "⚠️ A tela será recarregada ao salvar para aplicar as alterações";
-    } else {
-      resHintText.text = "";
-    }
-  };
-
-  const handleRes = () => {
-    const currentIdx = resKeys.indexOf(currentResKey);
-    const nextIdx = (currentIdx + 1) % resKeys.length;
-    currentResKey = resKeys[nextIdx];
-    localStorage.setItem("micro_splash_resolution", currentResKey);
-    audioSystem.playUiClick();
-    resText.text = getResLabel(currentResKey);
-    updateReloadHint();
-  };
-
-  btnRes.onHoverUpdate(() => {
-    btnRes.scale = k.vec2(1.02, 1.02);
-  });
-  btnRes.onHoverEnd(() => {
-    btnRes.scale = k.vec2(1, 1);
-  });
-  btnRes.onClick(handleRes);
-  focusItems.push({
-    pos: btnResPos,
-    width: 350,
-    height: 28,
-    onActivate: handleRes,
-  });
-
-  // --- 8. PROPORÇÃO DE TELA & TELA CHEIA ---
-  const displayY = k.height() / 2 + 46;
-  const btnDisplayPos = k.vec2(k.width() / 2 - 72, displayY);
-  const btnDisplay = k.add([
-    k.rect(195, 28, { radius: 7 }),
-    k.pos(btnDisplayPos),
-    k.color(currentDisplayMode === "stretch" ? k.rgb(18, 105, 80) : k.rgb(50, 65, 85)),
-    k.outline(1, k.rgb(100, 240, 200)),
-    k.anchor("center"),
-    k.area(),
-    k.fixed(),
-    k.z(302),
-  ]);
-  elements.push(btnDisplay);
-
-  const displayText = k.add([
-    k.text(currentDisplayMode === "stretch" ? "Bordas: PREENCHER 🖥️✓" : "Bordas: 16:9 FIXA 📺", {
-      size: 10,
-      font: "sans-serif",
-    }),
-    k.pos(btnDisplayPos),
-    k.color(255, 255, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(303),
-  ]);
-  elements.push(displayText);
-
-  const handleDisplay = () => {
-    currentDisplayMode = currentDisplayMode === "stretch" ? "letterbox" : "stretch";
-    setSavedDisplayMode(currentDisplayMode);
-    audioSystem.playUiClick();
-    displayText.text =
-      currentDisplayMode === "stretch" ? "Bordas: PREENCHER 🖥️✓" : "Bordas: 16:9 FIXA 📺";
-    btnDisplay.color = currentDisplayMode === "stretch" ? k.rgb(18, 105, 80) : k.rgb(50, 65, 85);
-    updateReloadHint();
-  };
-
-  btnDisplay.onClick(handleDisplay);
-  focusItems.push({
-    pos: btnDisplayPos,
-    width: 195,
-    height: 28,
-    onActivate: handleDisplay,
-  });
-
-  const btnFsPos = k.vec2(k.width() / 2 + 102, displayY);
-  const btnFs = k.add([
-    k.rect(135, 28, { radius: 7 }),
-    k.pos(btnFsPos),
-    k.color(20, 75, 125),
-    k.outline(1, k.rgb(100, 220, 255)),
-    k.anchor("center"),
-    k.area(),
-    k.fixed(),
-    k.z(302),
-  ]);
-  elements.push(btnFs);
-
-  const fsText = k.add([
-    k.text("Tela Cheia [F11] ⛶", { size: 10.5, font: "sans-serif" }),
-    k.pos(btnFsPos),
-    k.color(255, 255, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(303),
-  ]);
-  elements.push(fsText);
-
-  const handleFs = () => {
-    audioSystem.playUiClick();
-    k.setFullscreen(!k.isFullscreen());
-    fsText.text = k.isFullscreen() ? "Janela 🗗" : "Tela Cheia [F11] ⛶";
-  };
-
-  btnFs.onClick(handleFs);
-  focusItems.push({
-    pos: btnFsPos,
-    width: 135,
-    height: 28,
-    onActivate: handleFs,
-  });
-
-  // --- 9. GUIA RÁPIDO DE CONTROLES ---
-  const guideY = k.height() / 2 + 98;
   elements.push(
     k.add([
-      k.rect(490, 52, { radius: 8 }),
-      k.pos(k.width() / 2, guideY),
-      k.color(8, 25, 55),
-      k.outline(1, k.rgb(50, 120, 180)),
+      k.rect(guideBoxW, guideBoxH, { radius: 10 }),
+      k.pos(cX, guideY),
+      k.color(8, 24, 52),
+      k.outline(1.5, k.rgb(38, 80, 135)),
       k.anchor("center"),
       k.fixed(),
       k.z(302),
@@ -815,8 +1048,11 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
 
   elements.push(
     k.add([
-      k.text("🎮 GUIA RÁPIDO DE CONTROLES & NAVEGAÇÃO:", { size: 10, font: "sans-serif" }),
-      k.pos(k.width() / 2, guideY - 14),
+      k.text("🎮 GUIA RÁPIDO DE CONTROLES & NAVEGAÇÃO:", {
+        size: accessibilitySystem.scaleFont(14.5),
+        font: "Outfit",
+      }),
+      k.pos(cX, guideY - 14),
       k.color(255, 215, 100),
       k.anchor("center"),
       k.fixed(),
@@ -827,29 +1063,33 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   elements.push(
     k.add([
       k.text(
-        "• [Setas/WASD]: Nadar e inclinar  • [Espaço]: Impulso de nado (delay 1s)  • [Shift/E]: Biosonar\n• [Tab/Setas + Enter]: Navegar e ativar menus por teclado (Acessibilidade WCAG)",
+        "• [Setas/WASD]: Nadar e inclinar  • [Espaço]: Impulso de nado (delay 1s)  • [Shift/E]: Biossonar  • [Tab/Setas + Enter]: Navegar por teclado",
         {
-          size: 9.5,
-          font: "sans-serif",
-          lineSpacing: 2,
+          size: accessibilitySystem.scaleFont(13.5),
+          font: "Inter",
         }
       ),
-      k.pos(k.width() / 2, guideY + 8),
-      k.color(180, 220, 250),
+      k.pos(cX, guideY + 11),
+      k.color(215, 235, 255),
       k.anchor("center"),
       k.fixed(),
       k.z(303),
     ])
   );
 
-  // --- 10. TUTORIAL & APAGAR DADOS (LGPD) ---
-  const actionsY = k.height() / 2 + 158;
-  const btnTutorialPos = k.vec2(k.width() / 2 - 105, actionsY);
+  // --- Botões de Ação na Base: Tutorial | Apagar Dados (LGPD) | Salvar & Voltar ---
+  const actionY = cY + cardH / 2 - 46;
+  const actGap = 16;
+  const actW = (cardW - 56 - actGap * 2) / 3;
+  const actH = 46;
+
+  // Botão 1: Tutorial / Guia
+  const btnTutorialPos = k.vec2(cX - actW - actGap, actionY);
   const btnTutorial = k.add([
-    k.rect(190, 32, { radius: 7 }),
+    k.rect(actW, actH, { radius: 9 }),
     k.pos(btnTutorialPos),
-    k.color(20, 85, 130),
-    k.outline(1.5, k.rgb(100, 240, 220)),
+    k.color(22, 90, 150),
+    k.outline(2, k.rgb(90, 220, 255)),
     k.scale(1),
     k.anchor("center"),
     k.area(),
@@ -860,7 +1100,10 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
 
   elements.push(
     k.add([
-      k.text("Tutorial / Guia 📖", { size: 11.5, font: "sans-serif" }),
+      k.text("🎓 Tutorial / Guia", {
+        size: accessibilitySystem.scaleFont(16),
+        font: "Outfit",
+      }),
       k.pos(btnTutorialPos),
       k.color(255, 255, 255),
       k.anchor("center"),
@@ -870,33 +1113,39 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   );
 
   const handleTutorial = () => {
+    if (isClosed || isModalOpen) return;
+    isModalOpen = true;
     audioSystem.playUiClick();
-    showOnboardingModal(k, () => {});
+    showOnboardingModal(k, () => {
+      isModalOpen = false;
+    });
   };
 
   btnTutorial.onHoverUpdate(() => {
-    btnTutorial.color = k.rgb(28, 120, 175);
+    if (isClosed || isModalOpen) return;
+    btnTutorial.color = k.rgb(28, 120, 185);
     btnTutorial.scale = k.vec2(1.02, 1.02);
   });
   btnTutorial.onHoverEnd(() => {
-    btnTutorial.color = k.rgb(20, 85, 130);
+    if (isClosed || isModalOpen) return;
+    btnTutorial.color = k.rgb(22, 90, 150);
     btnTutorial.scale = k.vec2(1, 1);
   });
   btnTutorial.onClick(handleTutorial);
   focusItems.push({
     pos: btnTutorialPos,
-    width: 190,
-    height: 32,
+    width: actW,
+    height: actH,
     onActivate: handleTutorial,
   });
 
-  // Botão Apagar Dados (LGPD)
-  const btnLgpdPos = k.vec2(k.width() / 2 + 105, actionsY);
+  // Botão 2: Apagar Dados (LGPD)
+  const btnLgpdPos = k.vec2(cX, actionY);
   const btnLgpd = k.add([
-    k.rect(190, 32, { radius: 7 }),
+    k.rect(actW, actH, { radius: 9 }),
     k.pos(btnLgpdPos),
-    k.color(90, 25, 25),
-    k.outline(1.5, k.rgb(240, 100, 100)),
+    k.color(100, 28, 28),
+    k.outline(2, k.rgb(240, 90, 90)),
     k.scale(1),
     k.anchor("center"),
     k.area(),
@@ -907,7 +1156,10 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
 
   elements.push(
     k.add([
-      k.text("🗑️ Apagar Dados (LGPD)", { size: 10.5, font: "sans-serif" }),
+      k.text("🗑️ Apagar Dados (LGPD)", {
+        size: accessibilitySystem.scaleFont(16),
+        font: "Outfit",
+      }),
       k.pos(btnLgpdPos),
       k.color(255, 220, 220),
       k.anchor("center"),
@@ -916,16 +1168,18 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
     ])
   );
 
-  // Modal de Confirmação LGPD
+  // Modal de Confirmação LGPD com tipografia e contraste aprimorados
   const showLgpdConfirmation = () => {
+    if (isClosed || isModalOpen) return;
+    isModalOpen = true;
     audioSystem.playUiClick();
     const confElements: any[] = [];
 
     const confBackdrop = k.add([
       k.rect(k.width(), k.height()),
       k.pos(0, 0),
-      k.color(0, 0, 0),
-      k.opacity(0.85),
+      k.color(4, 10, 20),
+      k.opacity(0.92),
       k.area(),
       k.fixed(),
       k.z(400),
@@ -933,10 +1187,10 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
     confElements.push(confBackdrop);
 
     const confCard = k.add([
-      k.rect(480, 220, { radius: 10 }),
-      k.pos(k.width() / 2, k.height() / 2),
-      k.color(25, 15, 25),
-      k.outline(2, k.rgb(240, 80, 80)),
+      k.rect(600, 260, { radius: 14 }),
+      k.pos(cX, cY),
+      k.color(28, 14, 24),
+      k.outline(2.5, k.rgb(240, 80, 80)),
       k.anchor("center"),
       k.area(),
       k.fixed(),
@@ -946,8 +1200,11 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
 
     confElements.push(
       k.add([
-        k.text("EXCLUIR TODOS OS DADOS LOCAIS? ⚠️", { size: 14, font: "sans-serif" }),
-        k.pos(k.width() / 2, k.height() / 2 - 70),
+        k.text("EXCLUIR TODOS OS DADOS LOCAIS? ⚠️", {
+          size: accessibilitySystem.scaleFont(20),
+          font: "Outfit",
+        }),
+        k.pos(cX, cY - 80),
         k.color(255, 120, 120),
         k.anchor("center"),
         k.fixed(),
@@ -958,11 +1215,16 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
     confElements.push(
       k.add([
         k.text(
-          "Esta ação removerá todos os recordes, conquistas do Diário\ne configurações salvas no navegador (Artigo 18 da LGPD).\nEsta operação é permanente e irreversível.",
-          { size: 11, font: "sans-serif", align: "center", lineSpacing: 4 }
+          "Esta ação removerá todos os recordes, conquistas do Diário\ne preferências salvas neste dispositivo (Artigo 18 da LGPD).\nEsta operação é definitiva e irreversível.",
+          {
+            size: accessibilitySystem.scaleFont(14.5),
+            font: "Inter",
+            align: "center",
+            lineSpacing: 4.5,
+          }
         ),
-        k.pos(k.width() / 2, k.height() / 2 - 15),
-        k.color(240, 220, 220),
+        k.pos(cX, cY - 14),
+        k.color(245, 225, 225),
         k.anchor("center"),
         k.fixed(),
         k.z(402),
@@ -976,14 +1238,16 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
           k.destroy(el);
         } catch {}
       });
+      isModalOpen = false;
     };
 
     // Botão Cancelar
     const btnCancel = k.add([
-      k.rect(130, 32, { radius: 6 }),
-      k.pos(k.width() / 2 - 80, k.height() / 2 + 55),
-      k.color(40, 50, 65),
-      k.outline(1, k.rgb(150, 180, 210)),
+      k.rect(160, 44, { radius: 8 }),
+      k.pos(cX - 100, cY + 74),
+      k.color(40, 55, 75),
+      k.outline(1.5, k.rgb(150, 185, 220)),
+      k.scale(1),
       k.anchor("center"),
       k.area(),
       k.fixed(),
@@ -993,22 +1257,32 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
 
     confElements.push(
       k.add([
-        k.text("Cancelar ✕", { size: 11.5, font: "sans-serif" }),
-        k.pos(k.width() / 2 - 80, k.height() / 2 + 55),
+        k.text("Cancelar ✕", {
+          size: accessibilitySystem.scaleFont(15.5),
+          font: "Outfit",
+        }),
+        k.pos(cX - 100, cY + 74),
         k.color(255, 255, 255),
         k.anchor("center"),
         k.fixed(),
         k.z(403),
       ])
     );
+    btnCancel.onHoverUpdate(() => {
+      btnCancel.scale = k.vec2(1.03, 1.03);
+    });
+    btnCancel.onHoverEnd(() => {
+      btnCancel.scale = k.vec2(1, 1);
+    });
     btnCancel.onClick(closeConf);
 
     // Botão Confirmar Apagar
     const btnConfirm = k.add([
-      k.rect(150, 32, { radius: 6 }),
-      k.pos(k.width() / 2 + 80, k.height() / 2 + 55),
-      k.color(140, 30, 30),
-      k.outline(1.5, k.rgb(255, 100, 100)),
+      k.rect(190, 44, { radius: 8 }),
+      k.pos(cX + 100, cY + 74),
+      k.color(150, 30, 30),
+      k.outline(2, k.rgb(255, 100, 100)),
+      k.scale(1),
       k.anchor("center"),
       k.area(),
       k.fixed(),
@@ -1018,8 +1292,11 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
 
     confElements.push(
       k.add([
-        k.text("Sim, Apagar Tudo 🗑️", { size: 11, font: "sans-serif" }),
-        k.pos(k.width() / 2 + 80, k.height() / 2 + 55),
+        k.text("Sim, Apagar Tudo 🗑️", {
+          size: accessibilitySystem.scaleFont(15.5),
+          font: "Outfit",
+        }),
+        k.pos(cX + 100, cY + 74),
         k.color(255, 255, 255),
         k.anchor("center"),
         k.fixed(),
@@ -1027,6 +1304,12 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
       ])
     );
 
+    btnConfirm.onHoverUpdate(() => {
+      btnConfirm.scale = k.vec2(1.03, 1.03);
+    });
+    btnConfirm.onHoverEnd(() => {
+      btnConfirm.scale = k.vec2(1, 1);
+    });
     btnConfirm.onClick(() => {
       accessibilitySystem.clearAllUserData();
       audioSystem.playUiClick();
@@ -1038,29 +1321,33 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   };
 
   btnLgpd.onHoverUpdate(() => {
+    if (isClosed || isModalOpen) return;
     btnLgpd.color = k.rgb(130, 35, 35);
     btnLgpd.scale = k.vec2(1.02, 1.02);
   });
   btnLgpd.onHoverEnd(() => {
-    btnLgpd.color = k.rgb(90, 25, 25);
+    if (isClosed || isModalOpen) return;
+    btnLgpd.color = k.rgb(100, 28, 28);
     btnLgpd.scale = k.vec2(1, 1);
   });
-  btnLgpd.onClick(showLgpdConfirmation);
+  btnLgpd.onClick(() => {
+    if (isClosed || isModalOpen) return;
+    showLgpdConfirmation();
+  });
   focusItems.push({
     pos: btnLgpdPos,
-    width: 190,
-    height: 32,
+    width: actW,
+    height: actH,
     onActivate: showLgpdConfirmation,
   });
 
-  // --- 11. SALVAR & VOLTAR ---
-  const backY = k.height() / 2 + 204;
-  const btnBackPos = k.vec2(k.width() / 2, backY);
+  // Botão 3: Salvar & Voltar
+  const btnBackPos = k.vec2(cX + actW + actGap, actionY);
   const btnBack = k.add([
-    k.rect(260, 34, { radius: 8 }),
+    k.rect(actW, actH, { radius: 9 }),
     k.pos(btnBackPos),
     k.color(16, 120, 180),
-    k.outline(2, k.rgb(100, 240, 255)),
+    k.outline(2, k.rgb(56, 189, 248)),
     k.scale(1),
     k.anchor("center"),
     k.area(),
@@ -1071,7 +1358,10 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
 
   elements.push(
     k.add([
-      k.text("Salvar & Voltar ↩️", { size: 13, font: "sans-serif" }),
+      k.text("Salvar & Voltar ↩", {
+        size: accessibilitySystem.scaleFont(16),
+        font: "Outfit",
+      }),
       k.pos(btnBackPos),
       k.color(255, 255, 255),
       k.anchor("center"),
@@ -1081,42 +1371,48 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   );
 
   btnBack.onHoverUpdate(() => {
+    if (isClosed || isModalOpen) return;
     btnBack.color = k.rgb(30, 150, 220);
     btnBack.scale = k.vec2(1.02, 1.02);
   });
   btnBack.onHoverEnd(() => {
+    if (isClosed || isModalOpen) return;
     btnBack.color = k.rgb(16, 120, 180);
     btnBack.scale = k.vec2(1, 1);
   });
-  btnBack.onClick(close);
+  btnBack.onClick(() => {
+    if (isClosed || isModalOpen) return;
+    close();
+  });
   focusItems.push({
     pos: btnBackPos,
-    width: 260,
-    height: 34,
+    width: actW,
+    height: actH,
     onActivate: close,
   });
 
-  // Selo de versão do Micro Splash
+  // Selo de versão e conformidade LGPD & WCAG 2.1 AA
   elements.push(
     k.add([
       k.text(`Micro Splash v${APP_VERSION} • Conformidade LGPD & WCAG 2.1 AA`, {
-        size: 9.5,
-        font: "sans-serif",
+        size: accessibilitySystem.scaleFont(12),
+        font: "Inter",
       }),
-      k.pos(k.width() / 2, k.height() / 2 + 242),
-      k.color(120, 160, 200),
-      k.opacity(0.65),
+      k.pos(cX, cY + cardH / 2 - 16),
+      k.color(140, 175, 215),
+      k.opacity(0.75),
       k.anchor("center"),
       k.fixed(),
       k.z(303),
     ])
   );
 
-  // Inicia o grupo de foco por teclado
+  // Inicia o grupo de foco por teclado acessível
   const focusGroup = createFocusGroup(k, {
     items: focusItems,
     onEscape: close,
-    initialIndex: 0,
+    initialIndex: focusItems.length - 1, // Inicia focado em Salvar & Voltar
     ringZ: 315,
+    isEnabled: () => !isClosed && !isModalOpen,
   });
 }

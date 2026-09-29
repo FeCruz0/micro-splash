@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/FeCruz0/micro-splash/actions/workflows/ci.yml/badge.svg)](https://github.com/FeCruz0/micro-splash/actions/workflows/ci.yml)
 [![Deploy Pages](https://github.com/FeCruz0/micro-splash/actions/workflows/deploy.yml/badge.svg)](https://github.com/FeCruz0/micro-splash/actions/workflows/deploy.yml)
-[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![PWA Ready](https://img.shields.io/badge/PWA-Offline--First-orange.svg)](public/manifest.json)
 [![WCAG 2.1 AA](https://img.shields.io/badge/Accessibility-WCAG%202.1%20AA-purple.svg)](docs/ROADMAP.md)

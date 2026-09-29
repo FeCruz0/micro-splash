@@ -51,9 +51,25 @@ export function createGameState(options: GameOptions = { mode: "standard" }) {
     getTimeRemaining: () => Math.max(0, Math.ceil(timeRemaining)),
     isTimeUp: () => options.mode === "quick_challenge" && timeRemaining <= 0,
     getHighScore: () => highScore,
+    getScore: () =>
+      Math.max(
+        0,
+        Math.floor(distance) +
+          krillCount * 100 -
+          trashCount * 150 +
+          (didBreach ? 500 : 0) +
+          quizScore
+      ),
     hasBreached: () => didBreach,
     getQuizScore: () => quizScore,
     getQuizCorrectCount: () => quizCorrectCount,
+    getCurrentBiome: () => {
+      if (distance < 5000) return "antartica";
+      if (distance < 12000) return "pelagico";
+      if (distance < 19000) return "costa_urbana";
+      if (distance < 25000) return "canyons";
+      return "arraial";
+    },
 
     // incrementadores de eventos
     addKrill: () => {

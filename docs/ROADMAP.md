@@ -314,24 +314,24 @@ _Objetivo: Tornar o projeto acessível para colaboradores, educadores, usuários
 
 _Objetivo: Ampliar o alcance do jogo para audiências nacionais e internacionais, obter dados reais de uso e abrir o conteúdo educacional para co-criação institucional._
 
-- [ ] **27.1 Open Graph e Twitter Cards no `index.html`:**
-  - Adicionar meta tags `og:title`, `og:description`, `og:image`, `og:type` e `twitter:card` ao `index.html`. Quando professores compartilharem o link do jogo no WhatsApp, Telegram ou Twitter, o preview exibirá imagem e título em vez de URL crua.
-- [ ] **27.2 Imagem de Preview Social (`public/og-image.png`):**
-  - Criar imagem estática 1200×630px com logo "Micro Splash", silhueta da jubarte e slogan. Gerada via `scripts/generateOgImage.cjs` com canvas puro (mesma técnica do `generatePwaIcons.cjs`). Complemento direto da ideia 27.1.
-- [ ] **27.3 Landing Page Estática (`public/about.html`):**
-  - Página standalone com screenshot/GIF do jogo, botão "Jogar Agora" e "Instalar como App", seção educacional "O que a jubarte ensina?", links para o Instituto Baleia Jubarte e QR Code para instalação PWA em tablets. Ponto de entrada profissional para feiras de ciências e captação de parceiros institucionais.
-- [ ] **27.4 Analytics de Privacidade via Plausible (Self-hosted ou Cloud):**
-  - Integrar Plausible Analytics (open-source, sem cookies, LGPD-compliant) com eventos: `game_started`, `migration_completed`, `migration_abandoned`, `biome_reached`, `quiz_taken`, `breach_triggered`. Dados reais sobre onde jogadores desistem — informa ajustes sem suposições.
-- [ ] **27.5 Relatório de Erros com Sentry (Free Tier):**
-  - Adicionar `@sentry/browser` com DSN via `VITE_SENTRY_DSN`. Capturar exceções não tratadas e falhas de `AudioContext` nos totens. Sem Sentry, bugs em hardware de totem são completamente invisíveis.
-- [ ] **27.6 Content Security Policy (CSP) via Nginx/Cloudflare Headers:**
-  - Configurar header `Content-Security-Policy` restritivo no `nginx.conf` (Fase 25.3) ou `_headers` do Cloudflare Pages. Previne XSS e injeção de scripts externos — requisito básico de segurança para aplicações em ambiente escolar.
-- [ ] **27.7 Ferramenta de Edição de Conteúdo Educacional (CMS Lite):**
-  - Criar `tools/editor.html` — página HTML standalone (sem servidor) com formulários para adicionar/editar fatos em `facts.json` e perguntas em `quiz.json`, com exportação via botão "Baixar JSON". Puramente client-side com `FileReader` + `Blob`. Permite que professores contribuam com conteúdo sem código.
-- [ ] **27.8 Tradução para Inglês (i18n pt-BR / en-US):**
-  - Extrair strings de UI para `src/i18n/pt-BR.json` e `src/i18n/en-US.json`. Criar função `t(key)` que lê do locale ativo e adicionar seletor de idioma nas Opções. Habilita uso em escolas internacionais e publicação em plataformas como itch.io.
-- [ ] **27.9 Suporte a Línguas Indígenas Brasileiras (Guarani Nhandewa):**
-  - Adicionar tradução para Guarani Nhandewa (`gn`) — língua falada por comunidades costeiras do Sul do Brasil com relação ancestral com o ecossistema marinho e cetáceos migrantes. Diferencial único de acessibilidade cultural com potencial de parceria com FUNAI e universidades indígenas.
+- [x] **27.1 Open Graph e Twitter Cards no `index.html`:**
+  - Adicionado meta tags `og:title`, `og:description`, `og:image`, `og:type` e `twitter:card` ao `index.html`. Quando professores compartilharem o link do jogo no WhatsApp, Telegram ou Twitter, o preview exibirá imagem e título em vez de URL crua.
+- [x] **27.2 Imagem de Preview Social (`public/og-image.png`):**
+  - Criada imagem estática 1200×630px com logo "Micro Splash", silhueta da jubarte e slogan. Gerada via `scripts/generateOgImage.cjs` com canvas puro e script npm `generate:og`.
+- [x] **27.3 Landing Page Estática (`public/about.html`):**
+  - Página standalone com screenshot/preview do jogo, botões de ação, pilares biológicos da migração, guia para totens/kiosks, atalhos universais, QR Code vetorial e selo de conformidade com a LGPD e WCAG 2.1 AA.
+- [x] **27.4 Analytics de Privacidade via Plausible (Self-hosted ou Cloud):**
+  - Integrado Plausible Analytics via `src/services/analytics.ts` (open-source, sem cookies, LGPD-compliant) com eventos: `game_started`, `migration_completed`, `migration_abandoned`, `biome_reached`, `quiz_taken`, `breach_triggered` e respeito ao cabeçalho `Do Not Track`.
+- [x] **27.5 Relatório de Erros com Sentry (Free Tier / Fallback Gracioso):**
+  - Criado `src/services/errorReporter.ts` com fallback automático quando não configurado. Captura exceções globais (`window.onerror`), rejeições não tratadas e falhas de `AudioContext` nos totens.
+- [x] **27.6 Content Security Policy (CSP) via Nginx/Cloudflare Headers:**
+  - Configurado header `Content-Security-Policy` restritivo e `Permissions-Policy` no `nginx.conf` e no arquivo estático `public/_headers`. Previne XSS e injeção de scripts externos em totens escolares.
+- [x] **27.7 Ferramenta de Edição de Conteúdo Educacional (CMS Lite):**
+  - Criado `tools/editor.html` — aplicação web autônoma client-side para adicionar, editar e validar fatos (`facts.json`) e quiz (`quiz.json`) com validação alinhada aos schemas Zod e exportação com 1 clique.
+- [x] **27.8 Tradução para Inglês (i18n pt-BR / en-US):**
+  - Criado módulo `src/i18n/` com `locales/pt-BR.json` e `locales/en-US.json`, função `t(key, params)` e seletor cíclico de idioma nas Opções com persistência no `localStorage`.
+- [x] **27.9 Suporte a Línguas Indígenas Brasileiras (Guarani Nhandewa):**
+  - Adicionada tradução para Guarani Nhandewa (`gn`) em `src/i18n/locales/gn.json` — celebrando o patrimônio e vocabulário tradicional marinho costeiro (_Piraju_, _Para_, _Mborai_, _Pytu_).
 
 ### 🐋 FASE 28: Proporcionalidade Biológica & Redesenho de Entidades
 

@@ -38,6 +38,8 @@ import { recordMigrationStart, recordMigrationEnd } from "./systems/cumulativeSt
 import { initPresentationMode } from "./systems/presentationMode";
 import { accessibilitySystem } from "./systems/accessibilitySystem";
 import { gamepadSystem } from "./systems/gamepadSystem";
+import { analytics } from "./services/analytics";
+import { errorReporter } from "./services/errorReporter";
 
 // Interfaces da Fase 6: Menu Principal, Seleção de Modo, Opções e Codex
 import { createMainMenu } from "./ui/mainMenu";
@@ -47,7 +49,9 @@ import { showCodexScreen } from "./ui/codexScreen";
 import { showChallengeEndScreen } from "./ui/challengeEndScreen";
 import { showLeaderboardScreen } from "./ui/leaderboardScreen";
 import { createSplashScreen } from "./ui/splashScreen";
-import { hasSeenOnboarding, showOnboardingModal } from "./ui/onboardingModal";
+
+// Inicializa observabilidade e proteção contra exceções em totens (Fase 27)
+errorReporter.setupGlobalHandlers();
 
 const resolution = getSavedResolution();
 const displayMode = getSavedDisplayMode();
@@ -60,7 +64,11 @@ const k = kaboom({
   stretch: !isLetterbox,
   background: [6, 18, 42],
   debug: false,
+  font: "Inter",
 });
+
+k.loadFont("Inter", "/fonts/Inter-SemiBold.ttf", { size: 64, filter: "linear" });
+k.loadFont("Outfit", "/fonts/Outfit-Bold.ttf", { size: 64, filter: "linear" });
 
 accessibilitySystem.init();
 
@@ -145,11 +153,6 @@ k.scene("menu", () => {
       showLeaderboardScreen(k, onClose);
     }
   );
-
-  // Fase 21: Se for a primeira inicialização do jogo (totens ou novos jogadores), exibe o onboarding contextual
-  if (!hasSeenOnboarding()) {
-    showOnboardingModal(k, () => {});
-  }
 });
 
 // =============================================================================
@@ -244,7 +247,7 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
   let timerUI: any = null;
   if (options.mode === "quick_challenge") {
     timerUI = k.add([
-      k.text("⏱️ 60s", { size: 16, font: "sans-serif" }),
+      k.text("⏱️ 60s", { size: 16.5, font: "Outfit" }),
       k.pos(k.width() - 110, 18),
       k.color(255, 220, 80),
       k.fixed(),
@@ -252,7 +255,7 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
     ]);
   } else if (options.mode === "serene") {
     k.add([
-      k.text("🌸 Migração Serena (∞)", { size: 14, font: "sans-serif" }),
+      k.text("🌸 Migração Serena (∞)", { size: 14.5, font: "Outfit" }),
       k.pos(k.width() - 190, 18),
       k.color(140, 255, 200),
       k.fixed(),
@@ -261,8 +264,8 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
   } else if (options.mode === "weekly") {
     k.add([
       k.text(`📅 Desafio Semanal (#${options.seed || "Semanal"})`, {
-        size: 14,
-        font: "sans-serif",
+        size: 14.5,
+        font: "Outfit",
       }),
       k.pos(k.width() - 260, 18),
       k.color(255, 220, 80),
@@ -271,8 +274,9 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
     ]);
   }
 
-  // 1.5. Registra Início da Jornada no Dashboard Coletivo (Fase 16)
+  // 1.5. Registra Início da Jornada no Dashboard Coletivo (Fase 16) e Analytics (Fase 27)
   recordMigrationStart();
+  analytics.trackGameStarted(options.mode, audioSystem.getSoundtrackMode());
   let isStatsRecorded = false;
   const recordEndOnce = (completed: boolean) => {
     if (isStatsRecorded) return;
@@ -284,6 +288,20 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
       gameState.getElapsedTime(),
       completed
     );
+    if (completed) {
+      analytics.trackMigrationCompleted({
+        score: gameState.getScore(),
+        distance: gameState.getDistance(),
+        timeSeconds: gameState.getElapsedTime(),
+        biomesPassed: 5,
+      });
+    } else {
+      analytics.trackMigrationAbandoned({
+        distance: gameState.getDistance(),
+        cause: "oxygen",
+        biome: gameState.getCurrentBiome(),
+      });
+    }
   };
 
   // 2. Instancia obstáculos, krill, redes e bolsões de ar procedurais (com semente determinística caso informada)

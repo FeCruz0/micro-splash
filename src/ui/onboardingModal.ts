@@ -1,5 +1,7 @@
 import type { KaboomCtx } from "kaboom";
 import { audioSystem } from "../systems/audioSystem";
+import { accessibilitySystem } from "../systems/accessibilitySystem";
+import { createFocusGroup, type FocusableItem } from "./keyboardNav";
 
 const ONBOARDING_STORAGE_KEY = "micro_splash_onboarding_done";
 
@@ -69,7 +71,7 @@ const ONBOARDING_SLIDES: OnboardingSlide[] = [
       {
         icon: "☀️",
         title: "Berçário em Arraial do Cabo:",
-        desc: "Encontram águas mornas, calmas e protegidas da RESEX para parir, amamentar e guiar os filhotes recém-nascidos.",
+        desc: "Encontram águas calmas e protegidas para parir, amamentar e guiar os filhotes recém-nascidos.",
       },
     ],
   },
@@ -81,12 +83,12 @@ const ONBOARDING_SLIDES: OnboardingSlide[] = [
       {
         icon: "💨",
         title: "Nado & Impulso:",
-        desc: "Pressione [ESPAÇO] ou o botão de Nado touch a cada 1s para cadenciar suas batidas de cauda com menor esforço.",
+        desc: "Pressione [ESPAÇO] ou o botão touch a cada 1s para cadenciar suas batidas de cauda com menor esforço.",
       },
       {
         icon: "🧭",
         title: "Direção & Mergulho:",
-        desc: "Use [SETAS] ou [WASD] para alternar entre as profundezas ricas e a superfície onde se respira.",
+        desc: "Use [SETAS] ou [WASD] para alternar entre as profundezas ricas em krill e a superfície para respirar.",
       },
       {
         icon: "📡",
@@ -104,16 +106,15 @@ export function showOnboardingModal(k: KaboomCtx, onDone: () => void) {
   let isClosed = false;
 
   const elements: any[] = [];
-  let dynamicElements: any[] = [];
-  const keyListeners: any[] = [];
+  let focusGroup: { destroy: () => void } | null = null;
 
   const screenW = k.width();
   const screenH = k.height();
   const cX = screenW / 2;
   const cY = screenH / 2;
 
-  const cardW = Math.min(620, screenW - 24);
-  const cardH = Math.min(410, screenH - 24);
+  const cardW = Math.min(1000, screenW - 24);
+  const cardH = Math.min(660, screenH - 20);
 
   // Backdrop escuro bloqueando cliques externos
   const backdrop = k.add([
@@ -129,10 +130,10 @@ export function showOnboardingModal(k: KaboomCtx, onDone: () => void) {
 
   // Card principal
   const card = k.add([
-    k.rect(cardW, cardH, { radius: 14 }),
+    k.rect(cardW, cardH, { radius: 16 }),
     k.pos(cX, cY),
-    k.color(10, 32, 65),
-    k.outline(2.5, k.rgb(80, 210, 255)),
+    k.color(10, 28, 56),
+    k.outline(2.5, k.rgb(56, 189, 248)),
     k.anchor("center"),
     k.area(),
     k.fixed(),
@@ -140,295 +141,421 @@ export function showOnboardingModal(k: KaboomCtx, onDone: () => void) {
   ]);
   elements.push(card);
 
+  const initialSlide = ONBOARDING_SLIDES[0];
+
+  // Badge de etapa
+  const badgeText = k.add([
+    k.text(initialSlide.badge, {
+      size: accessibilitySystem.scaleFont(14),
+      font: "Outfit",
+    }),
+    k.pos(cX, cY - cardH / 2 + 30),
+    k.color(100, 220, 255),
+    k.anchor("center"),
+    k.fixed(),
+    k.z(553),
+  ]);
+  elements.push(badgeText);
+
+  // Título do slide
+  const titleText = k.add([
+    k.text(initialSlide.title, {
+      size: accessibilitySystem.scaleFont(26),
+      font: "Outfit",
+    }),
+    k.pos(cX, cY - cardH / 2 + 58),
+    k.color(255, 225, 90),
+    k.anchor("center"),
+    k.fixed(),
+    k.z(553),
+  ]);
+  elements.push(titleText);
+
+  // Subtítulo
+  const subtitleText = k.add([
+    k.text(initialSlide.subtitle, {
+      size: accessibilitySystem.scaleFont(15.5),
+      font: "Inter",
+    }),
+    k.pos(cX, cY - cardH / 2 + 86),
+    k.color(190, 230, 255),
+    k.anchor("center"),
+    k.fixed(),
+    k.z(553),
+  ]);
+  elements.push(subtitleText);
+
+  // 3 Cards de Conteúdo (estruturas fixas atualizadas in-place)
+  const boxW = cardW - 56;
+  const boxH = 100;
+  const itemGap = 110;
+  const startY = cY - cardH / 2 + 116;
+
+  const pointIconTexts: any[] = [];
+  const pointTitleTexts: any[] = [];
+  const pointDescTexts: any[] = [];
+
+  for (let idx = 0; idx < 3; idx++) {
+    const itemY = startY + idx * itemGap + boxH / 2;
+    const pt = initialSlide.points[idx];
+
+    // Fundo do tópico
+    elements.push(
+      k.add([
+        k.rect(boxW, boxH, { radius: 12 }),
+        k.pos(cX, itemY),
+        k.color(14, 36, 72),
+        k.outline(1.5, k.rgb(38, 78, 130)),
+        k.anchor("center"),
+        k.fixed(),
+        k.z(552),
+      ])
+    );
+
+    // Badge de Ícone à esquerda
+    const iconPillX = cX - boxW / 2 + 36;
+    elements.push(
+      k.add([
+        k.rect(54, 54, { radius: 10 }),
+        k.pos(iconPillX, itemY),
+        k.color(20, 52, 100),
+        k.outline(1.5, k.rgb(56, 189, 248)),
+        k.anchor("center"),
+        k.fixed(),
+        k.z(553),
+      ])
+    );
+
+    const iconText = k.add([
+      k.text(pt.icon, {
+        size: accessibilitySystem.scaleFont(26),
+        font: "Outfit",
+      }),
+      k.pos(iconPillX, itemY),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(554),
+    ]);
+    pointIconTexts.push(iconText);
+    elements.push(iconText);
+
+    // Coluna de Texto
+    const textStartX = cX - boxW / 2 + 76;
+
+    const pTitle = k.add([
+      k.text(pt.title, {
+        size: accessibilitySystem.scaleFont(17),
+        font: "Outfit",
+      }),
+      k.pos(textStartX, itemY - boxH / 2 + 16),
+      k.color(255, 225, 110),
+      k.anchor("topleft"),
+      k.fixed(),
+      k.z(553),
+    ]);
+    pointTitleTexts.push(pTitle);
+    elements.push(pTitle);
+
+    const pDesc = k.add([
+      k.text(pt.desc, {
+        size: accessibilitySystem.scaleFont(14.5),
+        font: "Inter",
+        width: boxW - 94,
+        lineSpacing: 4.5,
+      }),
+      k.pos(textStartX, itemY - boxH / 2 + 42),
+      k.color(225, 240, 255),
+      k.anchor("topleft"),
+      k.fixed(),
+      k.z(553),
+    ]);
+    pointDescTexts.push(pDesc);
+    elements.push(pDesc);
+  }
+
+  // Indicadores visuais de bolinhas no rodapé
+  const dotsY = cY + cardH / 2 - 62;
+  const dotCircles: any[] = [];
+  for (let i = 0; i < ONBOARDING_SLIDES.length; i++) {
+    const dotX = cX + (i - 1) * 26;
+    const isActive = i === 0;
+    const dot = k.add([
+      k.circle(isActive ? 7 : 4.5),
+      k.pos(dotX, dotsY),
+      k.color(isActive ? k.rgb(100, 230, 255) : k.rgb(45, 90, 140)),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(553),
+    ]);
+    dotCircles.push(dot);
+    elements.push(dot);
+  }
+
   const cleanup = () => {
     if (isClosed) return;
     isClosed = true;
-    keyListeners.forEach((l) => {
-      try {
-        l.cancel();
-      } catch {}
-    });
-    dynamicElements.forEach((el) => {
-      try {
-        k.destroy(el);
-      } catch {}
-    });
+    if (focusGroup) {
+      focusGroup.destroy();
+      focusGroup = null;
+    }
+    window.removeEventListener("keydown", keyHandler);
     elements.forEach((el) => {
       try {
         k.destroy(el);
       } catch {}
     });
+    elements.length = 0;
   };
 
   const closeAndFinish = () => {
+    if (isClosed) return;
     cleanup();
     markOnboardingSeen();
     audioSystem.playUiClick();
     onDone();
   };
 
-  const renderSlide = (slideIndex: number) => {
-    dynamicElements.forEach((el) => {
-      try {
-        k.destroy(el);
-      } catch {}
-    });
-    dynamicElements = [];
+  // --- BOTÕES DE AÇÃO ---
+  // Botão Pular (canto superior direito)
+  const btnSkipPos = k.vec2(cX + cardW / 2 - 54, cY - cardH / 2 + 30);
+  const btnSkip = k.add([
+    k.rect(94, 36, { radius: 8 }),
+    k.pos(btnSkipPos),
+    k.color(22, 50, 90),
+    k.outline(1, k.rgb(100, 200, 255)),
+    k.scale(1),
+    k.anchor("center"),
+    k.area(),
+    k.fixed(),
+    k.z(554),
+  ]);
+  elements.push(btnSkip);
 
-    const slide = ONBOARDING_SLIDES[slideIndex];
-
-    // Badge de etapa
-    dynamicElements.push(
-      k.add([
-        k.text(slide.badge, { size: 10.5, font: "sans-serif" }),
-        k.pos(cX, cY - cardH / 2 + 25),
-        k.color(100, 220, 255),
-        k.anchor("center"),
-        k.fixed(),
-        k.z(553),
-      ])
-    );
-
-    // Título do slide
-    dynamicElements.push(
-      k.add([
-        k.text(slide.title, { size: 16.5, font: "sans-serif" }),
-        k.pos(cX, cY - cardH / 2 + 48),
-        k.color(255, 225, 90),
-        k.anchor("center"),
-        k.fixed(),
-        k.z(553),
-      ])
-    );
-
-    // Subtítulo
-    dynamicElements.push(
-      k.add([
-        k.text(slide.subtitle, { size: 11.5, font: "sans-serif" }),
-        k.pos(cX, cY - cardH / 2 + 70),
-        k.color(190, 230, 255),
-        k.anchor("center"),
-        k.fixed(),
-        k.z(553),
-      ])
-    );
-
-    // 3 Cards de Conteúdo
-    const startY = cY - cardH / 2 + 96;
-    const itemGap = 68;
-
-    slide.points.forEach((pt, idx) => {
-      const itemY = startY + idx * itemGap;
-      const boxW = cardW - 40;
-
-      // Fundo do tópico
-      dynamicElements.push(
-        k.add([
-          k.rect(boxW, 58, { radius: 8 }),
-          k.pos(cX, itemY + 29),
-          k.color(16, 46, 88),
-          k.outline(1, k.rgb(40, 110, 175)),
-          k.anchor("center"),
-          k.fixed(),
-          k.z(552),
-        ])
-      );
-
-      // Ícone do tópico
-      dynamicElements.push(
-        k.add([
-          k.text(pt.icon, { size: 20 }),
-          k.pos(cX - boxW / 2 + 25, itemY + 29),
-          k.anchor("center"),
-          k.fixed(),
-          k.z(553),
-        ])
-      );
-
-      // Título do tópico
-      dynamicElements.push(
-        k.add([
-          k.text(pt.title, { size: 12, font: "sans-serif" }),
-          k.pos(cX - boxW / 2 + 50, itemY + 14),
-          k.color(255, 235, 150),
-          k.fixed(),
-          k.z(553),
-        ])
-      );
-
-      // Descrição do tópico
-      dynamicElements.push(
-        k.add([
-          k.text(pt.desc, { size: 10.5, font: "sans-serif", width: boxW - 65, lineSpacing: 2 }),
-          k.pos(cX - boxW / 2 + 50, itemY + 31),
-          k.color(210, 235, 255),
-          k.fixed(),
-          k.z(553),
-        ])
-      );
-    });
-
-    // Indicadores visuais de bolinhas no rodapé
-    const dotsY = cY + cardH / 2 - 58;
-    for (let i = 0; i < ONBOARDING_SLIDES.length; i++) {
-      const dotX = cX + (i - 1) * 24;
-      const isActive = i === slideIndex;
-      dynamicElements.push(
-        k.add([
-          k.circle(isActive ? 5 : 3.5),
-          k.pos(dotX, dotsY),
-          k.color(isActive ? k.rgb(100, 230, 255) : k.rgb(45, 90, 140)),
-          k.anchor("center"),
-          k.fixed(),
-          k.z(553),
-        ])
-      );
-    }
-
-    // --- BOTÕES DE AÇÃO ---
-    const btnY = cY + cardH / 2 - 26;
-
-    // Botão Pular (canto superior direito)
-    const btnSkip = k.add([
-      k.rect(76, 26, { radius: 6 }),
-      k.pos(cX + cardW / 2 - 48, cY - cardH / 2 + 24),
-      k.color(25, 45, 75),
-      k.outline(1, k.rgb(80, 160, 210)),
+  elements.push(
+    k.add([
+      k.text("Pular ✕", {
+        size: accessibilitySystem.scaleFont(14),
+        font: "Outfit",
+      }),
+      k.pos(btnSkipPos),
+      k.color(215, 235, 255),
       k.anchor("center"),
-      k.area(),
       k.fixed(),
-      k.z(554),
-    ]);
-    dynamicElements.push(btnSkip);
+      k.z(555),
+    ])
+  );
 
-    dynamicElements.push(
-      k.add([
-        k.text("Pular ✕", { size: 10.5, font: "sans-serif" }),
-        k.pos(cX + cardW / 2 - 48, cY - cardH / 2 + 24),
-        k.color(200, 225, 250),
-        k.anchor("center"),
-        k.fixed(),
-        k.z(555),
-      ])
-    );
+  btnSkip.onHoverUpdate(() => {
+    if (isClosed) return;
+    btnSkip.color = k.rgb(180, 50, 50);
+    btnSkip.scale = k.vec2(1.05, 1.05);
+  });
+  btnSkip.onHoverEnd(() => {
+    if (isClosed) return;
+    btnSkip.color = k.rgb(22, 50, 90);
+    btnSkip.scale = k.vec2(1, 1);
+  });
+  btnSkip.onClick(() => {
+    if (isClosed) return;
+    closeAndFinish();
+  });
 
-    btnSkip.onClick(closeAndFinish);
+  const actionBtnY = cY + cardH / 2 - 30;
 
-    // Botão Anterior (visível apenas a partir do slide 1)
-    if (slideIndex > 0) {
-      const btnPrev = k.add([
-        k.rect(130, 32, { radius: 7 }),
-        k.pos(cX - 120, btnY),
-        k.color(25, 65, 110),
-        k.outline(1, k.rgb(90, 180, 240)),
-        k.anchor("center"),
-        k.area(),
-        k.fixed(),
-        k.z(554),
-      ]);
-      dynamicElements.push(btnPrev);
+  // Botão Anterior
+  const btnPrevPos = k.vec2(cX - 120, actionBtnY);
+  const btnPrev = k.add([
+    k.rect(160, 46, { radius: 9 }),
+    k.pos(-9999, -9999),
+    k.color(20, 55, 100),
+    k.outline(1.5, k.rgb(100, 200, 255)),
+    k.scale(1),
+    k.anchor("center"),
+    k.area(),
+    k.fixed(),
+    k.z(554),
+  ]);
+  btnPrev.hidden = true;
+  elements.push(btnPrev);
 
-      dynamicElements.push(
-        k.add([
-          k.text("◀ Anterior", { size: 12, font: "sans-serif" }),
-          k.pos(cX - 120, btnY),
-          k.color(255, 255, 255),
-          k.anchor("center"),
-          k.fixed(),
-          k.z(555),
-        ])
-      );
+  const btnPrevText = k.add([
+    k.text("◀ Anterior", {
+      size: accessibilitySystem.scaleFont(15.5),
+      font: "Outfit",
+    }),
+    k.pos(-9999, -9999),
+    k.color(255, 255, 255),
+    k.anchor("center"),
+    k.fixed(),
+    k.z(555),
+  ]);
+  btnPrevText.hidden = true;
+  elements.push(btnPrevText);
 
-      btnPrev.onClick(() => {
-        audioSystem.playUiClick();
-        currentSlide--;
-        renderSlide(currentSlide);
-      });
-    }
+  btnPrev.onHoverUpdate(() => {
+    if (isClosed || currentSlide === 0) return;
+    btnPrev.color = k.rgb(28, 75, 135);
+    btnPrev.scale = k.vec2(1.02, 1.02);
+  });
+  btnPrev.onHoverEnd(() => {
+    if (isClosed || currentSlide === 0) return;
+    btnPrev.color = k.rgb(20, 55, 100);
+    btnPrev.scale = k.vec2(1, 1);
+  });
 
-    // Botão Próximo / Concluir
-    const isLast = slideIndex === ONBOARDING_SLIDES.length - 1;
-    const nextBtnX = slideIndex === 0 ? cX : cX + 120;
-    const nextBtnW = slideIndex === 0 ? 210 : 160;
+  const goPrev = () => {
+    if (isClosed || currentSlide <= 0) return;
+    audioSystem.playUiClick();
+    goToSlide(currentSlide - 1);
+  };
+  btnPrev.onClick(goPrev);
 
-    const btnNext = k.add([
-      k.rect(nextBtnW, 32, { radius: 7 }),
-      k.pos(nextBtnX, btnY),
-      k.color(isLast ? k.rgb(20, 140, 100) : k.rgb(18, 120, 190)),
-      k.outline(1.5, isLast ? k.rgb(100, 255, 180) : k.rgb(100, 230, 255)),
-      k.anchor("center"),
-      k.area(),
-      k.fixed(),
-      k.z(554),
-    ]);
-    dynamicElements.push(btnNext);
+  // Botão Próximo / Concluir
+  const btnNextPos = k.vec2(cX, actionBtnY);
+  const btnNext = k.add([
+    k.rect(240, 46, { radius: 9 }),
+    k.pos(btnNextPos),
+    k.color(24, 85, 150),
+    k.outline(1.5, k.rgb(56, 189, 248)),
+    k.scale(1),
+    k.anchor("center"),
+    k.area(),
+    k.fixed(),
+    k.z(554),
+  ]);
+  elements.push(btnNext);
 
-    dynamicElements.push(
-      k.add([
-        k.text(isLast ? "Começar Migração 🌊▶" : "Próximo ▶", { size: 12, font: "sans-serif" }),
-        k.pos(nextBtnX, btnY),
-        k.color(255, 255, 255),
-        k.anchor("center"),
-        k.fixed(),
-        k.z(555),
-      ])
-    );
+  const btnNextText = k.add([
+    k.text("Próximo ▶", {
+      size: accessibilitySystem.scaleFont(16),
+      font: "Outfit",
+    }),
+    k.pos(btnNextPos),
+    k.color(255, 255, 255),
+    k.anchor("center"),
+    k.fixed(),
+    k.z(555),
+  ]);
+  elements.push(btnNextText);
 
-    btnNext.onClick(() => {
+  btnNext.onHoverUpdate(() => {
+    if (isClosed) return;
+    const isLast = currentSlide === ONBOARDING_SLIDES.length - 1;
+    btnNext.color = isLast ? k.rgb(25, 150, 95) : k.rgb(32, 110, 190);
+    btnNext.scale = k.vec2(1.02, 1.02);
+  });
+  btnNext.onHoverEnd(() => {
+    if (isClosed) return;
+    const isLast = currentSlide === ONBOARDING_SLIDES.length - 1;
+    btnNext.color = isLast ? k.rgb(18, 125, 80) : k.rgb(24, 85, 150);
+    btnNext.scale = k.vec2(1, 1);
+  });
+
+  const goNext = () => {
+    if (isClosed) return;
+    if (currentSlide === ONBOARDING_SLIDES.length - 1) {
+      closeAndFinish();
+    } else {
       audioSystem.playUiClick();
-      if (isLast) {
-        closeAndFinish();
-      } else {
-        currentSlide++;
-        renderSlide(currentSlide);
-      }
-    });
+      goToSlide(currentSlide + 1);
+    }
+  };
+  btnNext.onClick(goNext);
+
+  const goToSlide = (slideIndex: number) => {
+    if (isClosed) return;
+    currentSlide = Math.max(0, Math.min(slideIndex, ONBOARDING_SLIDES.length - 1));
+    const slide = ONBOARDING_SLIDES[currentSlide];
+
+    badgeText.text = slide.badge;
+    titleText.text = slide.title;
+    subtitleText.text = slide.subtitle;
+
+    for (let i = 0; i < 3; i++) {
+      const pt = slide.points[i];
+      if (pointIconTexts[i]) pointIconTexts[i].text = pt.icon;
+      if (pointTitleTexts[i]) pointTitleTexts[i].text = pt.title;
+      if (pointDescTexts[i]) pointDescTexts[i].text = pt.desc;
+    }
+
+    for (let i = 0; i < dotCircles.length; i++) {
+      const isActive = i === currentSlide;
+      dotCircles[i].radius = isActive ? 7 : 4.5;
+      dotCircles[i].color = isActive ? k.rgb(100, 230, 255) : k.rgb(45, 90, 140);
+    }
+
+    const isLast = currentSlide === ONBOARDING_SLIDES.length - 1;
+
+    if (currentSlide === 0) {
+      btnPrev.hidden = true;
+      btnPrev.pos = k.vec2(-9999, -9999);
+      btnPrevText.hidden = true;
+      btnPrevText.pos = k.vec2(-9999, -9999);
+
+      btnNext.pos = k.vec2(cX, actionBtnY);
+      btnNext.width = 240;
+      btnNextText.pos = k.vec2(cX, actionBtnY);
+    } else {
+      btnPrev.hidden = false;
+      btnPrev.pos = btnPrevPos;
+      btnPrevText.hidden = false;
+      btnPrevText.pos = btnPrevPos;
+
+      btnNext.pos = k.vec2(cX + 120, actionBtnY);
+      btnNext.width = 160;
+      btnNextText.pos = k.vec2(cX + 120, actionBtnY);
+    }
+
+    btnNextText.text = isLast ? "Entendi! Iniciar 🌊" : "Próximo ▶";
+    btnNext.color = isLast ? k.rgb(18, 125, 80) : k.rgb(24, 85, 150);
+    btnNext.outline.color = isLast ? k.rgb(52, 211, 153) : k.rgb(56, 189, 248);
   };
 
-  // Teclas de atalho para avançar / retroceder / pular
-  keyListeners.push(k.onKeyPress("escape", closeAndFinish));
-  keyListeners.push(
-    k.onKeyPress("right", () => {
+  const keyHandler = (e: KeyboardEvent) => {
+    if (isClosed) return;
+    if (e.key === "Escape") {
+      closeAndFinish();
+    } else if (e.key === "ArrowRight") {
       if (currentSlide < ONBOARDING_SLIDES.length - 1) {
         audioSystem.playUiClick();
-        currentSlide++;
-        renderSlide(currentSlide);
-      } else {
-        closeAndFinish();
+        goToSlide(currentSlide + 1);
       }
-    })
-  );
-  keyListeners.push(
-    k.onKeyPress("space", () => {
-      if (currentSlide < ONBOARDING_SLIDES.length - 1) {
-        audioSystem.playUiClick();
-        currentSlide++;
-        renderSlide(currentSlide);
-      } else {
-        closeAndFinish();
-      }
-    })
-  );
-  keyListeners.push(
-    k.onKeyPress("enter", () => {
-      if (currentSlide < ONBOARDING_SLIDES.length - 1) {
-        audioSystem.playUiClick();
-        currentSlide++;
-        renderSlide(currentSlide);
-      } else {
-        closeAndFinish();
-      }
-    })
-  );
-  keyListeners.push(
-    k.onKeyPress("left", () => {
+    } else if (e.key === "ArrowLeft") {
       if (currentSlide > 0) {
         audioSystem.playUiClick();
-        currentSlide--;
-        renderSlide(currentSlide);
+        goToSlide(currentSlide - 1);
       }
-    })
-  );
+    }
+  };
+  window.addEventListener("keydown", keyHandler);
 
-  renderSlide(0);
+  // Itens focáveis estáveis
+  const focusItems: FocusableItem[] = [
+    {
+      pos: btnSkipPos,
+      width: 94,
+      height: 36,
+      onActivate: closeAndFinish,
+    },
+    {
+      pos: btnPrevPos,
+      width: 160,
+      height: 46,
+      onActivate: goPrev,
+    },
+    {
+      pos: k.vec2(cX + 120, actionBtnY),
+      width: 160,
+      height: 46,
+      onActivate: goNext,
+    },
+  ];
+
+  focusGroup = createFocusGroup(k, {
+    items: focusItems,
+    initialIndex: 2, // Foco padrão em Próximo / Iniciar
+    ringZ: 560,
+  });
+
+  goToSlide(0);
 }

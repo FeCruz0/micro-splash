@@ -1,6 +1,7 @@
 import kaboom from "kaboom";
 import { GAME_CONFIG } from "../config";
 import { audioSystem } from "./audioSystem";
+import { analytics } from "../services/analytics";
 import type { PlayerController } from "../entities/player";
 import type { GameState } from "./state";
 
@@ -53,8 +54,8 @@ export function setupBreachSystem(config: BreachSystemConfig) {
           k.text(
             "ÁGUAS CALMAS DE ARRAIAL! 🐋\nPRESSIONE [ESPAÇO] OU TOQUE PARA O SALTO MAJESTOSO!",
             {
-              size: 15,
-              font: "sans-serif",
+              size: 16,
+              font: "Outfit",
               align: "center",
               lineSpacing: 6,
             }
@@ -144,6 +145,7 @@ export function setupBreachSystem(config: BreachSystemConfig) {
 
     // Registra o salto no estado para conceder o bônus de 500 pts e a Sabedoria Ancestral
     gameState.triggerBreach();
+    analytics.trackBreachTriggered({ distance: gameState.getDistance(), speed: 280 });
 
     // Ativa estado de salto no jogador
     playerController.startBreach();

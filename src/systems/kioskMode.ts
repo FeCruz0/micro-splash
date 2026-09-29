@@ -177,8 +177,8 @@ export function createKioskScene(k: KaboomCtx) {
 
   k.add([
     k.text("🌊 MICRO SPLASH: A GRANDE MIGRAÇÃO DA BALEIA-JUBARTE 🐋", {
-      size: 14,
-      font: "sans-serif",
+      size: 15,
+      font: "Outfit",
     }),
     k.pos(k.width() / 2, 22),
     k.color(100, 240, 255),
@@ -199,8 +199,8 @@ export function createKioskScene(k: KaboomCtx) {
 
   const callToActionText = k.add([
     k.text("👉 TOQUE NA TELA OU PRESSIONE QUALQUER TECLA PARA JOGAR! 👈", {
-      size: 15,
-      font: "sans-serif",
+      size: 16,
+      font: "Outfit",
     }),
     k.pos(k.width() / 2, k.height() - 28),
     k.color(255, 230, 80),

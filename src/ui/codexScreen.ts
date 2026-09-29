@@ -1,8 +1,10 @@
 import type { KaboomCtx } from "kaboom";
 import { audioSystem } from "../systems/audioSystem";
 import { createGameState } from "../systems/state";
+import { accessibilitySystem } from "../systems/accessibilitySystem";
 import { showQuizModal } from "./quizModal";
 import { showOnboardingModal } from "./onboardingModal";
+import { createFocusGroup, type FocusableItem } from "./keyboardNav";
 import factsData from "../../data/facts.json";
 
 export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
@@ -12,11 +14,11 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
   let isClosed = false;
   let isModalOpen = false;
 
-  // Fundo escuro semitransparente (bloqueia cliques na tela de menu abaixo)
+  // Fundo escuro semitransparente bloqueando cliques fora do modal
   const backdrop = k.add([
     k.rect(k.width(), k.height()),
     k.pos(0, 0),
-    k.color(4, 16, 35),
+    k.color(4, 14, 32),
     k.opacity(0.95),
     k.area(),
     k.fixed(),
@@ -24,14 +26,17 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
   ]);
   elements.push(backdrop);
 
-  // Card do Diário de Bordo (Codex)
-  const cardW = 780;
-  const cardH = 540;
+  // Card do Diário de Bordo (Codex) com geometria adaptativa expandida
+  const cardW = Math.min(1000, k.width() - 24);
+  const cardH = Math.min(660, k.height() - 20);
+  const cX = k.width() / 2;
+  const cY = k.height() / 2;
+
   const card = k.add([
-    k.rect(cardW, cardH, { radius: 12 }),
-    k.pos(k.width() / 2, k.height() / 2),
-    k.color(10, 28, 58),
-    k.outline(3, k.rgb(255, 215, 80)),
+    k.rect(cardW, cardH, { radius: 16 }),
+    k.pos(cX, cY),
+    k.color(10, 28, 56),
+    k.outline(2.5, k.rgb(250, 204, 21)),
     k.anchor("center"),
     k.area(),
     k.fixed(),
@@ -39,12 +44,30 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
   ]);
   elements.push(card);
 
-  // Título Principal (Maior e mais nítido)
+  // Título Principal com destaque dourado e tamanho nítido ampliado
   elements.push(
     k.add([
-      k.text("DIÁRIO DE BORDO DA EXPEDIÇÃO 📖", { size: 23, font: "sans-serif" }),
-      k.pos(k.width() / 2, k.height() / 2 - 232),
-      k.color(255, 220, 100),
+      k.text("DIÁRIO DE BORDO DA EXPEDIÇÃO 📖", {
+        size: accessibilitySystem.scaleFont(27),
+        font: "Outfit",
+      }),
+      k.pos(cX, cY - cardH / 2 + 34),
+      k.color(255, 225, 100),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(302),
+    ])
+  );
+
+  // Subtítulo descritivo elegante de alto contraste
+  elements.push(
+    k.add([
+      k.text("Enciclopédia de espécies marinhas, descobertas da rota migratória e preservação", {
+        size: accessibilitySystem.scaleFont(15),
+        font: "Inter",
+      }),
+      k.pos(cX, cY - cardH / 2 + 63),
+      k.color(180, 225, 255),
       k.anchor("center"),
       k.fixed(),
       k.z(302),
@@ -52,12 +75,46 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
   );
 
   let contentElements: any[] = [];
+  let focusGroup: { destroy: () => void } | null = null;
+
+  // Botão fechar [X] no canto superior direito
+  const btnXPos = k.vec2(cX + cardW / 2 - 32, cY - cardH / 2 + 32);
+  const btnX = k.add([
+    k.rect(38, 38, { radius: 8 }),
+    k.pos(btnXPos),
+    k.color(22, 50, 90),
+    k.outline(1, k.rgb(100, 200, 255)),
+    k.scale(1),
+    k.anchor("center"),
+    k.area(),
+    k.fixed(),
+    k.z(305),
+  ]);
+  elements.push(btnX);
+
+  elements.push(
+    k.add([
+      k.text("✕", {
+        size: accessibilitySystem.scaleFont(20),
+        font: "Outfit",
+      }),
+      k.pos(btnXPos),
+      k.color(255, 255, 255),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(306),
+    ])
+  );
 
   const close = () => {
     if (isClosed || isModalOpen) return;
     isClosed = true;
     audioSystem.playUiClick();
-    escListener.cancel();
+    if (focusGroup) {
+      focusGroup.destroy();
+      focusGroup = null;
+    }
+    window.removeEventListener("keydown", keyHandler);
     elements.forEach((el) => {
       try {
         k.destroy(el);
@@ -71,42 +128,24 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
     onBack();
   };
 
-  const escListener = k.onKeyPress("escape", () => {
-    if (!isModalOpen) close();
-  });
-
-  // Botão fechar [X] no canto superior direito do card
-  const btnX = k.add([
-    k.rect(34, 34, { radius: 6 }),
-    k.pos(k.width() / 2 + cardW / 2 - 28, k.height() / 2 - cardH / 2 + 28),
-    k.color(20, 45, 80),
-    k.outline(1, k.rgb(100, 200, 255)),
-    k.scale(1),
-    k.anchor("center"),
-    k.area(),
-    k.fixed(),
-    k.z(305),
-  ]);
-  elements.push(btnX);
-
-  elements.push(
-    k.add([
-      k.text("✕", { size: 18, font: "sans-serif" }),
-      k.pos(k.width() / 2 + cardW / 2 - 28, k.height() / 2 - cardH / 2 + 28),
-      k.color(255, 255, 255),
-      k.anchor("center"),
-      k.fixed(),
-      k.z(306),
-    ])
-  );
-
   btnX.onHoverUpdate(() => {
     btnX.color = k.rgb(180, 50, 50);
+    btnX.scale = k.vec2(1.05, 1.05);
   });
   btnX.onHoverEnd(() => {
-    btnX.color = k.rgb(20, 45, 80);
+    btnX.color = k.rgb(22, 50, 90);
+    btnX.scale = k.vec2(1, 1);
   });
   btnX.onClick(close);
+
+  // Tecla ESC para fechar
+  const keyHandler = (e: KeyboardEvent) => {
+    if (isClosed || isModalOpen) return;
+    if (e.key === "Escape") {
+      close();
+    }
+  };
+  window.addEventListener("keydown", keyHandler);
 
   // Carrega fatos já desbloqueados
   let unlockedFactIds: string[] = [];
@@ -117,260 +156,63 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
   let activeTab: "species" | "route" | "conservation" = "species";
   let routePage = 0;
 
-  const renderTabContent = () => {
-    contentElements.forEach((el) => {
-      try {
-        k.destroy(el);
-      } catch {}
-    });
-    contentElements = [];
+  // Caixa de Conteúdo Central
+  const contentBoxW = cardW - 40;
+  const contentBoxTop = cY - cardH / 2 + 122;
+  const contentBoxBottom = cY + cardH / 2 - 66;
+  const contentBoxH = contentBoxBottom - contentBoxTop;
+  const contentBoxY = (contentBoxTop + contentBoxBottom) / 2;
 
-    const contentBoxW = 726;
-    const contentBoxH = 330;
-    const contentBoxY = k.height() / 2 + 15;
+  // Fundo principal da área de conteúdo
+  const contentBoxBg = k.add([
+    k.rect(contentBoxW, contentBoxH, { radius: 10 }),
+    k.pos(cX, contentBoxY),
+    k.color(6, 20, 44),
+    k.outline(1.5, k.rgb(35, 75, 130)),
+    k.anchor("center"),
+    k.fixed(),
+    k.z(303),
+  ]);
+  elements.push(contentBoxBg);
 
-    // Fundo do conteúdo da aba
-    contentElements.push(
-      k.add([
-        k.rect(contentBoxW, contentBoxH, { radius: 8 }),
-        k.pos(k.width() / 2, contentBoxY),
-        k.color(6, 22, 48),
-        k.outline(1, k.rgb(50, 120, 180)),
-        k.anchor("center"),
-        k.fixed(),
-        k.z(303),
-      ])
-    );
-
-    if (activeTab === "species") {
-      // --- ABA ESPÉCIES ---
-      const speciesData = [
-        {
-          name: "🐋 Baleia-Jubarte (Megaptera novaeangliae)",
-          desc: "Famosa pelas longas nadadeiras peitorais (1/3 do corpo) e saltos acrobáticos. Viaja 27.000 km entre a Antártica e o litoral brasileiro para reprodução.",
-        },
-        {
-          name: "🌊 Orca (Orcinus orca)",
-          desc: "Maior membro da família dos golfinhos e predador de topo polar. Comunica-se por dialetos acústicos únicos em grupos matriarcais altamente estruturados.",
-        },
-        {
-          name: "🦐 Krill Antártico (Euphausia superba)",
-          desc: "Minúsculos crustáceos bioluminescentes que formam a base da cadeia trófica polar, fornecendo sustento essencial para o acúmulo de energia da migração.",
-        },
-        {
-          name: "🐬 Golfinho-Rotador (Stenella longirostris)",
-          desc: "Nadam em bandos criando esteiras hidrodinâmicas (drafting) que reduzem o arrasto e economizam até 40% do fôlego de cetáceos em navegação cooperativa.",
-        },
-        {
-          name: "🐧 Pinguim-de-Magalhães (Spheniscus magellanicus)",
-          desc: "Mestres do salto em arco (porpoising), migram das colônias austrais rumo ao sudeste brasileiro acompanhando as correntes ricas em nutrientes.",
-        },
-        {
-          name: "🐋 Cachalote (Physeter macrocephalus)",
-          desc: "O gigante abissal com cabeça maciça quadrada e maior cérebro do reino animal. Mergulha a mais de 2.000m nas fossas oceânicas emitindo infrassons profundos.",
-        },
-      ];
-
-      speciesData.forEach((sp, i) => {
-        const itemY = contentBoxY - 144 + i * 50;
-        contentElements.push(
-          k.add([
-            k.text(sp.name, { size: 12, font: "sans-serif" }),
-            k.pos(k.width() / 2 - 340, itemY),
-            k.color(120, 240, 255),
-            k.anchor("left"),
-            k.fixed(),
-            k.z(304),
-          ])
-        );
-        contentElements.push(
-          k.add([
-            k.text(sp.desc, { size: 10.5, font: "sans-serif", width: 680, lineSpacing: 2 }),
-            k.pos(k.width() / 2 - 340, itemY + 16),
-            k.color(205, 230, 250),
-            k.anchor("left"),
-            k.fixed(),
-            k.z(304),
-          ])
-        );
-      });
-    } else if (activeTab === "route") {
-      // --- ABA FATOS DA ROTA COM PAGINAÇÃO ---
-      const pageSize = 5;
-      const totalPages = Math.ceil(factsData.length / pageSize);
-      const startIndex = routePage * pageSize;
-      const currentFacts = factsData.slice(startIndex, startIndex + pageSize);
-
-      const countUnlocked = factsData.filter((f) => unlockedFactIds.includes(f.id)).length;
-
-      contentElements.push(
-        k.add([
-          k.text(
-            `Descobertas na Rota: ${countUnlocked} de ${factsData.length} desbloqueadas  •  Página ${routePage + 1} de ${totalPages}`,
-            {
-              size: 13,
-              font: "sans-serif",
-            }
-          ),
-          k.pos(k.width() / 2, contentBoxY - 142),
-          k.color(255, 215, 100),
-          k.anchor("center"),
-          k.fixed(),
-          k.z(304),
-        ])
-      );
-
-      currentFacts.forEach((fact, i) => {
-        const isUnlocked = unlockedFactIds.includes(fact.id);
-        const itemY = contentBoxY - 114 + i * 48;
-
-        contentElements.push(
-          k.add([
-            k.text(`${isUnlocked ? "✅" : "🔒"} ${fact.title} (${fact.location})`, {
-              size: 12.5,
-              font: "sans-serif",
-            }),
-            k.pos(k.width() / 2 - 340, itemY),
-            k.color(isUnlocked ? k.rgb(100, 240, 200) : k.rgb(140, 150, 170)),
-            k.anchor("left"),
-            k.fixed(),
-            k.z(304),
-          ])
-        );
-
-        contentElements.push(
-          k.add([
-            k.text(
-              isUnlocked
-                ? fact.description
-                : "Navegue pela rota migratória na expedição para desbloquear este conhecimento!",
-              { size: 10.5, font: "sans-serif", width: 680, lineSpacing: 2 }
-            ),
-            k.pos(k.width() / 2 - 340, itemY + 16),
-            k.color(isUnlocked ? k.rgb(205, 230, 250) : k.rgb(120, 135, 150)),
-            k.anchor("left"),
-            k.fixed(),
-            k.z(304),
-          ])
-        );
-      });
-
-      // Botão Página Anterior
-      if (routePage > 0) {
-        const btnPrev = k.add([
-          k.rect(110, 26, { radius: 6 }),
-          k.pos(k.width() / 2 - 80, contentBoxY + 140),
-          k.color(20, 50, 95),
-          k.outline(1, k.rgb(100, 200, 255)),
-          k.anchor("center"),
-          k.area(),
-          k.fixed(),
-          k.z(305),
-        ]);
-        contentElements.push(btnPrev);
-
-        contentElements.push(
-          k.add([
-            k.text("◀ Anterior", { size: 11, font: "sans-serif" }),
-            k.pos(k.width() / 2 - 80, contentBoxY + 140),
-            k.color(255, 255, 255),
-            k.anchor("center"),
-            k.fixed(),
-            k.z(306),
-          ])
-        );
-
-        btnPrev.onClick(() => {
-          audioSystem.playUiClick();
-          routePage--;
-          renderTabContent();
-        });
-      }
-
-      // Botão Próxima Página
-      if (routePage < totalPages - 1) {
-        const btnNext = k.add([
-          k.rect(110, 26, { radius: 6 }),
-          k.pos(k.width() / 2 + 80, contentBoxY + 140),
-          k.color(20, 50, 95),
-          k.outline(1, k.rgb(100, 200, 255)),
-          k.anchor("center"),
-          k.area(),
-          k.fixed(),
-          k.z(305),
-        ]);
-        contentElements.push(btnNext);
-
-        contentElements.push(
-          k.add([
-            k.text("Próxima ▶", { size: 11, font: "sans-serif" }),
-            k.pos(k.width() / 2 + 80, contentBoxY + 140),
-            k.color(255, 255, 255),
-            k.anchor("center"),
-            k.fixed(),
-            k.z(306),
-          ])
-        );
-
-        btnNext.onClick(() => {
-          audioSystem.playUiClick();
-          routePage++;
-          renderTabContent();
-        });
-      }
-    } else if (activeTab === "conservation") {
-      // --- ABA CONSERVAÇÃO ---
-      contentElements.push(
-        k.add([
-          k.text("🛡️ PRESERVAÇÃO E PROTEÇÃO DAS BALEIAS-JUBARTE", { size: 15, font: "sans-serif" }),
-          k.pos(k.width() / 2, contentBoxY - 136),
-          k.color(100, 240, 255),
-          k.anchor("center"),
-          k.fixed(),
-          k.z(304),
-        ])
-      );
-
-      const texts = [
-        "• Redes Fantasmas: Redes de pesca perdidas ou abandonadas continuam aprisionando baleias e golfinhos por décadas. O jogo simula esse perigo para conscientizar sobre a pesca sustentável e o descarte correto de petrechos.",
-        "• Poluição Plástica: Resíduos sólidos flutuantes provocam lesões mecânicas, obstruem espiráculos e poluem os cardumes de krill através da contaminação por microplásticos.",
-        "• Tráfego de Navios & Ruído: O tráfego marítimo intenso gera poluição acústica subaquática contínua, dificultando a ecolocalização, navegação e comunicação dos animais pelo canal SOFAR.",
-        "• Instituto Baleia Jubarte: Desde 1988 atua no monitoramento, pesquisa e proteção das jubartes no Brasil, contribuindo para a recuperação histórica da espécie de quase extinção para mais de 30 mil indivíduos!",
-      ];
-
-      texts.forEach((txt, idx) => {
-        contentElements.push(
-          k.add([
-            k.text(txt, { size: 12, font: "sans-serif", width: 680, lineSpacing: 4 }),
-            k.pos(k.width() / 2 - 340, contentBoxY - 105 + idx * 62),
-            k.color(205, 230, 250),
-            k.anchor("left"),
-            k.fixed(),
-            k.z(304),
-          ])
-        );
-      });
-    }
-  };
-
-  // Botões de Abas (Tabs) - Mais largos e com fontes maiores
   const tabButtonsData = [
-    { id: "species" as const, label: "🐋 Espécies Marinhas" },
-    { id: "route" as const, label: "🗺️ Fatos da Rota" },
-    { id: "conservation" as const, label: "🌊 Conservação & IBJ" },
+    { id: "species" as const, icon: "🐋", label: "Espécies Marinhas" },
+    { id: "route" as const, icon: "🗺️", label: "Fatos da Rota" },
+    { id: "conservation" as const, icon: "🌊", label: "Conservação & IBJ" },
   ];
 
-  const tabButtons: any[] = [];
+  const tabW = Math.min(270, (cardW - 60) / 3);
+  const tabH = 42;
+  const tabY = cY - cardH / 2 + 94;
+  const tabEntities: Array<{
+    btn: any;
+    label: any;
+    id: "species" | "route" | "conservation";
+  }> = [];
+
+  const updateTabStyles = () => {
+    tabEntities.forEach((t) => {
+      const isActive = t.id === activeTab;
+      t.btn.color = isActive ? k.rgb(20, 100, 165) : k.rgb(14, 32, 60);
+      t.btn.outline = {
+        width: isActive ? 2 : 1,
+        color: isActive ? k.rgb(56, 189, 248) : k.rgb(45, 75, 115),
+      };
+      t.label.color = isActive ? k.rgb(255, 255, 255) : k.rgb(175, 205, 235);
+    });
+  };
 
   tabButtonsData.forEach((tb, i) => {
-    const tabX = k.width() / 2 - 230 + i * 230;
-    const tabY = k.height() / 2 - 180;
+    const tabX = cX - tabW - 14 + i * (tabW + 14);
 
     const btnTab = k.add([
-      k.rect(215, 36, { radius: 7 }),
+      k.rect(tabW, tabH, { radius: 8 }),
       k.pos(tabX, tabY),
-      k.color(activeTab === tb.id ? k.rgb(20, 100, 160) : k.rgb(15, 35, 65)),
-      k.outline(1, activeTab === tb.id ? k.rgb(100, 240, 255) : k.rgb(60, 90, 130)),
+      k.color(activeTab === tb.id ? k.rgb(20, 100, 165) : k.rgb(14, 32, 60)),
+      k.outline(
+        activeTab === tb.id ? 2 : 1,
+        activeTab === tb.id ? k.rgb(56, 189, 248) : k.rgb(45, 75, 115)
+      ),
       k.scale(1),
       k.anchor("center"),
       k.area(),
@@ -378,49 +220,54 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
       k.z(304),
     ]);
     elements.push(btnTab);
-    tabButtons.push({ btn: btnTab, id: tb.id });
 
-    elements.push(
-      k.add([
-        k.text(tb.label, { size: 13, font: "sans-serif" }),
-        k.pos(tabX, tabY),
-        k.color(255, 255, 255),
-        k.anchor("center"),
-        k.fixed(),
-        k.z(305),
-      ])
-    );
+    const lblTab = k.add([
+      k.text(`${tb.icon} ${tb.label}`, {
+        size: accessibilitySystem.scaleFont(15.5),
+        font: "Outfit",
+      }),
+      k.pos(tabX, tabY),
+      k.color(activeTab === tb.id ? k.rgb(255, 255, 255) : k.rgb(175, 205, 235)),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(305),
+    ]);
+    elements.push(lblTab);
+
+    tabEntities.push({ btn: btnTab, label: lblTab, id: tb.id });
 
     btnTab.onHoverUpdate(() => {
       if (activeTab !== tb.id) {
-        btnTab.color = k.rgb(25, 60, 100);
+        btnTab.color = k.rgb(25, 55, 95);
+        btnTab.scale = k.vec2(1.02, 1.02);
       }
     });
     btnTab.onHoverEnd(() => {
-      btnTab.color = activeTab === tb.id ? k.rgb(20, 100, 160) : k.rgb(15, 35, 65);
+      btnTab.scale = k.vec2(1, 1);
+      updateTabStyles();
     });
 
     btnTab.onClick(() => {
       if (isModalOpen) return;
       audioSystem.playUiClick();
       activeTab = tb.id;
-      tabButtons.forEach((t) => {
-        const isActive = t.id === activeTab;
-        t.btn.color = isActive ? k.rgb(20, 100, 160) : k.rgb(15, 35, 65);
-        t.btn.outline.color = isActive ? k.rgb(100, 240, 255) : k.rgb(60, 90, 130);
-      });
+      updateTabStyles();
       renderTabContent();
     });
   });
 
-  renderTabContent();
+  // Botões de Ação Inferiores (Footer)
+  const bottomBtnY = cY + cardH / 2 - 34;
+  const bottomBtnW = Math.min(280, (cardW - 60) / 3);
+  const bottomBtnH = 48;
 
   // Botão 1: Voltar ao Menu
+  const btnBackPos = k.vec2(cX - bottomBtnW - 14, bottomBtnY);
   const btnBack = k.add([
-    k.rect(190, 38, { radius: 8 }),
-    k.pos(k.width() / 2 - 235, k.height() / 2 + 225),
-    k.color(16, 75, 120),
-    k.outline(2, k.rgb(100, 220, 255)),
+    k.rect(bottomBtnW, bottomBtnH, { radius: 10 }),
+    k.pos(btnBackPos),
+    k.color(20, 80, 140),
+    k.outline(2, k.rgb(56, 189, 248)),
     k.scale(1),
     k.anchor("center"),
     k.area(),
@@ -431,8 +278,11 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
 
   elements.push(
     k.add([
-      k.text("Voltar ao Menu ↩️", { size: 12.5, font: "sans-serif" }),
-      k.pos(k.width() / 2 - 235, k.height() / 2 + 225),
+      k.text("Voltar ao Menu ↩", {
+        size: accessibilitySystem.scaleFont(16),
+        font: "Outfit",
+      }),
+      k.pos(btnBackPos),
       k.color(255, 255, 255),
       k.anchor("center"),
       k.fixed(),
@@ -442,21 +292,22 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
 
   btnBack.onHoverUpdate(() => {
     if (!isModalOpen) {
-      btnBack.color = k.rgb(25, 115, 175);
+      btnBack.color = k.rgb(28, 110, 185);
+      btnBack.scale = k.vec2(1.02, 1.02);
     }
   });
   btnBack.onHoverEnd(() => {
-    if (!isModalOpen) {
-      btnBack.color = k.rgb(16, 75, 120);
-    }
+    btnBack.color = k.rgb(20, 80, 140);
+    btnBack.scale = k.vec2(1, 1);
   });
   btnBack.onClick(close);
 
-  // Botão 2: Tutorial / Guia da Espécie e Controles
+  // Botão 2: Tutorial / Guia
+  const btnTutorialPos = k.vec2(cX, bottomBtnY);
   const btnTutorial = k.add([
-    k.rect(190, 38, { radius: 8 }),
-    k.pos(k.width() / 2, k.height() / 2 + 225),
-    k.color(20, 85, 135),
+    k.rect(bottomBtnW, bottomBtnH, { radius: 10 }),
+    k.pos(btnTutorialPos),
+    k.color(22, 90, 150),
     k.outline(2, k.rgb(90, 220, 255)),
     k.scale(1),
     k.anchor("center"),
@@ -468,8 +319,11 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
 
   elements.push(
     k.add([
-      k.text("🎓 Tutorial / Guia", { size: 12.5, font: "sans-serif" }),
-      k.pos(k.width() / 2, k.height() / 2 + 225),
+      k.text("🎓 Tutorial / Guia", {
+        size: accessibilitySystem.scaleFont(16),
+        font: "Outfit",
+      }),
+      k.pos(btnTutorialPos),
       k.color(255, 255, 255),
       k.anchor("center"),
       k.fixed(),
@@ -479,13 +333,13 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
 
   btnTutorial.onHoverUpdate(() => {
     if (!isModalOpen) {
-      btnTutorial.color = k.rgb(28, 120, 180);
+      btnTutorial.color = k.rgb(30, 125, 200);
+      btnTutorial.scale = k.vec2(1.02, 1.02);
     }
   });
   btnTutorial.onHoverEnd(() => {
-    if (!isModalOpen) {
-      btnTutorial.color = k.rgb(20, 85, 135);
-    }
+    btnTutorial.color = k.rgb(22, 90, 150);
+    btnTutorial.scale = k.vec2(1, 1);
   });
 
   btnTutorial.onClick(() => {
@@ -496,12 +350,13 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
     });
   });
 
-  // Botão 3: Iniciar Desafio Ecológico (Quiz)
+  // Botão 3: Desafio Ecológico (Quiz)
+  const btnQuizPos = k.vec2(cX + bottomBtnW + 14, bottomBtnY);
   const btnQuiz = k.add([
-    k.rect(210, 38, { radius: 8 }),
-    k.pos(k.width() / 2 + 235, k.height() / 2 + 225),
-    k.color(20, 115, 80),
-    k.outline(2, k.rgb(100, 255, 180)),
+    k.rect(bottomBtnW, bottomBtnH, { radius: 10 }),
+    k.pos(btnQuizPos),
+    k.color(18, 125, 80),
+    k.outline(2, k.rgb(52, 211, 153)),
     k.scale(1),
     k.anchor("center"),
     k.area(),
@@ -512,8 +367,11 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
 
   elements.push(
     k.add([
-      k.text("🧪 Desafio Ecológico (Quiz)", { size: 12.5, font: "sans-serif" }),
-      k.pos(k.width() / 2 + 235, k.height() / 2 + 225),
+      k.text("🧪 Desafio Ecológico", {
+        size: accessibilitySystem.scaleFont(16),
+        font: "Outfit",
+      }),
+      k.pos(btnQuizPos),
       k.color(255, 255, 255),
       k.anchor("center"),
       k.fixed(),
@@ -523,13 +381,13 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
 
   btnQuiz.onHoverUpdate(() => {
     if (!isModalOpen) {
-      btnQuiz.color = k.rgb(28, 145, 100);
+      btnQuiz.color = k.rgb(25, 155, 100);
+      btnQuiz.scale = k.vec2(1.02, 1.02);
     }
   });
   btnQuiz.onHoverEnd(() => {
-    if (!isModalOpen) {
-      btnQuiz.color = k.rgb(20, 115, 80);
-    }
+    btnQuiz.color = k.rgb(18, 125, 80);
+    btnQuiz.scale = k.vec2(1, 1);
   });
 
   btnQuiz.onClick(() => {
@@ -547,4 +405,628 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
       }
     );
   });
+
+  // Atualização do grupo de foco acessível
+  const setupKeyboardFocus = (dynamicItems: FocusableItem[] = []) => {
+    if (focusGroup) {
+      focusGroup.destroy();
+      focusGroup = null;
+    }
+
+    const items: FocusableItem[] = [
+      {
+        pos: btnXPos,
+        width: 32,
+        height: 32,
+        onActivate: close,
+      },
+      ...tabEntities.map((t) => ({
+        pos: t.btn.pos,
+        width: tabW,
+        height: tabH,
+        onActivate: () => {
+          if (!isModalOpen) {
+            audioSystem.playUiClick();
+            activeTab = t.id;
+            updateTabStyles();
+            renderTabContent();
+          }
+        },
+      })),
+      ...dynamicItems,
+      {
+        pos: btnBackPos,
+        width: bottomBtnW,
+        height: bottomBtnH,
+        onActivate: close,
+      },
+      {
+        pos: btnTutorialPos,
+        width: bottomBtnW,
+        height: bottomBtnH,
+        onActivate: () => {
+          if (!isModalOpen) {
+            isModalOpen = true;
+            showOnboardingModal(k, () => {
+              isModalOpen = false;
+            });
+          }
+        },
+      },
+      {
+        pos: btnQuizPos,
+        width: bottomBtnW,
+        height: bottomBtnH,
+        onActivate: () => {
+          if (!isModalOpen) {
+            isModalOpen = true;
+            const testState = createGameState();
+            showQuizModal(
+              k,
+              testState,
+              () => {
+                isModalOpen = false;
+              },
+              () => {
+                isModalOpen = false;
+              }
+            );
+          }
+        },
+      },
+    ];
+
+    focusGroup = createFocusGroup(k, {
+      items,
+      initialIndex: 4, // Foca no primeiro botão de ação por padrão
+      isEnabled: () => !isClosed && !isModalOpen,
+    });
+  };
+
+  const renderTabContent = () => {
+    contentElements.forEach((el) => {
+      try {
+        k.destroy(el);
+      } catch {}
+    });
+    contentElements = [];
+
+    const dynamicFocusItems: FocusableItem[] = [];
+
+    if (activeTab === "species") {
+      // --- ABA ESPÉCIES MARINHAS (Grid em 2 Colunas x 3 Linhas com Cards Individuais) ---
+      const speciesData = [
+        {
+          icon: "🐋",
+          name: "Baleia-Jubarte",
+          sci: "Megaptera novaeangliae",
+          desc: "Famosa pelas longas nadadeiras peitorais e saltos acrobáticos. Migra 27.000 km da Antártica ao litoral brasileiro para reprodução.",
+        },
+        {
+          icon: "🌊",
+          name: "Orca",
+          sci: "Orcinus orca",
+          desc: "Maior membro dos golfinhos e predador de topo polar. Comunica-se por dialetos acústicos únicos em grupos matriarcais.",
+        },
+        {
+          icon: "🦐",
+          name: "Krill Antártico",
+          sci: "Euphausia superba",
+          desc: "Minúsculos crustáceos bioluminescentes base da cadeia alimentar antártica. Fornecem a biomassa vital para a migração.",
+        },
+        {
+          icon: "🐬",
+          name: "Golfinho-Rotador",
+          sci: "Stenella longirostris",
+          desc: "Nadam em bandos criando esteiras hidrodinâmicas (drafting), economizando até 40% de energia e fôlego em navegação.",
+        },
+        {
+          icon: "🐧",
+          name: "Pinguim-de-Magalhães",
+          sci: "Spheniscus magellanicus",
+          desc: "Mestres do salto em arco (porpoising), migram das colônias austrais rumo ao Brasil seguindo as correntes de nutrientes.",
+        },
+        {
+          icon: "🐋",
+          name: "Cachalote",
+          sci: "Physeter macrocephalus",
+          desc: "Gigante abissal com o maior cérebro do reino animal. Mergulha a mais de 2.000m nas fossas oceânicas emitindo cliques.",
+        },
+      ];
+
+      const colGap = 16;
+      const boxW = Math.min(450, (contentBoxW - 32 - colGap) / 2);
+      const rowGap = 12;
+      const boxH = Math.min(128, (contentBoxH - 32 - rowGap * 2) / 3);
+      const col0X = cX - boxW / 2 - colGap / 2;
+      const col1X = cX + boxW / 2 + colGap / 2;
+      const startY = contentBoxTop + 16 + boxH / 2;
+
+      speciesData.forEach((sp, idx) => {
+        const col = idx % 2;
+        const row = Math.floor(idx / 2);
+        const posX = col === 0 ? col0X : col1X;
+        const posY = startY + row * (boxH + rowGap);
+
+        // Container do Card da Espécie
+        const spBox = k.add([
+          k.rect(boxW, boxH, { radius: 12 }),
+          k.pos(posX, posY),
+          k.color(14, 34, 68),
+          k.outline(1.5, k.rgb(38, 78, 130)),
+          k.anchor("center"),
+          k.area(),
+          k.fixed(),
+          k.z(304),
+        ]);
+        contentElements.push(spBox);
+
+        spBox.onHoverUpdate(() => {
+          spBox.color = k.rgb(18, 45, 88);
+          spBox.outline = { width: 1.5, color: k.rgb(80, 200, 255) };
+        });
+        spBox.onHoverEnd(() => {
+          spBox.color = k.rgb(14, 34, 68);
+          spBox.outline = { width: 1.5, color: k.rgb(38, 78, 130) };
+        });
+
+        // Badge com Ícone à esquerda
+        const iconPillX = posX - boxW / 2 + 32;
+        const iconPill = k.add([
+          k.rect(50, 50, { radius: 10 }),
+          k.pos(iconPillX, posY),
+          k.color(18, 48, 92),
+          k.outline(1, k.rgb(56, 189, 248)),
+          k.anchor("center"),
+          k.fixed(),
+          k.z(305),
+        ]);
+        contentElements.push(iconPill);
+
+        contentElements.push(
+          k.add([
+            k.text(sp.icon, {
+              size: accessibilitySystem.scaleFont(26),
+              font: "Inter",
+            }),
+            k.pos(iconPillX, posY),
+            k.anchor("center"),
+            k.fixed(),
+            k.z(306),
+          ])
+        );
+
+        // Coluna de Texto
+        const textStartX = posX - boxW / 2 + 68;
+
+        // Nome Comum
+        contentElements.push(
+          k.add([
+            k.text(sp.name, {
+              size: accessibilitySystem.scaleFont(16.5),
+              font: "Outfit",
+            }),
+            k.pos(textStartX, posY - boxH / 2 + 10),
+            k.color(110, 235, 255),
+            k.anchor("topleft"),
+            k.fixed(),
+            k.z(305),
+          ])
+        );
+
+        // Nome Científico
+        contentElements.push(
+          k.add([
+            k.text(`(${sp.sci})`, {
+              size: accessibilitySystem.scaleFont(13),
+              font: "Inter",
+            }),
+            k.pos(textStartX, posY - boxH / 2 + 33),
+            k.color(255, 215, 120),
+            k.anchor("topleft"),
+            k.fixed(),
+            k.z(305),
+          ])
+        );
+
+        // Descrição Ecológica com topleft e sem sobreposição
+        contentElements.push(
+          k.add([
+            k.text(sp.desc, {
+              size: accessibilitySystem.scaleFont(13.5),
+              font: "Inter",
+              width: boxW - 76,
+              lineSpacing: 3.5,
+            }),
+            k.pos(textStartX, posY - boxH / 2 + 53),
+            k.color(225, 240, 255),
+            k.anchor("topleft"),
+            k.fixed(),
+            k.z(305),
+          ])
+        );
+      });
+    } else if (activeTab === "route") {
+      // --- ABA FATOS DA ROTA (Cards com Paginação) ---
+      const pageSize = 4;
+      const totalPages = Math.ceil(factsData.length / pageSize);
+      const startIndex = routePage * pageSize;
+      const currentFacts = factsData.slice(startIndex, startIndex + pageSize);
+      const countUnlocked = factsData.filter((f) => unlockedFactIds.includes(f.id)).length;
+
+      // Cabeçalho de Status da Rota
+      contentElements.push(
+        k.add([
+          k.text(
+            `🗺️ Descobertas na Rota: ${countUnlocked} de ${factsData.length} desbloqueadas  •  Página ${routePage + 1} de ${totalPages}`,
+            {
+              size: accessibilitySystem.scaleFont(15),
+              font: "Inter",
+            }
+          ),
+          k.pos(cX, contentBoxTop + 24),
+          k.color(255, 220, 100),
+          k.anchor("center"),
+          k.fixed(),
+          k.z(304),
+        ])
+      );
+
+      const factBoxW = contentBoxW - 32;
+      const factBoxH = 80;
+      const factGap = 10;
+      const factStartY = contentBoxTop + 54 + factBoxH / 2;
+
+      currentFacts.forEach((fact, i) => {
+        const isUnlocked = unlockedFactIds.includes(fact.id);
+        const itemY = factStartY + i * (factBoxH + factGap);
+
+        const fBox = k.add([
+          k.rect(factBoxW, factBoxH, { radius: 10 }),
+          k.pos(cX, itemY),
+          k.color(14, 34, 68),
+          k.outline(1.5, isUnlocked ? k.rgb(35, 100, 80) : k.rgb(38, 65, 100)),
+          k.anchor("center"),
+          k.area(),
+          k.fixed(),
+          k.z(304),
+        ]);
+        contentElements.push(fBox);
+
+        fBox.onHoverUpdate(() => {
+          fBox.color = k.rgb(18, 45, 88);
+          fBox.outline = {
+            width: 1.5,
+            color: isUnlocked ? k.rgb(52, 211, 153) : k.rgb(80, 200, 255),
+          };
+        });
+        fBox.onHoverEnd(() => {
+          fBox.color = k.rgb(14, 34, 68);
+          fBox.outline = {
+            width: 1.5,
+            color: isUnlocked ? k.rgb(35, 100, 80) : k.rgb(38, 65, 100),
+          };
+        });
+
+        // Badge de Status (Desbloqueado vs Bloqueado)
+        const badgeX = cX - factBoxW / 2 + 32;
+        contentElements.push(
+          k.add([
+            k.rect(46, 46, { radius: 8 }),
+            k.pos(badgeX, itemY),
+            k.color(isUnlocked ? k.rgb(16, 50, 40) : k.rgb(20, 32, 52)),
+            k.outline(1, isUnlocked ? k.rgb(52, 211, 153) : k.rgb(75, 95, 125)),
+            k.anchor("center"),
+            k.fixed(),
+            k.z(305),
+          ])
+        );
+
+        contentElements.push(
+          k.add([
+            k.text(isUnlocked ? "✅" : "🔒", {
+              size: accessibilitySystem.scaleFont(22),
+              font: "Inter",
+            }),
+            k.pos(badgeX, itemY),
+            k.anchor("center"),
+            k.fixed(),
+            k.z(306),
+          ])
+        );
+
+        // Título e Localização
+        const textStartX = cX - factBoxW / 2 + 66;
+        contentElements.push(
+          k.add([
+            k.text(`${fact.title} • [${fact.location}]`, {
+              size: accessibilitySystem.scaleFont(15.5),
+              font: "Outfit",
+            }),
+            k.pos(textStartX, itemY - factBoxH / 2 + 10),
+            k.color(isUnlocked ? k.rgb(255, 225, 110) : k.rgb(160, 175, 200)),
+            k.anchor("topleft"),
+            k.fixed(),
+            k.z(305),
+          ])
+        );
+
+        // Descrição do Fato Ecológico
+        contentElements.push(
+          k.add([
+            k.text(
+              isUnlocked
+                ? fact.description
+                : "Navegue pela rota migratória na expedição para desbloquear esta descoberta ecológica!",
+              {
+                size: accessibilitySystem.scaleFont(14),
+                font: "Inter",
+                width: factBoxW - 84,
+                lineSpacing: 3.5,
+              }
+            ),
+            k.pos(textStartX, itemY - factBoxH / 2 + 36),
+            k.color(isUnlocked ? k.rgb(225, 240, 255) : k.rgb(145, 165, 190)),
+            k.anchor("topleft"),
+            k.fixed(),
+            k.z(305),
+          ])
+        );
+      });
+
+      // Controles de Paginação no Rodapé da Caixa
+      const pagY = contentBoxBottom - 24;
+
+      if (routePage > 0) {
+        const btnPrevPos = k.vec2(cX - 95, pagY);
+        const btnPrev = k.add([
+          k.rect(140, 38, { radius: 8 }),
+          k.pos(btnPrevPos),
+          k.color(20, 50, 95),
+          k.outline(1.5, k.rgb(100, 200, 255)),
+          k.scale(1),
+          k.anchor("center"),
+          k.area(),
+          k.fixed(),
+          k.z(305),
+        ]);
+        contentElements.push(btnPrev);
+
+        contentElements.push(
+          k.add([
+            k.text("◀ Anterior", {
+              size: accessibilitySystem.scaleFont(14.5),
+              font: "Outfit",
+            }),
+            k.pos(btnPrevPos),
+            k.color(255, 255, 255),
+            k.anchor("center"),
+            k.fixed(),
+            k.z(306),
+          ])
+        );
+
+        btnPrev.onHoverUpdate(() => {
+          btnPrev.color = k.rgb(28, 70, 130);
+          btnPrev.scale = k.vec2(1.03, 1.03);
+        });
+        btnPrev.onHoverEnd(() => {
+          btnPrev.color = k.rgb(20, 50, 95);
+          btnPrev.scale = k.vec2(1, 1);
+        });
+
+        btnPrev.onClick(() => {
+          audioSystem.playUiClick();
+          routePage--;
+          renderTabContent();
+        });
+
+        dynamicFocusItems.push({
+          pos: btnPrevPos,
+          width: 140,
+          height: 38,
+          onActivate: () => {
+            audioSystem.playUiClick();
+            routePage--;
+            renderTabContent();
+          },
+        });
+      }
+
+      if (routePage < totalPages - 1) {
+        const btnNextPos = k.vec2(cX + 95, pagY);
+        const btnNext = k.add([
+          k.rect(140, 38, { radius: 8 }),
+          k.pos(btnNextPos),
+          k.color(20, 50, 95),
+          k.outline(1.5, k.rgb(100, 200, 255)),
+          k.scale(1),
+          k.anchor("center"),
+          k.area(),
+          k.fixed(),
+          k.z(305),
+        ]);
+        contentElements.push(btnNext);
+
+        contentElements.push(
+          k.add([
+            k.text("Próxima ▶", {
+              size: accessibilitySystem.scaleFont(14.5),
+              font: "Outfit",
+            }),
+            k.pos(btnNextPos),
+            k.color(255, 255, 255),
+            k.anchor("center"),
+            k.fixed(),
+            k.z(306),
+          ])
+        );
+
+        btnNext.onHoverUpdate(() => {
+          btnNext.color = k.rgb(28, 70, 130);
+          btnNext.scale = k.vec2(1.03, 1.03);
+        });
+        btnNext.onHoverEnd(() => {
+          btnNext.color = k.rgb(20, 50, 95);
+          btnNext.scale = k.vec2(1, 1);
+        });
+
+        btnNext.onClick(() => {
+          audioSystem.playUiClick();
+          routePage++;
+          renderTabContent();
+        });
+
+        dynamicFocusItems.push({
+          pos: btnNextPos,
+          width: 140,
+          height: 36,
+          onActivate: () => {
+            audioSystem.playUiClick();
+            routePage++;
+            renderTabContent();
+          },
+        });
+      }
+    } else if (activeTab === "conservation") {
+      // --- ABA CONSERVAÇÃO (4 Cards Temáticos em Grid 2x2) ---
+      contentElements.push(
+        k.add([
+          k.text("🛡️ PRESERVAÇÃO E PROTEÇÃO DAS BALEIAS-JUBARTE", {
+            size: accessibilitySystem.scaleFont(17),
+            font: "Outfit",
+          }),
+          k.pos(cX, contentBoxTop + 24),
+          k.color(100, 240, 255),
+          k.anchor("center"),
+          k.fixed(),
+          k.z(304),
+        ])
+      );
+
+      const conservationCards = [
+        {
+          icon: "🕸️",
+          title: "Redes Fantasmas (Ghost Fishing)",
+          desc: "Redes de pesca perdidas continuam aprisionando baleias e golfinhos por décadas. O jogo conscientiza sobre petrechos sustentáveis e descarte responsável.",
+        },
+        {
+          icon: "🧴",
+          title: "Poluição Plástica e Microplásticos",
+          desc: "Resíduos flutuantes provocam lesões mecânicas e obstruções graves. A fragmentação em microplásticos contamina os cardumes de krill na base alimentar.",
+        },
+        {
+          icon: "🚢",
+          title: "Tráfego de Navios & Ruído Subaquático",
+          desc: "O tráfego marítimo intenso gera poluição sonora contínua no canal SOFAR, abafando os cantos das baleias e desorientando sua comunicação acústica.",
+        },
+        {
+          icon: "🐋",
+          title: "Instituto Baleia Jubarte (IBJ)",
+          desc: "Desde 1988 atua no monitoramento, pesquisa e resgate de jubartes no Brasil, recuperando a espécie de quase extinção para mais de 30 mil indivíduos!",
+        },
+      ];
+
+      const colGap = 20;
+      const boxW = Math.min(450, (contentBoxW - 32 - colGap) / 2);
+      const rowGap = 16;
+      const boxH = Math.min(156, (contentBoxH - 68 - rowGap) / 2);
+      const col0X = cX - boxW / 2 - colGap / 2;
+      const col1X = cX + boxW / 2 + colGap / 2;
+      const startY = contentBoxTop + 54 + boxH / 2;
+
+      conservationCards.forEach((c, idx) => {
+        const col = idx % 2;
+        const row = Math.floor(idx / 2);
+        const posX = col === 0 ? col0X : col1X;
+        const posY = startY + row * (boxH + rowGap);
+
+        const cBox = k.add([
+          k.rect(boxW, boxH, { radius: 12 }),
+          k.pos(posX, posY),
+          k.color(14, 34, 68),
+          k.outline(1.5, k.rgb(38, 78, 130)),
+          k.anchor("center"),
+          k.area(),
+          k.fixed(),
+          k.z(304),
+        ]);
+        contentElements.push(cBox);
+
+        cBox.onHoverUpdate(() => {
+          cBox.color = k.rgb(18, 45, 88);
+          cBox.outline = { width: 1.5, color: k.rgb(80, 200, 255) };
+        });
+        cBox.onHoverEnd(() => {
+          cBox.color = k.rgb(14, 34, 68);
+          cBox.outline = { width: 1.5, color: k.rgb(38, 78, 130) };
+        });
+
+        // Badge de Ícone
+        const iconPillX = posX - boxW / 2 + 32;
+        contentElements.push(
+          k.add([
+            k.rect(50, 50, { radius: 10 }),
+            k.pos(iconPillX, posY - boxH / 2 + 35),
+            k.color(18, 48, 92),
+            k.outline(1.5, k.rgb(56, 189, 248)),
+            k.anchor("center"),
+            k.fixed(),
+            k.z(305),
+          ])
+        );
+
+        contentElements.push(
+          k.add([
+            k.text(c.icon, {
+              size: accessibilitySystem.scaleFont(24),
+              font: "Outfit",
+            }),
+            k.pos(iconPillX, posY - boxH / 2 + 35),
+            k.anchor("center"),
+            k.fixed(),
+            k.z(306),
+          ])
+        );
+
+        // Título do Tópico
+        const textStartX = posX - boxW / 2 + 66;
+        contentElements.push(
+          k.add([
+            k.text(c.title, {
+              size: accessibilitySystem.scaleFont(16),
+              font: "Outfit",
+              width: boxW - 78,
+            }),
+            k.pos(textStartX, posY - boxH / 2 + 14),
+            k.color(110, 235, 255),
+            k.anchor("topleft"),
+            k.fixed(),
+            k.z(305),
+          ])
+        );
+
+        // Descrição Educativa
+        contentElements.push(
+          k.add([
+            k.text(c.desc, {
+              size: accessibilitySystem.scaleFont(14),
+              font: "Inter",
+              width: boxW - 78,
+              lineSpacing: 4,
+            }),
+            k.pos(textStartX, posY - boxH / 2 + 42),
+            k.color(225, 240, 255),
+            k.anchor("topleft"),
+            k.fixed(),
+            k.z(305),
+          ])
+        );
+      });
+    }
+
+    setupKeyboardFocus(dynamicFocusItems);
+  };
+
+  renderTabContent();
 }

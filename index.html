@@ -17,8 +17,72 @@
       name="description"
       content="Navegue com uma jovem jubarte da Antártica até Arraial do Cabo em uma jornada oceânica interativa e educativa."
     />
+    <link rel="canonical" href="https://fecruz0.github.io/micro-splash/" />
+
+    <!-- Open Graph / Facebook / WhatsApp -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://fecruz0.github.io/micro-splash/" />
+    <meta property="og:title" content="Micro Splash — A Jornada da Baleia-Jubarte 🐋🌊" />
+    <meta
+      property="og:description"
+      content="Jogo arcade educativo de navegação subaquática e conscientização marinha. Guie uma jovem jubarte da Antártica até Arraial do Cabo!"
+    />
+    <meta property="og:image" content="https://fecruz0.github.io/micro-splash/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Banner ilustrativo do jogo Micro Splash com a baleia-jubarte navegando no oceano profundo"
+    />
+
+    <!-- Twitter / X -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Micro Splash — A Jornada da Baleia-Jubarte" />
+    <meta
+      name="twitter:description"
+      content="Jogo arcade educativo e conscientização marinha: navegue da Antártica a Arraial do Cabo!"
+    />
+    <meta name="twitter:image" content="https://fecruz0.github.io/micro-splash/og-image.png" />
+
     <title>Micro Splash - A Jornada da Jubarte</title>
+
+    <!-- Google Fonts: Inter & Outfit para tipografia de alta legibilidade -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
     <style>
+      @font-face {
+        font-family: "Outfit";
+        src: url("/fonts/Outfit-Bold.ttf") format("truetype");
+        font-weight: 700;
+        font-style: normal;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: "Outfit";
+        src: url("/fonts/Outfit-SemiBold.ttf") format("truetype");
+        font-weight: 600;
+        font-style: normal;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: "Inter";
+        src: url("/fonts/Inter-Bold.ttf") format("truetype");
+        font-weight: 700;
+        font-style: normal;
+        font-display: swap;
+      }
+      @font-face {
+        font-family: "Inter";
+        src: url("/fonts/Inter-SemiBold.ttf") format("truetype");
+        font-weight: 600;
+        font-style: normal;
+        font-display: swap;
+      }
       html,
       body {
         margin: 0;
@@ -26,6 +90,12 @@
         width: 100vw;
         height: 100vh;
         background-color: #06122a;
+        font-family:
+          "Inter",
+          "Outfit",
+          system-ui,
+          -apple-system,
+          sans-serif;
         overflow: hidden;
       }
       canvas {
@@ -36,6 +106,7 @@
         padding: 0;
         outline: none;
         border: none;
+        image-rendering: auto;
       }
     </style>
   </head>

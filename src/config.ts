@@ -147,4 +147,4 @@ export function setSavedDisplayMode(mode: DisplayMode): void {
   }
 }
 
-export const APP_VERSION = typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "1.2.0";
+export const APP_VERSION = typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "1.3.0";

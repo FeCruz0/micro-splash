@@ -249,17 +249,17 @@ export class PresentationModeManager {
 
     topBar.add([
       this.k.text("🎙️ MODO APRESENTAÇÃO GUIADA (JURADOS/PROFESSORES)", {
-        size: 11,
-        font: "sans-serif",
+        size: 13,
+        font: "Outfit",
       }),
-      this.k.pos(12, 10),
+      this.k.pos(12, 8),
       this.k.color(255, 220, 90),
     ]);
 
     topBar.add([
       this.k.text("Saltar Biomas [Teclas 1 a 5] | Fechar [Ctrl+P / ESC]", {
-        size: 9,
-        font: "sans-serif",
+        size: 10.5,
+        font: "Inter",
       }),
       this.k.pos(12, 28),
       this.k.color(140, 195, 240),
@@ -270,23 +270,23 @@ export class PresentationModeManager {
     PRESENTATION_POINTS.forEach((pt, i) => {
       const bX = btnStartX + i * 62;
       const b = topBar.add([
-        this.k.rect(58, 32, { radius: 6 }),
-        this.k.pos(bX, 11),
+        this.k.rect(58, 34, { radius: 6 }),
+        this.k.pos(bX, 9),
         this.k.color(18, 55, 95),
         this.k.outline(1.5, this.k.rgb(0, 210, 255)),
         this.k.area(),
       ]);
 
       b.add([
-        this.k.text(`[${pt.biomeIndex}]`, { size: 9, font: "sans-serif" }),
+        this.k.text(`[${pt.biomeIndex}]`, { size: 10.5, font: "Outfit" }),
         this.k.pos(29, 9),
         this.k.color(255, 230, 120),
         this.k.anchor("center"),
       ]);
 
       b.add([
-        this.k.text(pt.name.slice(0, 7), { size: 7, font: "sans-serif" }),
-        this.k.pos(29, 21),
+        this.k.text(pt.name.slice(0, 7), { size: 8.5, font: "Inter" }),
+        this.k.pos(29, 23),
         this.k.color(200, 240, 255),
         this.k.anchor("center"),
       ]);
@@ -304,16 +304,16 @@ export class PresentationModeManager {
 
     // Botão de Pausa Didática
     const pauseBtn = topBar.add([
-      this.k.rect(98, 32, { radius: 6 }),
-      this.k.pos(w - 110, 11),
+      this.k.rect(98, 34, { radius: 6 }),
+      this.k.pos(w - 110, 9),
       this.k.color(28, 70, 45),
       this.k.outline(1.5, this.k.rgb(80, 240, 150)),
       this.k.area(),
     ]);
 
     this.pauseBtnText = pauseBtn.add([
-      this.k.text("⏸️ PAUSA", { size: 9, font: "sans-serif" }),
-      this.k.pos(49, 16),
+      this.k.text("⏸️ PAUSA", { size: 11, font: "Outfit" }),
+      this.k.pos(49, 17),
       this.k.color(230, 255, 235),
       this.k.anchor("center"),
     ]);
@@ -323,7 +323,7 @@ export class PresentationModeManager {
     });
 
     // 2. PAINEL DIDÁTICO INFERIOR (CONCEITO ECOLÓGICO vs CONCEITO COMPUTACIONAL)
-    const panelH = 92;
+    const panelH = 104;
     const bottomPanel = this.container.add([
       this.k.rect(w, panelH),
       this.k.pos(0, h - panelH),
@@ -334,7 +334,7 @@ export class PresentationModeManager {
     ]);
 
     this.biomeLabel = bottomPanel.add([
-      this.k.text("SETOR: ANTÁRTICA (0m)", { size: 10, font: "sans-serif" }),
+      this.k.text("SETOR: ANTÁRTICA (0m)", { size: 12.5, font: "Outfit" }),
       this.k.pos(15, 6),
       this.k.color(255, 220, 80),
     ]);
@@ -343,24 +343,24 @@ export class PresentationModeManager {
     const colW = (w - 30) / 2;
     this.ecoText = bottomPanel.add([
       this.k.text("", {
-        size: 8.5,
-        font: "sans-serif",
+        size: 10.5,
+        font: "Inter",
         width: colW - 10,
-        lineSpacing: 3,
+        lineSpacing: 3.5,
       }),
-      this.k.pos(15, 24),
+      this.k.pos(15, 26),
       this.k.color(140, 250, 210),
     ]);
 
     // Coluna 2: Engenharia de Software
     this.techText = bottomPanel.add([
       this.k.text("", {
-        size: 8.5,
-        font: "sans-serif",
+        size: 10.5,
+        font: "Inter",
         width: colW - 10,
-        lineSpacing: 3,
+        lineSpacing: 3.5,
       }),
-      this.k.pos(15 + colW, 24),
+      this.k.pos(15 + colW, 26),
       this.k.color(255, 215, 130),
     ]);
   }
