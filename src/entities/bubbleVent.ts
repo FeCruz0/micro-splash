@@ -49,6 +49,27 @@ export function createBubbleVent(
     },
   ]);
 
+  // 2. Núcleo etéreo pulsante central (guia visual orgânico para o espiráculo)
+  let glowTimer = Math.random() * 5;
+  const glowOuter = k.add([
+    k.circle(22),
+    k.pos(position.x, baseY),
+    k.color(140, 230, 255),
+    k.outline(1.5, k.rgb(190, 245, 255)),
+    k.opacity(0.35),
+    k.anchor("center"),
+    k.z(11),
+  ]);
+
+  const glowInner = k.add([
+    k.circle(12),
+    k.pos(position.x, baseY),
+    k.color(220, 250, 255),
+    k.opacity(0.55),
+    k.anchor("center"),
+    k.z(12),
+  ]);
+
   // 3. Sistema contínuo de micro-bolhas ascendentes
   const bubbleCount = 14;
   const bubbles: Array<{
@@ -90,9 +111,26 @@ export function createBubbleVent(
   // 4. Loop de animação das bolhas e cooldown
   ventCore.onUpdate(() => {
     const dt = k.dt();
+    glowTimer += dt;
 
     if (cooldownTimer > 0) {
       cooldownTimer -= dt;
+    }
+
+    // Animação pulsante do núcleo etéreo (indica se está pronto ou em recarga)
+    const isReady = cooldownTimer <= 0;
+    const pulseFactor = Math.sin(glowTimer * 2.8);
+
+    if (isReady) {
+      glowOuter.opacity = 0.35 + pulseFactor * 0.12;
+      glowOuter.radius = 22 + pulseFactor * 2.5;
+      glowInner.opacity = 0.55 + pulseFactor * 0.15;
+      glowInner.radius = 12 + pulseFactor * 1.5;
+    } else {
+      glowOuter.opacity = 0.12;
+      glowOuter.radius = 18;
+      glowInner.opacity = 0.2;
+      glowInner.radius = 9;
     }
 
     bubbles.forEach((b) => {
@@ -126,6 +164,8 @@ export function createBubbleVent(
 
   // Limpeza
   ventCore.onDestroy(() => {
+    if (glowOuter.exists()) k.destroy(glowOuter);
+    if (glowInner.exists()) k.destroy(glowInner);
     bubbles.forEach((b) => {
       if (b.obj.exists()) k.destroy(b.obj);
     });

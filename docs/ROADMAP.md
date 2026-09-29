@@ -337,22 +337,22 @@ _Objetivo: Ampliar o alcance do jogo para audiências nacionais e internacionais
 
 _Objetivo: Corrigir as proporções de todas as criaturas e objetos em relação à jubarte controlável (108px de referência), tornando o ecossistema visual biologicamente crível e pedagogicamente honesto._
 
-- [ ] **28.1 Redimensionamento dos Pinguins-de-Magalhães:**
-  - Corpo atual: `22×9px` — equivale biologicamente a um pinguim de ~2.9m. Reduzir para `14×5px` com `radius: 2`, compensando o detalhe com cores mais contrastantes (branco ventral vibrante, dorso quase preto). Proporção correta: pinguim real de 70cm vs. jubarte de 14m = razão 1:20 = ~5px de comprimento ideal.
-- [ ] **28.2 Redimensionamento dos Golfinhos-Rotadores:**
-  - Corpo atual: `46×15px` — equivale a um golfinho de ~5.9m (maior que uma orca real). Reduzir para `28×9px` com `radius: 4`. Golfinho-rotador real: ~1.8m = razão 1:8 = ~14px ideal. A formação de 4 golfinhos permanece legível e muito mais crível em relação à jubarte.
-- [ ] **28.3 Redimensionamento do Cachalote Abissal:**
-  - Corpo atual: `250×62px` — faz o cachalote parecer 2.3× maior que a jubarte. O cachalote real (18m) é apenas 30% maior. Reduzir para `145×40px`. Ainda dominante e imponente no plano abissal, mas proporcional à escala biológica real.
-- [ ] **28.4 Ajuste do Berçário de Mãe e Filhote:**
-  - Mãe atual: `130×45px` — maior que a jubarte jogável (108px), criando conflito visual se aparecerem juntos. Reduzir mãe para `95×32px` (perspectiva de background). Filhote atual: `55×20px` — deveria ser ~40% da mãe (filhote real: 4–5m vs. 14m). Reduzir filhote para `38×13px`.
-- [ ] **28.5 Aumento e Redesenho do Navio Cargueiro:**
-  - Casco atual: `140×30px` — faz o navio parecer do tamanho de um barco de pesca. Um cargueiro real tem 200–300m = 18× a jubarte. Aumentar para `280×50px` (posição `z: -2`, `opacity: 0.85` para indicar distância). Adicionar chaminé proporcional (`35×45px`), janelas de convés (série de `rect 4×3px`) e proa mais pontiaguda.
-- [ ] **28.6 Redesenho do Lixo Plástico — 3 Formas Procedurais:**
-  - Atual: quadrado monótono `22×22px` vermelho sem identidade. Diversificar em 3 tipos intercalados: (1) garrafa PET — `rect 8×20` + tampa `rect 12×5`; (2) sacola plástica — forma trapezoidal ondulante; (3) embalagem esférica amassada — `circle 11px`. Cores realistas: branco translúcido `(200, 220, 230)`, azul PET `(80, 140, 200)`, amarelo desbotado `(220, 200, 60)`.
-- [ ] **28.7 Redesenho da Rede Fantasma — Grade Visual Real:**
-  - Atual: retângulo violeta sólido `38×52px` sem semântica visual de "rede". Redesenhar como grade de linhas finas cruzadas — série de `rect 1×52px` espaçados verticalmente + série de `rect 52×1px` espaçados horizontalmente — em cor verde-translúcida `(80, 200, 120, 0.30)`. Imediatamente reconhecível como rede de pesca mesmo sem texto.
-- [ ] **28.8 Representação Visual dos Bolsões de Ar:**
-  - Atual: colisores de `AIR_POCKET` completamente invisíveis — o jogador percebe o efeito mas não vê o elemento. Adicionar `circle(20–30px)` com preenchimento `(200, 240, 255, 0.12)` e borda brilhante `outline(1.5, rgb(180, 230, 255, 0.6))` oscilando suavemente com `sin(time)`. Imediatamente legível como "bolsão de ar respirável".
+- [x] **28.1 Redimensionamento dos Pinguins-de-Magalhães:**
+  - Corpo recalibrado para `14×5px` com `radius: 2`, barriga ventral branca de alto contraste `10×2.5px`, bico preto `3×1.5px`, nadadeiras em polígono e pés escuros. Bando compacto com espaçamento inter-aves reduzido para ~18px.
+- [x] **28.2 Redimensionamento dos Golfinhos-Rotadores:**
+  - Corpo reduzido para `28×9px` com `radius: 4`, ventre claro `20×3.2px`, rostro/bico delgado `5.5×2.5px` e barbatana dorsal falcada em polígono. Formação em escalão ajustada para drafting proporcional.
+- [x] **28.3 Redimensionamento do Cachalote Abissal:**
+  - Escala biológica calibrada em `0.95` (renderizando `182×59px` com cabeça retangular massiva de espermacete a partir do frame `192×64px`), representando ~19m e 50 toneladas contra os 14m/120px da jubarte do jogador — garantindo superioridade anatômica e imponência volumétrica. Ponto de emissão dos cliques do espermacete calibrado para a frente do focinho (`pos.x + 84`).
+- [x] **28.4 Ajuste do Berçário de Mãe e Filhote:**
+  - Mãe jubilosa ajustada com escala `0.66` (95×32px, plano de fundo harmônico). Filhote recalibrado com escala `0.26` (38×13px, exatos ~40% do comprimento da mãe, correspondendo a um filhote do ano real de 5m). Nado sincronizado em esteira de escalão e bolhas de acolhimento.
+- [x] **28.5 Aumento e Redesenho do Navio Cargueiro:**
+  - Casco expandido para `280×50px` (`radius: 12`), linha d'água rubro-marítima `280×14px` em camada `z: -2` (`opacity: 0.88`), chaminé monumental `35×45px` com anel de topo `42×10px` e 9 vigias de convés iluminadas. Ejeção de resíduos industriais calibrada na esteira da popa.
+- [x] **28.6 Redesenho do Lixo Plástico — 3 Formas Procedurais:**
+  - 3 variantes realistas: (1) garrafa PET `11×22px` com gargalo/tampa estreita `6×4px` e hitbox calibrada `11×26px`; (2) sacola plástica `20×17px` com alças e hitbox `20×19px`; (3) embalagem/copo amassado `circle(10px)`. Decaimento e revelação por ecolocalização calibrados.
+- [x] **28.7 Redesenho da Rede Fantasma — Grade Visual Real:**
+  - Malha geométrica monofilamento autêntica com cabo superior de sustentação (floatline), 4 boias de pesca de deriva, grade de linhas cruzadas e nós de interseção nos cruzamentos. Revelação integral por sonar.
+- [x] **28.8 Representação Visual dos Bolsões de Ar:**
+  - Núcleo etéreo pulsante central com duplo anel luminoso (`circle 22px` e `12px`), pulsação harmônica senoidal em estado ativo e atenuação transparente translúcida (`opacity: 0.12 / 0.20`) durante o resfriamento de 4s.
 
 ### 🌊 FASE 29: Superfície, Céu & Atmosfera
 

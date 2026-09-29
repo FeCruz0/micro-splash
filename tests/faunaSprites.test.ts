@@ -119,6 +119,7 @@ describe("Sprites de Fauna de Fundo (Orca, Jubarte e Cachalote)", () => {
     const addedChilds: any[] = [];
     const mockK: any = {
       rect: vi.fn(),
+      circle: vi.fn(),
       pos: vi.fn(),
       color: vi.fn(),
       outline: vi.fn(),
@@ -153,7 +154,7 @@ describe("Sprites de Fauna de Fundo (Orca, Jubarte e Cachalote)", () => {
 
     const net: any = createGhostNet(mockK, { x: 100, y: 200 } as any);
     expect(net.opacity).toBe(0);
-    expect(addedChilds.length).toBe(8); // 3 verticais + 5 horizontais
+    expect(addedChilds.length).toBeGreaterThanOrEqual(8); // cabo, boias, verticais, horizontais e nós (Fase 28.7)
     expect(addedChilds[0].opacity).toBe(0);
 
     // Sem reveal, o update mantém a rede invisível

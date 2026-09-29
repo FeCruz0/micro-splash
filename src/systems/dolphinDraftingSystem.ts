@@ -57,15 +57,15 @@ export function setupDolphinDraftingSystem(k: KaboomCtx, playerController: Playe
     const dolphins: any[] = [];
     const offsets = [
       { x: 0, y: 0 },
-      { x: -55, y: -20 },
-      { x: -65, y: 22 },
-      { x: -115, y: 4 },
+      { x: -36, y: -14 },
+      { x: -44, y: 15 },
+      { x: -76, y: 3 },
     ];
 
     offsets.forEach((off, i) => {
-      // Corpo fusiforme do golfinho
+      // Corpo fusiforme do golfinho (proporção biológica 28x9px em relação à jubarte de 108px)
       const dolphin = k.add([
-        k.rect(46, 15, { radius: 6 }),
+        k.rect(28, 9, { radius: 4 }),
         k.pos(route.initialX + off.x, GAME_CONFIG.SEA_LEVEL + route.depth + off.y),
         k.color(68, 108, 148),
         k.anchor("center"),
@@ -78,38 +78,38 @@ export function setupDolphinDraftingSystem(k: KaboomCtx, playerController: Playe
 
       // Ventre claro
       dolphin.add([
-        k.rect(34, 5, { radius: 2 }),
-        k.pos(-2, 4),
+        k.rect(20, 3.2, { radius: 1.5 }),
+        k.pos(-1, 2.5),
         k.color(225, 238, 248),
         k.anchor("center"),
       ]);
 
       // Bico / Rostro
       dolphin.add([
-        k.rect(9, 4, { radius: 2 }),
-        k.pos(25, 1),
+        k.rect(5.5, 2.5, { radius: 1 }),
+        k.pos(15.5, 0.8),
         k.color(68, 108, 148),
         k.anchor("center"),
       ]);
 
-      // Nadadeira dorsal curvada
+      // Nadadeira dorsal curvada falcada
       dolphin.add([
-        k.polygon([k.vec2(0, 0), k.vec2(-8, -10), k.vec2(-14, 0)]),
-        k.pos(2, -7),
+        k.polygon([k.vec2(0, 0), k.vec2(-5, -6), k.vec2(-9, 0)]),
+        k.pos(1, -4.5),
         k.color(52, 88, 124),
       ]);
 
       // Nadadeira peitoral
       dolphin.add([
-        k.polygon([k.vec2(0, 0), k.vec2(-6, 8), k.vec2(-10, 2)]),
-        k.pos(8, 5),
+        k.polygon([k.vec2(0, 0), k.vec2(-4, 5), k.vec2(-7, 1.5)]),
+        k.pos(5, 3),
         k.color(52, 88, 124),
       ]);
 
       // Cauda / Flukes
       const tail = dolphin.add([
-        k.polygon([k.vec2(0, 0), k.vec2(-7, -7), k.vec2(-7, 7)]),
-        k.pos(-23, 0),
+        k.polygon([k.vec2(0, 0), k.vec2(-5, -5), k.vec2(-5, 5)]),
+        k.pos(-14, 0),
         k.color(52, 88, 124),
       ]);
 

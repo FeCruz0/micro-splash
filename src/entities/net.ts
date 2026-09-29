@@ -31,12 +31,35 @@ export function createGhostNet(k: KaboomCtx, position: Vec2) {
 
   net.hidden = !isHighContrast;
 
-  // Grade visual: linhas verticais da rede
+  // Grade visual: malha monofilamento autêntica (linhas verticais e horizontais, nós e boias)
   const netW = 38;
   const netH = 52;
   const lineColor = isHighContrast ? k.rgb(210, 100, 255) : k.rgb(80, 200, 120);
   const gridLines: any[] = [];
 
+  // 1. Cabo superior de sustentação (floatline)
+  const topCable = net.add([
+    k.rect(netW + 4, 2),
+    k.pos(0, -netH / 2),
+    k.color(lineColor),
+    k.opacity(baseOpacity),
+    k.anchor("center"),
+  ]);
+  gridLines.push(topCable);
+
+  // 2. Pequenas boias de flutuação no topo da rede fantasma
+  for (let b = 0; b < 4; b++) {
+    const floatObj = net.add([
+      k.rect(6, 4, { radius: 2 }),
+      k.pos(-netW / 2 + 5 + b * 9.5, -netH / 2 - 2),
+      k.color(isHighContrast ? k.rgb(255, 240, 50) : k.rgb(230, 90, 40)),
+      k.opacity(baseOpacity),
+      k.anchor("center"),
+    ]);
+    gridLines.push(floatObj);
+  }
+
+  // 3. Linhas verticais da malha
   for (let v = 1; v <= 3; v++) {
     const line = net.add([
       k.rect(1.2, netH),
@@ -48,7 +71,7 @@ export function createGhostNet(k: KaboomCtx, position: Vec2) {
     gridLines.push(line);
   }
 
-  // Grade visual: linhas horizontais da rede
+  // 4. Linhas horizontais da malha
   for (let h = 1; h <= 5; h++) {
     const line = net.add([
       k.rect(netW, 1.2),
@@ -58,6 +81,20 @@ export function createGhostNet(k: KaboomCtx, position: Vec2) {
       k.anchor("center"),
     ]);
     gridLines.push(line);
+  }
+
+  // 5. Nós de cruzamento da malha monofilamento
+  for (let v = 1; v <= 3; v++) {
+    for (let h = 1; h <= 5; h++) {
+      const knot = net.add([
+        k.circle ? k.circle(0.9) : k.rect(1.8, 1.8),
+        k.pos(-netW / 2 + v * (netW / 4), -netH / 2 + h * (netH / 6)),
+        k.color(lineColor),
+        k.opacity(baseOpacity),
+        k.anchor("center"),
+      ]);
+      gridLines.push(knot);
+    }
   }
 
   const baseY = position.y;

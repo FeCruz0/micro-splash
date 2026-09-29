@@ -7,6 +7,29 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [1.4.0] - 2026-09-29 — Proporcionalidade Biológica & Redesenho de Entidades (Fase 28)
+
+### Adicionado & Modificado
+
+- **Proporcionalidade Biológica das Criaturas**:
+  - `src/systems/penguinFlockSystem.ts`: Pinguins-de-Magalhães recalibrados para proporção anatômica autêntica (corpo `14×5px`, ventre branco `10×2.5px`, bico `3×1.5px`, nadadeiras poligonais e pés escuros), com bando compacto e dinâmico (~18px de espaçamento inter-aves).
+  - `src/systems/dolphinDraftingSystem.ts`: Golfinhos-rotadores reduzidos para escala de `28×9px` com ventre claro `20×3.2px`, rostro delgado `5.5×2.5px`, barbatana dorsal falcada e offsets de formação em escalão calibrados para drafting suave ao lado da jubarte (108px).
+  - `src/systems/backgroundFauna.ts`: Cachalote abissal redefinido com proporção anatômica imponente e escala biológica `0.95` (renderizando `182×59px` a partir do frame 192×64px com cabeça quadrada de espermacete profunda e maciça, representando ~19m e 50 toneladas contra os 14m/120px da jubarte do jogador). Ponto de emissão dos cliques do espermacete calibrado para a frente do focinho (`pos.x + 84`).
+  - `src/systems/backgroundFauna.ts`: Berçário no Santuário ajustado com escala `0.66` para a mãe (`95×32px`) e escala `0.26` para o filhote (`38×13px`, exatos ~40% da mãe, condizente com filhote do ano real de 5m), com nado sincronizado em escalão e bolhas de acolhimento.
+  - `src/systems/shipNoiseSystem.ts`: Navio cargueiro expandido para escala industrial imponente de `280×50px`, linha d'água `280×14px` em camada `z: -2` (`opacity: 0.88`), chaminé monumental `35×45px` com anel de topo `42×10px`, 9 vigias iluminadas e ejeção de resíduos na esteira da popa.
+- **Redesenho de Obstáculos & Elementos Interativos**:
+  - `src/entities/trash.ts`: 3 variantes procedurais realistas com hitboxes calibradas: garrafa PET (`11×22px` com gargalo estreito `6×4px` e área `11×26px`), sacola plástica (`20×17px` com alças e área `20×19px`) e embalagem/copo amassado (`circle(10px)`).
+  - `src/entities/net.ts`: Rede fantasma enriquecida com malha monofilamento realista, cabo superior de sustentação (floatline), 4 boias de pesca de deriva, grade de linhas cruzadas e nós de interseção.
+  - `src/entities/bubbleVent.ts`: Bolsão de ar dotado de núcleo etéreo pulsante central com anéis luminosos orgânicos (`circle 22px` e `12px`), pulsação harmônica contínua e atenuação em estado de resfriamento.
+- **Correções & Refinamentos Visuais**:
+  - `src/systems/canyonSystem.ts`: Isolamento dos 8 degraus de colisão física das rampas do Boqueirão com a tag dedicada `"boqueirao_rock_collider"`, impedindo interferência de sistemas visuais.
+  - `src/entities/player/playerSonar.ts`: Remoção do fallback de mutação direta de opacidade (`targetEntity.opacity = 1`) e restrição do eco visual exclusivamente a entidades com método `reveal()`, eliminando o bug de degraus brancos sobre o terreno ao emitir sonar.
+- **Testes Automatizados**:
+  - `tests/phase28_biological_proportions.test.ts`: Nova suíte de testes com 7 especificações validando todas as escalas biológicas, proporções anatômicas, componentes gráficos e transições de estado.
+  - `tests/canyon.test.ts`: Teste dedicado para garantir o isolamento estrito e invisibilidade dos colisores físicos de rampa do Boqueirão (totalizando 236 testes 100% aprovados).
+
+---
+
 ## [1.3.0] - 2026-09-28 — Marketing, Analytics, Conteúdo & Internacionalização (Fase 27)
 
 ### Adicionado

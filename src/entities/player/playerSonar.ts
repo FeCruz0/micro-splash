@@ -77,7 +77,6 @@ export class PlayerSonarManager {
       ...this.k.get(TAGS.KRILL),
       ...this.k.get(TAGS.NET),
       ...this.k.get("boqueirao_rock"),
-      ...this.k.get("island_cliff"),
       ...this.k.get("island_cliff_visual"),
       ...this.k.get("ocean_relief"),
     ];
@@ -88,10 +87,8 @@ export class PlayerSonarManager {
       if (distanceToObject <= GAME_CONFIG.SONAR_RANGE) {
         const travelTime = distanceToObject / 520;
         this.k.wait(travelTime, () => {
-          if (targetEntity.reveal) {
+          if (typeof targetEntity.reveal === "function") {
             targetEntity.reveal();
-          } else {
-            targetEntity.opacity = 1;
           }
 
           // Anel de reflexão acústica adaptado ao tipo de objeto

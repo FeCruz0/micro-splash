@@ -79,7 +79,7 @@ export function setupCanyonSystem(k: KaboomCtx) {
       k.opacity(0),
       k.z(3),
       TAGS.OBSTACLE,
-      "boqueirao_rock",
+      "boqueirao_rock_collider",
     ]);
   }
 
@@ -305,7 +305,7 @@ export function setupCanyonSystem(k: KaboomCtx) {
       k.opacity(0),
       k.z(3),
       TAGS.OBSTACLE,
-      "boqueirao_rock",
+      "boqueirao_rock_collider",
     ]);
   }
 

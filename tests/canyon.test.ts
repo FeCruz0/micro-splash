@@ -122,4 +122,52 @@ describe("Sistema da Ilha do Farol & Boqueirão (Passagem Rasa entre Continente 
     const anemones = createdObjects.filter((o) => o.hasTag("boqueirao_anemone"));
     expect(anemones.length).toBeGreaterThanOrEqual(5);
   });
+
+  it("colisores de rampa são isolados como boqueirao_rock_collider e permanecem invisíveis sem reveal artifacts", () => {
+    const createdObjects: any[] = [];
+    const mockKaboom: any = {
+      height: () => 360,
+      width: () => 640,
+      dt: () => 0.016,
+      add: (comps: any[]) => {
+        const obj: any = {
+          comps,
+          hasTag: (tag: string) => comps.some((c) => c === tag),
+          opacity: comps.find((c) => c && c.opacity !== undefined)?.opacity ?? 1,
+        };
+        createdObjects.push(obj);
+        return obj;
+      },
+      polygon: (pts: any[]) => ({ pts }),
+      circle: (r: number) => ({ type: "circle", r }),
+      pos: (x: number, y: number) => ({ x, y }),
+      rect: (w: number, h: number) => ({ w, h }),
+      color: (r: number, g: number, b: number) => ({ r, g, b }),
+      outline: (width: number, color: any) => ({ width, color }),
+      opacity: (o: number) => ({ opacity: o }),
+      z: (z: number) => ({ z }),
+      area: () => ({ area: true }),
+      body: (opts: any) => ({ body: true, isStatic: opts?.isStatic }),
+      anchor: (a: string) => ({ anchor: a }),
+      rotate: (r: number) => ({ rotate: r }),
+      vec2: (x: number, y: number) => ({ x, y }),
+      rgb: (r: number, g: number, b: number) => ({ r, g, b }),
+      onUpdate: () => {},
+    };
+
+    setupCanyonSystem(mockKaboom);
+
+    // Colisores de rampa (subida e descida) devem ter tag específica boqueirao_rock_collider
+    const rampColliders = createdObjects.filter((o) => o.hasTag("boqueirao_rock_collider"));
+    expect(rampColliders.length).toBe(8); // 4 de subida + 4 de descida
+    rampColliders.forEach((c) => {
+      expect(c.opacity).toBe(0);
+    });
+
+    // Nenhum colisor invisível deve possuir a tag visual "boqueirao_rock"
+    const invisibleBoqueiraoRock = createdObjects.filter(
+      (o) => o.hasTag("boqueirao_rock") && o.opacity === 0
+    );
+    expect(invisibleBoqueiraoRock.length).toBe(0);
+  });
 });

@@ -193,6 +193,7 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
   const motherWhale = k.add([
     k.sprite("jubarte_bg", { anim: "swim" }),
     k.pos(25800, 260),
+    k.scale(0.66), // Escala biológica de fundo: ~95×32px (~13m, harmonizado com plano distante)
     k.rotate(0),
     k.opacity(0.85),
     k.anchor("center"),
@@ -201,8 +202,8 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
 
   const calfWhale = k.add([
     k.sprite("jubarte_bg", { anim: "swim" }),
-    k.pos(25865, 235),
-    k.scale(0.48),
+    k.pos(25848, 245),
+    k.scale(0.26), // Escala filhote: ~38×13px (~40% da mãe, filhote do ano autêntico)
     k.rotate(0),
     k.opacity(0.85),
     k.anchor("center"),
@@ -220,8 +221,8 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
     motherWhale.pos.y = 260 + Math.sin(sanctuaryTimer * 0.75) * 8;
     motherWhale.angle = Math.cos(sanctuaryTimer * 0.75) * 2.2;
 
-    calfWhale.pos.y = motherWhale.pos.y - 25 + Math.sin(sanctuaryTimer * 1.1) * 5;
-    calfWhale.pos.x = motherWhale.pos.x + 65 + Math.cos(sanctuaryTimer * 0.8) * 6;
+    calfWhale.pos.y = motherWhale.pos.y - 15 + Math.sin(sanctuaryTimer * 1.1) * 4;
+    calfWhale.pos.x = motherWhale.pos.x + 48 + Math.cos(sanctuaryTimer * 0.8) * 5;
     calfWhale.angle = Math.cos(sanctuaryTimer * 1.1) * 3.5;
 
     // Emissão de sonar acolhedor e canto do berçário se o jogador estiver próximo
@@ -248,8 +249,8 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
         // Bolhinhas lúdicas do filhote
         for (let cb = 0; cb < 4; cb++) {
           const cBubble = k.add([
-            k.circle(1.8),
-            k.pos(calfWhale.pos.x + (cb - 2) * 5, calfWhale.pos.y - 6),
+            k.circle(1.4),
+            k.pos(calfWhale.pos.x + (cb - 2) * 3, calfWhale.pos.y - 4),
             k.color(210, 248, 255),
             k.opacity(0.65),
             k.anchor("center"),
@@ -274,8 +275,9 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
   const leviathan = k.add([
     k.sprite("cachalote_bg", { anim: "swim" }),
     k.pos(8800, 425),
+    k.scale(0.95), // Escala biológica autêntica: 182×59px (~19m / 50t, claramente maior e mais maciço que a jubarte de 14m/120px)
     k.rotate(0),
-    k.opacity(0.62),
+    k.opacity(0.65),
     k.anchor("center"),
     k.z(-7), // Plano mais distante de fundo abissal
   ]);
@@ -322,8 +324,8 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
         for (let c = 0; c < 3; c++) {
           k.wait(c * 0.12, () => {
             const clickRing = k.add([
-              k.rect(4, 22, { radius: 2 }),
-              k.pos(leviathan.pos.x + 85, leviathan.pos.y - 2),
+              k.rect(5, 26, { radius: 2 }),
+              k.pos(leviathan.pos.x + 84, leviathan.pos.y - 2),
               k.color(100, 220, 255),
               k.opacity(0.65),
               k.anchor("center"),

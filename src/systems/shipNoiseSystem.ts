@@ -17,36 +17,37 @@ export function setupShipNoiseSystem(
   ];
 
   ships.forEach((shipData) => {
-    // Casco do Navio Cargueiro
+    // Casco do Navio Cargueiro (Proporção industrial imponente: 280×50px)
     const ship = k.add([
-      k.rect(140, 30, { radius: 8 }),
+      k.rect(280, 50, { radius: 12 }),
       k.pos(shipData.currentX, GAME_CONFIG.SEA_LEVEL),
       k.color(60, 65, 80),
-      k.outline(2, k.rgb(180, 50, 50)),
+      k.outline(2.5, k.rgb(180, 50, 50)),
+      k.opacity(0.88),
       k.anchor("center"),
-      k.z(10),
+      k.z(-2),
     ]);
 
     allShipBodies.push(ship);
 
     // Linha de flutuação (faixa vermelha na metade inferior do casco)
-    ship.add([k.rect(140, 8), k.pos(0, 8), k.color(160, 40, 40), k.anchor("center"), k.z(9)]);
+    ship.add([k.rect(280, 14), k.pos(0, 16), k.color(160, 35, 35), k.anchor("center"), k.z(-2)]);
 
-    // Janelas de convés (5 vigias)
-    for (let w = 0; w < 5; w++) {
+    // Janelas de convés (9 vigias industriais)
+    for (let w = 0; w < 9; w++) {
       ship.add([
-        k.rect(5, 4, { radius: 1 }),
-        k.pos(-46 + w * 22, -6),
+        k.rect(6, 4, { radius: 1 }),
+        k.pos(-100 + w * 25, -10),
         k.color(255, 230, 120),
         k.opacity(0.9),
         k.anchor("center"),
-        k.z(9),
+        k.z(-2),
       ]);
     }
 
-    // Chaminé (corpo + anel de topo escuro)
-    ship.add([k.rect(18, 28), k.pos(30, -28), k.color(180, 50, 50), k.anchor("center"), k.z(9)]);
-    ship.add([k.rect(22, 6), k.pos(30, -43), k.color(40, 40, 44), k.anchor("center"), k.z(9)]);
+    // Chaminé monumental (corpo 35×45px + anel de topo escuro 42×10px)
+    ship.add([k.rect(35, 45), k.pos(65, -45), k.color(180, 50, 50), k.anchor("center"), k.z(-2)]);
+    ship.add([k.rect(42, 10), k.pos(65, -67), k.color(40, 40, 44), k.anchor("center"), k.z(-2)]);
 
     let noiseTimer = 0;
     let trashEjectTimer = 3.0 + Math.random() * 4.0;
@@ -112,8 +113,8 @@ export function setupShipNoiseSystem(
       if (trashEjectTimer >= 8.5 && distToPlayer < 1600) {
         trashEjectTimer = 0;
 
-        const ejectX = ship.pos.x - shipData.dir * 65;
-        const ejectY = ship.pos.y + 16;
+        const ejectX = ship.pos.x - shipData.dir * 130;
+        const ejectY = ship.pos.y + 24;
         const trashType = Math.floor(Math.random() * 3);
 
         let trashItem: any;

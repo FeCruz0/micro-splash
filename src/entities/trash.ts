@@ -12,16 +12,16 @@ export function createTrash(k: KaboomCtx, position: Vec2) {
   let trash: any;
 
   if (trashType === 0) {
-    // Garrafa PET — silhueta vertical azul translúcida
+    // 1. Garrafa PET — corpo vertical com gargalo estreito e tampa calibrada
     trash = k.add([
-      k.rect(9, 20, { radius: 3 }),
+      k.rect(11, 22, { radius: 3 }),
       k.pos(position),
       k.color(isHighContrast ? k.rgb(240, 60, 60) : k.rgb(80, 140, 200)),
       k.outline(
         isHighContrast ? 2.5 : 1.5,
         isHighContrast ? k.rgb(255, 240, 50) : k.rgb(40, 80, 140)
       ),
-      k.area({ shape: new k.Rect(k.vec2(-11, -11), 22, 22) }),
+      k.area({ shape: new k.Rect(k.vec2(-5.5, -14), 11, 26) }),
       k.anchor("center"),
       k.opacity(baseOpacity),
       TAGS.TRASH,
@@ -31,26 +31,34 @@ export function createTrash(k: KaboomCtx, position: Vec2) {
         },
       },
     ]);
-    // Tampa da garrafa
+    // Gargalo e tampa estreita da garrafa (proporção autêntica)
     trash.add([
-      k.rect(13, 5, { radius: 1 }),
+      k.rect(6, 4, { radius: 1 }),
       k.pos(0, -13),
-      k.color(isHighContrast ? k.rgb(240, 60, 60) : k.rgb(55, 95, 160)),
+      k.color(isHighContrast ? k.rgb(255, 240, 50) : k.rgb(55, 100, 165)),
+      k.anchor("center"),
+    ]);
+    // Faixa de rótulo desbotado
+    trash.add([
+      k.rect(11, 6),
+      k.pos(0, 1),
+      k.color(isHighContrast ? k.rgb(255, 200, 50) : k.rgb(100, 160, 220)),
+      k.opacity(0.7),
       k.anchor("center"),
     ]);
   } else if (trashType === 1) {
-    // Sacola plástica — forma arredondada branco-translúcida
+    // 2. Sacola plástica — corpo flutuante arredondado com alças superiores
     trash = k.add([
-      k.rect(18, 16, { radius: 8 }),
+      k.rect(20, 17, { radius: 6 }),
       k.pos(position),
-      k.color(isHighContrast ? k.rgb(240, 60, 60) : k.rgb(200, 220, 230)),
+      k.color(isHighContrast ? k.rgb(240, 60, 60) : k.rgb(205, 225, 235)),
       k.outline(
         isHighContrast ? 2.5 : 1.5,
         isHighContrast ? k.rgb(255, 240, 50) : k.rgb(160, 190, 210)
       ),
-      k.area({ shape: new k.Rect(k.vec2(-11, -11), 22, 22) }),
+      k.area({ shape: new k.Rect(k.vec2(-10, -10), 20, 19) }),
       k.anchor("center"),
-      k.opacity(isHighContrast ? 0.55 : 0.3),
+      k.opacity(isHighContrast ? 0.55 : 0.32),
       TAGS.TRASH,
       {
         reveal() {
@@ -58,10 +66,18 @@ export function createTrash(k: KaboomCtx, position: Vec2) {
         },
       },
     ]);
+    // Alças superiores da sacola plástica
+    trash.add([
+      k.rect(14, 4, { radius: 2 }),
+      k.pos(0, -10),
+      k.color(isHighContrast ? k.rgb(255, 240, 50) : k.rgb(180, 210, 225)),
+      k.outline(1, isHighContrast ? k.rgb(240, 60, 60) : k.rgb(150, 180, 200)),
+      k.anchor("center"),
+    ]);
   } else {
-    // Embalagem amassada — forma circular amarelo desbotado
+    // 3. Copo/Embalagem amassada — geometria irregular com recorte plástico
     trash = k.add([
-      k.circle(11),
+      k.circle(10),
       k.pos(position),
       k.color(isHighContrast ? k.rgb(240, 60, 60) : k.rgb(220, 200, 60)),
       k.outline(
@@ -77,6 +93,14 @@ export function createTrash(k: KaboomCtx, position: Vec2) {
           revealTimer = GAME_CONFIG.SONAR_REVEAL_DURATION;
         },
       },
+    ]);
+    // Vinco de amassamento plástico
+    trash.add([
+      k.rect(8, 3, { radius: 1 }),
+      k.pos(-1, -1),
+      k.color(isHighContrast ? k.rgb(255, 255, 255) : k.rgb(180, 160, 40)),
+      k.rotate(25),
+      k.anchor("center"),
     ]);
   }
 

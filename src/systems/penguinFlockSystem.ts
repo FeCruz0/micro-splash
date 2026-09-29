@@ -67,14 +67,14 @@ export function setupPenguinFlockSystem(k: KaboomCtx) {
     const penguins: any[] = [];
 
     for (let i = 0; i < colony.count; i++) {
-      const pOffsetX = -i * 26 - Math.random() * 8;
-      const pOffsetY = (i % 2 === 0 ? -9 : 9) + (Math.random() - 0.5) * 6;
+      const pOffsetX = -i * 18 - Math.random() * 5;
+      const pOffsetY = (i % 2 === 0 ? -6 : 6) + (Math.random() - 0.5) * 4;
 
-      // Corpo em torpedo do pinguim
+      // Corpo em torpedo do pinguim (proporção biológica 14x5px para escala com a jubarte de 108px)
       const pBody = k.add([
-        k.rect(22, 9, { radius: 3 }),
+        k.rect(14, 5, { radius: 2 }),
         k.pos(colony.initialX + pOffsetX, GAME_CONFIG.SEA_LEVEL + colony.depth + pOffsetY),
-        k.color(18, 20, 24), // Dorso preto
+        k.color(12, 14, 18), // Dorso preto de alto contraste
         k.anchor("center"),
         k.scale(k.vec2(colony.initialDir, 1)),
         k.z(13),
@@ -83,32 +83,32 @@ export function setupPenguinFlockSystem(k: KaboomCtx) {
 
       // Ventre branco brilhante
       pBody.add([
-        k.rect(15, 4, { radius: 1.5 }),
-        k.pos(-1, 2),
-        k.color(248, 248, 252),
+        k.rect(10, 2.5, { radius: 1 }),
+        k.pos(-0.5, 1),
+        k.color(255, 255, 255),
         k.anchor("center"),
       ]);
 
       // Faixa facial branca do Pinguim-de-Magalhães
-      pBody.add([k.circle(1.8), k.pos(5, -2), k.color(240, 245, 255)]);
+      pBody.add([k.circle(1.2), k.pos(3.5, -1.2), k.color(245, 250, 255)]);
 
       // Bico âmbar
       pBody.add([
-        k.rect(5, 2.2, { radius: 1 }),
-        k.pos(12, 0),
-        k.color(220, 160, 40),
+        k.rect(3, 1.5, { radius: 0.8 }),
+        k.pos(7.5, 0),
+        k.color(230, 165, 40),
         k.anchor("center"),
       ]);
 
       // Asa / Nadadeira
       const wing = pBody.add([
-        k.polygon([k.vec2(0, 0), k.vec2(-4, 6), k.vec2(-8, 1)]),
-        k.pos(1, 1),
-        k.color(14, 16, 20),
+        k.polygon([k.vec2(0, 0), k.vec2(-2.5, 4), k.vec2(-5, 0.8)]),
+        k.pos(0.5, 0.5),
+        k.color(10, 12, 16),
       ]);
 
       // Patas
-      pBody.add([k.rect(4, 2), k.pos(-11, 2), k.color(210, 120, 50), k.anchor("center")]);
+      pBody.add([k.rect(2.5, 1.5), k.pos(-7, 1.2), k.color(215, 120, 45), k.anchor("center")]);
 
       allPenguinBodies.push(pBody);
       penguins.push({

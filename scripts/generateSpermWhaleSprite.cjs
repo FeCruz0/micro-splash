@@ -184,42 +184,42 @@ function renderCachaloteFrame(frameIndex) {
 
   // 1. Nadadeira peitoral do lado oposto (fundo 3D)
   {
-    const bBaseX = offsetX + 128;
-    const bBaseY = 38 + pecOffset * 0.7;
+    const bBaseX = offsetX + 130;
+    const bBaseY = 44 + pecOffset * 0.7;
     const bTipX = offsetX + 112;
-    const bTipY = bBaseY + 12 + pecOffset * 1.1;
+    const bTipY = bBaseY + 13 + pecOffset * 1.1;
 
     drawQuadCurve(
       bBaseX,
       bBaseY,
-      bBaseX - 4,
-      bBaseY + 6,
+      bBaseX - 5,
+      bBaseY + 7,
       bTipX,
       bTipY,
-      4.2,
+      5.2,
       PALETTE.flipperOpposite
     );
   }
 
-  // 2. Corcunda dorsal baixa triangular e cristas dorsais caudais (Knuckles)
+  // 2. Corcunda dorsal triangular e cristas dorsais caudais (Knuckles)
   // No cachalote não há barbatana verdadeira, mas sim uma elevação seguida de nós
   {
     const humpSpine = getCachaloteSpineOffset(74, tailOffset);
-    const humpBaseFront = { x: offsetX + 84, y: 19.0 + humpSpine };
-    const humpBaseRear = { x: offsetX + 64, y: 21.0 + humpSpine };
-    const humpTip = { x: offsetX + 72, y: 13.5 + humpSpine }; // corcunda baixa
+    const humpBaseFront = { x: offsetX + 88, y: 11.5 + humpSpine };
+    const humpBaseRear = { x: offsetX + 64, y: 13.0 + humpSpine };
+    const humpTip = { x: offsetX + 74, y: 5.5 + humpSpine }; // corcunda proeminente
 
     fillTriangle(humpBaseFront, humpBaseRear, humpTip, PALETTE.dorsalDark);
-    drawLine(humpBaseFront.x, humpBaseFront.y, humpTip.x, humpTip.y, 1.8, PALETTE.dorsalMid);
+    drawLine(humpBaseFront.x, humpBaseFront.y, humpTip.x, humpTip.y, 2.2, PALETTE.dorsalMid);
 
     // Nós / cristas no pedúnculo dorsal (Knuckles: 3 calosidades típicas)
     const knuckles = [54, 44, 34];
     knuckles.forEach((kx) => {
       const sp = getCachaloteSpineOffset(kx, tailOffset);
-      fillCircle(offsetX + kx, 23.5 + sp, 2.0, PALETTE.dorsalMid);
+      fillCircle(offsetX + kx, 16.5 + sp, 2.6, PALETTE.dorsalMid);
       setPixel(
         offsetX + kx,
-        Math.round(22.0 + sp),
+        Math.round(15.0 + sp),
         PALETTE.dorsalHighlight[0],
         PALETTE.dorsalHighlight[1],
         PALETTE.dorsalHighlight[2],
@@ -229,35 +229,35 @@ function renderCachaloteFrame(frameIndex) {
   }
 
   // 3. Estrutura do corpo monumental do Cachalote (coluna por coluna)
-  for (let lx = 20; lx <= 180; lx++) {
+  for (let lx = 18; lx <= 184; lx++) {
     const spineY = getCachaloteSpineOffset(lx, tailOffset);
     const x = offsetX + lx;
 
     let topY = 32,
       botY = 32;
 
-    if (lx > 132) {
+    if (lx > 126) {
       // CABEÇA QUADRADA MONUMENTAL (Órgão do espermacete, 1/3 do comprimento total)
-      const t = (lx - 132) / 48; // 0..1
-      // Frente quase reta e quadrada
-      topY = 17.5 - Math.sin(t * Math.PI * 0.5) * 1.5;
-      botY = 44.5 + Math.sin(t * Math.PI * 0.5) * 1.0;
-      if (lx > 174) {
-        // Ponta frontal arredondada em bloco
-        const bluntT = (lx - 174) / 6;
+      const t = (lx - 126) / 58; // 0..1
+      // Frente massiva, profunda e quadrada
+      topY = 10.0 - Math.sin(t * Math.PI * 0.5) * 1.5;
+      botY = 52.5 + Math.sin(t * Math.PI * 0.5) * 1.0;
+      if (lx > 178) {
+        // Ponta frontal arredondada em bloco sólido
+        const bluntT = (lx - 178) / 6;
         topY += bluntT * 5.0;
-        botY -= bluntT * 5.0;
+        botY -= bluntT * 5.5;
       }
-    } else if (lx >= 88) {
+    } else if (lx >= 82) {
       // TRONCO CILÍNDRICO MASSIVO
-      const t = (lx - 88) / 44; // 0..1
-      topY = 17.0 + Math.sin((1 - t) * Math.PI) * -1.0;
-      botY = 46.0 + Math.sin(t * Math.PI) * 1.5;
+      const t = (lx - 82) / 44; // 0..1
+      topY = 9.5 + Math.sin((1 - t) * Math.PI) * -1.5;
+      botY = 53.5 + Math.sin(t * Math.PI) * 1.5;
     } else {
       // PEDÚNCULO CAUDAL ROBUSTO
-      const t = (lx - 20) / 68; // 0..1
-      topY = 28.5 - t * 10.5 + spineY;
-      botY = 35.5 + t * 9.5 + spineY;
+      const t = (lx - 18) / 64; // 0..1
+      topY = 25.5 - t * 16.0 + spineY;
+      botY = 38.5 + t * 15.0 + spineY;
     }
 
     const yStart = Math.floor(topY);
@@ -267,15 +267,15 @@ function renderCachaloteFrame(frameIndex) {
       let color = PALETTE.dorsalDark;
 
       // Crista superior iluminada
-      if (y === yStart && lx > 45 && lx < 172) {
+      if (y === yStart && lx > 40 && lx < 176) {
         color = PALETTE.dorsalHighlight;
-      } else if (y <= yStart + 2 && lx > 50) {
+      } else if (y <= yStart + 3 && lx > 45) {
         color = PALETTE.dorsalMid;
       }
 
       // Pele ondulada com ranhuras verticais características
-      if (lx > 60 && lx < 140 && (lx % 7 === 0 || lx % 11 === 0)) {
-        if (y > yStart + 4 && y < botY - 3) {
+      if (lx > 55 && lx < 145 && (lx % 6 === 0 || lx % 10 === 0)) {
+        if (y > yStart + 5 && y < botY - 5) {
           color = PALETTE.skinRipple;
         }
       }
@@ -287,74 +287,75 @@ function renderCachaloteFrame(frameIndex) {
   // 4. Mandíbula inferior delgada recuada e manchas brancas labiais
   // No cachalote a mandíbula inferior é extremamente estreita e recuada sob o nariz quadrado gigante
   {
-    const jawBaseX = offsetX + 140;
-    const jawTipX = offsetX + 172;
-    const jawY = 46.5;
+    const jawBaseX = offsetX + 134;
+    const jawTipX = offsetX + 174;
+    const jawY = 53.5;
 
     // Mancha esbranquiçada ao redor da boca
-    fillEllipse(jawBaseX + 16, jawY - 1, 16, 2.5, PALETTE.jawWhite);
+    fillEllipse(jawBaseX + 18, jawY - 1, 18, 3.2, PALETTE.jawWhite);
 
     // Mandíbula delgada inferior
-    drawLine(jawBaseX, jawY, jawTipX, jawY - 1.5, 2.8, PALETTE.jawDark);
-    drawLine(jawBaseX, jawY + 1, jawTipX, jawY - 0.5, 1.4, PALETTE.jawWhite);
+    drawLine(jawBaseX, jawY, jawTipX, jawY - 2.0, 3.2, PALETTE.jawDark);
+    drawLine(jawBaseX, jawY + 1, jawTipX, jawY - 0.8, 1.8, PALETTE.jawWhite);
   }
 
   // 5. Olho adaptado às profundezas abissais (atrás da comissura bucal)
   {
-    const eyeX = offsetX + 138;
-    const eyeY = 34.5;
-    fillCircle(eyeX, eyeY, 1.8, PALETTE.eyeGlow);
-    fillCircle(eyeX, eyeY, 1.0, PALETTE.eyeCenter);
+    const eyeX = offsetX + 134;
+    const eyeY = 38.0;
+    fillCircle(eyeX, eyeY, 2.2, PALETTE.eyeGlow);
+    fillCircle(eyeX, eyeY, 1.2, PALETTE.eyeCenter);
   }
 
   // 6. Espiráculo único assimétrico na ponta frontal superior esquerda
   {
-    setPixel(offsetX + 174, 19, PALETTE.blowhole[0], PALETTE.blowhole[1], PALETTE.blowhole[2], 255);
-    setPixel(offsetX + 175, 19, PALETTE.blowhole[0], PALETTE.blowhole[1], PALETTE.blowhole[2], 255);
+    setPixel(offsetX + 178, 12, PALETTE.blowhole[0], PALETTE.blowhole[1], PALETTE.blowhole[2], 255);
+    setPixel(offsetX + 179, 12, PALETTE.blowhole[0], PALETTE.blowhole[1], PALETTE.blowhole[2], 255);
+    setPixel(offsetX + 178, 13, PALETTE.blowhole[0], PALETTE.blowhole[1], PALETTE.blowhole[2], 255);
   }
 
   // 7. Nadadeira peitoral frontal curta em forma de pá / remo
   {
-    const pecBaseX = offsetX + 132;
-    const pecBaseY = 40.5 + pecOffset;
-    const pecTipX = offsetX + 118;
+    const pecBaseX = offsetX + 130;
+    const pecBaseY = 46.0 + pecOffset;
+    const pecTipX = offsetX + 114;
     const pecTipY = pecBaseY + 14 + pecOffset * 1.2;
 
     drawQuadCurve(
       pecBaseX,
       pecBaseY,
-      pecBaseX - 4,
-      pecBaseY + 7,
+      pecBaseX - 5,
+      pecBaseY + 8,
       pecTipX,
       pecTipY,
-      4.6,
+      5.6,
       PALETTE.dorsalDark
     );
     drawQuadCurve(
       pecBaseX - 1,
       pecBaseY + 1,
-      pecBaseX - 4,
-      pecBaseY + 7,
+      pecBaseX - 5,
+      pecBaseY + 8,
       pecTipX + 1,
       pecTipY - 1,
-      2.8,
+      3.4,
       PALETTE.dorsalMid
     );
   }
 
   // 8. Lobos caudais colossais triangulares (Flukes do Cachalote)
   {
-    const tailSpine = getCachaloteSpineOffset(20, tailOffset);
-    const flukeCenterX = offsetX + 20;
+    const tailSpine = getCachaloteSpineOffset(18, tailOffset);
+    const flukeCenterX = offsetX + 18;
     const flukeCenterY = 32.0 + tailSpine;
 
     const upperTip = {
       x: flukeCenterX - 18 + flukeTilt * 6,
-      y: flukeCenterY - 16 + flukeTilt * 14,
+      y: flukeCenterY - 20 + flukeTilt * 14,
     };
     const lowerTip = {
       x: flukeCenterX - 18 - flukeTilt * 6,
-      y: flukeCenterY + 16 + flukeTilt * 14,
+      y: flukeCenterY + 20 + flukeTilt * 14,
     };
     const flukeNotch = {
       x: flukeCenterX - 8,
@@ -366,8 +367,8 @@ function renderCachaloteFrame(frameIndex) {
     fillTriangle({ x: flukeCenterX, y: flukeCenterY }, lowerTip, flukeNotch, PALETTE.dorsalDark);
 
     // Contorno dorsal dos flukes
-    drawLine(flukeCenterX, flukeCenterY, upperTip.x, upperTip.y, 2.0, PALETTE.dorsalMid);
-    drawLine(flukeCenterX, flukeCenterY, lowerTip.x, lowerTip.y, 2.0, PALETTE.dorsalMid);
+    drawLine(flukeCenterX, flukeCenterY, upperTip.x, upperTip.y, 2.4, PALETTE.dorsalMid);
+    drawLine(flukeCenterX, flukeCenterY, lowerTip.x, lowerTip.y, 2.4, PALETTE.dorsalMid);
   }
 }
 
