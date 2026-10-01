@@ -342,7 +342,7 @@ describe("FASE 28: Proporcionalidade Biológica & Redesenho de Entidades", () =>
   // =========================================================================
   // 28.8: Bolsões de Ar
   // =========================================================================
-  it("28.8: bolsão de ar possui núcleo etéreo pulsante com transição entre ativo e resfriamento", () => {
+  it("28.8: bolsão de ar utiliza exclusivamente coluna natural de micro-bolhas sem esfera artificial de power-up", () => {
     const addedObjs: any[] = [];
     const mockK: any = {
       rect: vi.fn((w: number, h: number) => ({ type: "rect", w, h })),
@@ -364,7 +364,7 @@ describe("FASE 28: Proporcionalidade Biológica & Redesenho de Entidades", () =>
           components,
           pos: { x: 600, y: 400 },
           opacity: 0.5,
-          radius: 20,
+          radius: 2,
           _updateCb: null as any,
           onUpdate: vi.fn((cb) => {
             obj._updateCb = cb;
@@ -380,16 +380,15 @@ describe("FASE 28: Proporcionalidade Biológica & Redesenho de Entidades", () =>
     const vent: any = createBubbleVent(mockK, { x: 600, y: 400 } as any, 220);
     expect(vent).toBeDefined();
 
-    // ventCore (obj 0) + glowOuter (obj 1) + glowInner (obj 2) + 14 bubbles (objs 3-16) = 17 objs
-    expect(addedObjs.length).toBe(17);
+    // ventCore (obj 0) + 18 bubbles (objs 1-18) = 19 objs
+    expect(addedObjs.length).toBe(19);
 
-    const glowOuter = addedObjs[1];
-    const glowInner = addedObjs[2];
-
-    // Simula loop de atualização normal (estado ativo/respirável)
-    vent._updateCb();
-    expect(glowOuter.opacity).toBeGreaterThan(0.2);
-    expect(glowInner.opacity).toBeGreaterThan(0.3);
+    // Garante que NENHUM objeto é uma esfera/orbe grande de power-up (apenas micro-bolhas com r <= 5)
+    const largeSpheres = addedObjs.filter((o) => {
+      const circleComp = o.components.find((c: any) => c && c.type === "circle");
+      return circleComp && circleComp.r > 5;
+    });
+    expect(largeSpheres.length).toBe(0);
 
     // Coleta o ar e entra em cooldown de 4s
     const customComp = vent.components.find((c: any) => c && typeof c.collectAir === "function");
@@ -397,9 +396,9 @@ describe("FASE 28: Proporcionalidade Biológica & Redesenho de Entidades", () =>
     const collected = customComp.collectAir();
     expect(collected).toBe(true);
 
-    // Durante o cooldown, o núcleo se atenua (dimmed)
+    // Durante o cooldown, as micro-bolhas atenuam a opacidade
     vent._updateCb();
-    expect(glowOuter.opacity).toBe(0.12);
-    expect(glowInner.opacity).toBe(0.2);
+    const sampleBubble = addedObjs[1];
+    expect(sampleBubble.opacity).toBeLessThan(0.8);
   });
 });

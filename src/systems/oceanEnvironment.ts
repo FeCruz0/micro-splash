@@ -1,5 +1,6 @@
 import kaboom, { type GameObj } from "kaboom";
 import { BIOME_COLOR_STOPS, GAME_CONFIG, type BiomeColorStop } from "../config";
+import type { WaterSurfaceSystem } from "./waterSurfaceSystem";
 
 /**
  * Retorna o bioma atual com base na distância percorrida.
@@ -76,7 +77,7 @@ export function getColorsAtDistance(k: ReturnType<typeof kaboom>, distance: numb
 export function updateOceanColors(
   k: ReturnType<typeof kaboom>,
   distance: number,
-  surfaceObj?: GameObj,
+  surfaceObj?: GameObj | WaterSurfaceSystem,
   floorObj?: GameObj,
   skyObj?: GameObj
 ) {
@@ -85,7 +86,16 @@ export function updateOceanColors(
   k.setBackground(bgColor);
 
   if (surfaceObj) {
-    surfaceObj.color = surfaceColor;
+    if ("updateColor" in surfaceObj && typeof (surfaceObj as any).updateColor === "function") {
+      (surfaceObj as any).updateColor(surfaceColor);
+    } else if (
+      "updateSurfaceColor" in surfaceObj &&
+      typeof (surfaceObj as any).updateSurfaceColor === "function"
+    ) {
+      (surfaceObj as any).updateSurfaceColor(surfaceColor);
+    } else {
+      surfaceObj.color = surfaceColor;
+    }
   }
 
   if (floorObj) {

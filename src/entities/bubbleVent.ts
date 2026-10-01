@@ -49,29 +49,8 @@ export function createBubbleVent(
     },
   ]);
 
-  // 2. Núcleo etéreo pulsante central (guia visual orgânico para o espiráculo)
-  let glowTimer = Math.random() * 5;
-  const glowOuter = k.add([
-    k.circle(22),
-    k.pos(position.x, baseY),
-    k.color(140, 230, 255),
-    k.outline(1.5, k.rgb(190, 245, 255)),
-    k.opacity(0.35),
-    k.anchor("center"),
-    k.z(11),
-  ]);
-
-  const glowInner = k.add([
-    k.circle(12),
-    k.pos(position.x, baseY),
-    k.color(220, 250, 255),
-    k.opacity(0.55),
-    k.anchor("center"),
-    k.z(12),
-  ]);
-
-  // 3. Sistema contínuo de micro-bolhas ascendentes
-  const bubbleCount = 14;
+  // 2. Sistema contínuo de micro-bolhas ascendentes (coluna natural de oxigênio)
+  const bubbleCount = 18;
   const bubbles: Array<{
     obj: GameObj;
     relX: number;
@@ -84,8 +63,8 @@ export function createBubbleVent(
   }> = [];
 
   for (let i = 0; i < bubbleCount; i++) {
-    const radius = k.rand(1.8, 3.8);
-    const relX = (Math.random() - 0.5) * (ventWidth - 12);
+    const radius = k.rand(1.5, 3.8);
+    const relX = (Math.random() - 0.5) * (ventWidth - 10);
     const relY = Math.random() * columnHeight;
 
     const bObj = k.add([
@@ -108,29 +87,12 @@ export function createBubbleVent(
     });
   }
 
-  // 4. Loop de animação das bolhas e cooldown
+  // 3. Loop de animação das bolhas e cooldown
   ventCore.onUpdate(() => {
     const dt = k.dt();
-    glowTimer += dt;
 
     if (cooldownTimer > 0) {
       cooldownTimer -= dt;
-    }
-
-    // Animação pulsante do núcleo etéreo (indica se está pronto ou em recarga)
-    const isReady = cooldownTimer <= 0;
-    const pulseFactor = Math.sin(glowTimer * 2.8);
-
-    if (isReady) {
-      glowOuter.opacity = 0.35 + pulseFactor * 0.12;
-      glowOuter.radius = 22 + pulseFactor * 2.5;
-      glowInner.opacity = 0.55 + pulseFactor * 0.15;
-      glowInner.radius = 12 + pulseFactor * 1.5;
-    } else {
-      glowOuter.opacity = 0.12;
-      glowOuter.radius = 18;
-      glowInner.opacity = 0.2;
-      glowInner.radius = 9;
     }
 
     bubbles.forEach((b) => {
@@ -140,7 +102,7 @@ export function createBubbleVent(
       // Reseta ao atingir o topo da coluna
       if (b.relY > columnHeight) {
         b.relY = 0;
-        b.relX = (Math.random() - 0.5) * (ventWidth - 12);
+        b.relX = (Math.random() - 0.5) * (ventWidth - 10);
       }
 
       const currentX = position.x + b.relX + Math.sin(b.swayPhase) * b.swayAmp;
@@ -149,13 +111,13 @@ export function createBubbleVent(
       b.obj.pos.x = currentX;
       b.obj.pos.y = currentY;
 
-      // Emerge do nada na base (fade-in suave) e dissipa no topo (fade-out suave)
+      // Emerge da fissura na base (fade-in suave) e dissipa no topo (fade-out suave)
       const progress = b.relY / columnHeight;
       let alpha = 0.8;
       if (progress < 0.15) {
-        alpha = (progress / 0.15) * 0.8; // Emerge do nada sem buraco na base
+        alpha = (progress / 0.15) * 0.8;
       } else if (progress > 0.82) {
-        alpha = ((1 - progress) / 0.18) * 0.8; // Dissipa organicamente
+        alpha = ((1 - progress) / 0.18) * 0.8;
       }
 
       b.obj.opacity = Math.max(0, alpha * (cooldownTimer > 0 ? 0.35 : 1.0));
@@ -164,8 +126,6 @@ export function createBubbleVent(
 
   // Limpeza
   ventCore.onDestroy(() => {
-    if (glowOuter.exists()) k.destroy(glowOuter);
-    if (glowInner.exists()) k.destroy(glowInner);
     bubbles.forEach((b) => {
       if (b.obj.exists()) k.destroy(b.obj);
     });

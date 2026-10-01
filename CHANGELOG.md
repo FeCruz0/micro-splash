@@ -7,6 +7,27 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [1.5.0] - 2026-09-29 — Superfície, Céu & Atmosfera (Fase 29)
+
+### Adicionado & Modificado
+
+- **Superfície Marítima Viva & Rebentação**:
+  - `src/systems/waterSurfaceSystem.ts`: Implementada linha d'água ondulada e orgânica composta por colisor físico contínuo (`TAGS.SURFACE`) e 14 segmentos verticais interconectados com ondulação harmônica senoidal desfasada e crista de espuma branca translúcida (`opacity: 0.38`).
+  - `src/systems/coastalSurfSystem.ts`: Adicionado sistema de ondas e espuma costeira para a aproximação e chegada em Arraial do Cabo (>= 24.800m), com filetes de rebentação flutuantes deslizando suavemente pela superfície da Enseada dos Anjos.
+- **Fenômenos Celestiais e Atmosféricos por Bioma**:
+  - `src/systems/auroraSystem.ts`: Criado sistema de Aurora Austral (_Lights Australis_) com 6 cortinas de luz verticais ondulantes em verde-esmeralda e magenta sobre o céu polar antártico (0–5.000m), com respiração luminosa suave.
+  - `src/systems/parallaxSkySystem.ts`: Adicionado pôr do sol estratificado em 5 camadas de gradiente crepuscular na Travessia Pelágica (5.000–12.000m): azul-crepúsculo escuro, lilás, rosa coral, âmbar alaranjado e dourado solar rasante.
+  - `src/systems/parallaxSkySystem.ts`: Adicionado disco lunar marfim suave com halo difuso e coluna de 5 filetes luminosos de reflexo aquático na Costa Urbana noturna (12.000–19.000m).
+  - `src/systems/parallaxSkySystem.ts`: Nuvens elegantes e harmoniosas em formato horizontal suave, com deriva dinâmica de vento e tonalidade adaptativa por bioma.
+- **Fauna Aérea Específica**:
+  - `src/systems/parallaxSkySystem.ts`: Aves marinhas diferenciadas com anatomia autêntica por bioma: Albatroz-viajante com envergadura colossal de 44px e planeio majestoso; Fragata-magnífica com plumagem escura e cauda bifurcada em tesoura; Garça-branca com pescoço em S e pernas estendidas sobre a rebentação costeira.
+- **Horizonte Oceânico Inferior**:
+  - `src/systems/abyssalFogSystem.ts`: Adicionadas 4 camadas graduais de névoa abissal na base da tela (`opacity: 0.12, 0.24, 0.42, 0.70`), dissolvendo o leito oceânico suavemente nas trevas e eliminando cortes secos.
+- **Testes Automatizados**:
+  - `tests/phase29_atmosphere_sky.test.ts`: Nova suíte de testes com 8 especificações cobrindo todos os sistemas atmosféricos, de superfície e de fauna aérea (totalizando 244 testes 100% aprovados).
+
+---
+
 ## [1.4.0] - 2026-09-29 — Proporcionalidade Biológica & Redesenho de Entidades (Fase 28)
 
 ### Adicionado & Modificado

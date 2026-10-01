@@ -1,5 +1,5 @@
 import kaboom from "kaboom";
-import { GAME_CONFIG, TAGS, getSavedResolution, getSavedDisplayMode } from "./config";
+import { GAME_CONFIG, getSavedResolution, getSavedDisplayMode } from "./config";
 import { createPlayer } from "./entities/player";
 import { createRescueBoat } from "./entities/boat";
 import { setupCollisions } from "./systems/collisions";
@@ -30,6 +30,10 @@ import { setupBioluminescenceSystem } from "./systems/bioluminescenceSystem";
 import { setupBiomeVignetteSystem } from "./systems/biomeVignetteSystem";
 import { setupCinematicCameraSystem } from "./systems/cinematicCameraSystem";
 import { setupDynamicShadowSystem } from "./systems/dynamicShadowSystem";
+import { createWaterSurfaceSystem } from "./systems/waterSurfaceSystem";
+import { setupAuroraSystem } from "./systems/auroraSystem";
+import { setupAbyssalFogSystem } from "./systems/abyssalFogSystem";
+import { setupCoastalSurfSystem } from "./systems/coastalSurfSystem";
 import { createKioskScene } from "./systems/kioskMode";
 import { setupTouchControls } from "./ui/touchControls";
 import { initParticlePool } from "./systems/particlePool";
@@ -219,15 +223,11 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
     "sky",
   ]);
 
-  // Tag da superfície posicionada no nível do mar (80px)
-  const waterSurface = k.add([
-    k.rect(k.width() * 2, 14),
-    k.pos(-k.width() / 2, GAME_CONFIG.SEA_LEVEL),
-    k.area(),
-    k.color(20, 50, 120),
-    k.z(1),
-    TAGS.SURFACE,
-  ]);
+  // Tag da superfície posicionada no nível do mar (80px) - Sistema Ondulado Orgânico (Fase 29.1)
+  const waterSurface = createWaterSurfaceSystem(k);
+  k.onSceneLeave(() => {
+    waterSurface.destroy();
+  });
 
   // 1. Instancia Controles Touch, Estado, Jogador e UI de Debug
   const touchControls = setupTouchControls(k);
@@ -332,6 +332,11 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
   setupBioluminescenceSystem(k, playerController);
   setupBiomeVignetteSystem(k, playerController);
   setupCinematicCameraSystem(k, playerController);
+
+  // Fase 29: Superfície, Céu & Atmosfera
+  setupAuroraSystem(k);
+  setupAbyssalFogSystem(k);
+  setupCoastalSurfSystem(k);
 
   // 4. Inicializa áudio da migração e atalhos
   audioSystem.startMigrationAudio(initialX);
@@ -512,7 +517,7 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
 
     oceanFloor.pos.x = k.camPos().x - k.width();
     oceanFloor.pos.y = k.height() - 40;
-    waterSurface.pos.x = k.camPos().x - k.width();
+    waterSurface.updatePosition(k.camPos().x);
     skyBand.pos.x = k.camPos().x - k.width();
 
     // Atualiza cores do oceano

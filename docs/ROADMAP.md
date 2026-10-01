@@ -358,22 +358,22 @@ _Objetivo: Corrigir as proporções de todas as criaturas e objetos em relação
 
 _Objetivo: Transformar a interface visual entre ar e água — o elemento mais visível do jogo — e enriquecer o céu de cada bioma com fenômenos atmosféricos reais e coerentes com a geografia da rota._
 
-- [ ] **29.1 Linha d'Água Ondulada e Orgânica:**
-  - Atual: `waterSurface` = `rect(k.width() * 2, 14)` estático e monocromático. Substituir por série de 8–10 segmentos com altura animada individualmente por ondas senoidais desfasadas, criando superfície viva e ondulada. Adicionar borda superior com faixa de espuma branca `(opacity: 0.35)` simulando a interface real água/ar.
-- [ ] **29.2 Reflexo Lunar na Costa Urbana Noturna:**
-  - Bioma noturno (12.000–19.000m) tem estrelas mas nenhuma lua ou reflexo. Adicionar disco lunar `circle(18px)` branco-amarelado `(245, 240, 210)` no `parallaxSkySystem`, visível somente nessa faixa de distância. Reflexo na água: série de elipses verticais estreitas de opacidade decrescente abaixo do `SEA_LEVEL`, distorcidas por `sin(time)`.
-- [ ] **29.3 Névoa de Profundidade no Horizonte Inferior:**
-  - O fundo oceânico (`z: -5` a `z: -10`) termina abruptamente na borda da tela. Adicionar degradê vertical de 3–4 `rect` com `opacity` decrescente de baixo para cima no limite inferior — o fundo desaparece na névoa azul oceânica em vez de ser cortado geometricamente.
-- [ ] **29.4 Ondas e Espuma Costeira em Arraial do Cabo:**
-  - Ao entrar em 25.000m+, adicionar partículas brancas horizontais (`rect 6×2px`) movendo-se lentamente da direita para a esquerda na superfície, simulando a espuma das ondas características da Praia dos Anjos — fenômeno visual real de Arraial do Cabo.
-- [ ] **29.5 Nuvens Cumuliformes com Forma Realista:**
-  - Nuvens atuais = elipses alongadas simples. Criar nuvens compostas por 3–5 círculos sobrepostos de tamanhos diferentes (`circle(20)`, `circle(14)`, `circle(10)`) com deslocamentos relativos — técnica padrão de pixel art para nuvens. Resultado visual incomparavelmente mais rico sem custo de performance.
-- [ ] **29.6 Aurora Austral na Antártica (Lights Australis):**
-  - O céu antártico é azul polar uniforme. Adicionar 3–4 faixas verticais de `rect` finos (`4×60px`) em verde-esmeralda e magenta `(80, 220, 160)` com `opacity: 0.12–0.20` e posição Y ondulada por `sin(time)` — aurora austral real. Fenômeno natural documentado no Oceano Antártico e visualmente inesquecível.
-- [ ] **29.7 Pôr do Sol em Camadas na Travessia Pelágica:**
-  - O bioma de travessia tem `skyColor: [225, 140, 95]` — cor sólida. Criar 4–5 faixas horizontais de `rect(k.width(), 14)` com parallax leve e cores progressivas: laranja quente → âmbar → rosa → lilás → azul crepuscular. Pôr do sol realista em camadas estratificadas.
-- [ ] **29.8 Pássaros Marinhos com Anatomia e Identidade de Espécie:**
-  - Pássaros atuais têm forma genérica sem distinção de espécie. Diferenciar por bioma: **Albatroz** (Antártica/Pelágico) — asas longas horizontais de `60px` de envergadura, batendo lentamente; **Fragata-magnífica** (Costa Urbana) — corpo fusiforme com cauda bifurcada em V invertido, vermelho e preto; **Garça-branca** (Arraial) — pescoço longo em S com pernas pendentes no voo.
+- [x] **29.1 Linha d'Água Ondulada e Orgânica:**
+  - Substituído o retângulo monolítico por `src/systems/waterSurfaceSystem.ts`, composto por colisor contínuo invisível (`TAGS.SURFACE`) e 14 segmentos verticais interconectados animados por ondas senoidais harmônicas desfasadas, com crista de espuma branca translúcida (`opacity: 0.38`).
+- [x] **29.2 Reflexo Lunar na Costa Urbana Noturna:**
+  - Adicionado disco lunar `circle(16)` marfim suave (`rgb(248, 242, 215)`) com halo difuso (`circle(26)`) no céu noturno (12.000–19.000m) e coluna de 5 filetes luminosos de reflexo aquático na superfície, oscilando organicamente conforme a ondulação do mar.
+- [x] **29.3 Névoa de Profundidade no Horizonte Inferior:**
+  - Criado `src/systems/abyssalFogSystem.ts` com 4 camadas graduais de névoa marinha na borda inferior da tela (`opacity: 0.12, 0.24, 0.42, 0.70`), dissolvendo o leito oceânico suavemente nas trevas abissais e eliminando cortes secos.
+- [x] **29.4 Ondas e Espuma Costeira em Arraial do Cabo:**
+  - Criado `src/systems/coastalSurfSystem.ts`: ao cruzar 24.800m, gera filetes de espuma e rebentação costeira (`rect(10–26, 2.2px)`) derivando de leste para oeste na superfície da Enseada dos Anjos.
+- [x] **29.5 Nuvens em Paralaxe Harmoniosas:**
+  - Preservado o formato clássico e elegante de nuvens horizontais arredondadas em `src/systems/parallaxSkySystem.ts`, com deriva suave do vento, fatores de paralaxe multicamada e transição cromática orgânica ao longo do ciclo dia/noite da rota.
+- [x] **29.6 Aurora Austral na Antártica (Lights Australis):**
+  - Criado `src/systems/auroraSystem.ts` com 6 cortinas verticais ondulantes de luz em verde-esmeralda elétrico e magenta estelar no céu polar antártico (0–5.000m), com respiração luminosa suave e fade-out gracioso.
+- [x] **29.7 Pôr do Sol em Camadas na Travessia Pelágica:**
+  - Implementadas 5 faixas horizontais de gradiente crepuscular no céu da travessia (5.000–12.000m): azul-crepúsculo escuro → lilás/roxo → rosa coral → âmbar alaranjado → dourado solar rasante.
+- [x] **29.8 Pássaros Marinhos com Anatomia e Identidade de Espécie:**
+  - Aves marinhas diferenciadas com anatomia autêntica por bioma: **Albatroz-viajante** (envergadura de 44px, pontas escuras, planeio longo), **Fragata-magnífica** (plumagem escura, cauda em tesoura bifurcada, voo ágil) e **Garça-branca/Atobá** (plumagem alva, pescoço em S e pernas estendidas).
 
 ### 🌿 FASE 30: Fundo Submarino, Iluminação & Identidade dos Obstáculos
 
