@@ -34,6 +34,8 @@ import { createWaterSurfaceSystem } from "./systems/waterSurfaceSystem";
 import { setupAuroraSystem } from "./systems/auroraSystem";
 import { setupAbyssalFogSystem } from "./systems/abyssalFogSystem";
 import { setupCoastalSurfSystem } from "./systems/coastalSurfSystem";
+import { setupMarineSnowSystem } from "./systems/marineSnowSystem";
+import { setupDepthDarknessSystem } from "./systems/depthDarknessSystem";
 import { createKioskScene } from "./systems/kioskMode";
 import { setupTouchControls } from "./ui/touchControls";
 import { initParticlePool } from "./systems/particlePool";
@@ -337,6 +339,10 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
   setupAuroraSystem(k);
   setupAbyssalFogSystem(k);
   setupCoastalSurfSystem(k);
+
+  // Fase 30: Fundo Submarino, Iluminação & Identidade dos Obstáculos
+  setupMarineSnowSystem(k);
+  setupDepthDarknessSystem(k, playerController);
 
   // 4. Inicializa áudio da migração e atalhos
   audioSystem.startMigrationAudio(initialX);

@@ -2,6 +2,13 @@ import kaboom, { type GameObj } from "kaboom";
 import { GAME_CONFIG } from "../config";
 
 /**
+ * Calcula a largura volumétrica do feixe solar (Fase 30.4: 8px a 18px).
+ */
+export function calculateGodRayWidth(rayIndex: number): number {
+  return 8 + (rayIndex % 4) * 3.2;
+}
+
+/**
  * Sistema de Iluminação Subaquática: God Rays (Feixes Volumétricos) & Cáusticos de Superfície
  * Traz atmosfera cinematográfica e sensação de profundidade através da luz solar filtrada na água.
  */
@@ -9,9 +16,9 @@ export function setupLightRaysSystem(k: ReturnType<typeof kaboom>) {
   const rayCount = 15;
   const godRays: GameObj[] = [];
 
-  // Criação dos feixes ultrafinos e cristalinos de luz solar (1.5px a 3.5px de largura)
+  // Criação dos feixes volumétricos de luz solar calibrados (8px a 18px de largura, opacidade suave 0.05)
   for (let i = 0; i < rayCount; i++) {
-    const baseWidth = 6 + (i % 3) * 4; // 6–14px — visíveis sem parecerem tiras sólidas
+    const baseWidth = calculateGodRayWidth(i); // 8–18px — perceptíveis sem parecerem tiras sólidas
     const baseAngle = -18 + i * 2.6; // Ângulos graduais
 
     const ray = k.add([
@@ -19,7 +26,7 @@ export function setupLightRaysSystem(k: ReturnType<typeof kaboom>) {
       k.pos(0, GAME_CONFIG.SEA_LEVEL),
       k.rotate(baseAngle),
       k.color(210, 245, 255),
-      k.opacity(0.08),
+      k.opacity(0.05), // Opacidade base calibrada entre 0.04 e 0.06
       k.anchor("top"),
       k.z(-2), // Atrás da baleia, krill e lixo, mas sobre o fundo
       "god_ray",
@@ -43,7 +50,7 @@ export function setupLightRaysSystem(k: ReturnType<typeof kaboom>) {
       k.rect(k.width() / causticSegments + 10, 4, { radius: 2 }),
       k.pos(c * (k.width() / causticSegments), GAME_CONFIG.SEA_LEVEL + 2),
       k.color(240, 255, 255),
-      k.opacity(0.14),
+      k.opacity(0.12),
       k.z(1),
       "caustic_surface",
       {
@@ -61,25 +68,24 @@ export function setupLightRaysSystem(k: ReturnType<typeof kaboom>) {
     const screenLeft = camX - k.width() / 2;
 
     // Fator de intensidade de luz solar baseado no bioma:
-    // 0m - 5.000m (Antártica): Luz muito fria e sutil (0.04 - 0.08) filtrada pelo gelo
-    // 5.000m - 12.000m (Atlântico Sul): Luz intermediária (0.08 - 0.12)
-    // 12.000m - 19.000m (Costa Urbana): Luz abafada/esverdeada pela turbidez (0.06 - 0.10)
-    // 19.000m - 27.000m (Arraial do Cabo): Luz dourada/turquesa cristalina radiante (0.16 - 0.28)
-    let biomeLightFactor = 0.08;
+    // 0m - 5.000m (Antártica): Luz muito fria e tênue filtrada pelo teto de gelo
+    // 5.000m - 12.000m (Atlântico Sul): Luz intermediária pura
+    // 12.000m - 19.000m (Costa Urbana): Luz abafada/esverdeada pela turbidez
+    // 19.000m - 30.000m (Arraial do Cabo): Luz dourada/turquesa radiante
+    let biomeLightFactor = 0.05;
     let rayColor = k.rgb(190, 230, 255);
 
     if (camX < 5000) {
-      biomeLightFactor = 0.05;
+      biomeLightFactor = 0.035;
       rayColor = k.rgb(160, 210, 255); // Azul polar
     } else if (camX < 12000) {
-      biomeLightFactor = 0.1;
+      biomeLightFactor = 0.055;
       rayColor = k.rgb(180, 230, 255);
     } else if (camX < 19000) {
-      biomeLightFactor = 0.07;
+      biomeLightFactor = 0.045;
       rayColor = k.rgb(180, 220, 210); // Leve tom urbano
     } else {
-      // Ressurgência e Santuário de Arraial: águas caribenhas límpidas e raios dourados
-      biomeLightFactor = 0.22;
+      biomeLightFactor = 0.075;
       rayColor = k.rgb(255, 250, 210); // Dourado solar cintilante
     }
 
@@ -93,9 +99,9 @@ export function setupLightRaysSystem(k: ReturnType<typeof kaboom>) {
       ray.angle = ray.angleOffset + angleSway;
       ray.color = rayColor;
 
-      // Pulsação suave de intensidade
-      const pulseOpacity = (0.7 + sway * 0.3) * biomeLightFactor;
-      ray.opacity = Math.max(0.02, Math.min(0.22, pulseOpacity));
+      // Pulsação suave de intensidade calibrada (0.03 a 0.08)
+      const pulseOpacity = (0.8 + sway * 0.2) * biomeLightFactor;
+      ray.opacity = Math.max(0.02, Math.min(0.08, pulseOpacity));
     });
 
     // Atualiza cáusticos de refração na superfície

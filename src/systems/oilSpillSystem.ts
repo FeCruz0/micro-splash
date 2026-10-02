@@ -12,6 +12,32 @@ import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
  * Respirar ou romper a superfície nessa zona obstrui o espiráculo da baleia,
  * impedindo a recarga de oxigênio até que ela mergulhe fundo em águas limpas.
  */
+/**
+ * Calcula a cor da película iridescente com alternância senoidal de 3 cores químicas (Fase 30.7).
+ * Cores: Azul cobalto / petróleo, Verde esmeralda, Violeta furta-cor.
+ */
+export function calculateIridescentOilColor(
+  time: number,
+  patchIndex: number
+): [number, number, number] {
+  const t = time * 2.0 + patchIndex * 0.7;
+  const s1 = (Math.sin(t) + 1) * 0.5;
+  const s2 = (Math.sin(t + 2.094) + 1) * 0.5; // +120°
+  const s3 = (Math.sin(t + 4.188) + 1) * 0.5; // +240°
+
+  const total = s1 + s2 + s3 || 1;
+  const r = Math.round((s1 * 45 + s2 * 35 + s3 * 175) / total);
+  const g = Math.round((s1 * 120 + s2 * 215 + s3 * 65) / total);
+  const b = Math.round((s1 * 230 + s2 * 150 + s3 * 210) / total);
+  return [r, g, b];
+}
+
+/**
+ * Sistema de Mancha de Óleo Pré-Arraial (Fase 9.1 & 30.7)
+ * Faixa: 17.400m a 18.900m (antes do Boqueirão)
+ *
+ * Simula um derramamento industrial de hidrocarbonetos na superfície com 3 camadas físicas.
+ */
 export function setupOilSpillSystem(k: KaboomCtx, playerController: PlayerController) {
   let isSystemActive = true;
   const SPILL_START = 17400;
@@ -40,28 +66,39 @@ export function setupOilSpillSystem(k: KaboomCtx, playerController: PlayerContro
     buoy.pos.y = GAME_CONFIG.SEA_LEVEL - 5 + Math.sin(buoyTime * 2.5) * 2;
   });
 
-  // Gera manchas sequenciais de óleo viscoso com reflexos iridescentes
+  // Gera manchas sequenciais de óleo viscoso com 3 camadas realistas (Fase 30.7)
   const patches: any[] = [];
   for (let x = SPILL_START; x < SPILL_END; x += PATCH_WIDTH - 20) {
-    // Camada principal de petróleo bruto na linha d'água
+    // Camada 1: Base densa de petróleo bruto na linha d'água
     const slick = k.add([
       k.rect(PATCH_WIDTH, 14, { radius: 4 }),
       k.pos(x, GAME_CONFIG.SEA_LEVEL - 2),
-      k.color(20, 14, 10), // óleo negro denso
-      k.opacity(0.88),
+      k.color(8, 5, 5), // petróleo bruto ultra-escuro (8, 5, 5)
+      k.opacity(0.9),
       k.z(18),
       "oil_spill",
     ]);
 
-    // Película iridescente superior (arco-íris de hidrocarboneto)
+    // Camada 2: Película iridescente central (furta-cor com shimmer)
     const film = slick.add([
-      k.rect(PATCH_WIDTH - 10, 3),
-      k.pos(5, 1),
-      k.color(180, 80, 220),
-      k.opacity(0.75),
+      k.rect(PATCH_WIDTH - 12, 3),
+      k.pos(6, 2),
+      k.color(160, 60, 200),
+      k.opacity(0.8),
     ]);
 
-    patches.push({ slick, film, baseX: x });
+    // Camada 3: Gotas de espuma emulsionada de contaminação nas bordas
+    const foamPositions = [4, 12, PATCH_WIDTH - 16, PATCH_WIDTH - 8];
+    const foamDrops = foamPositions.map((relX, fIdx) => {
+      return slick.add([
+        k.circle(fIdx % 2 === 0 ? 2.5 : 2),
+        k.pos(relX, 2 + (fIdx % 2) * 2),
+        k.color(245, 245, 235), // espuma branca/amarelada
+        k.opacity(0.3),
+      ]);
+    });
+
+    patches.push({ slick, film, foamDrops, baseX: x });
   }
 
   let shimmerTime = 0;
@@ -74,7 +111,7 @@ export function setupOilSpillSystem(k: KaboomCtx, playerController: PlayerContro
 
     shimmerTime += k.dt();
 
-    // Atualiza reflexos iridescentes (onda de cores de petróleo)
+    // Atualiza reflexos iridescentes (onda de cores químicas de hidrocarbonetos)
     patches.forEach((p, idx) => {
       // Ativa somente se estiver próximo da visão do jogador
       if (Math.abs(p.baseX - player.pos.x) < 1400) {
@@ -82,25 +119,8 @@ export function setupOilSpillSystem(k: KaboomCtx, playerController: PlayerContro
         // Ondulação suave da mancha
         p.slick.pos.y = GAME_CONFIG.SEA_LEVEL - 2 + Math.sin(shimmerTime * 2 + idx * 0.8) * 1.5;
 
-        // Variação de cor da película iridescente (arco-íris característico)
-        const hue = (shimmerTime * 60 + idx * 45) % 360;
-        const phase = (hue / 360) * 3;
-        let r: number, g: number, b: number;
-        if (phase < 1) {
-          r = 220 - phase * 140;
-          g = 80 + phase * 140;
-          b = 100;
-        } else if (phase < 2) {
-          const p2 = phase - 1;
-          r = 80;
-          g = 220 - p2 * 80;
-          b = 100 + p2 * 140;
-        } else {
-          const p3 = phase - 2;
-          r = 80 + p3 * 140;
-          g = 140 - p3 * 60;
-          b = 240 - p3 * 20;
-        }
+        // Variação química de cor da película iridescente
+        const [r, g, b] = calculateIridescentOilColor(shimmerTime, idx);
         p.film.color = k.rgb(r, g, b);
       } else {
         p.slick.hidden = true;

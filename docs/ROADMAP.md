@@ -379,22 +379,22 @@ _Objetivo: Transformar a interface visual entre ar e água — o elemento mais v
 
 _Objetivo: Enriquecer o leito marinho com flora e geologia procedural por bioma, corrigir a iluminação subaquática e dar identidade visual real a cada tipo de obstáculo._
 
-- [ ] **30.1 Silhuetas Procedurais do Fundo por Tipo Geológico:**
-  - Todos os `SUBMARINE_RELIEFS` são retângulos `radius: 4` — moraina, monte submarino e banco de areia têm a mesma forma. Diferenciar: **Moraina** → topo irregular com 3–5 pontos de altura randômica (`polygon`); **Monte Submarino** → forma cônica com `circle` no pico; **Banco de Areia** → ondulação suave com topo plano e declive gradual; **Canyon Ridge** → paredes verticais abruptas.
-- [ ] **30.2 Flora Submarina por Bioma:**
-  - Fundo sem flora alguma. Adicionar por bioma: **Antártica** → algas vermelhas `kelp` (`rect 2×30px` ondulando com `sin(time)`) em amarelo-amarronzado; **Pelágico** → sem flora (profundidade sem luz); **Costa Urbana** → ervas marinhas cinza-esverdeadas com lixo plástico entranhado; **Arraial** → expandir as algas calcárias rosas `(Lithothamnion)` do `canyonSystem.ts` para toda a topografia da enseada.
-- [ ] **30.3 Neve Marinha nas Profundidades Abissais (Marine Snow):**
-  - No bioma Pelágico (5.000–12.000m), gerar 12–16 partículas de sedimento (`circle 1–2px`, `color: 120, 140, 160`, `opacity: 0.3`) flutuando lentamente para baixo em velocidades randômicas — fenômeno oceanográfico real de material orgânico decaído e bactérias marinhas precipitando pelas profundezas.
-- [ ] **30.4 God Rays Mais Largos e Visíveis:**
-  - Raios de luz atuais: `1.5–3.5px` de largura — praticamente invisíveis na maioria dos monitores. A técnica correta em jogos 2D usa `6–18px` com opacidade base mais baixa. Aumentar para `8–18px` e reduzir opacidade base de `0.08` para `0.04–0.06`. Resultado: raios perceptíveis sem parecerem tiras sólidas.
-- [ ] **30.5 Escuridão Progressiva com Profundidade:**
-  - A profundidade é indicada apenas pela cor de fundo, mas a baleia não fica mais escura ao mergulhar. Sobrepor overlay `rect(k.width(), k.height())` de cor `(0, 10, 25)` com `opacity` proporcional à posição Y do jogador (`player.pos.y / k.height() * 0.4`). Fenômeno físico real: a cada 10m de profundidade, ~90% da luz vermelha é absorvida pela água.
-- [ ] **30.6 Halo de Luz do Espiráculo ao Respirar na Superfície:**
-  - Ao romper o `SEA_LEVEL` para respirar, emitir brevemente (0.5s) um `circle(30px)` branco `opacity: 0.20` ao redor do espiráculo — reflexo do sol na superfície perturbada ao romper a água. Detalhe de altíssimo impacto visual com implementação mínima.
-- [ ] **30.7 Mancha de Óleo com Camadas Iridescentes Realistas:**
-  - Atual: 1 camada escura + 1 película violeta. Adicionar 3 camadas sobrepostas: (1) base densa `(8, 5, 5, 0.9)` — petróleo bruto; (2) película iridescente com shimmer de 3 cores alternando por `sin(time)` — azul/verde/violeta (iridescência química real); (3) gotas de espuma nas bordas `(circle 2–3px, white, 0.3)` — emulsão de contaminação.
-- [ ] **30.8 Gelo Translúcido com Veias Glaciais:**
-  - Blocos de gelo atuais: `rect` branco sólido `opacity: 0.96` sem nenhuma profundidade visual. Adicionar 3–4 faixas internas de tons ligeiramente diferentes `(180, 215, 255)` e `(230, 248, 255)` com borda translúcida `opacity: 0.4`. Veias diagonais de azul glacial `(30, 80, 140, 0.15)` cruzando cada bloco — translucidez cristalina característica do gelo ártico.
+- [x] **30.1 Silhuetas Procedurais do Fundo por Tipo Geológico:**
+  - `oceanFloorSystem.ts` atualizado com funções puras `generateReliefPolygonPoints` e `generateReliefCapPolygonPoints`: morainas com cristas serrilhadas de cascalho glacial, montes submarinos cônicos com ápice pronunciado, bancos de areia com topo suave e declive gradual, paredões escarpados de cânion e plataformas de arrecife.
+- [x] **30.2 Flora Submarina por Bioma:**
+  - `benthicFloorSystem.ts` expandido com flora específica: algas vermelhas polares (_Rhodophyta_) com ondulação senoidal na Antártica (0–5.000m); ausência fótica preservada no Pelágico (5.000–12.000m); pradarias de ervas marinhas cinza-esverdeadas com micro-plásticos emaranhados na Costa Urbana (12.000–19.000m); expansão de nódulos e crostas calcárias rosas de _Lithothamnion_ em Arraial do Cabo (19.000–30.000m).
+- [x] **30.3 Neve Marinha nas Profundidades Abissais (Marine Snow):**
+  - Criado `src/systems/marineSnowSystem.ts`: 16 micro-partículas de sedimento orgânico (`circle 1–1.8px`, tom `rgb(120, 140, 160)`, `opacity: 0.22–0.32`) flutuando suavemente para baixo com deriva senoidal na Travessia Pelágica (5.000m a 12.000m).
+- [x] **30.4 God Rays Mais Largos e Visíveis:**
+  - `lightRaysSystem.ts` calibrado com largura de 8px a 18px (`calculateGodRayWidth`), opacidade base atenuada para 0.04–0.06 e variação atmosférica por bioma, eliminando tiras sólidas e entregando volumetria fótica etérea.
+- [x] **30.5 Escuridão Progressiva com Profundidade:**
+  - Criado `src/systems/depthDarknessSystem.ts` com cálculo físico `calculateDepthDarknessOpacity`: overlay abissal `rgb(0, 10, 25)` em camada fixa `z: 8` que escurece proporcionalmente ao mergulho da baleia (opacidade 0 na superfície até ~0.38 perto do leito marinho).
+- [x] **30.6 Halo de Luz do Espiráculo ao Respirar na Superfície:**
+  - Adicionado em `playerParticles.ts` dentro de `spawnBlowholeSpout`: ao romper o `SEA_LEVEL` para respirar, emite brevemente (0.5s) um halo elíptico expansivo `circle(30px)` branco (`opacity: 0.20`) na lâmina da água.
+- [x] **30.7 Mancha de Óleo com Camadas Iridescentes Realistas:**
+  - `oilSpillSystem.ts` reestruturado em 3 camadas físicas: (1) base densa `(8, 5, 5, 0.90)` de petróleo bruto; (2) película iridescente com cálculo químico `calculateIridescentOilColor` alternando azul petróleo, verde esmeralda e violeta; (3) gotas de espuma emulsionada nas margens do derramamento.
+- [x] **30.8 Gelo Translúcido com Veias Glaciais:**
+  - `iceSurface.ts` aprimorado: bordas superior e de fusão inferior translúcidas (`opacity: 0.40`), 3 faixas horizontais de estratificação cristalina polar compactada e 3–4 veias diagonais de azul glacial profundo (`rgb(30, 80, 140)`, `opacity: 0.15`).
 
 ### 🎆 FASE 31: Partículas, Coerência de Bioma & Polimento de Interface
 

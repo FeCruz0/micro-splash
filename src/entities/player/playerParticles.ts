@@ -101,6 +101,31 @@ export function spawnBlowholeSpout(
   const spoutOrigin = pos.add(k.vec2(isFacingRight ? 22 : -22, -13));
   const pool = getParticlePool();
 
+  // Halo de luz do espiráculo ao romper a água para respirar na superfície (Fase 30.6)
+  const halo = k.add([
+    k.circle(30),
+    k.pos(spoutOrigin.x, GAME_CONFIG.SEA_LEVEL),
+    k.color(255, 255, 255),
+    k.opacity(0.2),
+    k.scale(1, 0.4), // Projeção horizontal elíptica na lâmina da água
+    k.anchor("center"),
+    k.z(14),
+    "blowhole_sun_halo",
+  ]);
+
+  let haloTimer = 0.5;
+  halo.onUpdate(() => {
+    const dt = k.dt();
+    haloTimer -= dt;
+    halo.pos.x += hSpeed * 0.25 * dt;
+    halo.scale.x += dt * 0.8;
+    halo.scale.y += dt * 0.3;
+    halo.opacity = Math.max(0, (haloTimer / 0.5) * 0.2);
+    if (haloTimer <= 0) {
+      k.destroy(halo);
+    }
+  });
+
   // 32 partículas de condensação e vapor marinho em formato de V
   for (let i = 0; i < 32; i++) {
     const isRightPlume = i % 2 === 0;

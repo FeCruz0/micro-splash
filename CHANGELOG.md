@@ -7,6 +7,43 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [1.6.0] - 2026-10-01 — Fundo Submarino, Iluminação & Identidade dos Obstáculos (Fase 30)
+
+### Adicionado & Modificado
+
+- **Geologia Procedural do Fundo Oceânico**:
+  - `src/systems/oceanFloorSystem.ts`: Implementadas funções puras `generateReliefPolygonPoints` e `generateReliefCapPolygonPoints` com silhuetas especializadas e diferenciadas para cada tipo geológico de relevo:
+    - **Moraina**: Cristas serrilhadas e recortadas de cascalho glacial polar.
+    - **Monte Submarino**: Perfil cônico vulcânico pronunciado com ápice abissal.
+    - **Banco de Areia**: Curvas de dunas suaves com platô aplanado e declive gradual.
+    - **Paredões do Cânion**: Escarpas fraturadas quase verticais com fraturas graníticas.
+    - **Arrecifes**: Plataformas carbonáticas com cavidades rasas na enseada.
+- **Flora Bentônica por Bioma**:
+  - `src/systems/benthicFloorSystem.ts`: Enriquecimento da vegetação submarina por contexto ecológico:
+    - **Antártica**: Algas vermelhas polares (_Rhodophyta_) com lâminas flexíveis e ondulação senoidal suave (`sin(time)`).
+    - **Pelágico**: Preservada a vastidão afótica e ausência de flora fotossintética nas profundezas.
+    - **Costa Urbana**: Pradarias de ervas marinhas cinza-esverdeadas (_Halodule_) com fragmentos de micro-plásticos coloridos emaranhados em suas bases.
+    - **Arraial do Cabo**: Expansão sistemática de nódulos e crostas rosadas/aroxeadas de _Lithothamnion_ ao longo de toda a enseada.
+- **Neve Marinha Abissal (_Marine Snow_)**:
+  - `src/systems/marineSnowSystem.ts`: Criado novo sistema simulando a precipitação orgânica contínua de micro-sedimentos oceânicos (16 partículas, `circle 1–1.8px`, tom cinza-azulado `rgb(120, 140, 160)`) na coluna d'água da Travessia Pelágica (5.000m a 12.000m) com deriva lateral e velocidade terminal suave.
+- **Iluminação Volumétrica (_God Rays_)**:
+  - `src/systems/lightRaysSystem.ts`: Feixes volumétricos alargados para 8px a 18px (`calculateGodRayWidth`) com opacidade base atenuada para 0.04–0.06 e variação fotossensível por bioma, eliminando o aspecto de tiras sólidas e criando volumetria etérea e fluida.
+- **Escuridão Progressiva com Profundidade**:
+  - `src/systems/depthDarknessSystem.ts`: Criado novo sistema que sobrepõe overlay abissal `rgb(0, 10, 25)` em camada fixa `z: 8` com opacidade proporcional ao mergulho da baleia (`calculateDepthDarknessOpacity`), reproduzindo a absorção real da luz com o avanço vertical Y.
+- **Halo Solar do Espiráculo na Respiração**:
+  - `src/entities/player/playerParticles.ts`: Adicionado efeito de refração solar elíptica (`circle 30px`, branco, `opacity: 0.20`) na lâmina da água (`SEA_LEVEL`) ao romper a superfície para respirar, expandindo e sumindo em 0.5s.
+- **Mancha de Óleo com 3 Camadas Iridescentes**:
+  - `src/systems/oilSpillSystem.ts`: Reconstrução do vazamento industrial com 3 camadas físicas:
+    1. Base densa de petróleo bruto viscoso `rgb(8, 5, 5)` com `opacity: 0.90`.
+    2. Película iridescente central com cálculo químico senoidal `calculateIridescentOilColor` alternando azul cobalto, verde esmeralda e violeta.
+    3. Micro-gotículas de espuma emulsionada nas bordas da contaminação.
+- **Gelo Glacial Cristalino & Estratificado**:
+  - `src/systems/iceSurface.ts`: Blocos de gelo aprimorados com 3 faixas horizontais de estratificação cristalina compactada, bordas superior e de fusão inferior translúcidas (`opacity: 0.40`) e 3–4 veias diagonais de azul glacial profundo cruzando cada bloco.
+- **Testes Automatizados**:
+  - `tests/phase30_seabed_lighting.test.ts`: Nova suíte de testes com 11 especificações cobrindo geologia procedural, flora bentônica, neve marinha, raios solares, escuridão progressiva e iridescência de hidrocarbonetos (totalizando 255 testes 100% aprovados).
+
+---
+
 ## [1.5.0] - 2026-09-29 — Superfície, Céu & Atmosfera (Fase 29)
 
 ### Adicionado & Modificado

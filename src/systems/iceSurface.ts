@@ -152,17 +152,32 @@ export function setupIceSurfaceSystem(
       },
     ]);
 
-    // Veios glaciais diagonais translúcidos (destruídos automaticamente com o segmento)
-    const veinCount = 2 + Math.floor((width / 80) % 2);
+    // 1. Bordas superior e de fusão inferior translúcidas (Fase 30.8)
+    segment.add([k.rect(width, 3), k.pos(0, 0), k.color(240, 252, 255), k.opacity(0.4), k.z(11)]);
+    segment.add([
+      k.rect(width, 3),
+      k.pos(0, iceHeight - 3),
+      k.color(180, 215, 255),
+      k.opacity(0.4),
+      k.z(11),
+    ]);
+
+    // 2. Faixas internas de estratificação cristalina polar compactada
+    segment.add([k.rect(width, 7), k.pos(0, 5), k.color(230, 248, 255), k.opacity(0.35), k.z(11)]);
+    segment.add([k.rect(width, 9), k.pos(0, 16), k.color(180, 215, 255), k.opacity(0.28), k.z(11)]);
+    segment.add([k.rect(width, 7), k.pos(0, 28), k.color(215, 240, 255), k.opacity(0.3), k.z(11)]);
+
+    // 3. Veios glaciais diagonais translúcidos de azul glacial profundo (Fase 30.8)
+    const veinCount = 3 + Math.floor((width / 75) % 2);
     for (let v = 0; v < veinCount; v++) {
       const veinRelX = (width / (veinCount + 1)) * (v + 1);
       segment.add([
-        k.rect(1.5, iceHeight * 0.7),
-        k.pos(veinRelX, iceHeight * 0.15),
+        k.rect(1.5, iceHeight * 0.76),
+        k.pos(veinRelX, iceHeight * 0.12),
         k.color(30, 80, 140),
         k.opacity(0.15),
-        k.rotate(-12 + v * 8),
-        k.z(11),
+        k.rotate(-15 + v * 9),
+        k.z(12),
       ]);
     }
 

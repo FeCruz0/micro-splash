@@ -101,6 +101,184 @@ export const SUBMARINE_RELIEFS: SubmarineRelief[] = [
   },
 ];
 
+export interface Point2D {
+  x: number;
+  y: number;
+}
+
+/**
+ * Gera os vértices do polígono do relevo com morfologia geológica autêntica (Fase 30.1).
+ */
+export function generateReliefPolygonPoints(
+  relief: SubmarineRelief,
+  floorBaseY: number
+): Point2D[] {
+  const w = relief.width;
+  const h = relief.height;
+  const peakY = floorBaseY - h;
+
+  switch (relief.type) {
+    case "moraine":
+      // Topo irregular serrilhado com 3-5 picos de cascalho glacial recortado
+      return [
+        { x: 0, y: floorBaseY + 60 },
+        { x: 0, y: floorBaseY },
+        { x: w * 0.15, y: floorBaseY - h * 0.35 },
+        { x: w * 0.28, y: floorBaseY - h * 0.65 },
+        { x: w * 0.4, y: floorBaseY - h * 0.85 },
+        { x: w * 0.5, y: floorBaseY - h * 0.68 },
+        { x: w * 0.62, y: floorBaseY - h * 1.0 },
+        { x: w * 0.74, y: floorBaseY - h * 0.72 },
+        { x: w * 0.86, y: floorBaseY - h * 0.38 },
+        { x: w, y: floorBaseY },
+        { x: w, y: floorBaseY + 60 },
+      ];
+
+    case "seamount":
+      // Monte submarino cônico vulcânico com encostas íngremes e ápice pronunciado
+      return [
+        { x: 0, y: floorBaseY + 60 },
+        { x: 0, y: floorBaseY },
+        { x: w * 0.22, y: floorBaseY - h * 0.22 },
+        { x: w * 0.38, y: floorBaseY - h * 0.72 },
+        { x: w * 0.46, y: floorBaseY - h * 0.95 },
+        { x: w * 0.5, y: peakY },
+        { x: w * 0.54, y: floorBaseY - h * 0.95 },
+        { x: w * 0.62, y: floorBaseY - h * 0.72 },
+        { x: w * 0.78, y: floorBaseY - h * 0.22 },
+        { x: w, y: floorBaseY },
+        { x: w, y: floorBaseY + 60 },
+      ];
+
+    case "sandbar":
+      // Banco de areia suave com topo aplanado e declive gradual
+      return [
+        { x: 0, y: floorBaseY + 60 },
+        { x: 0, y: floorBaseY },
+        { x: w * 0.2, y: floorBaseY - h * 0.3 },
+        { x: w * 0.36, y: floorBaseY - h * 0.82 },
+        { x: w * 0.44, y: floorBaseY - h * 0.98 },
+        { x: w * 0.5, y: peakY },
+        { x: w * 0.56, y: floorBaseY - h * 0.98 },
+        { x: w * 0.64, y: floorBaseY - h * 0.82 },
+        { x: w * 0.8, y: floorBaseY - h * 0.3 },
+        { x: w, y: floorBaseY },
+        { x: w, y: floorBaseY + 60 },
+      ];
+
+    case "canyon_ridge":
+      // Paredões graníticos abruptos e quase verticais com fendas
+      return [
+        { x: 0, y: floorBaseY + 60 },
+        { x: 0, y: floorBaseY },
+        { x: w * 0.2, y: floorBaseY - h * 0.15 },
+        { x: w * 0.28, y: floorBaseY - h * 0.88 },
+        { x: w * 0.34, y: floorBaseY - h * 0.96 },
+        { x: w * 0.48, y: peakY },
+        { x: w * 0.68, y: floorBaseY - h * 0.98 },
+        { x: w * 0.74, y: floorBaseY - h * 0.88 },
+        { x: w * 0.82, y: floorBaseY - h * 0.18 },
+        { x: w, y: floorBaseY },
+        { x: w, y: floorBaseY + 60 },
+      ];
+
+    case "reef_shoal":
+      // Plataforma carbonática irregular com degraus de arrecife
+      return [
+        { x: 0, y: floorBaseY + 60 },
+        { x: 0, y: floorBaseY },
+        { x: w * 0.16, y: floorBaseY - h * 0.4 },
+        { x: w * 0.3, y: floorBaseY - h * 0.85 },
+        { x: w * 0.42, y: floorBaseY - h * 0.92 },
+        { x: w * 0.52, y: peakY },
+        { x: w * 0.62, y: floorBaseY - h * 0.88 },
+        { x: w * 0.74, y: floorBaseY - h * 0.95 },
+        { x: w * 0.85, y: floorBaseY - h * 0.45 },
+        { x: w, y: floorBaseY },
+        { x: w, y: floorBaseY + 60 },
+      ];
+  }
+}
+
+/**
+ * Gera os vértices da camada superficial (sedimento, musgo, areia) adaptados ao tipo geológico.
+ */
+export function generateReliefCapPolygonPoints(
+  relief: SubmarineRelief,
+  floorBaseY: number
+): Point2D[] {
+  const w = relief.width;
+  const h = relief.height;
+  const peakY = floorBaseY - h;
+
+  switch (relief.type) {
+    case "moraine":
+      return [
+        { x: w * 0.18, y: floorBaseY - h * 0.4 },
+        { x: w * 0.28, y: floorBaseY - h * 0.65 },
+        { x: w * 0.4, y: floorBaseY - h * 0.85 },
+        { x: w * 0.5, y: floorBaseY - h * 0.68 },
+        { x: w * 0.62, y: floorBaseY - h * 1.0 },
+        { x: w * 0.74, y: floorBaseY - h * 0.72 },
+        { x: w * 0.84, y: floorBaseY - h * 0.42 },
+        { x: w * 0.8, y: floorBaseY - h * 0.38 + 5 },
+        { x: w * 0.62, y: floorBaseY - h * 1.0 + 7 },
+        { x: w * 0.5, y: floorBaseY - h * 0.68 + 6 },
+        { x: w * 0.4, y: floorBaseY - h * 0.85 + 7 },
+        { x: w * 0.24, y: floorBaseY - h * 0.4 + 5 },
+      ];
+
+    case "seamount":
+      return [
+        { x: w * 0.32, y: floorBaseY - h * 0.55 },
+        { x: w * 0.46, y: floorBaseY - h * 0.95 },
+        { x: w * 0.5, y: peakY - 1 },
+        { x: w * 0.54, y: floorBaseY - h * 0.95 },
+        { x: w * 0.68, y: floorBaseY - h * 0.55 },
+        { x: w * 0.62, y: floorBaseY - h * 0.55 + 6 },
+        { x: w * 0.5, y: peakY + 7 },
+        { x: w * 0.38, y: floorBaseY - h * 0.55 + 6 },
+      ];
+
+    case "sandbar":
+      return [
+        { x: w * 0.28, y: floorBaseY - h * 0.65 },
+        { x: w * 0.44, y: floorBaseY - h * 0.98 },
+        { x: w * 0.5, y: peakY - 1 },
+        { x: w * 0.56, y: floorBaseY - h * 0.98 },
+        { x: w * 0.72, y: floorBaseY - h * 0.65 },
+        { x: w * 0.66, y: floorBaseY - h * 0.65 + 5 },
+        { x: w * 0.5, y: peakY + 6 },
+        { x: w * 0.34, y: floorBaseY - h * 0.65 + 5 },
+      ];
+
+    case "canyon_ridge":
+      return [
+        { x: w * 0.26, y: floorBaseY - h * 0.75 },
+        { x: w * 0.34, y: floorBaseY - h * 0.96 },
+        { x: w * 0.48, y: peakY - 1 },
+        { x: w * 0.68, y: floorBaseY - h * 0.98 },
+        { x: w * 0.76, y: floorBaseY - h * 0.75 },
+        { x: w * 0.7, y: floorBaseY - h * 0.75 + 6 },
+        { x: w * 0.48, y: peakY + 7 },
+        { x: w * 0.3, y: floorBaseY - h * 0.75 + 6 },
+      ];
+
+    case "reef_shoal":
+      return [
+        { x: w * 0.22, y: floorBaseY - h * 0.65 },
+        { x: w * 0.42, y: floorBaseY - h * 0.92 },
+        { x: w * 0.52, y: peakY - 1 },
+        { x: w * 0.62, y: floorBaseY - h * 0.88 },
+        { x: w * 0.74, y: floorBaseY - h * 0.95 },
+        { x: w * 0.8, y: floorBaseY - h * 0.65 },
+        { x: w * 0.72, y: floorBaseY - h * 0.65 + 6 },
+        { x: w * 0.52, y: peakY + 7 },
+        { x: w * 0.3, y: floorBaseY - h * 0.65 + 6 },
+      ];
+  }
+}
+
 /**
  * Cria a topografia do leito marinho com colisões sólidas e resposta ao Biosonar.
  */
@@ -144,19 +322,11 @@ export function setupOceanFloorSystem(k: KaboomCtx) {
     }
 
     // 1. Corpo Geológico Poligonal do Relevo
-    // Desenha o monte submarino com encostas suaves e cristas naturais
+    const bodyPoints = generateReliefPolygonPoints(relief, floorBaseY).map((pt) =>
+      k.vec2(pt.x, pt.y)
+    );
     const shapeObj = k.add([
-      k.polygon([
-        k.vec2(0, floorBaseY + 60), // Canto inferior esquerdo
-        k.vec2(0, floorBaseY), // Início na base do leito
-        k.vec2(relief.width * 0.22, floorBaseY - relief.height * 0.45), // Encosta ascendente suave
-        k.vec2(relief.width * 0.42, peakY + 3), // Ombro ocidental do cume
-        k.vec2(relief.width * 0.5, peakY), // Cume máximo
-        k.vec2(relief.width * 0.58, peakY + 4), // Ombro oriental do cume
-        k.vec2(relief.width * 0.78, floorBaseY - relief.height * 0.4), // Encosta descendente
-        k.vec2(relief.width, floorBaseY), // Fim na base do leito
-        k.vec2(relief.width, floorBaseY + 60), // Canto inferior direito
-      ]),
+      k.polygon(bodyPoints),
       k.pos(relief.startX, 0),
       k.color(bodyColor),
       k.outline(2, outlineColor),
@@ -184,21 +354,10 @@ export function setupOceanFloorSystem(k: KaboomCtx) {
     ]);
 
     // 3. Camada de Cobertura Superficial (Sedimentos, Algas e Musgo Marinho)
-    k.add([
-      k.polygon([
-        k.vec2(relief.width * 0.18, floorBaseY - relief.height * 0.38),
-        k.vec2(relief.width * 0.42, peakY + 2),
-        k.vec2(relief.width * 0.5, peakY - 1),
-        k.vec2(relief.width * 0.58, peakY + 3),
-        k.vec2(relief.width * 0.82, floorBaseY - relief.height * 0.35),
-        k.vec2(relief.width * 0.76, floorBaseY - relief.height * 0.32 + 6),
-        k.vec2(relief.width * 0.5, peakY + 7),
-        k.vec2(relief.width * 0.24, floorBaseY - relief.height * 0.35 + 6),
-      ]),
-      k.pos(relief.startX, 0),
-      k.color(capColor),
-      k.z(2),
-    ]);
+    const capPoints = generateReliefCapPolygonPoints(relief, floorBaseY).map((pt) =>
+      k.vec2(pt.x, pt.y)
+    );
+    k.add([k.polygon(capPoints), k.pos(relief.startX, 0), k.color(capColor), k.z(2)]);
 
     // 4. Detalhes Geológicos (Fendas minerais e pedregulhos)
     const detailCount = 3;

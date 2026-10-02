@@ -16,6 +16,22 @@ interface CoralDetail {
   animPhase: number;
 }
 
+export const KELP_SPAWN_X = [
+  250, 420, 600, 780, 1100, 1350, 1600, 1950, 2200, 2550, 2850, 3100, 3450, 3800, 4200, 4550, 4850,
+];
+
+export const POLAR_RED_ALGAE_SPAWN_X = [
+  150, 500, 950, 1450, 1800, 2350, 2750, 3250, 3650, 4050, 4400, 4750,
+];
+
+export const URBAN_SEAGRASS_SPAWN_X = [
+  12200, 12600, 13100, 13700, 14200, 14800, 15300, 15900, 16500, 17100, 17600, 18200, 18700,
+];
+
+export const LITHOTHAMNION_SPAWN_X = [
+  19400, 19900, 20700, 21500, 22300, 23100, 24000, 24900, 25800, 26600, 27400, 28300, 29200, 29800,
+];
+
 /**
  * Sistema do Fundo Marinho Bentônico: Florestas de Kelp (Antártica) e Jardins de Corais (Arraial do Cabo)
  * Enriquece o leito oceânico com ecossistemas autênticos e física suave de ondulação subaquática.
@@ -27,10 +43,7 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
   // 1. FLORESTAS DE KELP GIGANTE NA ANTÁRTICA (0m a 5.000m)
   // ===========================================================================
   const kelpForest: KelpPlant[] = [];
-  const kelpSpawnX = [
-    250, 420, 600, 780, 1100, 1350, 1600, 1950, 2200, 2550, 2850, 3100, 3450, 3800, 4200, 4550,
-    4850,
-  ];
+  const kelpSpawnX = KELP_SPAWN_X;
 
   kelpSpawnX.forEach((xPos, plantIdx) => {
     const plantHeight = 120 + (plantIdx % 4) * 35; // Altura entre 120px e 225px
@@ -86,7 +99,134 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
   });
 
   // ===========================================================================
-  // 2. RECIFES DE CORAIS E ESCOLHOS EM ARRAIAL DO CABO (19.000m a 30.000m)
+  // 1.5. ALGAS VERMELHAS POLARES RASTEIRAS NA ANTÁRTICA (0m a 5.000m)
+  // ===========================================================================
+  const polarAlgaePlants: {
+    blades: GameObj[];
+    baseX: number;
+    swaySpeed: number;
+    swayPhase: number;
+  }[] = [];
+  POLAR_RED_ALGAE_SPAWN_X.forEach((xPos, aIdx) => {
+    const blades: GameObj[] = [];
+    const bladeColor = aIdx % 2 === 0 ? k.rgb(145, 52, 45) : k.rgb(165, 88, 35);
+    const bladeCount = 3 + (aIdx % 3);
+
+    for (let b = 0; b < bladeCount; b++) {
+      const bladeHeight = 22 + b * 6;
+      const blade = k.add([
+        k.rect(2.5, bladeHeight, { radius: 1 }),
+        k.pos(xPos + (b - bladeCount / 2) * 4, floorY),
+        k.color(bladeColor),
+        k.opacity(0.85),
+        k.anchor("bot"),
+        k.rotate((b - bladeCount / 2) * 8),
+        k.z(-3),
+        "polar_red_algae",
+      ]);
+      blades.push(blade);
+    }
+
+    polarAlgaePlants.push({
+      blades,
+      baseX: xPos,
+      swaySpeed: 1.5 + (aIdx % 3) * 0.3,
+      swayPhase: aIdx * 1.1,
+    });
+  });
+
+  // ===========================================================================
+  // 2. PRADARIAS DE ERVAS MARINHAS COM LIXO ENTRANHADO NA COSTA URBANA (12.000m a 19.000m)
+  // ===========================================================================
+  const urbanSeagrassPlants: {
+    blades: GameObj[];
+    baseX: number;
+    swaySpeed: number;
+    swayPhase: number;
+  }[] = [];
+  URBAN_SEAGRASS_SPAWN_X.forEach((xPos, sIdx) => {
+    const blades: GameObj[] = [];
+    // Ervas estressadas pela poluição com tons cinza-esverdeados escuros
+    const grassColor = sIdx % 2 === 0 ? k.rgb(75, 95, 70) : k.rgb(65, 85, 75);
+    const bladeCount = 4 + (sIdx % 3);
+
+    for (let b = 0; b < bladeCount; b++) {
+      const bladeH = 26 + b * 5;
+      const blade = k.add([
+        k.rect(2.2, bladeH, { radius: 1 }),
+        k.pos(xPos + (b - bladeCount / 2) * 4.5, floorY),
+        k.color(grassColor),
+        k.opacity(0.82),
+        k.anchor("bot"),
+        k.rotate((b - bladeCount / 2) * 6),
+        k.z(-3),
+        "urban_seagrass",
+      ]);
+      blades.push(blade);
+    }
+
+    // Micro-resíduos plásticos emaranhados nas raízes e folhas da vegetação
+    const trashColor =
+      sIdx % 4 === 0
+        ? k.rgb(230, 70, 60) // Fragmento de canudo/tampa vermelha
+        : sIdx % 4 === 1
+          ? k.rgb(240, 210, 60) // Plástico amarelo desbotado
+          : sIdx % 4 === 2
+            ? k.rgb(60, 160, 230) // Sacola plástica azul
+            : k.rgb(230, 230, 230); // Fita de isopor/branca
+
+    k.add([
+      k.rect(3.5, 3.5, { radius: 1 }),
+      k.pos(xPos + 3, floorY - 8 - (sIdx % 3) * 6),
+      k.color(trashColor),
+      k.opacity(0.88),
+      k.anchor("center"),
+      k.rotate((sIdx * 35) % 90),
+      k.z(-2),
+      "entangled_plastic_waste",
+    ]);
+
+    urbanSeagrassPlants.push({
+      blades,
+      baseX: xPos,
+      swaySpeed: 1.1 + (sIdx % 3) * 0.35,
+      swayPhase: sIdx * 0.9,
+    });
+  });
+
+  // ===========================================================================
+  // 3. BANCOS DE RODOLITOS E CROSTAS DE LITHOTHAMNION EM ARRAIAL (19.000m a 30.000m)
+  // ===========================================================================
+  LITHOTHAMNION_SPAWN_X.forEach((xPos, lIdx) => {
+    const crustW = 28 + (lIdx % 4) * 8;
+    const crustH = 4 + (lIdx % 3) * 1.5;
+    // Tonalidades rosadas e arroxeadas autênticas de algas calcárias (Lithothamnion)
+    const crustColor = k.rgb(180 + (lIdx % 3) * 12, 95 + (lIdx % 4) * 8, 135 + (lIdx % 2) * 16);
+
+    k.add([
+      k.rect(crustW, crustH, { radius: 2 }),
+      k.pos(xPos, floorY - 2 + (lIdx % 3) * 1.2),
+      k.color(crustColor),
+      k.opacity(0.88),
+      k.z(-3),
+      "lithothamnion_crust",
+    ]);
+
+    // Nódulos de rodolitos circulares dispersos adjacentes
+    if (lIdx % 2 === 0) {
+      k.add([
+        k.circle(3.5),
+        k.pos(xPos + crustW * 0.7, floorY - 3),
+        k.color(195, 110, 145),
+        k.opacity(0.85),
+        k.z(-3),
+        "lithothamnion_nodule",
+      ]);
+    }
+  });
+
+  // ===========================================================================
+  // 4. RECIFES DE CORAIS E ESCOLHOS EM ARRAIAL DO CABO (19.000m a 30.000m)
   // ===========================================================================
   const corals: CoralDetail[] = [];
   const coralSpawnX = [
@@ -199,7 +339,7 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
     const camX = k.camPos().x;
     const viewDist = k.width() + 200;
 
-    // A. Animação de ondulação das Florestas de Kelp (somente no Bioma Antártico: x < 5500)
+    // A. Animação de ondulação das Florestas de Kelp e Algas Vermelhas (somente no Bioma Antártico: x < 5500)
     if (camX < 5500) {
       kelpForest.forEach((plant) => {
         if (Math.abs(plant.baseX - camX) > viewDist) return;
@@ -212,6 +352,25 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
           const currentSway = baseSway * segProgress * 16;
           seg.pos.x = plant.baseX + currentSway;
           seg.angle = baseSway * segProgress * 9;
+        });
+      });
+
+      polarAlgaePlants.forEach((algae) => {
+        if (Math.abs(algae.baseX - camX) > viewDist) return;
+        const sway = Math.sin(time * algae.swaySpeed + algae.swayPhase);
+        algae.blades.forEach((blade, bIdx) => {
+          blade.angle = (bIdx - algae.blades.length / 2) * 8 + sway * 12;
+        });
+      });
+    }
+
+    // A.5. Animação de ondulação das Ervas Marinhas na Costa Urbana (11.500m a 19.500m)
+    if (camX >= 11500 && camX <= 19500) {
+      urbanSeagrassPlants.forEach((grass) => {
+        if (Math.abs(grass.baseX - camX) > viewDist) return;
+        const sway = Math.sin(time * grass.swaySpeed + grass.swayPhase);
+        grass.blades.forEach((blade, bIdx) => {
+          blade.angle = (bIdx - grass.blades.length / 2) * 6 + sway * 10;
         });
       });
     }
