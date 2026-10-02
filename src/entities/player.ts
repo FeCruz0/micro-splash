@@ -11,6 +11,7 @@ import {
   spawnBaleenSuction,
   spawnDraftingTrail,
   spawnTailWaterRipples,
+  spawnTailStrokeBubbles,
 } from "./player/playerParticles";
 
 export type { PlayerController } from "./player/types";
@@ -193,6 +194,8 @@ export function createPlayer(
             controlsMgr.isFacingRight(),
             currentBoost
           );
+          // Rastro de bolhas caudais de esforço muscular (Fase 31.2)
+          spawnTailStrokeBubbles(k, baleia.pos, controlsMgr.isFacingRight());
         }
       }
 

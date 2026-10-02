@@ -2,20 +2,71 @@ import type { KaboomCtx, Vec2 } from "kaboom";
 import { GAME_CONFIG, TAGS } from "../config";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
 
+export interface BiomeNetPalette {
+  mesh: [number, number, number];
+  outline: [number, number, number];
+  floats: [number, number, number];
+}
+
+/**
+ * Retorna paleta de cores contextual para redes fantasmas conforme o bioma (Fase 31.4).
+ */
+export function getBiomeNetPalette(posX: number, isHighContrast = false): BiomeNetPalette {
+  if (isHighContrast) {
+    return {
+      mesh: [210, 100, 255],
+      outline: [255, 255, 255],
+      floats: [255, 240, 50],
+    };
+  }
+
+  if (posX < 5000) {
+    // 1. Antártica: redes verde-cinza glacial polar
+    return {
+      mesh: [90, 145, 135],
+      outline: [60, 110, 100],
+      floats: [130, 175, 170],
+    };
+  }
+  if (posX < 12000) {
+    // 2. Travessia Pelágica: azul/ciano oceânico e boias alaranjadas
+    return {
+      mesh: [65, 170, 195],
+      outline: [40, 120, 145],
+      floats: [240, 110, 50],
+    };
+  }
+  if (posX < 25000) {
+    // 3. Costa Urbana e Cânions: malha oliva industrial e boias amarelo-alerta
+    return {
+      mesh: [75, 125, 95],
+      outline: [55, 80, 70],
+      floats: [245, 190, 40],
+    };
+  }
+  // 4. Santuário de Arraial: turquesa vivo e boias coral
+  return {
+    mesh: [40, 210, 185],
+    outline: [25, 150, 130],
+    floats: [255, 120, 80],
+  };
+}
+
 export function createGhostNet(k: KaboomCtx, position: Vec2) {
   let revealTimer = 0;
   const isHighContrast = accessibilitySystem.isHighContrast();
   // Totalmente invisível a olho nu sem sonar (rede fantasma), mantendo acessibilidade em alto contraste
   const baseOpacity = isHighContrast ? 0.35 : 0.0;
+  const palette = getBiomeNetPalette(position.x, isHighContrast);
 
   // Fundo semi-transparente da rede (corpo principal)
   const net = k.add([
     k.rect(38, 52, { radius: 2 }),
     k.pos(position),
-    k.color(isHighContrast ? k.rgb(210, 100, 255) : k.rgb(80, 200, 120)),
+    k.color(palette.mesh[0], palette.mesh[1], palette.mesh[2]),
     k.outline(
       isHighContrast ? 2.5 : 1.5,
-      isHighContrast ? k.rgb(255, 255, 255) : k.rgb(60, 160, 90)
+      k.rgb(palette.outline[0], palette.outline[1], palette.outline[2])
     ),
     k.opacity(baseOpacity),
     k.area(),
@@ -34,7 +85,8 @@ export function createGhostNet(k: KaboomCtx, position: Vec2) {
   // Grade visual: malha monofilamento autêntica (linhas verticais e horizontais, nós e boias)
   const netW = 38;
   const netH = 52;
-  const lineColor = isHighContrast ? k.rgb(210, 100, 255) : k.rgb(80, 200, 120);
+  const lineColor = k.rgb(palette.mesh[0], palette.mesh[1], palette.mesh[2]);
+  const floatColor = k.rgb(palette.floats[0], palette.floats[1], palette.floats[2]);
   const gridLines: any[] = [];
 
   // 1. Cabo superior de sustentação (floatline)
@@ -52,7 +104,7 @@ export function createGhostNet(k: KaboomCtx, position: Vec2) {
     const floatObj = net.add([
       k.rect(6, 4, { radius: 2 }),
       k.pos(-netW / 2 + 5 + b * 9.5, -netH / 2 - 2),
-      k.color(isHighContrast ? k.rgb(255, 240, 50) : k.rgb(230, 90, 40)),
+      k.color(floatColor),
       k.opacity(baseOpacity),
       k.anchor("center"),
     ]);

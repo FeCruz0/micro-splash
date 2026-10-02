@@ -83,8 +83,10 @@
         font-style: normal;
         font-display: swap;
       }
+      /* Cursor Temático Oceânico (Fase 31.9): bolha turquesa padrão e âncora náutica interativa */
       html,
-      body {
+      body,
+      canvas {
         margin: 0;
         padding: 0;
         width: 100vw;
@@ -97,16 +99,27 @@
           -apple-system,
           sans-serif;
         overflow: hidden;
+        cursor:
+          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none'%3E%3Ccircle cx='11' cy='11' r='8' fill='%2300e5ff' fill-opacity='0.35' stroke='%23ffffff' stroke-width='1.5'/%3E%3Ccircle cx='8' cy='8' r='2' fill='%23ffffff' fill-opacity='0.85'/%3E%3Ccircle cx='14' cy='14' r='1' fill='%23ffffff' fill-opacity='0.5'/%3E%3C/svg%3E")
+            11 11,
+          auto;
       }
       canvas {
         display: block;
-        width: 100vw;
-        height: 100vh;
-        margin: 0;
-        padding: 0;
         outline: none;
         border: none;
         image-rendering: auto;
+      }
+      button,
+      [role="button"],
+      a,
+      select,
+      input[type="button"],
+      input[type="submit"] {
+        cursor:
+          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2300f2fe' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='5' r='2.5' fill='%2300f2fe' fill-opacity='0.4'/%3E%3Cline x1='12' y1='7.5' x2='12' y2='19'/%3E%3Cline x1='7' y1='10' x2='17' y2='10'/%3E%3Cpath d='M5 15a7 7 0 0 0 14 0'/%3E%3C/svg%3E")
+            12 5,
+          pointer;
       }
     </style>
   </head>

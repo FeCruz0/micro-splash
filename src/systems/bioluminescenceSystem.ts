@@ -34,6 +34,26 @@ export function isBioluminescenceActive(
 }
 
 /**
+ * Determina se as condições para ativação do plâncton estático ambiente são atendidas
+ * (entre a Costa Urbana e os Cânions de Cabo Frio, 12.000m a 25.000m).
+ */
+export function isAmbientPlanktonActive(playerXPosition: number): boolean {
+  return playerXPosition >= 12000 && playerXPosition <= 25000;
+}
+
+/**
+ * Calcula a opacidade pulsante orgânica de um ponto discreto de dinoflagelado ambiente.
+ */
+export function calculateAmbientPlanktonOpacity(
+  time: number,
+  phase: number,
+  baseOpacity = 0.35
+): number {
+  const pulse = Math.sin(time + phase) * 0.4;
+  return Math.max(0.05, Math.min(1.0, baseOpacity + pulse));
+}
+
+/**
  * Calcula a paleta de cores azul-esverdeada característica de plânctons bioluminescentes
  * (Noctiluca scintillans / Dinoflagelados).
  */
@@ -85,6 +105,43 @@ export function setupBioluminescenceSystem(
       driftSpeed: 10,
       swayFrequency: 2.5,
       swayTimer: index * 0.4,
+    });
+  }
+
+  // Pre-aloca 24 pontos estáticos discretos de dinoflagelados de ambiente (Fase 31.3)
+  const ambientCount = 24;
+  const ambientPlankton: {
+    gameObj: GameObj;
+    relX: number;
+    relY: number;
+    phase: number;
+    baseOpacity: number;
+  }[] = [];
+  const screenW = typeof k.width === "function" ? k.width() : 640;
+  const screenH = typeof k.height === "function" ? k.height() : 360;
+  let totalAmbientTime = 0;
+
+  for (let index = 0; index < ambientCount; index++) {
+    const size = typeof k.rand === "function" ? k.rand(1.2, 2.2) : 1.6;
+    const gameObj = k.add([
+      k.circle(size),
+      k.pos(-9999, -9999),
+      k.color(60, 230, 215),
+      k.opacity(0),
+      k.z(13),
+      "ambient_plankton",
+    ]);
+    gameObj.hidden = true;
+
+    ambientPlankton.push({
+      gameObj,
+      relX: Math.random() * screenW,
+      relY:
+        GAME_CONFIG.SEA_LEVEL +
+        25 +
+        Math.random() * Math.max(80, screenH - GAME_CONFIG.SEA_LEVEL - 50),
+      phase: Math.random() * Math.PI * 2,
+      baseOpacity: typeof k.rand === "function" ? k.rand(0.25, 0.45) : 0.35,
     });
   }
 
@@ -217,6 +274,35 @@ export function setupBioluminescenceSystem(
       const lifeProgress = particle.life / particle.maxLife;
       particle.gameObj.opacity = particle.initialOpacity * lifeProgress;
     }
+
+    // Atualiza plâncton bioluminescente estático ambiente (12.000m a 25.000m - Fase 31.3)
+    totalAmbientTime += deltaTime;
+    const ambientActive = isAmbientPlanktonActive(baleia.pos.x);
+    const camX =
+      typeof k.camPos === "function" ? (k.camPos().x ?? baleia.pos.x) : baleia.pos.x || 0;
+
+    for (let index = 0; index < ambientPlankton.length; index++) {
+      const p = ambientPlankton[index];
+      if (!ambientActive) {
+        if (!p.gameObj.hidden) {
+          p.gameObj.hidden = true;
+          p.gameObj.opacity = 0;
+        }
+        continue;
+      }
+
+      // Distribuição estática ancorada à área de visão da câmera
+      const worldX = camX - screenW / 2 + p.relX;
+      p.gameObj.pos.x = worldX;
+      p.gameObj.pos.y = p.relY;
+
+      // Micro-deriva sutil de suspensão aquática
+      p.relX = (p.relX + 2.5 * deltaTime) % screenW;
+
+      const op = calculateAmbientPlanktonOpacity(totalAmbientTime, p.phase, p.baseOpacity);
+      p.gameObj.opacity = op;
+      p.gameObj.hidden = false;
+    }
   });
 
   return {
@@ -227,6 +313,11 @@ export function setupBioluminescenceSystem(
       for (let index = 0; index < particles.length; index++) {
         if (typeof k.destroy === "function") {
           k.destroy(particles[index].gameObj);
+        }
+      }
+      for (let index = 0; index < ambientPlankton.length; index++) {
+        if (typeof k.destroy === "function") {
+          k.destroy(ambientPlankton[index].gameObj);
         }
       }
     },

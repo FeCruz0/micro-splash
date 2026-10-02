@@ -1,4 +1,5 @@
 import kaboom, { type GameObj } from "kaboom";
+import { calculateBiomeTransitionFactor } from "./biomeTransitionSystem";
 
 interface KelpPlant {
   segments: GameObj[];
@@ -46,7 +47,8 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
   const kelpSpawnX = KELP_SPAWN_X;
 
   kelpSpawnX.forEach((xPos, plantIdx) => {
-    const plantHeight = 120 + (plantIdx % 4) * 35; // Altura entre 120px e 225px
+    const transitionFactor = calculateBiomeTransitionFactor(xPos, 0, 5000, 300);
+    const plantHeight = (120 + (plantIdx % 4) * 35) * (0.65 + 0.35 * transitionFactor); // Altura calibrada com atenuação de transição
     const segmentCount = 6;
     const segHeight = plantHeight / segmentCount;
     const segments: GameObj[] = [];
@@ -63,7 +65,7 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
         k.rect(segWidth, segHeight + 4, { radius: 3 }),
         k.pos(xPos, floorY - (s + 1) * segHeight),
         k.color(baseColor),
-        k.opacity(0.85),
+        k.opacity(0.85 * (0.4 + 0.6 * transitionFactor)),
         k.anchor("bot"),
         k.z(s % 2 === 0 ? -3 : 2), // Alterna camadas para profundidade 2.5D
         "kelp_segment",
@@ -77,7 +79,7 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
         k.rect(leafWidth, leafHeight, { radius: leafHeight / 2 }),
         k.pos(xPos + leafSide * (segWidth + 4), floorY - (s + 0.5) * segHeight),
         k.color(baseColor),
-        k.opacity(0.75),
+        k.opacity(0.75 * (0.4 + 0.6 * transitionFactor)),
         k.anchor("center"),
         k.rotate(leafSide * 25),
         k.z(-3),
@@ -108,17 +110,18 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
     swayPhase: number;
   }[] = [];
   POLAR_RED_ALGAE_SPAWN_X.forEach((xPos, aIdx) => {
+    const transitionFactor = calculateBiomeTransitionFactor(xPos, 0, 5000, 300);
     const blades: GameObj[] = [];
     const bladeColor = aIdx % 2 === 0 ? k.rgb(145, 52, 45) : k.rgb(165, 88, 35);
     const bladeCount = 3 + (aIdx % 3);
 
     for (let b = 0; b < bladeCount; b++) {
-      const bladeHeight = 22 + b * 6;
+      const bladeHeight = (22 + b * 6) * (0.7 + 0.3 * transitionFactor);
       const blade = k.add([
         k.rect(2.5, bladeHeight, { radius: 1 }),
         k.pos(xPos + (b - bladeCount / 2) * 4, floorY),
         k.color(bladeColor),
-        k.opacity(0.85),
+        k.opacity(0.85 * (0.4 + 0.6 * transitionFactor)),
         k.anchor("bot"),
         k.rotate((b - bladeCount / 2) * 8),
         k.z(-3),
@@ -145,18 +148,19 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
     swayPhase: number;
   }[] = [];
   URBAN_SEAGRASS_SPAWN_X.forEach((xPos, sIdx) => {
+    const transitionFactor = calculateBiomeTransitionFactor(xPos, 12000, 19000, 300);
     const blades: GameObj[] = [];
     // Ervas estressadas pela poluição com tons cinza-esverdeados escuros
     const grassColor = sIdx % 2 === 0 ? k.rgb(75, 95, 70) : k.rgb(65, 85, 75);
     const bladeCount = 4 + (sIdx % 3);
 
     for (let b = 0; b < bladeCount; b++) {
-      const bladeH = 26 + b * 5;
+      const bladeH = (26 + b * 5) * (0.7 + 0.3 * transitionFactor);
       const blade = k.add([
         k.rect(2.2, bladeH, { radius: 1 }),
         k.pos(xPos + (b - bladeCount / 2) * 4.5, floorY),
         k.color(grassColor),
-        k.opacity(0.82),
+        k.opacity(0.82 * (0.4 + 0.6 * transitionFactor)),
         k.anchor("bot"),
         k.rotate((b - bladeCount / 2) * 6),
         k.z(-3),
@@ -179,7 +183,7 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
       k.rect(3.5, 3.5, { radius: 1 }),
       k.pos(xPos + 3, floorY - 8 - (sIdx % 3) * 6),
       k.color(trashColor),
-      k.opacity(0.88),
+      k.opacity(0.88 * (0.4 + 0.6 * transitionFactor)),
       k.anchor("center"),
       k.rotate((sIdx * 35) % 90),
       k.z(-2),
@@ -198,6 +202,7 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
   // 3. BANCOS DE RODOLITOS E CROSTAS DE LITHOTHAMNION EM ARRAIAL (19.000m a 30.000m)
   // ===========================================================================
   LITHOTHAMNION_SPAWN_X.forEach((xPos, lIdx) => {
+    const transitionFactor = calculateBiomeTransitionFactor(xPos, 19000, 30000, 300);
     const crustW = 28 + (lIdx % 4) * 8;
     const crustH = 4 + (lIdx % 3) * 1.5;
     // Tonalidades rosadas e arroxeadas autênticas de algas calcárias (Lithothamnion)
@@ -207,7 +212,7 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
       k.rect(crustW, crustH, { radius: 2 }),
       k.pos(xPos, floorY - 2 + (lIdx % 3) * 1.2),
       k.color(crustColor),
-      k.opacity(0.88),
+      k.opacity(0.88 * (0.4 + 0.6 * transitionFactor)),
       k.z(-3),
       "lithothamnion_crust",
     ]);
@@ -218,7 +223,7 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
         k.circle(3.5),
         k.pos(xPos + crustW * 0.7, floorY - 3),
         k.color(195, 110, 145),
-        k.opacity(0.85),
+        k.opacity(0.85 * (0.4 + 0.6 * transitionFactor)),
         k.z(-3),
         "lithothamnion_nodule",
       ]);
@@ -235,6 +240,7 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
   ];
 
   coralSpawnX.forEach((xPos, cIdx) => {
+    const transitionFactor = calculateBiomeTransitionFactor(xPos, 19000, 30000, 300);
     const coralType = cIdx % 3 === 0 ? "brain" : cIdx % 3 === 1 ? "fan" : "anemone";
 
     if (coralType === "brain") {
@@ -244,6 +250,7 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
         k.pos(xPos, floorY - 6),
         k.color(240, 125, 140),
         k.outline(3, k.rgb(190, 85, 100)),
+        k.opacity(0.9 * (0.4 + 0.6 * transitionFactor)),
         k.anchor("bot"),
         k.z(-3),
         "coral_brain",
@@ -254,7 +261,7 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
         k.circle(12),
         k.pos(xPos, floorY - 14),
         k.color(255, 155, 165),
-        k.opacity(0.85),
+        k.opacity(0.85 * (0.4 + 0.6 * transitionFactor)),
         k.anchor("center"),
         k.z(-3),
       ]);
@@ -273,7 +280,7 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
         ]),
         k.pos(xPos, floorY),
         k.color(255, 95, 80),
-        k.opacity(0.9),
+        k.opacity(0.9 * (0.4 + 0.6 * transitionFactor)),
         k.anchor("bot"),
         k.z(-3),
         "coral_fan",
@@ -286,6 +293,7 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
         k.rect(44, 26, { radius: 11 }),
         k.pos(xPos, floorY - 4),
         k.color(65, 230, 190), // Verde-água fluorescente
+        k.opacity(0.9 * (0.4 + 0.6 * transitionFactor)),
         k.anchor("bot"),
         k.scale(1, 1),
         k.z(-3),
@@ -298,6 +306,7 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
           k.rect(3, 16, { radius: 2 }),
           k.pos(xPos + t * 4, floorY - 12),
           k.color(110, 255, 220),
+          k.opacity(0.85 * (0.4 + 0.6 * transitionFactor)),
           k.anchor("bot"),
           k.rotate(t * 8),
           k.z(-3),

@@ -244,6 +244,15 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
     touchControls.state
   );
   const debugDistanceUI = createDebugDistanceUI(k, playerController);
+  k.onSceneLeave(() => {
+    debugDistanceUI.destroy();
+  });
+
+  // Na Migração Serena, o HUD exibido é o Debug HUD com telemetria completa, ativo por padrão.
+  // Na Migração Difícil, a tela começa sem HUD, podendo ser ativado pelo jogador a qualquer momento com F8.
+  if (options.mode === "serene") {
+    debugDistanceUI.setVisible(true);
+  }
 
   // HUD adicional de modo no topo direito
   let timerUI: any = null;
@@ -332,7 +341,10 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
   // Fase 20: Imersão Visual Avançada
   setupDynamicShadowSystem(k, playerController);
   setupBioluminescenceSystem(k, playerController);
-  setupBiomeVignetteSystem(k, playerController);
+  // Vinhetas de localização e marcos geográficos exclusivas da Migração Serena
+  if (options.mode === "serene") {
+    setupBiomeVignetteSystem(k, playerController);
+  }
   setupCinematicCameraSystem(k, playerController);
 
   // Fase 29: Superfície, Céu & Atmosfera
@@ -377,6 +389,7 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
     k,
     playerController,
     gameState,
+    showPrompt: options.mode === "serene",
     onBreachComplete: () => {
       if (!isGameFinished) {
         isGameFinished = true;
@@ -486,9 +499,11 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
     // Se a baleia não desmaiou, atualiza distância e verifica gatilhos pedagógicos
     if (!isGameFinished && !playerController.isFainting()) {
       gameState.update(k.dt(), playerXPosition);
-      gameState.checkFacts(playerXPosition, (fact) => {
-        showFactPopup(k, fact);
-      });
+      if (options.mode === "serene") {
+        gameState.checkFacts(playerXPosition, (fact) => {
+          showFactPopup(k, fact);
+        });
+      }
       // Sincroniza a trilha sonora adaptativa 16-bit com o bioma atual
       audioSystem.updateBiomeTrack(playerXPosition);
     } else if (playerController.isFainting() && !isRescueSequenceStarted && !isGameFinished) {

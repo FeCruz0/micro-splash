@@ -2,10 +2,67 @@ import type { KaboomCtx, Vec2 } from "kaboom";
 import { GAME_CONFIG, TAGS } from "../config";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
 
+export interface BiomeTrashPalette {
+  body: [number, number, number];
+  outline: [number, number, number];
+  accent: [number, number, number];
+  cap?: [number, number, number];
+}
+
+/**
+ * Retorna paleta de cores contextual para resíduos plásticos conforme o bioma (Fase 31.4).
+ */
+export function getBiomeTrashPalette(posX: number, isHighContrast = false): BiomeTrashPalette {
+  if (isHighContrast) {
+    return {
+      body: [240, 60, 60],
+      outline: [255, 240, 50],
+      accent: [255, 200, 50],
+      cap: [255, 240, 50],
+    };
+  }
+
+  if (posX < 5000) {
+    // 1. Antártica: plástico desbotado acinzentado polar congelado
+    return {
+      body: [175, 195, 210],
+      outline: [120, 140, 160],
+      accent: [140, 170, 190],
+      cap: [130, 155, 175],
+    };
+  }
+  if (posX < 12000) {
+    // 2. Travessia Pelágica: azul oceânico translúcido
+    return {
+      body: [80, 140, 200],
+      outline: [40, 80, 140],
+      accent: [100, 160, 220],
+      cap: [55, 100, 165],
+    };
+  }
+  if (posX < 25000) {
+    // 3. Costa Urbana e Cânions: vermelho saturado e grafite industrial
+    return {
+      body: [215, 65, 60],
+      outline: [80, 80, 85],
+      accent: [235, 100, 70],
+      cap: [60, 60, 65],
+    };
+  }
+  // 4. Santuário de Arraial: laranja queimado de sol e tons quentes
+  return {
+    body: [235, 155, 90],
+    outline: [180, 105, 55],
+    accent: [245, 190, 130],
+    cap: [210, 120, 60],
+  };
+}
+
 export function createTrash(k: KaboomCtx, position: Vec2) {
   let revealTimer = 0;
   const isHighContrast = accessibilitySystem.isHighContrast();
   const baseOpacity = isHighContrast ? 0.55 : 0.25;
+  const palette = getBiomeTrashPalette(position.x, isHighContrast);
 
   // 3 tipos procedurais de lixo plástico intercalados
   const trashType = Math.floor(Math.random() * 3);
@@ -16,10 +73,10 @@ export function createTrash(k: KaboomCtx, position: Vec2) {
     trash = k.add([
       k.rect(11, 22, { radius: 3 }),
       k.pos(position),
-      k.color(isHighContrast ? k.rgb(240, 60, 60) : k.rgb(80, 140, 200)),
+      k.color(palette.body[0], palette.body[1], palette.body[2]),
       k.outline(
         isHighContrast ? 2.5 : 1.5,
-        isHighContrast ? k.rgb(255, 240, 50) : k.rgb(40, 80, 140)
+        k.rgb(palette.outline[0], palette.outline[1], palette.outline[2])
       ),
       k.area({ shape: new k.Rect(k.vec2(-5.5, -14), 11, 26) }),
       k.anchor("center"),
@@ -32,17 +89,18 @@ export function createTrash(k: KaboomCtx, position: Vec2) {
       },
     ]);
     // Gargalo e tampa estreita da garrafa (proporção autêntica)
+    const capColor = palette.cap || palette.outline;
     trash.add([
       k.rect(6, 4, { radius: 1 }),
       k.pos(0, -13),
-      k.color(isHighContrast ? k.rgb(255, 240, 50) : k.rgb(55, 100, 165)),
+      k.color(capColor[0], capColor[1], capColor[2]),
       k.anchor("center"),
     ]);
     // Faixa de rótulo desbotado
     trash.add([
       k.rect(11, 6),
       k.pos(0, 1),
-      k.color(isHighContrast ? k.rgb(255, 200, 50) : k.rgb(100, 160, 220)),
+      k.color(palette.accent[0], palette.accent[1], palette.accent[2]),
       k.opacity(0.7),
       k.anchor("center"),
     ]);
@@ -51,10 +109,10 @@ export function createTrash(k: KaboomCtx, position: Vec2) {
     trash = k.add([
       k.rect(20, 17, { radius: 6 }),
       k.pos(position),
-      k.color(isHighContrast ? k.rgb(240, 60, 60) : k.rgb(205, 225, 235)),
+      k.color(palette.body[0], palette.body[1], palette.body[2]),
       k.outline(
         isHighContrast ? 2.5 : 1.5,
-        isHighContrast ? k.rgb(255, 240, 50) : k.rgb(160, 190, 210)
+        k.rgb(palette.outline[0], palette.outline[1], palette.outline[2])
       ),
       k.area({ shape: new k.Rect(k.vec2(-10, -10), 20, 19) }),
       k.anchor("center"),
@@ -70,8 +128,8 @@ export function createTrash(k: KaboomCtx, position: Vec2) {
     trash.add([
       k.rect(14, 4, { radius: 2 }),
       k.pos(0, -10),
-      k.color(isHighContrast ? k.rgb(255, 240, 50) : k.rgb(180, 210, 225)),
-      k.outline(1, isHighContrast ? k.rgb(240, 60, 60) : k.rgb(150, 180, 200)),
+      k.color(palette.accent[0], palette.accent[1], palette.accent[2]),
+      k.outline(1, k.rgb(palette.outline[0], palette.outline[1], palette.outline[2])),
       k.anchor("center"),
     ]);
   } else {
@@ -79,10 +137,10 @@ export function createTrash(k: KaboomCtx, position: Vec2) {
     trash = k.add([
       k.circle(10),
       k.pos(position),
-      k.color(isHighContrast ? k.rgb(240, 60, 60) : k.rgb(220, 200, 60)),
+      k.color(palette.body[0], palette.body[1], palette.body[2]),
       k.outline(
         isHighContrast ? 2.5 : 1.5,
-        isHighContrast ? k.rgb(255, 240, 50) : k.rgb(170, 150, 20)
+        k.rgb(palette.outline[0], palette.outline[1], palette.outline[2])
       ),
       k.area(),
       k.anchor("center"),
@@ -98,7 +156,7 @@ export function createTrash(k: KaboomCtx, position: Vec2) {
     trash.add([
       k.rect(8, 3, { radius: 1 }),
       k.pos(-1, -1),
-      k.color(isHighContrast ? k.rgb(255, 255, 255) : k.rgb(180, 160, 40)),
+      k.color(palette.accent[0], palette.accent[1], palette.accent[2]),
       k.rotate(25),
       k.anchor("center"),
     ]);

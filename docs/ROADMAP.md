@@ -400,23 +400,23 @@ _Objetivo: Enriquecer o leito marinho com flora e geologia procedural por bioma,
 
 _Objetivo: Adicionar efeitos de partículas em momentos dramáticos ausentes, garantir coerência visual consistente entre todos os biomas e refinar a interface HUD._
 
-- [ ] **31.1 Splash de Reentrada da Baleia após o Breach:**
+- [x] **31.1 Splash de Reentrada da Baleia após o Breach:**
   - O momento de reentrada na água após o salto majestoso — o clímax do jogo — não tem efeito de splash. Ao cruzar `SEA_LEVEL` com velocidade Y > 200, disparar 16–24 partículas de respingo em arco simétrico (`rect 3×8px` brancos com gravidade) — metade para a esquerda, metade para a direita. O momento mais dramático do jogo precisa do efeito mais impactante.
-- [ ] **31.2 Rastro de Bolhas Caudal após Batida:**
+- [x] **31.2 Rastro de Bolhas Caudal após Batida:**
   - A cada batida de cauda, emitir 5–8 `circle(2–4px)` de cor `(200, 230, 255, 0.5)` que sobem lentamente (`vel.y = −20` a `−40`) deixando rastro visual de esforço físico — como bolhas de ar expelido pelos músculos ao nadar. Fenômeno real e visualmente comunicativo da cadência de nado.
-- [ ] **31.3 Plâncton Bioluminescente nos Biomas Noturnos:**
+- [x] **31.3 Plâncton Bioluminescente nos Biomas Noturnos:**
   - Nos biomas noturno e de ressurgência (12.000–25.000m), distribuir 20–30 `circle(1–2px)` estáticos de cor verde-azulada `(60, 200, 180)` com pulsação `sin(time + phase) * 0.4` de opacidade — dinoflagelados bioluminescentes, presença massiva e real documentada nas águas de Arraial do Cabo e Costa dos Corais do Brasil.
-- [ ] **31.4 Paleta de Obstáculos Contextualizada por Bioma:**
+- [x] **31.4 Paleta de Obstáculos Contextualizada por Bioma:**
   - Lixo e redes têm cores uniformes em todos os biomas, quebrando a coerência visual. Variar por contexto: **Antártica** → lixo acinzentado congelado `(180, 60, 60)`, redes em verde-cinza glacial; **Pelágico** → lixo translúcido azulado `(60, 100, 200)` — aspecto de plástico submerso; **Costa** → lixo vermelho saturado + grafite industrial agressivo; **Arraial** → lixo alaranjado `(220, 140, 50)` — plástico desbotado pelo sol tropical.
-- [ ] **31.5 Transições Suaves de Flora e Partículas entre Biomas:**
+- [x] **31.5 Transições Suaves de Flora e Partículas entre Biomas:**
   - Elementos como flora e partículas atmosféricas mudam abruptamente ao cruzar fronteiras de bioma. Criar zonas de "easing" de 200–400m nos limites (5.000m, 12.000m, 19.000m, 25.000m) onde os elementos do bioma anterior fazem fade-out enquanto os do próximo fazem fade-in — reutilizando o padrão já implementado no `calculateWeatherAtDistance()` do `weatherSystem.ts`.
-- [ ] **31.6 Partículas do Menu Principal Temáticas:**
+- [x] **31.6 Partículas do Menu Principal Temáticas:**
   - Partículas do menu atual: `circle(1.5–3.5px)` genéricas em azul/verde/amarelo. Substituir por 3 tipos temáticos intercalados: bolhas de ar subindo `(circle 1–2px ciano)`; plâncton luminescente `(rect 2×6px rotacionado 45°)`; medusas miniatura `(circle 4px com borda branca tênue ondulante)`. Identidade oceânica desde a tela inicial.
-- [ ] **31.7 HUD de Distância com Indicador de Bioma:**
+- [x] **31.7 HUD de Distância com Indicador de Bioma:**
   - HUD atual usa `text` simples sem estilo visual definido. Substituir por caixa com background translúcido, borda oceânica e indicador do bioma atual com ícone emoji correspondente: ❄️ Antártica, 🌊 Pelágico, 🏭 Costa Urbana, 🌀 Cânions, ☀️ Arraial do Cabo.
-- [ ] **31.8 Barra de Oxigênio com 3 Estados Visuais de Urgência:**
+- [x] **31.8 Barra de Oxigênio com 3 Estados Visuais de Urgência:**
   - Implementar estados visuais distintos da barra de oxigênio: **>50%** → azul calmo pulsando suavemente; **20–50%** → âmbar com pulsação acelerada e leve tremor; **<20%** → vermelho pulsando rapidamente + borda da tela com vinheta escurecida e tremulante — comunicando urgência crescente sem texto.
-- [ ] **31.9 Cursor do Mouse com Identidade Visual Oceânica:**
+- [x] **31.9 Cursor do Mouse com Identidade Visual Oceânica:**
   - Cursor padrão do browser quebra a imersão. Substituir via CSS `cursor: url(...)` por bolha oceânica `(circle 12px turquesa com borda branca)` no estado normal e âncora ou anzol no estado `hover` sobre botões — identidade oceânica mantida desde antes de clicar no primeiro botão.
 
 ### 🖋️ FASE 32: Tipografia, Texto & Hierarquia Visual

@@ -17,6 +17,8 @@ export interface BreachSystemConfig {
   gameState: GameState;
   /** Callback acionado após a conclusão cinematográfica do salto e reentrada na água */
   onBreachComplete: () => void;
+  /** Se deve exibir banner/prompt de texto na tela (desativado na Migração Difícil) */
+  showPrompt?: boolean;
 }
 
 /**
@@ -31,7 +33,7 @@ export interface BreachSystemConfig {
  * @param config - Objeto de configuração contendo o motor, jogador, estado e callback.
  */
 export function setupBreachSystem(config: BreachSystemConfig) {
-  const { k, playerController, gameState, onBreachComplete } = config;
+  const { k, playerController, gameState, onBreachComplete, showPrompt = true } = config;
 
   let promptBanner: any = null;
   let isBreachTriggered = false;
@@ -49,29 +51,31 @@ export function setupBreachSystem(config: BreachSystemConfig) {
 
     // 1. Exibição do Convite Visual ao se aproximar da Ilha do Farol
     if (playerPos.x >= triggerDistance && !isBreachTriggered) {
-      if (!promptBanner) {
-        promptBanner = k.add([
-          k.text(
-            "ÁGUAS CALMAS DE ARRAIAL! 🐋\nPRESSIONE [ESPAÇO] OU TOQUE PARA O SALTO MAJESTOSO!",
-            {
-              size: 16,
-              font: "Outfit",
-              align: "center",
-              lineSpacing: 6,
-            }
-          ),
-          k.pos(k.width() / 2, 60),
-          k.color(255, 220, 100),
-          k.outline(3, k.rgb(10, 30, 60)),
-          k.anchor("center"),
-          k.fixed(),
-          k.z(150),
-          k.opacity(1),
-        ]);
-      }
+      if (showPrompt) {
+        if (!promptBanner) {
+          promptBanner = k.add([
+            k.text(
+              "ÁGUAS CALMAS DE ARRAIAL! 🐋\nPRESSIONE [ESPAÇO] OU TOQUE PARA O SALTO MAJESTOSO!",
+              {
+                size: 16,
+                font: "Outfit",
+                align: "center",
+                lineSpacing: 6,
+              }
+            ),
+            k.pos(k.width() / 2, 60),
+            k.color(255, 220, 100),
+            k.outline(3, k.rgb(10, 30, 60)),
+            k.anchor("center"),
+            k.fixed(),
+            k.z(150),
+            k.opacity(1),
+          ]);
+        }
 
-      bannerAnimTime += k.dt() * 4;
-      promptBanner.opacity = 0.7 + Math.sin(bannerAnimTime) * 0.3;
+        bannerAnimTime += k.dt() * 4;
+        promptBanner.opacity = 0.7 + Math.sin(bannerAnimTime) * 0.3;
+      }
 
       // Dispara o salto se o jogador pressionar Espaço, Enter, Toque/Clique OU se cruzar a linha de 27.000m
       const isInputTriggered =
@@ -122,8 +126,8 @@ export function setupBreachSystem(config: BreachSystemConfig) {
         audioSystem.playWaterSplash();
         k.shake(8);
 
-        // Explosão de gotas e espuma na superfície
-        createWaterSplash(k, k.vec2(playerPos.x, GAME_CONFIG.SEA_LEVEL), 40);
+        // Explosão majestosa de reentrada (Splashdown) em arco simétrico (Fase 31.1)
+        createBreachReentrySplash(k, k.vec2(playerPos.x, GAME_CONFIG.SEA_LEVEL), 24);
 
         // Remove banner se ainda existir
         if (promptBanner) {
@@ -262,6 +266,136 @@ export function createWaterSplash(
       bubble.pos.y += bVelY * k.dt() - 25 * k.dt(); // Afunda pelo choque e sobe de volta
       bubble.opacity -= k.dt() * 1.8;
       if (bubble.opacity <= 0) k.destroy(bubble);
+    });
+  }
+}
+
+export interface BreachSplashParticleData {
+  dir: number; // -1 (esquerda) ou 1 (direita)
+  velX: number;
+  velY: number;
+  width: number;
+  height: number;
+  gravityY: number;
+}
+
+/**
+ * Função pura que calcula as propriedades cinemáticas simétricas em arco
+ * para o splash de reentrada após o breach (Fase 31.1).
+ */
+export function calculateBreachReentryParticleData(
+  index: number,
+  total: number = 24
+): BreachSplashParticleData {
+  const isLeft = index % 2 === 0;
+  const dir = isLeft ? -1 : 1;
+  const pairIndex = Math.floor(index / 2);
+  const pairsTotal = Math.max(1, Math.ceil(total / 2));
+  const spreadProgress = (pairIndex + 0.5) / pairsTotal; // 0.1 a 0.9
+
+  // Arco simétrico balístico: ângulos de 35° a 75° em relação à horizontal
+  const angleDeg = 35 + spreadProgress * 40;
+  const rad = (angleDeg * Math.PI) / 180;
+  const speed = 190 + (pairIndex % 3) * 60; // 190 a 310 px/s
+
+  const velX = dir * Math.cos(rad) * speed;
+  const velY = -Math.sin(rad) * speed; // impulso para cima
+
+  return {
+    dir,
+    velX,
+    velY,
+    width: 3,
+    height: 8,
+    gravityY: 620,
+  };
+}
+
+/**
+ * Splash de Reentrada da Baleia após o Breach (Fase 31.1):
+ * Dispara 16–24 partículas de respingo em arco simétrico (rect 3×8px brancos com gravidade),
+ * metade para a esquerda e metade para a direita, acompanhadas de cristas de choque na superfície.
+ */
+export function createBreachReentrySplash(
+  k: ReturnType<typeof kaboom>,
+  pos: any,
+  particleCount: number = 24
+) {
+  // 1. Partículas retangulares brancas de respingo em arco balístico simétrico (Fase 31.1)
+  for (let i = 0; i < particleCount; i++) {
+    const data = calculateBreachReentryParticleData(i, particleCount);
+    const curVelX = data.velX;
+    let curVelY = data.velY;
+
+    const splashShard = k.add([
+      k.rect(data.width, data.height, { radius: 1 }),
+      k.pos(pos.x + k.rand(-12, 12), pos.y - 2),
+      k.color(255, 255, 255),
+      k.outline(1, k.rgb(180, 240, 255)),
+      k.opacity(0.95),
+      k.rotate(Math.atan2(curVelY, curVelX) * (180 / Math.PI) + 90),
+      k.anchor("center"),
+      k.z(21),
+      "breach_reentry_splash",
+    ]);
+
+    splashShard.onUpdate(() => {
+      const dt = k.dt();
+      curVelY += data.gravityY * dt;
+      splashShard.pos.x += curVelX * dt;
+      splashShard.pos.y += curVelY * dt;
+      splashShard.angle = Math.atan2(curVelY, curVelX) * (180 / Math.PI) + 90;
+      splashShard.opacity -= dt * 1.4;
+
+      if (splashShard.opacity <= 0 || splashShard.pos.y > pos.y + 35) {
+        k.destroy(splashShard);
+      }
+    });
+  }
+
+  // 2. Ondas de crista de choque de alta velocidade expandindo para ambos os lados
+  [-1, 1].forEach((dir) => {
+    const shockWave = k.add([
+      k.rect(16, 4.5, { radius: 2 }),
+      k.pos(pos.x + dir * 10, pos.y - 1),
+      k.color(240, 252, 255),
+      k.outline(1.5, k.rgb(120, 210, 255)),
+      k.opacity(0.92),
+      k.z(20),
+    ]);
+
+    let waveWidth = 16;
+    shockWave.onUpdate(() => {
+      const dt = k.dt();
+      shockWave.pos.x += dir * 210 * dt;
+      waveWidth += 65 * dt;
+      shockWave.width = waveWidth;
+      shockWave.opacity -= dt * 2.0;
+      if (shockWave.opacity <= 0) k.destroy(shockWave);
+    });
+  });
+
+  // 3. Spray de micro-gotas circulares no epicentro do impacto
+  for (let g = 0; g < 12; g++) {
+    const drop = k.add([
+      k.circle(k.rand(2, 4.5)),
+      k.pos(pos.x + k.rand(-25, 25), pos.y - k.rand(2, 10)),
+      k.color(220, 245, 255),
+      k.opacity(0.85),
+      k.z(20),
+    ]);
+    const dVelX = k.rand(-120, 120);
+    let dVelY = k.rand(-180, -90);
+
+    drop.onUpdate(() => {
+      const dt = k.dt();
+      dVelY += 520 * dt;
+      drop.pos.x += dVelX * dt;
+      drop.pos.y += dVelY * dt;
+      drop.opacity -= dt * 1.6;
+      if (drop.opacity <= 0 || drop.pos.y > pos.y + 25) {
+        k.destroy(drop);
+      }
     });
   }
 }

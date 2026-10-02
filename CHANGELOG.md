@@ -7,6 +7,38 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [1.7.0] - 2026-10-02 — Partículas, Coerência de Bioma & Polimento de Interface (Fase 31)
+
+### Adicionado & Modificado
+
+- **Splash de Re-entrada Dramática após o Breach (Fase 31.1)**:
+  - `src/systems/breachSystem.ts`: Implementadas a função pura `calculateBreachReentryParticleData` e a rotina `createBreachReentrySplash` disparando 24 partículas brancas retangulares (`rect 3×8px`) com contorno ciano em arco balístico simétrico (12 para a esquerda e 12 para a direita) com gravidade calculada de 620 px/s² e ondas concêntricas de choque.
+  - `src/entities/player/playerPhysics.ts`: Disparo automático do splashdown de reentrada ao penetrar a superfície com velocidade descendente Y > 200 ou com breach ativo.
+- **Rastro de Bolhas da Batida de Cauda (Fase 31.2)**:
+  - `src/entities/player/playerParticles.ts`: Implementadas a função pura `calculateTailStrokeBubbleData` e a rotina `spawnTailStrokeBubbles` emitindo de 5 a 8 micro-bolhas translúcidas (`circle 2–4px`) que sobem em direção à superfície (`vel.y = -20 a -40 px/s`) alinhadas à cauda da jubarte.
+  - `src/entities/player.ts`: Conexão direta com a física muscular da batida de cauda submarina.
+- **Plâncton Bioluminescente Discreto de Ambiente (Fase 31.3)**:
+  - `src/systems/bioluminescenceSystem.ts`: Implementadas `isAmbientPlanktonActive` e `calculateAmbientPlanktonOpacity`, adicionando 24 pontos estáticos de dinoflagelados espalhados na área de visão submersa entre 12.000m e 25.000m pulsando organicamente com `sin(tempo + fase) * 0.4`.
+- **Paletas de Obstáculos Contextuais por Bioma (Fase 31.4)**:
+  - `src/entities/trash.ts`: Exportada função `getBiomeTrashPalette` aplicando cores contextuais a garrafas PET, sacolas e copos (cinza-azulado polar na Antártica, azul oceânico no Pelágico, vermelho saturado com grafite na Costa Urbana e laranja solar desbotado em Arraial do Cabo), preservando alto contraste WCAG.
+  - `src/entities/net.ts`: Exportada função `getBiomeNetPalette` calibrando redes e boias (verde-cinza polar, azul ciano pelágico, malha oliva industrial costeira e turquesa vivo em Arraial do Cabo).
+- **Zonas de Transição Suave e Easing de Biomas (Fase 31.5)**:
+  - `src/systems/biomeTransitionSystem.ts`: Criado utilitário com `calculateBiomeTransitionFactor` (interpolação smoothstep nos primeiros e últimos 300m de cada bioma).
+  - `src/systems/benthicFloorSystem.ts`: Modulação suave de opacidade e altura/escala de Kelp gigante, algas vermelhas, pradarias de ervas marinhas, crostas de Lithothamnion e corais nas fronteiras de 5.000m, 12.000m, 19.000m e 25.000m.
+- **Partículas Temáticas do Menu Principal (Fase 31.6)**:
+  - `src/ui/mainMenu.ts`: Cenário do menu enriquecido com 3 categorias oceânicas: bolhas ascendentes com contorno leve, plâncton luminoso em ângulo de 45° com pulsação suave, e mini-águas-vivas/medusas com contração elástica.
+- **HUD de Distância & Indicador de Bioma (Fase 31.7)**:
+  - `src/ui/hudSystem.ts`: Container translúcido no topo esquerdo (`k.fixed()`, `z: 110`) exibindo progresso formatado (`14.238m • 47%`) e identificação contextual do bioma com emoji (❄️ Antártica, 🌊 Pelágico, 🏭 Costa Urbana, 🌀 Cânions, ☀️ Arraial do Cabo).
+- **Barra de Oxigênio com 3 Estados Visuais de Urgência (Fase 31.8)**:
+  - `src/ui/hudSystem.ts`: Barra de fôlego com 3 estados reativos: **>50%** azul calmo sereno; **20–50%** âmbar pulsante com tremor; **<20%** vermelho crítico intermitente com tremor acentuado e vinheta periférica avermelhada na tela (`z: 109`).
+- **Cursor de Navegação Oceânico (Fase 31.9)**:
+  - `index.html`: Estilização nativa em CSS via Data URIs SVG: bolha turquesa translúcida com reflexo especular como cursor padrão e âncora náutica estilizada no hover de botões e links.
+- **Testes & Qualidade**:
+  - `tests/phase31_particles_biome_hud.test.ts`: Criada nova suíte com 8 testes cobrindo balística de reentrada, bolhas caudais, dinoflagelados, paletas de bioma, curvas smoothstep e estados do HUD.
+  - Cobertura de 42 arquivos e 265 testes unitários passando 100%.
+
+---
+
 ## [1.6.0] - 2026-10-01 — Fundo Submarino, Iluminação & Identidade dos Obstáculos (Fase 30)
 
 ### Adicionado & Modificado

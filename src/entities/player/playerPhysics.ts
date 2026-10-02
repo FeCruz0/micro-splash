@@ -1,6 +1,6 @@
 import type { GameObj, KaboomCtx, Vec2 } from "kaboom";
 import { GAME_CONFIG } from "../../config";
-import { createWaterSplash } from "../../systems/breachSystem";
+import { createWaterSplash, createBreachReentrySplash } from "../../systems/breachSystem";
 import { audioSystem } from "../../systems/audioSystem";
 import { accessibilitySystem } from "../../systems/accessibilitySystem";
 
@@ -107,11 +107,16 @@ export class PlayerPhysicsManager {
       this.currentSpeed.y += 280 * dt;
     }
 
-    // Splashdown ao reentrar na água
+    // Splashdown ao reentrar na água (Fase 31.1)
     if (this.wasInAir && !inAir) {
-      createWaterSplash(this.k, this.k.vec2(baleia.pos.x, GAME_CONFIG.SEA_LEVEL), 28);
+      if (this.currentSpeed.y > 200 || isBreaching) {
+        createBreachReentrySplash(this.k, this.k.vec2(baleia.pos.x, GAME_CONFIG.SEA_LEVEL), 20);
+        accessibilitySystem.triggerShake(this.k, isBreaching ? 6.0 : 4.5);
+      } else {
+        createWaterSplash(this.k, this.k.vec2(baleia.pos.x, GAME_CONFIG.SEA_LEVEL), 28);
+        accessibilitySystem.triggerShake(this.k, 3.0);
+      }
       audioSystem.playWaterSplash();
-      accessibilitySystem.triggerShake(this.k, 3.0);
     }
     this.wasInAir = inAir;
 

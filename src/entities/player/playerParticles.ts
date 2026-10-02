@@ -351,3 +351,90 @@ export function spawnTailBubbleTrail(
 ) {
   spawnTailWaterRipples(k, pos, angleDeg, isFacingRight, speedRatio);
 }
+
+export interface TailStrokeBubbleData {
+  radius: number;
+  offsetX: number;
+  offsetY: number;
+  velX: number;
+  velY: number;
+  life: number;
+  color: [number, number, number];
+  opacity: number;
+}
+
+/**
+ * Função pura que calcula os parâmetros físicos das micro-bolhas de esforço caudal (Fase 31.2).
+ */
+export function calculateTailStrokeBubbleData(
+  index: number,
+  isFacingRight: boolean
+): TailStrokeBubbleData {
+  const dirX = isFacingRight ? -1 : 1;
+  const radius = 2 + (index % 3) * 0.9; // 2.0 a 3.8px
+  const velY = -20 - (index % 4) * 6.5; // -20 a -39.5 px/s (sobem lentamente)
+  const velX = dirX * (14 + (index % 3) * 12);
+  const life = 0.65 + (index % 3) * 0.15; // 0.65 a 0.95s
+
+  return {
+    radius,
+    offsetX: dirX * (50 + (index % 3) * 4),
+    offsetY: 2 + ((index * 3) % 7) - 3,
+    velX,
+    velY,
+    life,
+    color: [200, 230, 255],
+    opacity: 0.5,
+  };
+}
+
+/**
+ * Rastro de Bolhas Caudal após Batida de Cauda (Fase 31.2):
+ * A cada batida muscular, emite 5–8 micro-bolhas que sobem lentamente na esteira da cauda.
+ */
+export function spawnTailStrokeBubbles(k: KaboomCtx, pos: Vec2, isFacingRight: boolean) {
+  const count = 5 + Math.floor(Math.random() * 4); // 5 a 8 partículas
+  const pool = getParticlePool();
+
+  for (let i = 0; i < count; i++) {
+    const data = calculateTailStrokeBubbleData(i, isFacingRight);
+    const bubblePos = k.vec2(pos.x + data.offsetX, pos.y + data.offsetY);
+    const vel = k.vec2(data.velX, data.velY);
+    const col = k.rgb(data.color[0], data.color[1], data.color[2]);
+
+    if (pool) {
+      pool.spawnCircle({
+        pos: bubblePos,
+        radius: data.radius,
+        color: col,
+        opacity: data.opacity,
+        z: 13,
+        vel,
+        fadeRate: 1.1,
+        maxLife: data.life,
+        boundaryY: GAME_CONFIG.SEA_LEVEL,
+        boundaryYMode: "less",
+      });
+    } else {
+      const bubble = k.add([
+        k.circle(data.radius),
+        k.pos(bubblePos),
+        k.color(col),
+        k.opacity(data.opacity),
+        k.z(13),
+        "tail_stroke_bubble",
+      ]);
+
+      let curLife = data.life;
+      bubble.onUpdate(() => {
+        const dt = k.dt();
+        bubble.pos = bubble.pos.add(vel.scale(dt));
+        curLife -= dt;
+        bubble.opacity = Math.max(0, (curLife / data.life) * data.opacity);
+        if (curLife <= 0 || bubble.pos.y <= GAME_CONFIG.SEA_LEVEL) {
+          k.destroy(bubble);
+        }
+      });
+    }
+  }
+}

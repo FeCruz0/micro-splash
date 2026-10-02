@@ -156,7 +156,7 @@ export function showModeSelectScreen(
   const startCardsY = cY - cardH / 2 + 88;
 
   // ==========================================
-  // CARD 1: MIGRAÇÃO CLÁSSICA
+  // CARD 1: MIGRAÇÃO SERENA (1ª OPÇÃO)
   // ==========================================
   const card1H = 86;
   const card1Y = startCardsY + card1H / 2;
@@ -165,7 +165,7 @@ export function showModeSelectScreen(
     k.rect(contentBoxW, card1H, { radius: 12 }),
     k.pos(cX, card1Y),
     k.color(14, 36, 72),
-    k.outline(1.5, k.rgb(56, 189, 248)),
+    k.outline(1.5, k.rgb(52, 211, 153)),
     k.scale(1),
     k.anchor("center"),
     k.area(),
@@ -174,14 +174,13 @@ export function showModeSelectScreen(
   ]);
   elements.push(card1);
 
-  // Badge de Ícone
   const icon1Pos = k.vec2(cX - contentBoxW / 2 + 36, card1Y);
   elements.push(
     k.add([
       k.rect(50, 50, { radius: 10 }),
       k.pos(icon1Pos),
-      k.color(20, 55, 105),
-      k.outline(1.5, k.rgb(56, 189, 248)),
+      k.color(16, 50, 40),
+      k.outline(1.5, k.rgb(52, 211, 153)),
       k.anchor("center"),
       k.fixed(),
       k.z(303),
@@ -189,7 +188,7 @@ export function showModeSelectScreen(
   );
   elements.push(
     k.add([
-      k.text("🌊", {
+      k.text("🌸", {
         size: accessibilitySystem.scaleFont(26),
         font: "Outfit",
       }),
@@ -204,12 +203,12 @@ export function showModeSelectScreen(
 
   elements.push(
     k.add([
-      k.text("MIGRAÇÃO CLÁSSICA (PADRÃO)", {
+      k.text("MIGRAÇÃO SERENA (RELAXANTE & EDUCATIVA)", {
         size: accessibilitySystem.scaleFont(17.5),
         font: "Outfit",
       }),
       k.pos(textStartX, card1Y - 16),
-      k.color(110, 235, 255),
+      k.color(140, 255, 200),
       k.anchor("left"),
       k.fixed(),
       k.z(303),
@@ -219,7 +218,7 @@ export function showModeSelectScreen(
   elements.push(
     k.add([
       k.text(
-        "Travessia completa de 27.000m. Fôlego limitado por mergulho, desvio de redes e navios com Eco-Score oficial.",
+        "Oxigênio infinito (∞) e zero risco de desmaio. Experiência contemplativa com HUD completo, fatos ambientais e identificação dos biomas.",
         {
           size: accessibilitySystem.scaleFont(14.5),
           font: "Inter",
@@ -228,7 +227,7 @@ export function showModeSelectScreen(
         }
       ),
       k.pos(textStartX, card1Y + 12),
-      k.color(215, 235, 255),
+      k.color(215, 245, 235),
       k.anchor("left"),
       k.fixed(),
       k.z(303),
@@ -237,32 +236,32 @@ export function showModeSelectScreen(
 
   card1.onHoverUpdate(() => {
     if (!canInteract) return;
-    card1.color = k.rgb(20, 50, 95);
-    card1.outline = { width: 2, color: k.rgb(100, 240, 255) };
+    card1.color = k.rgb(18, 55, 65);
+    card1.outline = { width: 2, color: k.rgb(80, 255, 190) };
     card1.scale = k.vec2(1.01, 1.01);
   });
   card1.onHoverEnd(() => {
     card1.color = k.rgb(14, 36, 72);
-    card1.outline = { width: 1.5, color: k.rgb(56, 189, 248) };
+    card1.outline = { width: 1.5, color: k.rgb(52, 211, 153) };
     card1.scale = k.vec2(1, 1);
   });
 
-  const selectClassic = () => {
+  const selectSerene = () => {
     if (!canInteract) return;
     audioSystem.playUiClick();
     destroyAll();
-    onSelectMode({ mode: "standard" });
+    onSelectMode({ mode: "serene" });
   };
-  card1.onClick(selectClassic);
+  card1.onClick(selectSerene);
   focusItems.push({
     pos: k.vec2(cX, card1Y),
     width: contentBoxW,
     height: card1H,
-    onActivate: selectClassic,
+    onActivate: selectSerene,
   });
 
   // ==========================================
-  // CARD 2: MIGRAÇÃO SERENA
+  // CARD 2: MIGRAÇÃO DIFÍCIL (2ª OPÇÃO)
   // ==========================================
   const card2H = 86;
   const card2Y = card1Y + card1H / 2 + 12 + card2H / 2;
@@ -271,7 +270,7 @@ export function showModeSelectScreen(
     k.rect(contentBoxW, card2H, { radius: 12 }),
     k.pos(cX, card2Y),
     k.color(14, 36, 72),
-    k.outline(1.5, k.rgb(52, 211, 153)),
+    k.outline(1.5, k.rgb(244, 63, 94)),
     k.scale(1),
     k.anchor("center"),
     k.area(),
@@ -285,8 +284,8 @@ export function showModeSelectScreen(
     k.add([
       k.rect(50, 50, { radius: 10 }),
       k.pos(icon2Pos),
-      k.color(16, 50, 40),
-      k.outline(1.5, k.rgb(52, 211, 153)),
+      k.color(45, 20, 30),
+      k.outline(1.5, k.rgb(244, 63, 94)),
       k.anchor("center"),
       k.fixed(),
       k.z(303),
@@ -294,7 +293,7 @@ export function showModeSelectScreen(
   );
   elements.push(
     k.add([
-      k.text("🌸", {
+      k.text("🌊", {
         size: accessibilitySystem.scaleFont(26),
         font: "Outfit",
       }),
@@ -307,12 +306,12 @@ export function showModeSelectScreen(
 
   elements.push(
     k.add([
-      k.text("MIGRAÇÃO SERENA (RELAXANTE & ACESSÍVEL)", {
+      k.text("MIGRAÇÃO DIFÍCIL (DESAFIO REALISTA)", {
         size: accessibilitySystem.scaleFont(17.5),
         font: "Outfit",
       }),
       k.pos(textStartX, card2Y - 16),
-      k.color(140, 255, 200),
+      k.color(255, 120, 140),
       k.anchor("left"),
       k.fixed(),
       k.z(303),
@@ -322,7 +321,7 @@ export function showModeSelectScreen(
   elements.push(
     k.add([
       k.text(
-        "Oxigênio infinito (∞) e zero risco de desmaio. Modo tranquilo ideal para contemplação marinha e todas as idades.",
+        "Travessia autêntica sem HUD, sem auxílios visuais e sem avisos em texto. Gerencie o fôlego da jubarte guiando-se apenas pelos seus sentidos marinhos.",
         {
           size: accessibilitySystem.scaleFont(14.5),
           font: "Inter",
@@ -331,7 +330,7 @@ export function showModeSelectScreen(
         }
       ),
       k.pos(textStartX, card2Y + 12),
-      k.color(215, 245, 235),
+      k.color(255, 220, 225),
       k.anchor("left"),
       k.fixed(),
       k.z(303),
@@ -340,28 +339,28 @@ export function showModeSelectScreen(
 
   card2.onHoverUpdate(() => {
     if (!canInteract) return;
-    card2.color = k.rgb(18, 55, 65);
-    card2.outline = { width: 2, color: k.rgb(80, 255, 190) };
+    card2.color = k.rgb(45, 25, 45);
+    card2.outline = { width: 2, color: k.rgb(255, 90, 130) };
     card2.scale = k.vec2(1.01, 1.01);
   });
   card2.onHoverEnd(() => {
     card2.color = k.rgb(14, 36, 72);
-    card2.outline = { width: 1.5, color: k.rgb(52, 211, 153) };
+    card2.outline = { width: 1.5, color: k.rgb(244, 63, 94) };
     card2.scale = k.vec2(1, 1);
   });
 
-  const selectSerene = () => {
+  const selectDifficult = () => {
     if (!canInteract) return;
     audioSystem.playUiClick();
     destroyAll();
-    onSelectMode({ mode: "serene" });
+    onSelectMode({ mode: "standard" });
   };
-  card2.onClick(selectSerene);
+  card2.onClick(selectDifficult);
   focusItems.push({
     pos: k.vec2(cX, card2Y),
     width: contentBoxW,
     height: card2H,
-    onActivate: selectSerene,
+    onActivate: selectDifficult,
   });
 
   // ==========================================

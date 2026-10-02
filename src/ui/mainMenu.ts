@@ -23,26 +23,112 @@ export function createMainMenu(
   // Fundo oceânico profundo
   k.add([k.rect(k.width(), k.height()), k.pos(0, 0), k.color(6, 18, 42), k.fixed(), k.z(0)]);
 
-  // Partículas bioluminescentes flutuantes
+  // Partículas oceânicas temáticas de ambientação (Fase 31.6)
   const particles: any[] = [];
-  for (let i = 0; i < 30; i++) {
+  const screenW = typeof k.width === "function" ? k.width() : 640;
+  const screenH = typeof k.height === "function" ? k.height() : 360;
+
+  // 1. Bolhas translúcidas ascendentes com contorno leve
+  for (let i = 0; i < 12; i++) {
+    const radius = typeof k.rand === "function" ? k.rand(2, 4.5) : 3;
+    const comps: any[] = [
+      k.circle(radius),
+      k.pos(
+        typeof k.rand === "function" ? k.rand(0, screenW) : Math.random() * screenW,
+        typeof k.rand === "function" ? k.rand(0, screenH) : Math.random() * screenH
+      ),
+      k.color(70, 205, 255),
+      k.opacity(typeof k.rand === "function" ? k.rand(0.25, 0.55) : 0.4),
+      k.fixed(),
+      k.z(1),
+    ];
+    if (typeof k.outline === "function") {
+      comps.push(k.outline(1, k.rgb(180, 240, 255)));
+    }
+    const p = k.add(comps);
+    const speed = typeof k.rand === "function" ? k.rand(14, 28) : 20;
+    let time = typeof k.rand === "function" ? k.rand(0, 10) : i;
+
+    p.onUpdate(() => {
+      const dt = typeof k.dt === "function" ? k.dt() : 0.016;
+      time += dt;
+      p.pos.y -= dt * speed;
+      p.pos.x += Math.sin(time * 2.2) * 0.4;
+      if (p.pos.y < -12) {
+        p.pos.y = screenH + 10;
+        p.pos.x = typeof k.rand === "function" ? k.rand(0, screenW) : Math.random() * screenW;
+      }
+    });
+    particles.push(p);
+  }
+
+  // 2. Plâncton brilhante em ângulo de 45°
+  for (let i = 0; i < 12; i++) {
+    const pColor = i % 2 === 0 ? k.rgb(80, 250, 220) : k.rgb(170, 255, 230);
+    const baseOpacity = typeof k.rand === "function" ? k.rand(0.2, 0.5) : 0.35;
+    const comps: any[] = [
+      k.rect(2, 6, { radius: 1 }),
+      k.pos(
+        typeof k.rand === "function" ? k.rand(0, screenW) : Math.random() * screenW,
+        typeof k.rand === "function" ? k.rand(0, screenH) : Math.random() * screenH
+      ),
+      k.color(pColor),
+      k.opacity(baseOpacity),
+      k.fixed(),
+      k.z(1),
+    ];
+    if (typeof k.rotate === "function") {
+      comps.push(k.rotate(45));
+    }
+    const p = k.add(comps);
+    const speed = typeof k.rand === "function" ? k.rand(8, 18) : 12;
+    let time = typeof k.rand === "function" ? k.rand(0, 10) : i;
+
+    p.onUpdate(() => {
+      const dt = typeof k.dt === "function" ? k.dt() : 0.016;
+      time += dt;
+      p.pos.y -= dt * speed;
+      p.pos.x += Math.cos(time * 1.5) * 0.3;
+      p.opacity = Math.max(0.1, Math.min(0.8, baseOpacity + Math.sin(time * 3) * 0.15));
+      if (p.pos.y < -12) {
+        p.pos.y = screenH + 10;
+        p.pos.x = typeof k.rand === "function" ? k.rand(0, screenW) : Math.random() * screenW;
+      }
+    });
+    particles.push(p);
+  }
+
+  // 3. Mini-águas-vivas / medusas estilizadas
+  for (let i = 0; i < 6; i++) {
+    const baseOpacity = typeof k.rand === "function" ? k.rand(0.28, 0.55) : 0.4;
     const p = k.add([
-      k.circle(k.rand(1.5, 3.5)),
-      k.pos(k.rand(0, k.width()), k.rand(0, k.height())),
-      k.color(k.choose([k.rgb(100, 240, 255), k.rgb(180, 255, 230), k.rgb(255, 230, 120)])),
-      k.opacity(k.rand(0.2, 0.7)),
+      k.rect(9, 6, { radius: 3 }),
+      k.pos(
+        typeof k.rand === "function" ? k.rand(20, screenW - 20) : 50 + i * 90,
+        typeof k.rand === "function" ? k.rand(50, screenH) : 100 + i * 40
+      ),
+      k.color(140, 220, 255),
+      k.opacity(baseOpacity),
+      k.scale(1, 1),
+      k.anchor("center"),
       k.fixed(),
       k.z(1),
     ]);
-    const speed = k.rand(10, 25);
-    let time = k.rand(0, 10);
+    const speed = typeof k.rand === "function" ? k.rand(6, 14) : 10;
+    let time = typeof k.rand === "function" ? k.rand(0, 10) : i * 1.5;
+
     p.onUpdate(() => {
-      time += k.dt();
-      p.pos.y -= k.dt() * speed;
-      p.pos.x += Math.sin(time) * 0.4;
-      if (p.pos.y < -10) {
-        p.pos.y = k.height() + 10;
-        p.pos.x = k.rand(0, k.width());
+      const dt = typeof k.dt === "function" ? k.dt() : 0.016;
+      time += dt;
+      p.pos.y -= dt * speed;
+      p.pos.x += Math.sin(time * 0.8) * 0.25;
+      const pulse = Math.sin(time * 2.8);
+      if (typeof k.scale === "function" && p.scale) {
+        p.scale = k.vec2(1 - pulse * 0.12, 1 + pulse * 0.22);
+      }
+      if (p.pos.y < -16) {
+        p.pos.y = screenH + 15;
+        p.pos.x = typeof k.rand === "function" ? k.rand(20, screenW - 20) : Math.random() * screenW;
       }
     });
     particles.push(p);
