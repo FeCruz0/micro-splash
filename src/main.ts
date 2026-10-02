@@ -75,6 +75,7 @@ const k = kaboom({
 
 k.loadFont("Inter", "/fonts/Inter-SemiBold.ttf", { size: 64, filter: "linear" });
 k.loadFont("Outfit", "/fonts/Outfit-Bold.ttf", { size: 64, filter: "linear" });
+k.loadFont("Orbitron", "/fonts/Orbitron-Bold.ttf", { size: 64, filter: "linear" });
 
 accessibilitySystem.init();
 

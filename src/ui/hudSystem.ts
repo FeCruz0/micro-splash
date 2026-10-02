@@ -1,6 +1,8 @@
 import type { KaboomCtx } from "kaboom";
 import type { PlayerController } from "../entities/player";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
+import { FONT_TITLE, FONT_BODY } from "../config";
+import { formatDualDistance } from "../utils/navigation";
 
 export type OxygenUrgencyState = "calm" | "warning" | "critical";
 
@@ -11,7 +13,7 @@ export interface BiomeHudInfo {
 }
 
 /**
- * Retorna as informações formatadas do bioma e progresso de migração (Fase 31.7).
+ * Retorna as informações formatadas do bioma e progresso de migração (Fase 31.7 e 32.6).
  */
 export function getBiomeHudInfo(distance: number): BiomeHudInfo {
   const dist = Math.max(0, distance);
@@ -27,9 +29,9 @@ export function getBiomeHudInfo(distance: number): BiomeHudInfo {
     return { emoji: "🏭", name: "Costa Urbana", progressPercent };
   }
   if (dist < 25000) {
-    return { emoji: "🌀", name: "Cânions de Cabo Frio", progressPercent };
+    return { emoji: "🌀", name: "Cânions & Ressurgência", progressPercent };
   }
-  return { emoji: "☀️", name: "Enseada de Arraial do Cabo", progressPercent };
+  return { emoji: "☀️", name: "Santuário de Arraial", progressPercent };
 }
 
 /**
@@ -108,9 +110,9 @@ export function setupHudSystem(
   ]);
   vignetteOverlay.hidden = true;
 
-  // 2. Container Card elegante translúcido no topo esquerdo
-  const cardW = 210;
-  const cardH = 58;
+  // 2. Container Card elegante translúcido no topo esquerdo (Fase 31.7 e 32.5)
+  const cardW = 236;
+  const cardH = 62;
   const hudContainer = k.add([
     k.rect(cardW, cardH, { radius: 8 }),
     k.pos(14, 14),
@@ -122,30 +124,30 @@ export function setupHudSystem(
     "hud_card",
   ]);
 
-  // Linha 1: Distância formatada + Porcentagem total
+  // Linha 1: Distância dupla (metros • milhas náuticas) + Porcentagem de rota (Fase 32.5)
   const distanceText = hudContainer.add([
-    k.text("0m • 0%", { size: 13.5, font: "Outfit" }),
-    k.pos(10, 8),
+    k.text("0m • 0,0 mn • 0%", { size: 11.5, font: FONT_TITLE }),
+    k.pos(10, 7),
     k.color(225, 245, 255),
     k.fixed(),
   ]);
 
-  // Linha 2: Bioma com Emoji
+  // Linha 2: Bioma com Emoji padronizado (Fase 32.6)
   const biomeText = hudContainer.add([
-    k.text("❄️ Oceano Antártico", { size: 10.5, font: "Inter" }),
-    k.pos(10, 25),
+    k.text("❄️ Oceano Antártico", { size: 11, font: FONT_BODY }),
+    k.pos(10, 26),
     k.color(150, 210, 245),
     k.fixed(),
   ]);
 
   // Linha 3: Barra de Fôlego / Oxigênio
-  const barMaxW = cardW - 20; // 190px
+  const barMaxW = cardW - 20; // 216px
   const barH = 7;
 
   // Trilho / Fundo escuro da barra
   hudContainer.add([
     k.rect(barMaxW, barH, { radius: 3 }),
-    k.pos(10, 42),
+    k.pos(10, 45),
     k.color(12, 28, 55),
     k.opacity(0.95),
     k.fixed(),
@@ -154,7 +156,7 @@ export function setupHudSystem(
   // Barra de preenchimento dinâmico
   const oxygenBarFill = hudContainer.add([
     k.rect(barMaxW, barH, { radius: 3 }),
-    k.pos(10, 42),
+    k.pos(10, 45),
     k.color(0, 229, 255),
     k.opacity(1),
     k.fixed(),
@@ -174,7 +176,7 @@ export function setupHudSystem(
         : Math.max(0, playerController.gameObj?.pos?.x || 0);
 
     const biomeInfo = getBiomeHudInfo(currentDistance);
-    distanceText.text = `${formatHudDistance(currentDistance)} • ${biomeInfo.progressPercent}%`;
+    distanceText.text = `${formatDualDistance(currentDistance)} • ${biomeInfo.progressPercent}%`;
     biomeText.text = `${biomeInfo.emoji} ${biomeInfo.name}`;
 
     // Obtém oxigênio atual

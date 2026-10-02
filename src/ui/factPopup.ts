@@ -1,10 +1,13 @@
 import kaboom from "kaboom";
 import { type Fact } from "../systems/state";
 import { ttsSystem } from "../systems/ttsSystem";
+import { FONT_TITLE, FONT_BODY } from "../config";
 
 export function showFactPopup(k: ReturnType<typeof kaboom>, fact: Fact) {
-  const width = Math.min(k.width() - 40, 520);
-  const height = 110;
+  // Quebra de linha adaptativa em conteúdo educacional (Fase 32.4)
+  const contentW = Math.min(500, k.width() - 80);
+  const width = contentW + 36;
+  const height = 118;
   const startY = k.height() + 20;
   const targetY = k.height() - height - 30;
 
@@ -26,23 +29,25 @@ export function showFactPopup(k: ReturnType<typeof kaboom>, fact: Fact) {
   // Ícone pedagógico e título
   const titleText = k.add([
     k.text(`📖 ${fact.title} (${fact.location})`, {
-      size: 15,
-      width: width - 30,
+      size: 14,
+      font: FONT_TITLE,
+      width: contentW,
     }),
-    k.pos(k.width() / 2 - width / 2 + 15, startY - height / 2 + 12),
+    k.pos(k.width() / 2 - width / 2 + 18, startY - height / 2 + 14),
     k.color(255, 215, 100),
     k.fixed(),
     k.z(99),
   ]);
 
-  // Descrição do fato científico
+  // Descrição do fato científico com quebra adaptativa
   const descText = k.add([
     k.text(fact.description, {
-      size: 12,
-      width: width - 30,
-      lineSpacing: 4,
+      size: 12.5,
+      font: FONT_BODY,
+      width: contentW,
+      lineSpacing: 4.5,
     }),
-    k.pos(k.width() / 2 - width / 2 + 15, startY - height / 2 + 38),
+    k.pos(k.width() / 2 - width / 2 + 18, startY - height / 2 + 42),
     k.color(220, 235, 255),
     k.fixed(),
     k.z(99),

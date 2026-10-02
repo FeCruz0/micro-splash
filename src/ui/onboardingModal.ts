@@ -2,6 +2,7 @@ import type { KaboomCtx } from "kaboom";
 import { audioSystem } from "../systems/audioSystem";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
 import { createFocusGroup, type FocusableItem } from "./keyboardNav";
+import { FONT_TITLE, FONT_BODY, TEXT_SIZE_H1, TEXT_SIZE_BODY, TEXT_SIZE_CAPTION } from "../config";
 
 const ONBOARDING_STORAGE_KEY = "micro_splash_onboarding_done";
 
@@ -146,8 +147,8 @@ export function showOnboardingModal(k: KaboomCtx, onDone: () => void) {
   // Badge de etapa
   const badgeText = k.add([
     k.text(initialSlide.badge, {
-      size: accessibilitySystem.scaleFont(14),
-      font: "Outfit",
+      size: accessibilitySystem.scaleFont(TEXT_SIZE_CAPTION + 1),
+      font: FONT_TITLE,
     }),
     k.pos(cX, cY - cardH / 2 + 30),
     k.color(100, 220, 255),
@@ -160,8 +161,8 @@ export function showOnboardingModal(k: KaboomCtx, onDone: () => void) {
   // Título do slide
   const titleText = k.add([
     k.text(initialSlide.title, {
-      size: accessibilitySystem.scaleFont(26),
-      font: "Outfit",
+      size: accessibilitySystem.scaleFont(TEXT_SIZE_H1),
+      font: FONT_TITLE,
     }),
     k.pos(cX, cY - cardH / 2 + 58),
     k.color(255, 225, 90),
@@ -174,8 +175,8 @@ export function showOnboardingModal(k: KaboomCtx, onDone: () => void) {
   // Subtítulo
   const subtitleText = k.add([
     k.text(initialSlide.subtitle, {
-      size: accessibilitySystem.scaleFont(15.5),
-      font: "Inter",
+      size: accessibilitySystem.scaleFont(TEXT_SIZE_BODY),
+      font: FONT_BODY,
     }),
     k.pos(cX, cY - cardH / 2 + 86),
     k.color(190, 230, 255),

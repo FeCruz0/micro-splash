@@ -4,6 +4,8 @@ import { accessibilitySystem } from "../systems/accessibilitySystem";
 import type { GameOptions } from "../systems/state";
 import { getWeeklyChallengeInfo } from "../systems/weeklyChallenge";
 import { createFocusGroup, type FocusableItem } from "./keyboardNav";
+import { FONT_TITLE, FONT_BODY, TEXT_SIZE_H1, TEXT_SIZE_BODY } from "../config";
+import { addShadowedText } from "./textUtils";
 
 export function showModeSelectScreen(
   k: KaboomCtx,
@@ -52,27 +54,24 @@ export function showModeSelectScreen(
   ]);
   elements.push(card);
 
-  // Título do Modal
-  elements.push(
-    k.add([
-      k.text("ESCOLHA SEU ESTILO DE MIGRAÇÃO 🐋", {
-        size: accessibilitySystem.scaleFont(27),
-        font: "Outfit",
-      }),
-      k.pos(cX, cY - cardH / 2 + 32),
-      k.color(255, 225, 100),
-      k.anchor("center"),
-      k.fixed(),
-      k.z(302),
-    ])
-  );
+  // Título do Modal com Sombra de Legibilidade (Fase 32.3)
+  const titleShadowHandle = addShadowedText(k, "ESCOLHA SEU ESTILO DE MIGRAÇÃO 🐋", {
+    pos: k.vec2(cX, cY - cardH / 2 + 32),
+    size: accessibilitySystem.scaleFont(TEXT_SIZE_H1 + 2),
+    font: FONT_TITLE,
+    color: k.rgb(255, 225, 100),
+    shadowColor: k.rgb(4, 12, 28),
+    anchor: "center",
+    z: 303,
+  });
+  elements.push(titleShadowHandle);
 
   // Subtítulo descritivo
   elements.push(
     k.add([
       k.text("Selecione uma modalidade para navegar pelas águas profundas do Atlântico Sul", {
-        size: accessibilitySystem.scaleFont(15.5),
-        font: "Inter",
+        size: accessibilitySystem.scaleFont(TEXT_SIZE_BODY),
+        font: FONT_BODY,
       }),
       k.pos(cX, cY - cardH / 2 + 58),
       k.color(180, 225, 255),
@@ -91,7 +90,11 @@ export function showModeSelectScreen(
     window.removeEventListener("keydown", keyHandler);
     elements.forEach((el) => {
       try {
-        k.destroy(el);
+        if (typeof el.destroy === "function") {
+          el.destroy();
+        } else {
+          k.destroy(el);
+        }
       } catch {}
     });
   };

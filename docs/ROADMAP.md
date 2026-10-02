@@ -423,26 +423,26 @@ _Objetivo: Adicionar efeitos de partículas em momentos dramáticos ausentes, ga
 
 _Objetivo: Substituir a fonte padrão do browser por tipografia oceânica consistente, corrigir hierarquias textuais entre telas e garantir legibilidade em todas as resoluções suportadas._
 
-- [ ] **32.1 Fonte Customizada — Carregar Google Font via `index.html`:**
+- [x] **32.1 Fonte Customizada — Carregar Google Font via `index.html`:**
   - Todo texto do jogo usa `font: "sans-serif"` — a fonte padrão do browser, que varia entre sistemas operacionais (Helvetica no macOS, Arial no Windows, DejaVu no Linux). Carregar `Orbitron` (títulos e HUD — estilo técnico/científico) + `Inter` (textos corridos, modais, quiz) via `<link>` no `index.html`. Passar o nome da fonte para todos os `k.text()` via constante `FONT_TITLE` e `FONT_BODY` em `config.ts`.
-- [ ] **32.2 Hierarquia Tipográfica Consistente entre Telas:**
+- [x] **32.2 Hierarquia Tipográfica Consistente entre Telas:**
   - Cada tela usa tamanhos de texto definidos ad-hoc sem sistema: `splashScreen.ts` usa 48/16/12px, `modeSelectScreen.ts` usa 22/18/14px, `rescueScreen.ts` usa 18/14/12px, `victoryScreen.ts` usa 16/14/12px. Criar escala tipográfica única em `config.ts`:
     - `TEXT_SIZE_DISPLAY` = 44px (logo, splash)
     - `TEXT_SIZE_H1` = 24px (títulos de tela)
     - `TEXT_SIZE_H2` = 18px (subtítulos de modal)
     - `TEXT_SIZE_BODY` = 14px (texto de leitura)
     - `TEXT_SIZE_CAPTION` = 11px (labels, hints, dicas)
-- [ ] **32.3 Texto das Telas de UI com Sombra de Legibilidade:**
+- [x] **32.3 Texto das Telas de UI com Sombra de Legibilidade:**
   - Nenhum texto de UI tem sombra — textos claros sobre fundos oceânicos claros tornam-se ilegíveis em determinadas seções. Adicionar sombra offscreen (1–2px offset, cor escura `opacity: 0.6`) em todos os textos com tamanho > 14px, usando a técnica já presente na `splashScreen.ts` linha 78 mas ausente nas demais telas.
-- [ ] **32.4 Texto dos Fatos Educativos com Quebra de Linha Adaptativa:**
+- [x] **32.4 Texto dos Fatos Educativos com Quebra de Linha Adaptativa:**
   - Os fatos do `facts.json` aparecem em modais com `width` fixo. Em resoluções baixas (450p = 800×450px) o texto pode transbordar. Calcular `width: Math.min(500, k.width() - 80)` dinamicamente em todos os `k.text()` de conteúdo educacional.
-- [ ] **32.5 Distância Exibida com Formatação de Milhas Náuticas:**
+- [x] **32.5 Distância Exibida com Formatação de Milhas Náuticas:**
   - A distância atual é exibida em metros (ex.: "14.238m") — unidade pouco intuitiva para crianças e não é a unidade usada em navegação marinha real. Exibir em paralelo: `"14.238m • 7,7 mn"` (milhas náuticas, onde 1mn = 1.852m). Implementar função `toNauticalMiles(meters: number)` em utilitário auxiliar.
-- [ ] **32.6 Nome do Bioma Atual Exibido no HUD:**
+- [x] **32.6 Nome do Bioma Atual Exibido no HUD:**
   - O HUD atual mostra distância mas não o nome do bioma atual, deixando o jogador sem contexto geográfico. Adicionar linha secundária ao HUD com o nome do bioma (`"❄️ Oceano Antártico"`, `"🌊 Travessia Pelágica"`, etc.) atualizado a cada mudança de `BIOME_COLOR_STOPS`.
-- [ ] **32.7 Textos da Tela de Resgate com Tom Narrativo:**
+- [x] **32.7 Textos da Tela de Resgate com Tom Narrativo:**
   - A tela de resgate exibe estatísticas como linha plana de debug (`"📏 Distância Navegada: 14238m"`). Reformular com linguagem narrativa imersiva: `"A jubarte avançou 14.238 metros de sua jornada..."` — mantendo os dados mas embalados em contexto de história, mais adequado ao público infantil.
-- [ ] **32.8 Texto de Teclas de Controle com Ícones de Teclado:**
+- [x] **32.8 Texto de Teclas de Controle com Ícones de Teclado:**
   - Instruções de controle como `"Pressione ESPAÇO"` são textuais genéricas. Substituir por representação visual de tecla: `[ESPAÇO]`, `[↑]`, `[↓]` usando `rect` com `border-radius` e `outline` — visual de "tecla física". Padrão amplamente reconhecido em jogos modernos.
 
 ### 🖥️ FASE 33: Sistema de Resoluções, Modos de Tela & Responsividade

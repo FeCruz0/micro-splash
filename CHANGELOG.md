@@ -7,6 +7,35 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [1.8.0] - 2026-10-02 — Tipografia, Texto & Hierarquia Visual (Fase 32)
+
+### Adicionado & Modificado
+
+- **Fontes Customizadas Google Fonts (Fase 32.1)**:
+  - `index.html`: Importação otimizada das famílias `Orbitron:wght@500;700;800;900` e `Inter:wght@400;500;600;700`.
+  - `src/config.ts`: Exportadas as constantes centrais `FONT_TITLE = "Orbitron"` e `FONT_BODY = "Inter"` para unificação tipográfica do jogo.
+- **Hierarquia Tipográfica Unificada (Fase 32.2)**:
+  - `src/config.ts`: Definição de design tokens padronizados: `TEXT_SIZE_DISPLAY = 44px`, `TEXT_SIZE_H1 = 24px`, `TEXT_SIZE_H2 = 18px`, `TEXT_SIZE_BODY = 14px` e `TEXT_SIZE_CAPTION = 11px`.
+- **Sombras de Legibilidade em UI (Fase 32.3)**:
+  - `src/ui/textUtils.ts`: Criado o utilitário `addShadowedText` aplicando offset escuro (+1.5px, opacidade 0.75) sob textos de títulos em modais contra fundos marinhos dinâmicos.
+  - Aplicado nas telas `splashScreen.ts`, `modeSelectScreen.ts` e `rescueScreen.ts`.
+- **Quebra de Linha Adaptativa em Fatos Científicos (Fase 32.4)**:
+  - `src/ui/factPopup.ts`: Cálculo adaptativo de largura `Math.min(500, k.width() - 80)` evitando transbordamento em telas compactas (450p retrô ou mobile) com espaçamento de linha aprimorado.
+- **Formatação de Distância em Milhas Náuticas (Fase 32.5)**:
+  - `src/utils/navigation.ts`: Módulo de navegação marítima com constantes internacionais (`METERS_PER_NAUTICAL_MILE = 1852`) e funções `toNauticalMiles` e `formatDualDistance` (ex.: `"14.238m • 7,7 mn"`).
+  - Integrado no HUD (`src/ui/hudSystem.ts`) e na tela de resgate (`src/ui/rescueScreen.ts`).
+- **Nomenclatura Harmonizada dos Biomas (Fase 32.6)**:
+  - `src/ui/hudSystem.ts`: Sincronização rigorosa dos nomes e emojis dos 5 biomas (`❄️ Oceano Antártico`, `🌊 Travessia Pelágica`, `🏭 Costa Urbana`, `🌀 Cânions & Ressurgência`, `☀️ Santuário de Arraial`).
+- **Tom Narrativo e Imersivo na Tela de Resgate (Fase 32.7)**:
+  - `src/ui/rescueScreen.ts`: Substituição de linhas planas de depuração por narrativa infantil acolhedora da jornada e resgate da jovem baleia, com chips de pontuação e recorde.
+- **Componente Visual de Teclas Físicas Mecânicas (Fase 32.8)**:
+  - `src/ui/keyBadge.ts`: Criação do helper `createKeyBadge` desenhando teclas em 3D tátil (`[ESPAÇO]`, `[ENTER]`) com chanfro, contorno e rótulos iluminados na tela de apresentação e modais.
+- **Testes & Qualidade**:
+  - `tests/phase32_typography_hierarchy.test.ts`: Nova suíte com 11 testes cobrindo conversão náutica, hierarquia de escala de texto, consistência de biomas, utilitários de sombra e key badges.
+  - Cobertura total de 43 arquivos de teste e 279 testes unitários passando 100%.
+
+---
+
 ## [1.7.0] - 2026-10-02 — Partículas, Coerência de Bioma & Polimento de Interface (Fase 31)
 
 ### Adicionado & Modificado

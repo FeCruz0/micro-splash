@@ -1,4 +1,6 @@
 import type { KaboomCtx } from "kaboom";
+import { FONT_TITLE, FONT_BODY, TEXT_SIZE_DISPLAY, TEXT_SIZE_CAPTION } from "../config";
+import { createKeyBadge } from "./keyBadge";
 
 const CONSERVATION_TIPS = [
   "💡 Você sabia? As jubartes migram milhares de km todos os anos para se reproduzir em águas tropicais brasileiras.",
@@ -18,6 +20,9 @@ export function createSplashScreen(k: KaboomCtx, onFinish: () => void) {
   const finish = () => {
     if (isFinished) return;
     isFinished = true;
+    try {
+      skipBadge?.destroy();
+    } catch {}
     onFinish();
   };
 
@@ -69,9 +74,9 @@ export function createSplashScreen(k: KaboomCtx, onFinish: () => void) {
     // Se sprite não carregar, ignora silenciosamente
   }
 
-  // Título e Logo
+  // Título e Logo (Fase 32.1 e 32.2)
   const titleShadow = k.add([
-    k.text("MICRO-SPLASH", { size: 48 }),
+    k.text("MICRO-SPLASH", { size: TEXT_SIZE_DISPLAY, font: FONT_TITLE }),
     k.pos(cx + 2, cy - 10),
     k.scale(1),
     k.anchor("center"),
@@ -81,7 +86,7 @@ export function createSplashScreen(k: KaboomCtx, onFinish: () => void) {
   ]);
 
   const title = k.add([
-    k.text("MICRO-SPLASH", { size: 48 }),
+    k.text("MICRO-SPLASH", { size: TEXT_SIZE_DISPLAY, font: FONT_TITLE }),
     k.pos(cx, cy - 12),
     k.scale(1),
     k.anchor("center"),
@@ -90,7 +95,7 @@ export function createSplashScreen(k: KaboomCtx, onFinish: () => void) {
   ]);
 
   k.add([
-    k.text("A JORNADA DA BALEIA-JUBARTE", { size: 16 }),
+    k.text("A JORNADA DA BALEIA-JUBARTE", { size: 15, font: FONT_BODY }),
     k.pos(cx, cy + 28),
     k.anchor("center"),
     k.color(190, 230, 255),
@@ -99,7 +104,10 @@ export function createSplashScreen(k: KaboomCtx, onFinish: () => void) {
   ]);
 
   k.add([
-    k.text("Em prol da conservação marinha e dos santuários dos oceanos", { size: 12 }),
+    k.text("Em prol da conservação marinha e dos santuários dos oceanos", {
+      size: 12,
+      font: FONT_BODY,
+    }),
     k.pos(cx, cy + 54),
     k.anchor("center"),
     k.color(130, 185, 215),
@@ -149,13 +157,21 @@ export function createSplashScreen(k: KaboomCtx, onFinish: () => void) {
     k.z(10),
   ]);
 
-  // Prompt de pular
+  // Prompt de pular com Tecla Física Mecânica [ESPAÇO] (Fase 32.8)
+  const skipBadge = createKeyBadge(k, {
+    pos: k.vec2(cx - 72, k.height() - 32),
+    keyLabel: "ESPAÇO",
+    fontSize: 10.5,
+    minWidth: 62,
+    z: 11,
+  });
+
   const skipText = k.add([
-    k.text("[ Pressione ESPAÇO ou TOQUE para pular ]", { size: 12 }),
-    k.pos(cx, k.height() - 32),
+    k.text("ou TOQUE para pular", { size: TEXT_SIZE_CAPTION + 1, font: FONT_BODY }),
+    k.pos(cx + 36, k.height() - 32),
     k.anchor("center"),
-    k.color(120, 175, 210),
-    k.opacity(0.7),
+    k.color(135, 190, 225),
+    k.opacity(0.85),
     k.z(10),
   ]);
 

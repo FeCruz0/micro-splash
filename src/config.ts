@@ -148,3 +148,13 @@ export function setSavedDisplayMode(mode: DisplayMode): void {
 }
 
 export const APP_VERSION = typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "1.3.0";
+
+// --- Design Tokens Tipográficos (Fase 32: Tipografia, Texto & Hierarquia Visual) ---
+export const FONT_TITLE = "Orbitron";
+export const FONT_BODY = "Inter";
+
+export const TEXT_SIZE_DISPLAY = 44; // Logo, Splash monumental
+export const TEXT_SIZE_H1 = 24; // Títulos de tela e modais principais
+export const TEXT_SIZE_H2 = 18; // Subtítulos de seções e categorias
+export const TEXT_SIZE_BODY = 14; // Texto corrido, leituras e opções
+export const TEXT_SIZE_CAPTION = 11; // Badges, dicas de teclado e rodapés
