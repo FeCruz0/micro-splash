@@ -7,6 +7,29 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [1.9.0] - 2026-10-02 — Sistema de Resoluções, Modos de Tela & Responsividade (Fase 33)
+
+### Adicionado & Modificado
+
+- **Presets de Alta Resolução 16:9 Cristalinos (4K, 1440p, 1080p) (Fase 33.1)**:
+  - `src/config.ts`: Adicionados presets de alta fidelidade `"4K"` (`3840×2160` UHD) e `"1440p"` (`2560×1440` QHD), mantendo o padrão `"1080p"` (FHD) como padrão do sistema.
+  - Remoção intencional de resoluções com distorção de aspecto (`tablet_portrait`, `ultrawide21`, `ultrawide32`) e de baixa resolução (`720p`, `540p` equilibrado e `450p` retrô clássico) para garantir fidelidade visual e ausência total de achatamento de sprites.
+- **Detecção Automática de Resolução Nativa (Fase 33.2)**:
+  - `src/config.ts`: Criada a rotina `detectNativeResolution` e preset virtual `"auto"` exibindo dinamicamente a resolução real do monitor (ex.: `Auto (Detectado: 1920×1080) 🔍`).
+- **Modo Letterbox com Barras Protetoras e Cores Customizáveis (Fase 33.4)**:
+  - `src/systems/letterboxSystem.ts`: Criado overlay com 4 barras fixas em `z: 999` com alternância cíclica de cores: Preto (`#000000`) ou Azul Oceânico (`#06122a`), sincronizando com o background do DOM.
+- **Persistência de Resolução por Dispositivo (Fase 33.6)**:
+  - `src/config.ts`: Chave de armazenamento individualizada `micro_splash_resolution_${width}x${height}` impedindo que configurações de telas diferentes no mesmo navegador se sobreponham.
+- **Preview de Proporção em Tempo Real nas Opções (Fase 33.7)**:
+  - `src/ui/optionsScreen.ts`: Tag visual dinâmica calculando e exibindo a proporção de aspecto (ex.: `Proporção: 16:9 • 1920×1080`) a cada ciclo no seletor.
+- **Indicador de Resolução Ativa no HUD F3 (Fase 33.8)**:
+  - `src/ui/debugDistance.ts`: Exibição da linha `Tela: W×H (Modo)` no painel de diagnóstico técnico F3.
+- **Testes & Qualidade**:
+  - `tests/phase33_resolutions_responsiveness.test.ts`: Nova suíte de testes cobrindo proporções matemáticas 16:9, detecção automática, persistência por tela, letterbox overlay e telemetria F3.
+  - Cobertura total de 44 arquivos de teste e 290 testes unitários passando 100%.
+
+---
+
 ## [1.8.0] - 2026-10-02 — Tipografia, Texto & Hierarquia Visual (Fase 32)
 
 ### Adicionado & Modificado

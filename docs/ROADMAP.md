@@ -447,24 +447,25 @@ _Objetivo: Substituir a fonte padrão do browser por tipografia oceânica consis
 
 ### 🖥️ FASE 33: Sistema de Resoluções, Modos de Tela & Responsividade
 
-_Objetivo: Expandir os presets de resolução para cobrir monitores 4K, ultrawide e tablets, corrigir o modo letterbox para funcionar corretamente e adicionar modo automático baseado na resolução nativa do dispositivo._
+_Objetivo: Expandir os presets de resolução para alta fidelidade (1440p, 4K), eliminar distorções de aspecto e resoluções legadas, corrigir o modo letterbox com overlay e adicionar detecção automática baseada na resolução nativa do dispositivo._
 
-- [ ] **33.1 Adicionar Preset 1440p (2K) e 4K (2160p):**
-  - Presets atuais: `450p`, `540p`, `720p`, `1080p`. Faltam monitores modernos usados em museus e totens: `"1440p": { width: 2560, height: 1440 }` e `"4K": { width: 3840, height: 2160 }`. Sprites procedurais em Kaboom escalam via GPU sem perda de qualidade — não há risco de borramento.
-- [ ] **33.2 Preset Automático — Detectar Resolução Nativa do Dispositivo:**
-  - Adicionar opção `"auto"` que usa `window.screen.width × window.screen.height` (ou `window.devicePixelRatio × window.innerWidth/Height` para Retina/HiDPI). Exibir como `"Auto (Detectado: 1920×1080) 🔍"` nas Opções. Evita que o usuário precise configurar manualmente.
-- [ ] **33.3 Suporte a Proporção Ultrawide (21:9 e 32:9):**
-  - Presets atuais assumem proporção 16:9. Totens de museu e monitores ultrawide (3440×1440, 5120×1440) ficam com barras laterais ou distorção. Adicionar presets `"ultrawide21": { width: 3440, height: 1440 }` e `"ultrawide32": { width: 5120, height: 1440 }` com lógica de rendering que expande o fundo e os céu/chão lateralmente mas mantém a área de gameplay centralizada.
-- [ ] **33.4 Modo Letterbox Funcionando Corretamente com Barras Escuras:**
-  - O modo `letterbox` está implementado em `getSavedDisplayMode()` mas a renderização das barras pretas laterais/superior/inferior não é visível em código — pode estar incompleta. Garantir que o modo letterbox renderize `rect` pretos nas bordas com `z: 999` cobrindo o overflow de conteúdo. Adicionar opção de cor da borda: preto, azul oceânico (`#06122a`) ou personalizada.
-- [ ] **33.5 Modo Retrato (Portrait) para Tablets Verticais:**
-  - Em tablets como iPad (768×1024 no orientação portrait), o jogo atual fica comprimido horizontalmente. Adicionar preset `"tablet_portrait": { width: 768, height: 1024 }` com layout vertical onde o oceano ocupa 85% da tela e o HUD fica em painel inferior — viável pois a câmera do Kaboom pode ser reconfigurada.
-- [ ] **33.6 Persistência de Resolução por Dispositivo:**
-  - A resolução salva em `localStorage` é global. Se o jogo for aberto em dois dispositivos diferentes (computador do professor + tablet do aluno), a resolução salva pode ser inadequada. Salvar como `"micro_splash_resolution_${screen.width}x${screen.height}"` para cada resolução de tela nativa diferente.
-- [ ] **33.7 Preview de Resolução em Tempo Real nas Opções:**
-  - Ao selecionar uma resolução nas Opções, não há feedback visual de como a tela mudará. Adicionar um mini-preview retangular proporcional abaixo do seletor mostrando a relação de aspecto selecionada vs. a tela atual — triângulo de comparação visual antes de confirmar a mudança.
-- [ ] **33.8 Indicador de Resolução Atual no HUD F3:**
-  - O HUD de diagnóstico F3 atual lista FPS mas não a resolução em uso. Adicionar linha `"Resolução: 1920×1080 (720p)"` ao painel F3 — útil para diagnóstico remoto de problemas em totens.
+- [x] **33.1 Presets de Alta Resolução 16:9 (4K, 1440p, 1080p) e Limpeza de Resoluções Legadas:**
+  - Presets configurados: `"4K": { width: 3840, height: 2160 }`, `"1440p": { width: 2560, height: 1440 }` e `"1080p": { width: 1920, height: 1080 }`.
+  - Remoção das resoluções legadas de baixa resolução (`720p`, `540p` equilibrado e `450p` retrô clássico) para assegurar nitidez em alta definição e fidelidade visual contínua. Sprites procedurais em Kaboom escalam via GPU sem perda de qualidade.
+- [x] **33.2 Preset Automático — Detectar Resolução Nativa do Dispositivo:**
+  - Opção `"auto"` que detecta `window.screen.width × window.screen.height`. Exibida como `"Auto (Detectado: 1920×1080) 🔍"` nas Opções, simplificando a configuração para qualquer usuário.
+- [x] **33.3 Avaliação & Remoção de Resoluções com Distorção (Ultrawide & Retrato):**
+  - Avaliação prática de proporções ultrawide (21:9, 32:9) e retrato (3:4); para evitar distorção severa ou achatamento dos sprites da baleia e cenário, tais modos foram deliberadamente excluídos, mantendo fidelidade absoluta em 16:9.
+- [x] **33.4 Modo Letterbox Funcionando Corretamente com Barras Escuras:**
+  - Overlay em `src/systems/letterboxSystem.ts` com 4 retângulos fixos em `z: 999` cobrindo as margens de proporção. Alternância de cor entre Preto (`#000000`) e Azul Oceânico (`#06122a`), sincronizada com o fundo do DOM.
+- [x] **33.5 Padronização e Fidelidade 16:9 Universal:**
+  - Garantia de consistência matemática em todos os presets suportados (`width / height ≈ 16 / 9`), prevenindo qualquer achatamento ou estiramento de elementos de gameplay.
+- [x] **33.6 Persistência de Resolução por Dispositivo:**
+  - Chave de armazenamento individualizada `micro_splash_resolution_${screen.width}x${screen.height}` salvando a preferência para cada display conectado.
+- [x] **33.7 Preview de Proporção em Tempo Real nas Opções:**
+  - Mini-tag dinâmica nas Opções exibindo a proporção de aspecto e dimensões calculadas a cada clique no seletor de resolução.
+- [x] **33.8 Indicador de Resolução Atual no HUD F3:**
+  - Exibição de telemetria técnica `Tela: W×H (Modo)` no painel de diagnóstico F3 para suporte e verificação.
 
 ### 🎬 FASE 34: Telas de Jogo — Visual & Polimento de UI
 

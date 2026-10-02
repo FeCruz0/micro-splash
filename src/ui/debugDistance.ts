@@ -1,5 +1,5 @@
 import type { KaboomCtx, GameObj } from "kaboom";
-import { GAME_CONFIG } from "../config";
+import { GAME_CONFIG, getSavedDisplayMode } from "../config";
 import { getCurrentBiome } from "../systems/oceanEnvironment";
 import type { PlayerController } from "../entities/player";
 
@@ -35,6 +35,17 @@ export function generateFpsSparkline(history: number[], sampleCount: number = 30
   return slice.map(fpsToSparklineChar).join("");
 }
 
+/**
+ * Retorna o diagnóstico da resolução e modo de tela ativos (Fase 33.8).
+ */
+export function formatResolutionInfo(k: KaboomCtx): string {
+  const w = typeof k.width === "function" ? k.width() : 1280;
+  const h = typeof k.height === "function" ? k.height() : 720;
+  const displayMode = getSavedDisplayMode();
+  const modeStr = displayMode === "letterbox" ? "Bordas" : "Preencher";
+  return `${w}×${h} (${modeStr})`;
+}
+
 export function createDebugDistanceUI(k: KaboomCtx, playerController?: PlayerController) {
   const isHighRes = k.width() >= 1920;
   const isMediumRes = k.width() >= 1280;
@@ -44,7 +55,7 @@ export function createDebugDistanceUI(k: KaboomCtx, playerController?: PlayerCon
   const isSerene = playerController?.isSereneMode?.() ?? false;
 
   const containerWidth = Math.round(350 * scale);
-  const containerHeight = isSerene ? Math.round(154 * scale) : Math.round(198 * scale);
+  const containerHeight = isSerene ? Math.round(154 * scale) : Math.round(218 * scale);
   const padding = Math.round(12 * scale);
 
   const fontSizeTitle = Math.round(13.5 * scale);
@@ -233,6 +244,17 @@ export function createDebugDistanceUI(k: KaboomCtx, playerController?: PlayerCon
     k.color(130, 245, 190),
   ]);
   sparklineText.hidden = isSerene;
+
+  // Linha 8: Indicador de Resolução & Modo de Tela Ativo (Fase 33.8)
+  const resInfoText = container.add([
+    k.text(`Tela: ${formatResolutionInfo(k)}`, {
+      size: fontSizeTech,
+      font: "Inter",
+    }),
+    k.pos(Math.round(14 * scale), Math.round(195 * scale)),
+    k.color(140, 210, 255),
+  ]);
+  resInfoText.hidden = isSerene;
 
   return {
     getContainer: (): GameObj => container,

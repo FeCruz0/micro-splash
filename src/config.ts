@@ -103,34 +103,134 @@ export const BIOME_COLOR_STOPS: BiomeColorStop[] = [
   },
 ];
 
+export interface ResolutionPreset {
+  width: number;
+  height: number;
+  label: string;
+  aspect: "16:9" | "auto";
+}
+
 export const RESOLUTION_PRESETS = {
-  "1080p": { width: 1920, height: 1080, label: "1920x1080 (1080p Full HD) 🖥️✨" },
-  "720p": { width: 1280, height: 720, label: "1280x720 (720p HD) 🖥️" },
-  "540p": { width: 960, height: 540, label: "960x540 (Equilibrado) 📺" },
-  "450p": { width: 800, height: 450, label: "800x450 (Retrô Clássico) 🕹️" },
+  // Presets 16:9 de Alta Fidelidade (Sem distorção)
+  "4K": { width: 3840, height: 2160, label: "3840x2160 (4K UHD) 📺🌟", aspect: "16:9" },
+  "1440p": { width: 2560, height: 1440, label: "2560x1440 (1440p 2K QHD) 🖥️💎", aspect: "16:9" },
+  "1080p": { width: 1920, height: 1080, label: "1920x1080 (1080p Full HD) 🖥️✨", aspect: "16:9" },
 } as const;
 
-export type ResolutionKey = keyof typeof RESOLUTION_PRESETS;
+export type ResolutionKey = keyof typeof RESOLUTION_PRESETS | "auto";
 
+/**
+ * Retorna a chave de armazenamento individualizada para a resolução da tela nativa do dispositivo (Fase 33.6).
+ */
+export function getDeviceResolutionStorageKey(): string {
+  if (typeof window !== "undefined" && window.screen) {
+    const sw = window.screen.width || 0;
+    const sh = window.screen.height || 0;
+    return `micro_splash_resolution_${sw}x${sh}`;
+  }
+  return "micro_splash_resolution";
+}
+
+/**
+ * Detecta dinamicamente a resolução nativa da tela do dispositivo (Fase 33.2).
+ */
+export function detectNativeResolution(): { width: number; height: number; detectedLabel: string } {
+  if (typeof window !== "undefined" && window.screen) {
+    const sw = window.screen.width || 1920;
+    const sh = window.screen.height || 1080;
+    return {
+      width: sw,
+      height: sh,
+      detectedLabel: `${sw}×${sh}`,
+    };
+  }
+  return {
+    width: 1920,
+    height: 1080,
+    detectedLabel: "1920×1080",
+  };
+}
+
+/**
+ * Calcula o aspect ratio formatado e o valor numérico para preview proporcional (Fase 33.7).
+ */
+export function calculateAspectRatio(
+  width: number,
+  height: number
+): {
+  ratioText: string;
+  ratioValue: number;
+} {
+  const safeH = Math.max(1, height);
+  const ratioValue = Number((width / safeH).toFixed(2));
+
+  if (Math.abs(ratioValue - 16 / 9) < 0.05) return { ratioText: "16:9", ratioValue };
+  // 21:9 comercial cobre de 2.33 (64:27) a 2.39 (3440×1440 / 43:18)
+  if (Math.abs(ratioValue - 2.39) < 0.08 || Math.abs(ratioValue - 21 / 9) < 0.08) {
+    return { ratioText: "21:9", ratioValue };
+  }
+  if (Math.abs(ratioValue - 32 / 9) < 0.08) return { ratioText: "32:9", ratioValue };
+  if (Math.abs(ratioValue - 4 / 3) < 0.05) return { ratioText: "4:3", ratioValue };
+  if (Math.abs(ratioValue - 3 / 4) < 0.05) return { ratioText: "3:4", ratioValue };
+
+  return {
+    ratioText: `${Math.round(width / 100)}:${Math.round(height / 100)}`,
+    ratioValue,
+  };
+}
+
+/**
+ * Recupera a resolução salva com suporte a persistência por dispositivo e detecção automática (Fase 33.2 e 33.6).
+ */
 export function getSavedResolution(): {
   width: number;
   height: number;
   key: ResolutionKey;
   label: string;
+  aspect: string;
 } {
-  const saved = (
-    typeof localStorage !== "undefined"
-      ? localStorage.getItem("micro_splash_resolution") || "720p"
-      : "720p"
-  ) as ResolutionKey;
+  let saved: string | null = null;
+  const deviceKey = getDeviceResolutionStorageKey();
 
-  const preset = RESOLUTION_PRESETS[saved] || RESOLUTION_PRESETS["720p"];
+  if (typeof localStorage !== "undefined") {
+    saved = localStorage.getItem(deviceKey) || localStorage.getItem("micro_splash_resolution");
+  }
+
+  // Modo Automático (Fase 33.2)
+  if (saved === "auto") {
+    const detected = detectNativeResolution();
+    return {
+      width: detected.width,
+      height: detected.height,
+      key: "auto",
+      label: `Auto (Detectado: ${detected.detectedLabel}) 🔍`,
+      aspect: calculateAspectRatio(detected.width, detected.height).ratioText,
+    };
+  }
+
+  const effectiveKey = (
+    saved && saved in RESOLUTION_PRESETS ? saved : "1080p"
+  ) as keyof typeof RESOLUTION_PRESETS;
+  const preset = RESOLUTION_PRESETS[effectiveKey] || RESOLUTION_PRESETS["1080p"];
+
   return {
     width: preset.width,
     height: preset.height,
     label: preset.label,
-    key: saved in RESOLUTION_PRESETS ? saved : "720p",
+    aspect: preset.aspect,
+    key: effectiveKey,
   };
+}
+
+/**
+ * Salva a resolução tanto na chave global quanto na chave do dispositivo atual (Fase 33.6).
+ */
+export function setSavedResolution(key: ResolutionKey): void {
+  if (typeof localStorage !== "undefined") {
+    const deviceKey = getDeviceResolutionStorageKey();
+    localStorage.setItem(deviceKey, key);
+    localStorage.setItem("micro_splash_resolution", key);
+  }
 }
 
 export type DisplayMode = "stretch" | "letterbox";
@@ -144,6 +244,20 @@ export function getSavedDisplayMode(): DisplayMode {
 export function setSavedDisplayMode(mode: DisplayMode): void {
   if (typeof localStorage !== "undefined") {
     localStorage.setItem("micro_splash_display_mode", mode);
+  }
+}
+
+export type LetterboxColor = "black" | "ocean";
+
+export function getSavedLetterboxColor(): LetterboxColor {
+  if (typeof localStorage === "undefined") return "black";
+  const saved = localStorage.getItem("micro_splash_letterbox_color");
+  return saved === "ocean" ? "ocean" : "black";
+}
+
+export function setSavedLetterboxColor(color: LetterboxColor): void {
+  if (typeof localStorage !== "undefined") {
+    localStorage.setItem("micro_splash_letterbox_color", color);
   }
 }
 

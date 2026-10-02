@@ -10,9 +10,15 @@ import {
   RESOLUTION_PRESETS,
   type ResolutionKey,
   getSavedResolution,
+  setSavedResolution,
   getSavedDisplayMode,
   setSavedDisplayMode,
   type DisplayMode,
+  detectNativeResolution,
+  calculateAspectRatio,
+  getSavedLetterboxColor,
+  setSavedLetterboxColor,
+  type LetterboxColor,
   APP_VERSION,
 } from "../config";
 
@@ -28,6 +34,9 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
 
   const initialDisplayMode = getSavedDisplayMode();
   let currentDisplayMode: DisplayMode = initialDisplayMode;
+
+  const initialLetterboxColor = getSavedLetterboxColor();
+  let currentLetterboxColor: LetterboxColor = initialLetterboxColor;
 
   const initialFontScale = accessibilitySystem.getFontScaleKey();
   const initialLocale = i18n.getLocale();
@@ -523,10 +532,27 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
     onActivate: handleHaptics,
   });
 
-  // --- Linha 4: Resolução do Jogo ---
+  // --- Linha 4: Resolução do Jogo (Fase 33: Presets 16:9 Cristalinos & Auto) ---
   const row4Y = rowStartY + 4 * (btnH + rowGap);
-  const resKeys: ResolutionKey[] = ["1080p", "720p", "540p", "450p"];
-  const getResLabel = (key: ResolutionKey) => `Resolução: ${RESOLUTION_PRESETS[key].label}`;
+  const resKeys: ResolutionKey[] = ["auto", "4K", "1440p", "1080p"];
+
+  const getResLabel = (key: ResolutionKey) => {
+    if (key === "auto") {
+      const detected = detectNativeResolution();
+      return `Resolução: Auto (${detected.detectedLabel}) 🔍`;
+    }
+    return `Resolução: ${RESOLUTION_PRESETS[key].label}`;
+  };
+
+  const getAspectTag = (key: ResolutionKey) => {
+    if (key === "auto") {
+      const detected = detectNativeResolution();
+      const calc = calculateAspectRatio(detected.width, detected.height);
+      return `Proporção: ${calc.ratioText} • Nativa`;
+    }
+    const preset = RESOLUTION_PRESETS[key];
+    return `Proporção: ${preset.aspect} • ${preset.width}×${preset.height}`;
+  };
 
   const btnResPos = k.vec2(col0X, row4Y);
   const btnRes = k.add([
@@ -544,7 +570,7 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
 
   const resText = k.add([
     k.text(getResLabel(currentResKey), {
-      size: accessibilitySystem.scaleFont(15),
+      size: accessibilitySystem.scaleFont(14),
       font: "Outfit",
     }),
     k.pos(btnResPos),
@@ -554,6 +580,20 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
     k.z(303),
   ]);
   elements.push(resText);
+
+  // Mini-Preview de Proporção Proporcional (Fase 33.7)
+  const resAspectTagText = k.add([
+    k.text(getAspectTag(currentResKey), {
+      size: accessibilitySystem.scaleFont(11.5),
+      font: "Inter",
+    }),
+    k.pos(col0X, row4Y + btnH / 2 + 10),
+    k.color(140, 215, 255),
+    k.anchor("center"),
+    k.fixed(),
+    k.z(303),
+  ]);
+  elements.push(resAspectTagText);
 
   // Dica informativa de reload ao salvar
   const reloadHintY = cY - cardH / 2 + 398;
@@ -574,6 +614,7 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
     if (
       currentResKey !== initialRes.key ||
       currentDisplayMode !== initialDisplayMode ||
+      currentLetterboxColor !== initialLetterboxColor ||
       accessibilitySystem.getFontScaleKey() !== initialFontScale ||
       i18n.getLocale() !== initialLocale
     ) {
@@ -588,9 +629,10 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
     const currentIdx = resKeys.indexOf(currentResKey);
     const nextIdx = (currentIdx + 1) % resKeys.length;
     currentResKey = resKeys[nextIdx];
-    localStorage.setItem("micro_splash_resolution", currentResKey);
+    setSavedResolution(currentResKey);
     audioSystem.playUiClick();
     resText.text = getResLabel(currentResKey);
+    resAspectTagText.text = getAspectTag(currentResKey);
     updateReloadHint();
   };
 
@@ -608,17 +650,30 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
     onActivate: handleRes,
   });
 
-  // --- Linha 5: Bordas & Tela Cheia ---
+  // --- Linha 5: Bordas & Tela Cheia (Fase 33.4) ---
   const row5Y = rowStartY + 5 * (btnH + rowGap);
   const splitGap = 8;
   const displayW = (colW - splitGap) * 0.58;
   const fsW = (colW - splitGap) * 0.42;
 
+  const getDisplayLabel = () => {
+    if (currentDisplayMode === "stretch") {
+      return "Bordas: PREENCHER 🖥️✓";
+    }
+    return currentLetterboxColor === "ocean" ? "Bordas: OCEANO 🌊" : "Bordas: PRETO ⬛";
+  };
+
   const btnDisplayPos = k.vec2(col0X - colW / 2 + displayW / 2, row5Y);
   const btnDisplay = k.add([
     k.rect(displayW, btnH, { radius: 8 }),
     k.pos(btnDisplayPos),
-    k.color(currentDisplayMode === "stretch" ? k.rgb(18, 105, 80) : k.rgb(50, 65, 85)),
+    k.color(
+      currentDisplayMode === "stretch"
+        ? k.rgb(18, 105, 80)
+        : currentLetterboxColor === "ocean"
+          ? k.rgb(14, 52, 98)
+          : k.rgb(40, 48, 60)
+    ),
     k.outline(1.5, k.rgb(52, 211, 153)),
     k.scale(1),
     k.anchor("center"),
@@ -629,8 +684,8 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   elements.push(btnDisplay);
 
   const displayText = k.add([
-    k.text(currentDisplayMode === "stretch" ? "Bordas: PREENCHER 🖥️✓" : "Bordas: 16:9 📺", {
-      size: accessibilitySystem.scaleFont(14.5),
+    k.text(getDisplayLabel(), {
+      size: accessibilitySystem.scaleFont(14),
       font: "Outfit",
     }),
     k.pos(btnDisplayPos),
@@ -642,12 +697,24 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   elements.push(displayText);
 
   const handleDisplay = () => {
-    currentDisplayMode = currentDisplayMode === "stretch" ? "letterbox" : "stretch";
+    if (currentDisplayMode === "stretch") {
+      currentDisplayMode = "letterbox";
+      currentLetterboxColor = "black";
+    } else if (currentLetterboxColor === "black") {
+      currentLetterboxColor = "ocean";
+    } else {
+      currentDisplayMode = "stretch";
+    }
     setSavedDisplayMode(currentDisplayMode);
+    setSavedLetterboxColor(currentLetterboxColor);
     audioSystem.playUiClick();
-    displayText.text =
-      currentDisplayMode === "stretch" ? "Bordas: PREENCHER 🖥️✓" : "Bordas: 16:9 📺";
-    btnDisplay.color = currentDisplayMode === "stretch" ? k.rgb(18, 105, 80) : k.rgb(50, 65, 85);
+    displayText.text = getDisplayLabel();
+    btnDisplay.color =
+      currentDisplayMode === "stretch"
+        ? k.rgb(18, 105, 80)
+        : currentLetterboxColor === "ocean"
+          ? k.rgb(14, 52, 98)
+          : k.rgb(40, 48, 60);
     updateReloadHint();
   };
 

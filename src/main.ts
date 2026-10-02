@@ -59,6 +59,8 @@ import { createSplashScreen } from "./ui/splashScreen";
 // Inicializa observabilidade e proteção contra exceções em totens (Fase 27)
 errorReporter.setupGlobalHandlers();
 
+import { setupLetterboxBorders } from "./systems/letterboxSystem";
+
 const resolution = getSavedResolution();
 const displayMode = getSavedDisplayMode();
 const isLetterbox = displayMode === "letterbox";
@@ -72,6 +74,9 @@ const k = kaboom({
   debug: false,
   font: "Inter",
 });
+
+// Barras Protetoras de Letterbox (Fase 33.4)
+setupLetterboxBorders(k);
 
 k.loadFont("Inter", "/fonts/Inter-SemiBold.ttf", { size: 64, filter: "linear" });
 k.loadFont("Outfit", "/fonts/Outfit-Bold.ttf", { size: 64, filter: "linear" });

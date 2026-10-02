@@ -44,23 +44,23 @@ Todos os dados salvos pelo jogo permanecem confinados no navegador do usuário u
 
 Todas as chaves criadas pelo Micro Splash utilizam o prefixo identificador `micro_splash_`:
 
-| Chave                           | Finalidade                                                                                      | Tipo de Dado                  |
-| :------------------------------ | :---------------------------------------------------------------------------------------------- | :---------------------------- |
-| `micro_splash_highscore`        | Maior pontuação obtida na migração.                                                             | Número inteiro                |
-| `micro_splash_cumulative_stats` | Métricas ecológicas somadas (lixos coletados, redes desfeitas, km nadados).                     | Objeto JSON                   |
-| `micro_splash_unlocked_facts`   | Lista de identificadores de fatos ecológicos desbloqueados no Diário de Bordo.                  | Array JSON de strings         |
-| `micro_splash_color_mode`       | Paleta de acessibilidade selecionada (`normal`, `protanopia`, `deuteranopia`, `high_contrast`). | String                        |
-| `micro_splash_reduced_motion`   | Preferência de atenuação de movimento (`auto`, `reduced`, `full`).                              | String                        |
-| `micro_splash_font_scale`       | Escala do tamanho das fontes da interface (`small`, `normal`, `large`).                         | String                        |
-| `micro_splash_soundtrack_mode`  | Modo de trilha sonora ativo (16-bit chiptune, ambiente contemplativo, foco).                    | String                        |
-| `micro_splash_volume`           | Nível do volume sonoro geral (0% a 100%).                                                       | Número decimal                |
-| `micro_splash_sfx_enabled`      | Estado de ativação dos efeitos sonoros procedurais.                                             | Booleano (`"true"`/`"false"`) |
-| `micro_splash_haptics`          | Estado de ativação da vibração tátil em dispositivos móveis.                                    | Booleano (`"true"`/`"false"`) |
-| `micro_splash_touch_controls`   | Modo de exibição dos controles touch na tela (`auto`, `on`, `off`).                             | String                        |
-| `micro_splash_resolution`       | Preset de resolução do canvas (`1080p`, `720p`, `540p`, `450p`).                                | String                        |
-| `micro_splash_display_mode`     | Modo de proporção de tela (`stretch` ou `letterbox`).                                           | String                        |
-| `micro_splash_onboarding_seen`  | Indica se o onboarding em 3 slides já foi visualizado no dispositivo.                           | Booleano (`"true"`)           |
-| `micro_splash_tts_enabled`      | Ativação da narração em voz acessível dos fatos ecológicos.                                     | Booleano (`"true"`/`"false"`) |
+| Chave                           | Finalidade                                                                                           | Tipo de Dado                  |
+| :------------------------------ | :--------------------------------------------------------------------------------------------------- | :---------------------------- |
+| `micro_splash_highscore`        | Maior pontuação obtida na migração.                                                                  | Número inteiro                |
+| `micro_splash_cumulative_stats` | Métricas ecológicas somadas (lixos coletados, redes desfeitas, km nadados).                          | Objeto JSON                   |
+| `micro_splash_unlocked_facts`   | Lista de identificadores de fatos ecológicos desbloqueados no Diário de Bordo.                       | Array JSON de strings         |
+| `micro_splash_color_mode`       | Paleta de acessibilidade selecionada (`normal`, `protanopia`, `deuteranopia`, `high_contrast`).      | String                        |
+| `micro_splash_reduced_motion`   | Preferência de atenuação de movimento (`auto`, `reduced`, `full`).                                   | String                        |
+| `micro_splash_font_scale`       | Escala do tamanho das fontes da interface (`small`, `normal`, `large`).                              | String                        |
+| `micro_splash_soundtrack_mode`  | Modo de trilha sonora ativo (16-bit chiptune, ambiente contemplativo, foco).                         | String                        |
+| `micro_splash_volume`           | Nível do volume sonoro geral (0% a 100%).                                                            | Número decimal                |
+| `micro_splash_sfx_enabled`      | Estado de ativação dos efeitos sonoros procedurais.                                                  | Booleano (`"true"`/`"false"`) |
+| `micro_splash_haptics`          | Estado de ativação da vibração tátil em dispositivos móveis.                                         | Booleano (`"true"`/`"false"`) |
+| `micro_splash_touch_controls`   | Modo de exibição dos controles touch na tela (`auto`, `on`, `off`).                                  | String                        |
+| `micro_splash_resolution`       | Preset de resolução do canvas (`auto`, `4K`, `1440p`, `1080p`) e chaves específicas por dispositivo. | String                        |
+| `micro_splash_display_mode`     | Modo de proporção de tela (`stretch` ou `letterbox`).                                                | String                        |
+| `micro_splash_onboarding_seen`  | Indica se o onboarding em 3 slides já foi visualizado no dispositivo.                                | Booleano (`"true"`)           |
+| `micro_splash_tts_enabled`      | Ativação da narração em voz acessível dos fatos ecológicos.                                          | Booleano (`"true"`/`"false"`) |
 
 ---
 
