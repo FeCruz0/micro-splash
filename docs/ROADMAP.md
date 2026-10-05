@@ -471,21 +471,21 @@ _Objetivo: Expandir os presets de resolução para alta fidelidade (1440p, 4K), 
 
 _Objetivo: Elevar todas as telas de interface (splash, menu, vitória, resgate, opções, modo) ao mesmo nível visual cinematográfico, com animações de entrada, identidade oceânica e estado de hover comunicativo._
 
-- [ ] **34.1 Animação de Entrada em Todos os Modais:**
+- [x] **34.1 Animação de Entrada em Todos os Modais:**
   - Nenhum modal tem animação de entrada — aparecem instantaneamente. Implementar `k.tween` de escala (`0.85 → 1.0`) + opacity (`0 → 1`) em 0.25s com easing `k.easings.easeOutBack` para todos os cards de modal. Feedback visual imediato de abertura.
-- [ ] **34.2 Tela de Splash com Logo Animado e Subtítulo Melhorado:**
+- [x] **34.2 Tela de Splash com Logo Animado e Subtítulo Melhorado:**
   - O logo "MICRO-SPLASH" aparece em `k.text()` simples em `size: 48`. Redesenhar com duas cores intercaladas por letra (alternando azul-turquesa e branco) e animação de entrada letter-by-letter via delay de `k.wait`. O subtítulo atual `"A JORNADA DA BALEIA-JUBARTE"` poderia ser enriquecido com ícones laterais de âncora e cauda de baleia.
-- [ ] **34.3 Barco de Resgate com Detalhes Visuais:**
+- [x] **34.3 Barco de Resgate com Detalhes Visuais:**
   - O barco de resgate (`boat.ts`) tem: casco `90×30px` + cabine `30×20px` + luz piscante. Sem ondas de scia, sem mastro, sem número identificador. Adicionar: mastro vertical (`rect 3×40px`), bandeira (`polygon triangular` verde), esteira de scia (2–3 partículas brancas atrás) e uma faixa diagonal laranja característica da Guarda Marítima Brasileira.
-- [ ] **34.4 Tela de Vitória com Partículas Temáticas de Confete:**
+- [x] **34.4 Tela de Vitória com Partículas Temáticas de Confete:**
   - A tela de vitória (`victoryScreen.ts` com 613 linhas) não tem partículas visuais de celebração. Adicionar 40–60 partículas de confete em cores oceânicas (turquesa, dourado, branco) com `rect 4×8px` rotacionados aleatoriamente e física de gravidade suave. Disparar apenas 1× ao entrar na tela.
-- [ ] **34.5 Botões com Estado Hover Visual Consistente:**
+- [x] **34.5 Botões com Estado Hover Visual Consistente:**
   - `onHoverUpdate` está implementado apenas na tela de resgate (`rescueScreen.ts` linha 94). Nos outros modais (Opções, Modo, Vitória, Codex), os botões não têm feedback de hover. Padronizar: hover = cor base + 30% mais clara, cursor pointer, leve expansão de escala (`1.0 → 1.04` via `k.tween`).
-- [ ] **34.6 Tela de Seleção de Modo com Cards Visuais por Modo:**
+- [x] **34.6 Tela de Seleção de Modo com Cards Visuais por Modo:**
   - `modeSelectScreen.ts` lista os modos em texto puro. Transformar em cards com: ícone grande do modo (🏊 migração, ⚡ challenge, 🎭 apresentação), fundo de cor diferente por modo e um preview textual de "O que esperar" em 2 linhas. Padrão visual de seleção de personagem/modo de jogos AAA.
-- [ ] **34.7 Tela do Codex com Ícones de Bioma e Barra de Progresso:**
+- [x] **34.7 Tela do Codex com Ícones de Bioma e Barra de Progresso:**
   - O Codex exibe fatos desbloqueados em lista simples. Adicionar: ícone emoji do bioma à esquerda de cada fato, indicador `"3/4 desbloqueados"` por bioma, e barra de progresso horizontal de 100% representando a rota completa com marcadores nos pontos de fato.
-- [ ] **34.8 Loading Overlay ao Trocar de Resolução:**
+- [x] **34.8 Loading Overlay ao Trocar de Resolução:**
   - Ao confirmar mudança de resolução nas Opções, a tela reconfigura instantaneamente — pode causar flash visual. Adicionar fade-out de 0.3s (`rect` preto em `z: 9999`) antes do `window.location.reload()` que aplica a nova resolução.
 
 ### 🐬 FASE 35: Polimento Visual dos Sistemas Ausentes

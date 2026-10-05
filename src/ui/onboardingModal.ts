@@ -299,7 +299,9 @@ export function showOnboardingModal(k: KaboomCtx, onDone: () => void) {
       focusGroup.destroy();
       focusGroup = null;
     }
-    window.removeEventListener("keydown", keyHandler);
+    if (typeof window !== "undefined") {
+      window.removeEventListener("keydown", keyHandler);
+    }
     elements.forEach((el) => {
       try {
         k.destroy(el);
@@ -528,7 +530,9 @@ export function showOnboardingModal(k: KaboomCtx, onDone: () => void) {
       }
     }
   };
-  window.addEventListener("keydown", keyHandler);
+  if (typeof window !== "undefined") {
+    window.addEventListener("keydown", keyHandler);
+  }
 
   // Itens focáveis estáveis
   const focusItems: FocusableItem[] = [

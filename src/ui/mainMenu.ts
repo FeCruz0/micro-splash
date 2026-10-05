@@ -6,6 +6,7 @@ import { showStatsModal } from "./statsModal";
 import { createFocusGroup, type FocusableItem } from "./keyboardNav";
 import { hasSeenOnboarding, showOnboardingModal } from "./onboardingModal";
 import { t } from "../i18n/i18n";
+import { attachButtonHoverEffect } from "./animationUtils";
 
 export function createMainMenu(
   k: KaboomCtx,
@@ -163,11 +164,13 @@ export function createMainMenu(
     // Ignora silenciosamente caso mock de teste não forneça sprite baleia
   }
 
-  // Título Sombra
+  const cX = k.width() / 2;
+  const cY = k.height() / 2;
+
   // Sombra do Título
   k.add([
-    k.text("MICRO SPLASH", { size: 56, font: "Outfit" }),
-    k.pos(k.width() / 2 + 3, k.height() / 2 - 170 + 3),
+    k.text("MICRO SPLASH", { size: 58, font: "Outfit" }),
+    k.pos(cX + 3, cY - 225 + 3),
     k.color(2, 8, 20),
     k.anchor("center"),
     k.fixed(),
@@ -176,8 +179,8 @@ export function createMainMenu(
 
   // Título Principal
   k.add([
-    k.text("MICRO SPLASH", { size: 56, font: "Outfit" }),
-    k.pos(k.width() / 2, k.height() / 2 - 170),
+    k.text("MICRO SPLASH", { size: 58, font: "Outfit" }),
+    k.pos(cX, cY - 225),
     k.color(100, 240, 255),
     k.anchor("center"),
     k.fixed(),
@@ -187,26 +190,36 @@ export function createMainMenu(
   // Subtítulo
   k.add([
     k.text(`${t("menu.subtitle")} 🐋`, {
-      size: accessibilitySystem.scaleFont(20),
+      size: accessibilitySystem.scaleFont(19),
       font: "Outfit",
     }),
-    k.pos(k.width() / 2, k.height() / 2 - 120),
-    k.color(200, 235, 255),
+    k.pos(cX, cY - 170),
+    k.color(195, 235, 255),
     k.anchor("center"),
     k.fixed(),
     k.z(11),
   ]);
 
-  // Placar Recorde
+  // Placar Recorde com badge elegante e respiro
   const highScore = Number(localStorage.getItem("micro_splash_highscore") || 0);
   if (highScore > 0) {
+    const formattedScore = highScore.toLocaleString("pt-BR");
     k.add([
-      k.text(`🏆 Recorde Histórico: ${highScore} Eco-Pontos`, {
-        size: accessibilitySystem.scaleFont(16),
+      k.rect(340, 26, { radius: 13 }),
+      k.pos(cX, cY - 122),
+      k.color(14, 30, 54),
+      k.outline(1.5, k.rgb(250, 204, 21)),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(10),
+    ]);
+    k.add([
+      k.text(`🏆 Recorde Histórico: ${formattedScore} Eco-Pontos`, {
+        size: accessibilitySystem.scaleFont(13.5),
         font: "Outfit",
       }),
-      k.pos(k.width() / 2, k.height() / 2 - 84),
-      k.color(255, 215, 80),
+      k.pos(cX, cY - 122),
+      k.color(255, 225, 95),
       k.anchor("center"),
       k.fixed(),
       k.z(11),
@@ -214,22 +227,27 @@ export function createMainMenu(
   }
 
   // ==========================================
-  // BOTÕES PRINCIPAIS DO MENU
+  // BOTÕES PRINCIPAIS DO MENU COM ESPAÇAMENTO GENEROSO
   // ==========================================
+  const btnW = 430;
+  const btnH = 48;
+  const btnGap = 14;
+  const startBtnY = cY - 58;
+
   const menuButtons = [
     {
       label: `🌊 ${t("menu.play")}`,
-      y: k.height() / 2 - 50,
-      bg: k.rgb(20, 140, 200),
-      hover: k.rgb(35, 175, 240),
+      y: startBtnY,
+      bg: [20, 140, 200] as [number, number, number],
+      hover: [35, 175, 240] as [number, number, number],
       outline: k.rgb(100, 250, 255),
       action: onStartMigration,
     },
     {
       label: "🏆 RANKING TOP 10",
-      y: k.height() / 2 + 6,
-      bg: k.rgb(26, 85, 150),
-      hover: k.rgb(40, 120, 200),
+      y: startBtnY + (btnH + btnGap),
+      bg: [26, 85, 150] as [number, number, number],
+      hover: [40, 120, 200] as [number, number, number],
       outline: k.rgb(255, 215, 80),
       action: (onClose: () => void) => {
         if (onLeaderboard) onLeaderboard(onClose);
@@ -238,9 +256,9 @@ export function createMainMenu(
     },
     {
       label: "📊 IMPACTO COLETIVO",
-      y: k.height() / 2 + 62,
-      bg: k.rgb(18, 95, 130),
-      hover: k.rgb(28, 135, 180),
+      y: startBtnY + (btnH + btnGap) * 2,
+      bg: [18, 95, 130] as [number, number, number],
+      hover: [28, 135, 180] as [number, number, number],
       outline: k.rgb(0, 230, 255),
       action: (onClose: () => void) => {
         showStatsModal(k, onClose);
@@ -248,17 +266,17 @@ export function createMainMenu(
     },
     {
       label: `📖 ${t("menu.codex")}`,
-      y: k.height() / 2 + 118,
-      bg: k.rgb(20, 50, 100),
-      hover: k.rgb(30, 80, 145),
+      y: startBtnY + (btnH + btnGap) * 3,
+      bg: [20, 50, 100] as [number, number, number],
+      hover: [30, 80, 145] as [number, number, number],
       outline: k.rgb(180, 220, 255),
       action: onCodex,
     },
     {
       label: `⚙️ ${t("menu.options")}`,
-      y: k.height() / 2 + 174,
-      bg: k.rgb(24, 65, 120),
-      hover: k.rgb(35, 95, 165),
+      y: startBtnY + (btnH + btnGap) * 4,
+      bg: [24, 65, 120] as [number, number, number],
+      hover: [35, 95, 165] as [number, number, number],
       outline: k.rgb(80, 180, 240),
       action: onOptions,
     },
@@ -267,11 +285,11 @@ export function createMainMenu(
   const focusItems: FocusableItem[] = [];
 
   menuButtons.forEach((btnData) => {
-    const btnPos = k.vec2(k.width() / 2, btnData.y);
+    const btnPos = k.vec2(cX, btnData.y);
     const btn = k.add([
-      k.rect(420, 50, { radius: 11 }),
+      k.rect(btnW, btnH, { radius: 11 }),
       k.pos(btnPos),
-      k.color(btnData.bg),
+      k.color(btnData.bg[0], btnData.bg[1], btnData.bg[2]),
       k.outline(2, btnData.outline),
       k.scale(1),
       k.anchor("center"),
@@ -282,7 +300,7 @@ export function createMainMenu(
 
     k.add([
       k.text(btnData.label, {
-        size: accessibilitySystem.scaleFont(18),
+        size: accessibilitySystem.scaleFont(17.5),
         font: "Outfit",
       }),
       k.pos(btnPos),
@@ -303,22 +321,20 @@ export function createMainMenu(
       });
     };
 
-    btn.onHoverUpdate(() => {
-      if (isModalOpen) return;
-      btn.color = btnData.hover;
-      btn.scale = k.vec2(1.02, 1.02);
-    });
-    btn.onHoverEnd(() => {
-      btn.color = btnData.bg;
-      btn.scale = k.vec2(1, 1);
+    attachButtonHoverEffect(k, btn, {
+      baseColor: btnData.bg,
+      hoverColor: btnData.hover,
+      baseScale: 1.0,
+      hoverScale: 1.035,
+      canInteract: () => !isModalOpen,
     });
 
     btn.onClick(activate);
 
     focusItems.push({
       pos: btnPos,
-      width: 420,
-      height: 50,
+      width: btnW,
+      height: btnH,
       onActivate: activate,
     });
   });

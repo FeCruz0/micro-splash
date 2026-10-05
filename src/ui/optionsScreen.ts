@@ -21,6 +21,11 @@ import {
   type LetterboxColor,
   APP_VERSION,
 } from "../config";
+import {
+  animateModalEntrance,
+  attachButtonHoverEffect,
+  createResolutionTransitionOverlay,
+} from "./animationUtils";
 
 export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   audioSystem.playUiClick();
@@ -55,9 +60,10 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
 
   // Card do Modal de Opções com geometria ampla e adaptativa
   const cardW = Math.min(1000, k.width() - 24);
-  const cardH = Math.min(660, k.height() - 20);
+  const cardH = Math.min(650, k.height() - 20);
   const cX = k.width() / 2;
   const cY = k.height() / 2;
+  const cardTop = cY - cardH / 2;
 
   const card = k.add([
     k.rect(cardW, cardH, { radius: 16 }),
@@ -65,11 +71,13 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
     k.color(10, 28, 56),
     k.outline(2.5, k.rgb(56, 189, 248)),
     k.anchor("center"),
+    k.scale(1),
     k.area(),
     k.fixed(),
     k.z(301),
   ]);
   elements.push(card);
+  animateModalEntrance(k, card);
 
   // Título Principal com destaque dourado
   elements.push(
@@ -78,7 +86,7 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
         size: accessibilitySystem.scaleFont(27),
         font: "Outfit",
       }),
-      k.pos(cX, cY - cardH / 2 + 32),
+      k.pos(cX, cardTop + 30),
       k.color(255, 225, 100),
       k.anchor("center"),
       k.fixed(),
@@ -96,7 +104,7 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
           font: "Inter",
         }
       ),
-      k.pos(cX, cY - cardH / 2 + 58),
+      k.pos(cX, cardTop + 56),
       k.color(180, 225, 255),
       k.anchor("center"),
       k.fixed(),
@@ -111,7 +119,9 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
     isClosed = true;
     audioSystem.playUiClick();
     focusGroup.destroy();
-    window.removeEventListener("keydown", keyHandler);
+    if (typeof window !== "undefined") {
+      window.removeEventListener("keydown", keyHandler);
+    }
     elements.forEach((el) => {
       try {
         k.destroy(el);
@@ -120,18 +130,21 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
     if (
       (currentResKey !== initialRes.key ||
         currentDisplayMode !== initialDisplayMode ||
+        currentLetterboxColor !== initialLetterboxColor ||
         accessibilitySystem.getFontScaleKey() !== initialFontScale ||
         i18n.getLocale() !== initialLocale) &&
       typeof window !== "undefined"
     ) {
-      window.location.reload();
+      createResolutionTransitionOverlay(k, () => {
+        window.location.reload();
+      });
       return;
     }
     onBack();
   };
 
   // Botão fechar [X] no topo direito
-  const btnXPos = k.vec2(cX + cardW / 2 - 30, cY - cardH / 2 + 30);
+  const btnXPos = k.vec2(cX + cardW / 2 - 30, cardTop + 30);
   const btnX = k.add([
     k.rect(34, 34, { radius: 8 }),
     k.pos(btnXPos),
@@ -159,15 +172,12 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
     ])
   );
 
-  btnX.onHoverUpdate(() => {
-    if (isClosed || isModalOpen) return;
-    btnX.color = k.rgb(180, 50, 50);
-    btnX.scale = k.vec2(1.05, 1.05);
-  });
-  btnX.onHoverEnd(() => {
-    if (isClosed || isModalOpen) return;
-    btnX.color = k.rgb(22, 50, 90);
-    btnX.scale = k.vec2(1, 1);
+  attachButtonHoverEffect(k, btnX, {
+    baseColor: [22, 50, 90],
+    hoverColor: [180, 50, 50],
+    baseScale: 1.0,
+    hoverScale: 1.06,
+    canInteract: () => !isClosed && !isModalOpen,
   });
   btnX.onClick(() => {
     if (isClosed || isModalOpen) return;
@@ -187,14 +197,16 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
       close();
     }
   };
-  window.addEventListener("keydown", keyHandler);
+  if (typeof window !== "undefined") {
+    window.addEventListener("keydown", keyHandler);
+  }
 
   // --- ESTRUTURA EM 2 COLUNAS HARMONIOSAS ---
   const colGap = 20;
   const colW = (cardW - 56 - colGap) / 2;
   const col0X = cX - colW / 2 - colGap / 2;
   const col1X = cX + colW / 2 + colGap / 2;
-  const headerY = cY - cardH / 2 + 86;
+  const headerY = cardTop + 88;
 
   // Cabeçalho Coluna 0: ÁUDIO & VÍDEO
   elements.push(
@@ -226,8 +238,8 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
     ])
   );
 
-  const rowStartY = cY - cardH / 2 + 120;
-  const btnH = 42;
+  const rowStartY = cardTop + 124;
+  const btnH = 41;
   const rowGap = 10;
 
   // ========================================================
@@ -539,19 +551,11 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   const getResLabel = (key: ResolutionKey) => {
     if (key === "auto") {
       const detected = detectNativeResolution();
-      return `Resolução: Auto (${detected.detectedLabel}) 🔍`;
-    }
-    return `Resolução: ${RESOLUTION_PRESETS[key].label}`;
-  };
-
-  const getAspectTag = (key: ResolutionKey) => {
-    if (key === "auto") {
-      const detected = detectNativeResolution();
       const calc = calculateAspectRatio(detected.width, detected.height);
-      return `Proporção: ${calc.ratioText} • Nativa`;
+      return `Resolução: Auto (${detected.detectedLabel} • ${calc.ratioText}) 🔍`;
     }
     const preset = RESOLUTION_PRESETS[key];
-    return `Proporção: ${preset.aspect} • ${preset.width}×${preset.height}`;
+    return `Resolução: ${preset.label} (${preset.aspect}) 🖥️`;
   };
 
   const btnResPos = k.vec2(col0X, row4Y);
@@ -581,25 +585,11 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   ]);
   elements.push(resText);
 
-  // Mini-Preview de Proporção Proporcional (Fase 33.7)
-  const resAspectTagText = k.add([
-    k.text(getAspectTag(currentResKey), {
-      size: accessibilitySystem.scaleFont(11.5),
-      font: "Inter",
-    }),
-    k.pos(col0X, row4Y + btnH / 2 + 10),
-    k.color(140, 215, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(303),
-  ]);
-  elements.push(resAspectTagText);
-
   // Dica informativa de reload ao salvar
-  const reloadHintY = cY - cardH / 2 + 398;
+  const reloadHintY = cardTop + 424;
   const resHintText = k.add([
     k.text("", {
-      size: accessibilitySystem.scaleFont(14),
+      size: accessibilitySystem.scaleFont(13.5),
       font: "Inter",
     }),
     k.pos(cX, reloadHintY),
@@ -632,7 +622,6 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
     setSavedResolution(currentResKey);
     audioSystem.playUiClick();
     resText.text = getResLabel(currentResKey);
-    resAspectTagText.text = getAspectTag(currentResKey);
     updateReloadHint();
   };
 
@@ -1097,9 +1086,9 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   // ========================================================
 
   // --- Guia Rápido de Controles ---
-  const guideY = cY - cardH / 2 + 456;
+  const guideY = cardTop + 472;
   const guideBoxW = cardW - 56;
-  const guideBoxH = 58;
+  const guideBoxH = 66;
 
   elements.push(
     k.add([
@@ -1115,11 +1104,11 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
 
   elements.push(
     k.add([
-      k.text("🎮 GUIA RÁPIDO DE CONTROLES & NAVEGAÇÃO:", {
-        size: accessibilitySystem.scaleFont(14.5),
+      k.text("🎮 GUIA RÁPIDO DE CONTROLES & NAVEGAÇÃO", {
+        size: accessibilitySystem.scaleFont(13.5),
         font: "Outfit",
       }),
-      k.pos(cX, guideY - 14),
+      k.pos(cX, guideY - 15),
       k.color(255, 215, 100),
       k.anchor("center"),
       k.fixed(),
@@ -1127,16 +1116,20 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
     ])
   );
 
+  const guideControlText =
+    "🏊 [Setas / WASD]: Nadar e Inclinar    💨 [Espaço]: Impulso    📡 [Shift / E]: Biossonar\n" +
+    "⌨️ [Tab / Setas + Enter]: Navegar por Teclado    ✕ [Esc]: Fechar";
+
   elements.push(
     k.add([
-      k.text(
-        "• [Setas/WASD]: Nadar e inclinar  • [Espaço]: Impulso de nado (delay 1s)  • [Shift/E]: Biossonar  • [Tab/Setas + Enter]: Navegar por teclado",
-        {
-          size: accessibilitySystem.scaleFont(13.5),
-          font: "Inter",
-        }
-      ),
-      k.pos(cX, guideY + 11),
+      k.text(guideControlText, {
+        size: accessibilitySystem.scaleFont(12.5),
+        font: "Inter",
+        width: guideBoxW - 32,
+        align: "center",
+        lineSpacing: 4,
+      }),
+      k.pos(cX, guideY + 13),
       k.color(215, 235, 255),
       k.anchor("center"),
       k.fixed(),
@@ -1145,7 +1138,7 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   );
 
   // --- Botões de Ação na Base: Tutorial | Apagar Dados (LGPD) | Salvar & Voltar ---
-  const actionY = cY + cardH / 2 - 46;
+  const actionY = cardTop + 555;
   const actGap = 16;
   const actW = (cardW - 56 - actGap * 2) / 3;
   const actH = 46;
@@ -1462,10 +1455,10 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   elements.push(
     k.add([
       k.text(`Micro Splash v${APP_VERSION} • Conformidade LGPD & WCAG 2.1 AA`, {
-        size: accessibilitySystem.scaleFont(12),
+        size: accessibilitySystem.scaleFont(11.5),
         font: "Inter",
       }),
-      k.pos(cX, cY + cardH / 2 - 16),
+      k.pos(cX, cardTop + 608),
       k.color(140, 175, 215),
       k.opacity(0.75),
       k.anchor("center"),

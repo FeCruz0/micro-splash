@@ -7,6 +7,37 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [1.10.0] - 2026-10-05 — Telas de Jogo: Visual & Polimento de UI (Fase 34)
+
+### Adicionado & Modificado
+
+- **Animações Fluidas de Entrada em Modais (Fase 34.1)**:
+  - `src/ui/animationUtils.ts`: Criado o utilitário universal `animateModalEntrance` com tween suave de escala (`0.85 → 1.0`) e opacidade progressiva via `easeOutBack`, aplicado nos modais de Seleção de Modo, Opções, Diário de Bordo (Codex), Vitória e Resgate da Guarda Marítima.
+- **Splash Screen com Logo Bicolor Animado Letra por Letra (Fase 34.2)**:
+  - `src/ui/splashScreen.ts`: Redesenhado o título "MICRO-SPLASH" com entrada progressiva letra por letra (`k.wait`), cores alternadas em Turquesa cintilante (`#38bdf8`) e Branco Polar (`#ffffff`), hífen dourado e subtítulo enriquecido com ícones náuticos (`⚓ A JORNADA DA BALEIA-JUBARTE 🐋`).
+- **Barco de Resgate com Riqueza de Detalhes Náuticos (Fase 34.3)**:
+  - `src/entities/boat.ts`: Casco enriquecido com mastro vertical metálico, flâmula triangular verde-amarela com oscilação física de vento, faixa diagonal de salvamento laranja (`rgb(249, 115, 22)`) da Guarda Marítima e gerador de esteira de espuma d'água (scia) na popa em movimento.
+- **Chuva de Confetes Oceânicos na Tela de Vitória (Fase 34.4)**:
+  - `src/ui/animationUtils.ts` & `src/ui/victoryScreen.ts`: Disparo celebratório único de confetes rotativos em tons oceânicos (turquesa, ouro solar, branco espuma, verde esmeralda e azul celeste) com gravidade suave ao concluir a migração.
+- **Micro-interações Táteis & Hover Consistente em Botões (Fase 34.5)**:
+  - `src/ui/animationUtils.ts`: Utilitário padronizado `attachButtonHoverEffect` com expansão suave (`1.0 → 1.04`), realce de iluminação e cursor `pointer` aplicado aos botões do Menu Principal, Opções, Modos, Diário e Vitória.
+- **Cards Visuais Temáticos de Seleção de Modo (Fase 34.6)**:
+  - `src/ui/modeSelectScreen.ts`: Interface estilizada com cards temáticos por modo (Serena em verde relaxante, Difícil em coral desafiador, Desafio Semanal em roxo crepuscular e Rápido em âmbar esportivo), com previews de o que esperar e badges informativos.
+- **Diário de Bordo com Progresso por Bioma & Barra de Rota (Fase 34.7)**:
+  - `src/ui/codexScreen.ts`: Adicionadas estatísticas de descobertas por bioma (`❄️ Antártica`, `🌊 Travessia`, `🏭 Urbana`, `🌀 Cânions`, `☀️ Santuário`), barra de progresso horizontal 100% da rota com marcadores nos pontos de fatos e emojis de identificação em cada card.
+- **Loading Overlay Suave ao Alternar Resolução (Fase 34.8)**:
+  - `src/ui/animationUtils.ts` & `src/ui/optionsScreen.ts`: Transição com fade-out preto cinematográfico em `z: 9999` antes de recarregar a tela após alteração de configurações gráficas.
+- **Redesign & Polimento da Tela de Resgate (Fase 34.9)**:
+  - `src/ui/rescueScreen.ts`: Modal de derrota reformulado para formato ultra-limpo e compacto (800×340px) com remoção da caixa de texto narrativa, 4 cards visuais padronizados (`📏 Distância`, `⭐ Pontuação`, `🏆 Recorde`, `🦐 Krill & Tempo`), cabeçalho oficial com badge da Guarda Marítima e botão destacado com atalhos Enter/Espaço.
+- **Espaçamento e Harmonia Visual do Menu Principal (Fase 34.10)**:
+  - `src/ui/mainMenu.ts`: Reorganização vertical completa eliminando sobreposição do Recorde Histórico sobre o primeiro botão, ampliação da distância entre botões (de 6px para 14px de respiro líquido), elevação do título/subtítulo e badge dourado estilizado para o recorde.
+- **Harmonia Geométrica & Correção de Overflow na Tela de Opções (Fase 34.11)**:
+  - `src/ui/optionsScreen.ts`: Integração do indicador de proporção diretamente dentro do botão de resolução eliminando colisão com os botões de borda/tela cheia, reformulação do guia de controles em 2 linhas com largura delimitada para não vazar do card e redistribuição equilibrada dos botões de ação e rodapé de conformidade LGPD.
+- **Remoção de Container Redundante no Diário de Bordo (Fase 34.12)**:
+  - `src/ui/codexScreen.ts`: Eliminação da caixa retangular de fundo intermediária (`contentBoxBg`), acabando com a sensação de "caixa dentro de caixa"; expansão proporcional da largura dos cards de espécies, fatos da rota e conservação (460px), com bordas e contrastes aprimorados repousando diretamente sobre o card do modal.
+
+---
+
 ## [1.9.0] - 2026-10-02 — Sistema de Resoluções, Modos de Tela & Responsividade (Fase 33)
 
 ### Adicionado & Modificado

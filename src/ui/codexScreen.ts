@@ -6,6 +6,18 @@ import { showQuizModal } from "./quizModal";
 import { showOnboardingModal } from "./onboardingModal";
 import { createFocusGroup, type FocusableItem } from "./keyboardNav";
 import factsData from "../../data/facts.json";
+import { animateModalEntrance, attachButtonHoverEffect } from "./animationUtils";
+
+/**
+ * Retorna as informações do bioma com base na distância de disparo da descoberta (Fase 34.7).
+ */
+export function getCodexBiomeInfo(triggerX: number): { name: string; emoji: string } {
+  if (triggerX < 5000) return { name: "Oceano Antártico", emoji: "❄️" };
+  if (triggerX < 12000) return { name: "Travessia Pelágica", emoji: "🌊" };
+  if (triggerX < 19000) return { name: "Costa Urbana", emoji: "🏭" };
+  if (triggerX < 25000) return { name: "Cânions & Ressurgência", emoji: "🌀" };
+  return { name: "Santuário de Arraial", emoji: "☀️" };
+}
 
 export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
   audioSystem.playUiClick();
@@ -26,7 +38,7 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
   ]);
   elements.push(backdrop);
 
-  // Card do Diário de Bordo (Codex) com geometria adaptativa expandida
+  // Card do Diário de Bordo (Codex) com geometria adaptativa expandida (Fase 34.1)
   const cardW = Math.min(1000, k.width() - 24);
   const cardH = Math.min(660, k.height() - 20);
   const cX = k.width() / 2;
@@ -38,11 +50,13 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
     k.color(10, 28, 56),
     k.outline(2.5, k.rgb(250, 204, 21)),
     k.anchor("center"),
+    k.scale(1),
     k.area(),
     k.fixed(),
     k.z(301),
   ]);
   elements.push(card);
+  animateModalEntrance(k, card);
 
   // Título Principal com destaque dourado e tamanho nítido ampliado
   elements.push(
@@ -114,7 +128,9 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
       focusGroup.destroy();
       focusGroup = null;
     }
-    window.removeEventListener("keydown", keyHandler);
+    if (typeof window !== "undefined") {
+      window.removeEventListener("keydown", keyHandler);
+    }
     elements.forEach((el) => {
       try {
         k.destroy(el);
@@ -128,13 +144,12 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
     onBack();
   };
 
-  btnX.onHoverUpdate(() => {
-    btnX.color = k.rgb(180, 50, 50);
-    btnX.scale = k.vec2(1.05, 1.05);
-  });
-  btnX.onHoverEnd(() => {
-    btnX.color = k.rgb(22, 50, 90);
-    btnX.scale = k.vec2(1, 1);
+  attachButtonHoverEffect(k, btnX, {
+    baseColor: [22, 50, 90],
+    hoverColor: [180, 50, 50],
+    baseScale: 1.0,
+    hoverScale: 1.06,
+    canInteract: () => !isClosed && !isModalOpen,
   });
   btnX.onClick(close);
 
@@ -145,7 +160,9 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
       close();
     }
   };
-  window.addEventListener("keydown", keyHandler);
+  if (typeof window !== "undefined") {
+    window.addEventListener("keydown", keyHandler);
+  }
 
   // Carrega fatos já desbloqueados
   let unlockedFactIds: string[] = [];
@@ -156,24 +173,10 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
   let activeTab: "species" | "route" | "conservation" = "species";
   let routePage = 0;
 
-  // Caixa de Conteúdo Central
-  const contentBoxW = cardW - 40;
+  // Limites da Área de Conteúdo
   const contentBoxTop = cY - cardH / 2 + 122;
   const contentBoxBottom = cY + cardH / 2 - 66;
   const contentBoxH = contentBoxBottom - contentBoxTop;
-  const contentBoxY = (contentBoxTop + contentBoxBottom) / 2;
-
-  // Fundo principal da área de conteúdo
-  const contentBoxBg = k.add([
-    k.rect(contentBoxW, contentBoxH, { radius: 10 }),
-    k.pos(cX, contentBoxY),
-    k.color(6, 20, 44),
-    k.outline(1.5, k.rgb(35, 75, 130)),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(303),
-  ]);
-  elements.push(contentBoxBg);
 
   const tabButtonsData = [
     { id: "species" as const, icon: "🐋", label: "Espécies Marinhas" },
@@ -535,12 +538,12 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
       ];
 
       const colGap = 16;
-      const boxW = Math.min(450, (contentBoxW - 32 - colGap) / 2);
+      const boxW = Math.min(460, (cardW - 64 - colGap) / 2);
       const rowGap = 12;
-      const boxH = Math.min(128, (contentBoxH - 32 - rowGap * 2) / 3);
+      const boxH = Math.min(132, (contentBoxH - 20 - rowGap * 2) / 3);
       const col0X = cX - boxW / 2 - colGap / 2;
       const col1X = cX + boxW / 2 + colGap / 2;
-      const startY = contentBoxTop + 16 + boxH / 2;
+      const startY = contentBoxTop + 14 + boxH / 2;
 
       speciesData.forEach((sp, idx) => {
         const col = idx % 2;
@@ -553,7 +556,7 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
           k.rect(boxW, boxH, { radius: 12 }),
           k.pos(posX, posY),
           k.color(14, 34, 68),
-          k.outline(1.5, k.rgb(38, 78, 130)),
+          k.outline(1.5, k.rgb(42, 85, 145)),
           k.anchor("center"),
           k.area(),
           k.fixed(),
@@ -562,12 +565,12 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
         contentElements.push(spBox);
 
         spBox.onHoverUpdate(() => {
-          spBox.color = k.rgb(18, 45, 88);
+          spBox.color = k.rgb(18, 48, 92);
           spBox.outline = { width: 1.5, color: k.rgb(80, 200, 255) };
         });
         spBox.onHoverEnd(() => {
           spBox.color = k.rgb(14, 34, 68);
-          spBox.outline = { width: 1.5, color: k.rgb(38, 78, 130) };
+          spBox.outline = { width: 1.5, color: k.rgb(42, 85, 145) };
         });
 
         // Badge com Ícone à esquerda
@@ -654,17 +657,36 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
       const currentFacts = factsData.slice(startIndex, startIndex + pageSize);
       const countUnlocked = factsData.filter((f) => unlockedFactIds.includes(f.id)).length;
 
+      // Estatísticas de Descobertas por Bioma (Fase 34.7)
+      const biomes = [
+        { name: "Antártica", emoji: "❄️", maxDist: 5000, minDist: 0 },
+        { name: "Travessia", emoji: "🌊", maxDist: 12000, minDist: 5000 },
+        { name: "Urbana", emoji: "🏭", maxDist: 19000, minDist: 12000 },
+        { name: "Cânions", emoji: "🌀", maxDist: 25000, minDist: 19000 },
+        { name: "Santuário", emoji: "☀️", maxDist: 30000, minDist: 25000 },
+      ];
+
+      const biomeChipsText = biomes
+        .map((b) => {
+          const inBiome = factsData.filter(
+            (f) => f.triggerX >= b.minDist && f.triggerX < b.maxDist
+          );
+          const unlocked = inBiome.filter((f) => unlockedFactIds.includes(f.id)).length;
+          return `${b.emoji} ${b.name}: ${unlocked}/${inBiome.length}`;
+        })
+        .join("   •   ");
+
       // Cabeçalho de Status da Rota
       contentElements.push(
         k.add([
           k.text(
-            `🗺️ Descobertas na Rota: ${countUnlocked} de ${factsData.length} desbloqueadas  •  Página ${routePage + 1} de ${totalPages}`,
+            `🗺️ Descobertas na Rota: ${countUnlocked} de ${factsData.length} desbloqueadas (${Math.round((countUnlocked / factsData.length) * 100)}%)  •  Página ${routePage + 1} de ${totalPages}`,
             {
               size: accessibilitySystem.scaleFont(15),
-              font: "Inter",
+              font: "Outfit",
             }
           ),
-          k.pos(cX, contentBoxTop + 24),
+          k.pos(cX, contentBoxTop + 14),
           k.color(255, 220, 100),
           k.anchor("center"),
           k.fixed(),
@@ -672,13 +694,75 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
         ])
       );
 
-      const factBoxW = contentBoxW - 32;
-      const factBoxH = 80;
+      // Linha de Progresso por Bioma (Fase 34.7)
+      contentElements.push(
+        k.add([
+          k.text(biomeChipsText, {
+            size: accessibilitySystem.scaleFont(12.5),
+            font: "Inter",
+          }),
+          k.pos(cX, contentBoxTop + 33),
+          k.color(175, 225, 255),
+          k.anchor("center"),
+          k.fixed(),
+          k.z(304),
+        ])
+      );
+
+      // Barra Horizontal de Progresso da Rota Completa (0 a 30.000m) com Marcadores
+      const barW = cardW - 72;
+      const barY = contentBoxTop + 48;
+
+      contentElements.push(
+        k.add([
+          k.rect(barW, 6, { radius: 3 }),
+          k.pos(cX, barY),
+          k.color(16, 38, 72),
+          k.outline(1, k.rgb(35, 70, 120)),
+          k.anchor("center"),
+          k.fixed(),
+          k.z(304),
+        ])
+      );
+
+      const fillW = Math.max(6, (barW * countUnlocked) / Math.max(1, factsData.length));
+      contentElements.push(
+        k.add([
+          k.rect(fillW, 6, { radius: 3 }),
+          k.pos(cX - barW / 2 + fillW / 2, barY),
+          k.color(56, 189, 248),
+          k.anchor("center"),
+          k.fixed(),
+          k.z(305),
+        ])
+      );
+
+      // Marcadores pontuais de cada fato na rota
+      factsData.forEach((f) => {
+        const norm = Math.min(1, Math.max(0, f.triggerX / 30000));
+        const dotX = cX - barW / 2 + norm * barW;
+        const isUnl = unlockedFactIds.includes(f.id);
+
+        contentElements.push(
+          k.add([
+            k.circle(isUnl ? 3.5 : 2.5),
+            k.pos(dotX, barY),
+            k.color(isUnl ? k.rgb(250, 204, 21) : k.rgb(70, 95, 135)),
+            k.anchor("center"),
+            k.fixed(),
+            k.z(306),
+          ])
+        );
+      });
+
+      const factBoxW = cardW - 64;
+      const factBoxH = 78;
       const factGap = 10;
-      const factStartY = contentBoxTop + 54 + factBoxH / 2;
+      const factStartY = contentBoxTop + 64 + factBoxH / 2;
 
       currentFacts.forEach((fact, i) => {
         const isUnlocked = unlockedFactIds.includes(fact.id);
+        const bInfo = getCodexBiomeInfo(fact.triggerX);
         const itemY = factStartY + i * (factBoxH + factGap);
 
         const fBox = k.add([
@@ -708,7 +792,7 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
           };
         });
 
-        // Badge de Status (Desbloqueado vs Bloqueado)
+        // Badge de Status com Emoji do Bioma (Fase 34.7)
         const badgeX = cX - factBoxW / 2 + 32;
         contentElements.push(
           k.add([
@@ -724,9 +808,9 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
 
         contentElements.push(
           k.add([
-            k.text(isUnlocked ? "✅" : "🔒", {
-              size: accessibilitySystem.scaleFont(22),
-              font: "Inter",
+            k.text(isUnlocked ? `${bInfo.emoji}` : "🔒", {
+              size: accessibilitySystem.scaleFont(20),
+              font: "Outfit",
             }),
             k.pos(badgeX, itemY),
             k.anchor("center"),
@@ -735,11 +819,11 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
           ])
         );
 
-        // Título e Localização
+        // Título e Localização com identificador do bioma
         const textStartX = cX - factBoxW / 2 + 66;
         contentElements.push(
           k.add([
-            k.text(`${fact.title} • [${fact.location}]`, {
+            k.text(`${bInfo.emoji} ${fact.title} • [${fact.location}]`, {
               size: accessibilitySystem.scaleFont(15.5),
               font: "Outfit",
             }),
@@ -928,12 +1012,12 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
       ];
 
       const colGap = 20;
-      const boxW = Math.min(450, (contentBoxW - 32 - colGap) / 2);
+      const boxW = Math.min(460, (cardW - 64 - colGap) / 2);
       const rowGap = 16;
-      const boxH = Math.min(156, (contentBoxH - 68 - rowGap) / 2);
+      const boxH = Math.min(160, (contentBoxH - 64 - rowGap) / 2);
       const col0X = cX - boxW / 2 - colGap / 2;
       const col1X = cX + boxW / 2 + colGap / 2;
-      const startY = contentBoxTop + 54 + boxH / 2;
+      const startY = contentBoxTop + 50 + boxH / 2;
 
       conservationCards.forEach((c, idx) => {
         const col = idx % 2;
@@ -945,7 +1029,7 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
           k.rect(boxW, boxH, { radius: 12 }),
           k.pos(posX, posY),
           k.color(14, 34, 68),
-          k.outline(1.5, k.rgb(38, 78, 130)),
+          k.outline(1.5, k.rgb(42, 85, 145)),
           k.anchor("center"),
           k.area(),
           k.fixed(),
@@ -954,12 +1038,12 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
         contentElements.push(cBox);
 
         cBox.onHoverUpdate(() => {
-          cBox.color = k.rgb(18, 45, 88);
+          cBox.color = k.rgb(18, 48, 92);
           cBox.outline = { width: 1.5, color: k.rgb(80, 200, 255) };
         });
         cBox.onHoverEnd(() => {
           cBox.color = k.rgb(14, 34, 68);
-          cBox.outline = { width: 1.5, color: k.rgb(38, 78, 130) };
+          cBox.outline = { width: 1.5, color: k.rgb(42, 85, 145) };
         });
 
         // Badge de Ícone

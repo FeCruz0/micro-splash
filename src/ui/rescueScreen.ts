@@ -1,10 +1,9 @@
 import type { KaboomCtx } from "kaboom";
 import type { GameState } from "../systems/state";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
-import { FONT_TITLE, FONT_BODY, TEXT_SIZE_H1, TEXT_SIZE_BODY, TEXT_SIZE_CAPTION } from "../config";
 import { formatDualDistance } from "../utils/navigation";
 import { addShadowedText } from "./textUtils";
-import { createKeyBadge } from "./keyBadge";
+import { animateModalEntrance, attachButtonHoverEffect } from "./animationUtils";
 
 export function showRescueScreen(k: KaboomCtx, gameState: GameState, onRestart: () => void) {
   const finalScore = gameState.calculateFinalScore();
@@ -13,120 +12,212 @@ export function showRescueScreen(k: KaboomCtx, gameState: GameState, onRestart: 
   const dualDistStr = formatDualDistance(distance);
   const elementsToDestroy: any[] = [];
 
-  // Fundo escuro com transparência (Fade In)
+  // Fundo escuro cinematográfico com transparência suave
   const backdrop = k.add([
     k.rect(k.width(), k.height()),
     k.pos(0, 0),
-    k.color(10, 25, 50),
-    k.opacity(0.92),
+    k.color(6, 16, 36),
+    k.opacity(0.94),
     k.fixed(),
     k.z(200),
   ]);
   elementsToDestroy.push(backdrop);
 
-  const cardW = Math.min(580, k.width() - 24);
-  const cardH = Math.min(430, k.height() - 20);
+  // Dimensões compactas e limpas (sem caixa de texto narrativa)
+  const cardW = Math.min(800, k.width() - 32);
+  const cardH = Math.min(340, k.height() - 24);
   const centerX = k.width() / 2;
   const centerY = k.height() / 2;
+  const cardTop = centerY - cardH / 2;
 
-  // Card do Relatório
+  // Card do Relatório de Resgate
   const card = k.add([
     k.rect(cardW, cardH, { radius: 16 }),
     k.pos(centerX, centerY),
-    k.color(14, 32, 64),
+    k.color(10, 26, 54),
     k.outline(2.5, k.rgb(0, 210, 255)),
     k.anchor("center"),
+    k.scale(1),
     k.fixed(),
     k.z(201),
   ]);
   elementsToDestroy.push(card);
+  animateModalEntrance(k, card);
 
-  // Título do Resgate com Sombra de Legibilidade (Fase 32.3)
-  const titleShadowHandle = addShadowedText(k, "🚨 RESGATE DA GUARDA MARÍTIMA 🚨", {
-    pos: k.vec2(centerX, centerY - cardH / 2 + 36),
-    size: accessibilitySystem.scaleFont(TEXT_SIZE_H1),
-    font: FONT_TITLE,
-    color: k.rgb(255, 220, 40),
-    shadowColor: k.rgb(4, 12, 28),
+  // ==========================================
+  // ZONA 1: CABEÇALHO DO RESGATE
+  // ==========================================
+  const badgeY = cardTop + 28;
+  const badgeBg = k.add([
+    k.rect(220, 22, { radius: 11 }),
+    k.pos(centerX, badgeY),
+    k.color(36, 18, 12),
+    k.outline(1.5, k.rgb(249, 115, 22)),
+    k.anchor("center"),
+    k.fixed(),
+    k.z(202),
+  ]);
+  elementsToDestroy.push(badgeBg);
+
+  const badgeText = k.add([
+    k.text("🚨 OPERAÇÃO DE SALVAMENTO", {
+      size: accessibilitySystem.scaleFont(11),
+      font: "Outfit",
+    }),
+    k.pos(centerX, badgeY),
+    k.color(255, 185, 90),
+    k.anchor("center"),
+    k.fixed(),
+    k.z(203),
+  ]);
+  elementsToDestroy.push(badgeText);
+
+  const titleY = cardTop + 58;
+  const titleShadowHandle = addShadowedText(k, "RESGATE DA GUARDA MARÍTIMA", {
+    pos: k.vec2(centerX, titleY),
+    size: accessibilitySystem.scaleFont(22.5),
+    font: "Outfit",
+    color: k.rgb(255, 222, 50),
+    shadowColor: k.rgb(2, 10, 24),
     anchor: "center",
     z: 203,
   });
   elementsToDestroy.push(titleShadowHandle);
 
-  // Subtítulo acolhedor
+  const subTitleY = cardTop + 86;
   const subTitle = k.add([
-    k.text("Santuário de Arraial do Cabo — Cuidados Veterinários", {
-      size: accessibilitySystem.scaleFont(TEXT_SIZE_CAPTION + 1),
-      font: FONT_BODY,
+    k.text("Cuidados Veterinários & Estabilização", {
+      size: accessibilitySystem.scaleFont(13.5),
+      font: "Inter",
     }),
-    k.pos(centerX, centerY - cardH / 2 + 64),
-    k.color(130, 205, 245),
+    k.pos(centerX, subTitleY),
+    k.color(160, 225, 255),
     k.anchor("center"),
     k.fixed(),
     k.z(203),
   ]);
   elementsToDestroy.push(subTitle);
 
-  // Parágrafo Narrativo Imersivo da Viagem (Fase 32.7)
-  const narrativeText =
-    `A jovem jubarte bravamente completou ${dualDistStr} de sua jornada pelas águas do Atlântico Sul.\n\n` +
-    `Durante o percurso, filtrou ${gameState.getKrillCount()} cardumes de krill nutritivo e enfrentou correntes adversas ao longo de ${gameState.getElapsedTime()}s de travessia.\n\n` +
-    `Após exaustão respiratória, a Guarda Marítima e biólogos a estabilizaram com segurança no santuário costeiro. Ela está pronta para um novo mergulho!`;
+  // ==========================================
+  // ZONA 2: 4 CARDS DE MÉTRICAS VISUAIS
+  // ==========================================
+  const statY = cardTop + 160;
+  const statGap = 12;
+  const statW = (cardW - 56 - statGap * 3) / 4;
+  const statH = 76;
 
-  const narrative = k.add([
-    k.text(narrativeText, {
-      size: accessibilitySystem.scaleFont(TEXT_SIZE_BODY - 0.5),
-      font: FONT_BODY,
-      width: cardW - 56,
-      lineSpacing: 5.5,
-      align: "center",
-    }),
-    k.pos(centerX, centerY - 28),
-    k.color(225, 242, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(203),
-  ]);
-  elementsToDestroy.push(narrative);
+  const krillCount = gameState.getKrillCount();
+  const elapsedSec = Math.round(gameState.getElapsedTime());
+  const percentRoute = Math.min(100, Math.round((distance / 30000) * 100));
 
-  // Painel de Destaques de Pontuação e Recorde
-  const scoreBox = k.add([
-    k.rect(cardW - 56, 36, { radius: 8 }),
-    k.pos(centerX, centerY + 86),
-    k.color(8, 22, 46),
-    k.outline(1.5, k.rgb(40, 110, 180)),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(203),
-  ]);
-  elementsToDestroy.push(scoreBox);
+  const statConfigs = [
+    {
+      label: "📏 DISTÂNCIA",
+      value: dualDistStr,
+      sub: `${percentRoute}% da rota`,
+      x: centerX - (statW * 1.5 + statGap * 1.5),
+      bg: [11, 30, 62] as [number, number, number],
+      outline: k.rgb(56, 189, 248),
+      valColor: k.rgb(255, 255, 255),
+      labelColor: k.rgb(160, 215, 255),
+    },
+    {
+      label: "⭐ PONTUAÇÃO",
+      value: `${finalScore.toLocaleString("pt-BR")} pts`,
+      sub: finalScore >= highScore && highScore > 0 ? "Novo Recorde! 🎉" : "Desempenho",
+      x: centerX - (statW * 0.5 + statGap * 0.5),
+      bg: [11, 30, 62] as [number, number, number],
+      outline: k.rgb(250, 204, 21),
+      valColor: k.rgb(255, 225, 90),
+      labelColor: k.rgb(255, 220, 100),
+    },
+    {
+      label: "🏆 RECORDE",
+      value: `${highScore.toLocaleString("pt-BR")} pts`,
+      sub: "Melhor histórico",
+      x: centerX + (statW * 0.5 + statGap * 0.5),
+      bg: [18, 38, 72] as [number, number, number],
+      outline: k.rgb(234, 179, 8),
+      valColor: k.rgb(255, 235, 120),
+      labelColor: k.rgb(255, 220, 130),
+    },
+    {
+      label: "🦐 KRILL & TEMPO",
+      value: `${krillCount} | ${elapsedSec}s`,
+      sub: `${gameState.getTrashCount()} lixo evitado`,
+      x: centerX + (statW * 1.5 + statGap * 1.5),
+      bg: [11, 30, 62] as [number, number, number],
+      outline: k.rgb(52, 211, 153),
+      valColor: k.rgb(210, 250, 230),
+      labelColor: k.rgb(150, 240, 200),
+    },
+  ];
 
-  const scoreLabel = k.add([
-    k.text(
-      `⭐ Pontuação: ${finalScore} pts   •   🏆 Recorde: ${highScore} pts   •   🗑️ Lixo evitado: ${gameState.getTrashCount()}`,
-      {
-        size: accessibilitySystem.scaleFont(TEXT_SIZE_CAPTION + 1),
-        font: FONT_BODY,
-      }
-    ),
-    k.pos(centerX, centerY + 86),
-    k.color(255, 235, 160),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(204),
-  ]);
-  elementsToDestroy.push(scoreLabel);
+  statConfigs.forEach((sc) => {
+    const sBox = k.add([
+      k.rect(statW, statH, { radius: 9 }),
+      k.pos(sc.x, statY),
+      k.color(sc.bg[0], sc.bg[1], sc.bg[2]),
+      k.outline(1.5, sc.outline),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(202),
+    ]);
+    elementsToDestroy.push(sBox);
 
-  // Botão interativo para reiniciar com KeyBadge físico integrado (Fase 32.8)
-  const btnW = 340;
+    const sLabel = k.add([
+      k.text(sc.label, {
+        size: accessibilitySystem.scaleFont(11),
+        font: "Outfit",
+      }),
+      k.pos(sc.x, statY - 20),
+      k.color(sc.labelColor),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(203),
+    ]);
+    elementsToDestroy.push(sLabel);
+
+    const sVal = k.add([
+      k.text(sc.value, {
+        size: accessibilitySystem.scaleFont(15.5),
+        font: "Outfit",
+      }),
+      k.pos(sc.x, statY + 2),
+      k.color(sc.valColor),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(203),
+    ]);
+    elementsToDestroy.push(sVal);
+
+    const sSub = k.add([
+      k.text(sc.sub, {
+        size: accessibilitySystem.scaleFont(10.5),
+        font: "Inter",
+      }),
+      k.pos(sc.x, statY + 22),
+      k.color(140, 175, 215),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(203),
+    ]);
+    elementsToDestroy.push(sSub);
+  });
+
+  // ==========================================
+  // ZONA 4: BOTÃO DE AÇÃO & ATALHOS (325 a 470px)
+  // ==========================================
+  const btnW = 380;
   const btnH = 48;
-  const btnY = centerY + cardH / 2 - 38;
+  const btnY = cardTop + 250;
 
   const restartButton = k.add([
-    k.rect(btnW, btnH, { radius: 10 }),
+    k.rect(btnW, btnH, { radius: 11 }),
     k.pos(centerX, btnY),
-    k.color(20, 95, 155),
-    k.outline(2, k.rgb(0, 225, 255)),
+    k.color(20, 115, 185),
+    k.outline(2, k.rgb(0, 230, 255)),
+    k.scale(1),
     k.anchor("center"),
     k.area(),
     k.fixed(),
@@ -135,11 +226,11 @@ export function showRescueScreen(k: KaboomCtx, gameState: GameState, onRestart: 
   elementsToDestroy.push(restartButton);
 
   const btnLabel = k.add([
-    k.text("Tentar Novamente", {
-      size: accessibilitySystem.scaleFont(TEXT_SIZE_BODY + 1),
-      font: FONT_BODY,
+    k.text("Tentar Novamente  [ ENTER ]  🔄", {
+      size: accessibilitySystem.scaleFont(16),
+      font: "Outfit",
     }),
-    k.pos(centerX - 35, btnY),
+    k.pos(centerX, btnY),
     k.color(255, 255, 255),
     k.anchor("center"),
     k.fixed(),
@@ -147,21 +238,25 @@ export function showRescueScreen(k: KaboomCtx, gameState: GameState, onRestart: 
   ]);
   elementsToDestroy.push(btnLabel);
 
-  // Badge visual de tecla mecânica [ENTER] (Fase 32.8)
-  const enterBadge = createKeyBadge(k, {
-    pos: k.vec2(centerX + 85, btnY),
-    keyLabel: "ENTER",
-    fontSize: 11,
-    minWidth: 54,
-    z: 206,
-  });
-  elementsToDestroy.push(enterBadge);
+  const hintLabel = k.add([
+    k.text("Pressione [ENTER] ou [ESPAÇO] para iniciar nova migração", {
+      size: accessibilitySystem.scaleFont(11.5),
+      font: "Inter",
+    }),
+    k.pos(centerX, btnY + 34),
+    k.color(140, 185, 225),
+    k.anchor("center"),
+    k.fixed(),
+    k.z(205),
+  ]);
+  elementsToDestroy.push(hintLabel);
 
   let isRestarting = false;
   const triggerRestart = () => {
     if (isRestarting) return;
     isRestarting = true;
     cancelKeyPress.cancel();
+    if (cancelSpacePress) cancelSpacePress.cancel();
     elementsToDestroy.forEach((item) => {
       try {
         if (typeof item.destroy === "function") {
@@ -174,14 +269,15 @@ export function showRescueScreen(k: KaboomCtx, gameState: GameState, onRestart: 
     onRestart();
   };
 
-  restartButton.onHoverUpdate(() => {
-    restartButton.color = k.rgb(32, 145, 215);
-  });
-  restartButton.onHoverEnd(() => {
-    restartButton.color = k.rgb(20, 95, 155);
+  attachButtonHoverEffect(k, restartButton, {
+    baseColor: [20, 115, 185],
+    hoverColor: [32, 150, 235],
+    baseScale: 1.0,
+    hoverScale: 1.035,
   });
   restartButton.onClick(triggerRestart);
 
-  // Gatilho de Reinício ao pressionar Enter
+  // Gatilhos de teclado: Enter e Espaço
   const cancelKeyPress = k.onKeyPress("enter", triggerRestart);
+  const cancelSpacePress = k.onKeyPress("space", triggerRestart);
 }

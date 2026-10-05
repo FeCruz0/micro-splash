@@ -6,6 +6,7 @@ import { getWeeklyChallengeInfo } from "../systems/weeklyChallenge";
 import { createFocusGroup, type FocusableItem } from "./keyboardNav";
 import { FONT_TITLE, FONT_BODY, TEXT_SIZE_H1, TEXT_SIZE_BODY } from "../config";
 import { addShadowedText } from "./textUtils";
+import { animateModalEntrance, attachButtonHoverEffect } from "./animationUtils";
 
 export function showModeSelectScreen(
   k: KaboomCtx,
@@ -39,7 +40,7 @@ export function showModeSelectScreen(
   ]);
   elements.push(backdrop);
 
-  // Modal Card Principal com geometria ampla expandida
+  // Modal Card Principal com geometria ampla expandida (Fase 34.1)
   const cardW = Math.min(1000, screenW - 24);
   const cardH = Math.min(660, screenH - 20);
   const card = k.add([
@@ -48,11 +49,13 @@ export function showModeSelectScreen(
     k.color(10, 28, 56),
     k.outline(2.5, k.rgb(56, 189, 248)),
     k.anchor("center"),
+    k.scale(1),
     k.area(),
     k.fixed(),
     k.z(301),
   ]);
   elements.push(card);
+  animateModalEntrance(k, card);
 
   // Título do Modal com Sombra de Legibilidade (Fase 32.3)
   const titleShadowHandle = addShadowedText(k, "ESCOLHA SEU ESTILO DE MIGRAÇÃO 🐋", {
@@ -135,14 +138,12 @@ export function showModeSelectScreen(
     ])
   );
 
-  btnX.onHoverUpdate(() => {
-    if (!canInteract) return;
-    btnX.color = k.rgb(180, 50, 50);
-    btnX.scale = k.vec2(1.05, 1.05);
-  });
-  btnX.onHoverEnd(() => {
-    btnX.color = k.rgb(22, 50, 90);
-    btnX.scale = k.vec2(1, 1);
+  attachButtonHoverEffect(k, btnX, {
+    baseColor: [22, 50, 90],
+    hoverColor: [180, 50, 50],
+    baseScale: 1.0,
+    hoverScale: 1.05,
+    canInteract: () => canInteract,
   });
   btnX.onClick(close);
 
@@ -237,16 +238,12 @@ export function showModeSelectScreen(
     ])
   );
 
-  card1.onHoverUpdate(() => {
-    if (!canInteract) return;
-    card1.color = k.rgb(18, 55, 65);
-    card1.outline = { width: 2, color: k.rgb(80, 255, 190) };
-    card1.scale = k.vec2(1.01, 1.01);
-  });
-  card1.onHoverEnd(() => {
-    card1.color = k.rgb(14, 36, 72);
-    card1.outline = { width: 1.5, color: k.rgb(52, 211, 153) };
-    card1.scale = k.vec2(1, 1);
+  attachButtonHoverEffect(k, card1, {
+    baseColor: [14, 36, 72],
+    hoverColor: [18, 55, 65],
+    baseScale: 1.0,
+    hoverScale: 1.015,
+    canInteract: () => canInteract,
   });
 
   const selectSerene = () => {
@@ -340,16 +337,12 @@ export function showModeSelectScreen(
     ])
   );
 
-  card2.onHoverUpdate(() => {
-    if (!canInteract) return;
-    card2.color = k.rgb(45, 25, 45);
-    card2.outline = { width: 2, color: k.rgb(255, 90, 130) };
-    card2.scale = k.vec2(1.01, 1.01);
-  });
-  card2.onHoverEnd(() => {
-    card2.color = k.rgb(14, 36, 72);
-    card2.outline = { width: 1.5, color: k.rgb(244, 63, 94) };
-    card2.scale = k.vec2(1, 1);
+  attachButtonHoverEffect(k, card2, {
+    baseColor: [14, 36, 72],
+    hoverColor: [45, 25, 45],
+    baseScale: 1.0,
+    hoverScale: 1.015,
+    canInteract: () => canInteract,
   });
 
   const selectDifficult = () => {
@@ -444,16 +437,12 @@ export function showModeSelectScreen(
     ])
   );
 
-  cardWeekly.onHoverUpdate(() => {
-    if (!canInteract) return;
-    cardWeekly.color = k.rgb(30, 45, 80);
-    cardWeekly.outline = { width: 2, color: k.rgb(255, 235, 120) };
-    cardWeekly.scale = k.vec2(1.01, 1.01);
-  });
-  cardWeekly.onHoverEnd(() => {
-    cardWeekly.color = k.rgb(14, 36, 72);
-    cardWeekly.outline = { width: 1.5, color: k.rgb(250, 204, 21) };
-    cardWeekly.scale = k.vec2(1, 1);
+  attachButtonHoverEffect(k, cardWeekly, {
+    baseColor: [14, 36, 72],
+    hoverColor: [30, 45, 80],
+    baseScale: 1.0,
+    hoverScale: 1.015,
+    canInteract: () => canInteract,
   });
 
   const selectWeekly = () => {
@@ -644,14 +633,12 @@ export function showModeSelectScreen(
     ])
   );
 
-  btnStartQuick.onHoverUpdate(() => {
-    if (!canInteract) return;
-    btnStartQuick.color = k.rgb(230, 120, 25);
-    btnStartQuick.scale = k.vec2(1.02, 1.02);
-  });
-  btnStartQuick.onHoverEnd(() => {
-    btnStartQuick.color = k.rgb(200, 95, 15);
-    btnStartQuick.scale = k.vec2(1, 1);
+  attachButtonHoverEffect(k, btnStartQuick, {
+    baseColor: [200, 95, 15],
+    hoverColor: [230, 120, 25],
+    baseScale: 1.0,
+    hoverScale: 1.025,
+    canInteract: () => canInteract,
   });
 
   const startQuick = () => {

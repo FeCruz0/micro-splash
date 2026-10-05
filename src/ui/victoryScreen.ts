@@ -8,6 +8,11 @@ import { showInitialsInputModal } from "./initialsInputModal";
 import { extractVictoryCardData, generateAndDownloadVictoryCard } from "./victoryCard";
 import { showQuizModal } from "./quizModal";
 import { showShareModal } from "./shareModal";
+import {
+  animateModalEntrance,
+  createOceanConfetti,
+  attachButtonHoverEffect,
+} from "./animationUtils";
 
 export function showVictoryScreen(k: KaboomCtx, gameState: GameState, onRestart: () => void) {
   // Se o jogador ainda não realizou o Quiz, convida para o Desafio Ecológico antes de consolidar o score final
@@ -70,17 +75,18 @@ function showQuizInvitationModal(k: KaboomCtx, gameState: GameState, onFinish: (
   );
 
   // Card do convite
-  elements.push(
-    k.add([
-      k.rect(cardW, cardH, { radius: 14 }),
-      k.pos(cX, cY),
-      k.color(10, 30, 64),
-      k.outline(2.5, k.rgb(255, 215, 80)),
-      k.anchor("center"),
-      k.fixed(),
-      k.z(351),
-    ])
-  );
+  const card = k.add([
+    k.rect(cardW, cardH, { radius: 14 }),
+    k.pos(cX, cY),
+    k.color(10, 30, 64),
+    k.outline(2.5, k.rgb(255, 215, 80)),
+    k.anchor("center"),
+    k.scale(1),
+    k.fixed(),
+    k.z(351),
+  ]);
+  elements.push(card);
+  animateModalEntrance(k, card);
 
   // Título
   elements.push(
@@ -228,11 +234,11 @@ function showQuizInvitationModal(k: KaboomCtx, gameState: GameState, onFinish: (
     ])
   );
 
-  btnStart.onHoverUpdate(() => {
-    btnStart.color = k.rgb(28, 160, 100);
-  });
-  btnStart.onHoverEnd(() => {
-    btnStart.color = k.rgb(20, 130, 80);
+  attachButtonHoverEffect(k, btnStart, {
+    baseColor: [20, 130, 80],
+    hoverColor: [28, 160, 100],
+    baseScale: 1.0,
+    hoverScale: 1.04,
   });
   btnStart.onClick(startQuiz);
 
@@ -242,6 +248,7 @@ function showQuizInvitationModal(k: KaboomCtx, gameState: GameState, onFinish: (
     k.pos(cX + 145, cY + cardH / 2 - 36),
     k.color(25, 55, 95),
     k.outline(1.5, k.rgb(80, 140, 210)),
+    k.scale(1),
     k.anchor("center"),
     k.area(),
     k.fixed(),
@@ -263,11 +270,11 @@ function showQuizInvitationModal(k: KaboomCtx, gameState: GameState, onFinish: (
     ])
   );
 
-  btnSkip.onHoverUpdate(() => {
-    btnSkip.color = k.rgb(35, 75, 125);
-  });
-  btnSkip.onHoverEnd(() => {
-    btnSkip.color = k.rgb(25, 55, 95);
+  attachButtonHoverEffect(k, btnSkip, {
+    baseColor: [25, 55, 95],
+    hoverColor: [35, 75, 125],
+    baseScale: 1.0,
+    hoverScale: 1.04,
   });
   btnSkip.onClick(skipQuiz);
 
@@ -318,16 +325,19 @@ function renderVictoryContent(k: KaboomCtx, gameState: GameState, onRestart: () 
   const cardW = Math.min(1000, screenW - 24);
   const cardH = Math.min(660, screenH - 20);
 
-  // Card de vitória com borda dourada elegante
-  k.add([
+  // Card de vitória com borda dourada elegante (Fase 34.1 e 34.4)
+  const card = k.add([
     k.rect(cardW, cardH, { radius: 16 }),
     k.pos(cX, cY),
     k.color(12, 45, 95),
     k.outline(3, k.rgb(255, 215, 0)), // Borda dourada
     k.anchor("center"),
+    k.scale(1),
     k.fixed(),
     k.z(201),
   ]);
+  animateModalEntrance(k, card);
+  createOceanConfetti(k, 55);
 
   // Título vitória
   k.add([
@@ -545,15 +555,12 @@ function renderVictoryContent(k: KaboomCtx, gameState: GameState, onRestart: () 
     k.z(203),
   ]);
 
-  downloadButton.onHoverUpdate(() => {
-    if (!isModalOpen) {
-      downloadButton.color = k.rgb(20, 145, 100);
-    }
-  });
-  downloadButton.onHoverEnd(() => {
-    if (!isModalOpen) {
-      downloadButton.color = k.rgb(15, 105, 75);
-    }
+  attachButtonHoverEffect(k, downloadButton, {
+    baseColor: [15, 105, 75],
+    hoverColor: [20, 145, 100],
+    baseScale: 1.0,
+    hoverScale: 1.04,
+    canInteract: () => !isModalOpen,
   });
   downloadButton.onClick(() => {
     if (isModalOpen) return;
@@ -573,6 +580,7 @@ function renderVictoryContent(k: KaboomCtx, gameState: GameState, onRestart: () 
     k.pos(cX, bottomY),
     k.color(18, 105, 120),
     k.outline(2, k.rgb(90, 235, 235)),
+    k.scale(1),
     k.anchor("center"),
     k.area(),
     k.fixed(),
@@ -591,15 +599,12 @@ function renderVictoryContent(k: KaboomCtx, gameState: GameState, onRestart: () 
     k.z(203),
   ]);
 
-  shareButton.onHoverUpdate(() => {
-    if (!isModalOpen) {
-      shareButton.color = k.rgb(25, 140, 155);
-    }
-  });
-  shareButton.onHoverEnd(() => {
-    if (!isModalOpen) {
-      shareButton.color = k.rgb(18, 105, 120);
-    }
+  attachButtonHoverEffect(k, shareButton, {
+    baseColor: [18, 105, 120],
+    hoverColor: [25, 140, 155],
+    baseScale: 1.0,
+    hoverScale: 1.04,
+    canInteract: () => !isModalOpen,
   });
   shareButton.onClick(() => {
     if (isModalOpen) return;
@@ -616,6 +621,7 @@ function renderVictoryContent(k: KaboomCtx, gameState: GameState, onRestart: () 
     k.pos(cX + 300, bottomY),
     k.color(20, 90, 140),
     k.outline(2, k.rgb(100, 240, 255)),
+    k.scale(1),
     k.anchor("center"),
     k.area(),
     k.fixed(),
@@ -651,15 +657,12 @@ function renderVictoryContent(k: KaboomCtx, gameState: GameState, onRestart: () 
     onRestart();
   };
 
-  restartButton.onHoverUpdate(() => {
-    if (!isModalOpen) {
-      restartButton.color = k.rgb(30, 140, 200);
-    }
-  });
-  restartButton.onHoverEnd(() => {
-    if (!isModalOpen) {
-      restartButton.color = k.rgb(20, 90, 140);
-    }
+  attachButtonHoverEffect(k, restartButton, {
+    baseColor: [20, 90, 140],
+    hoverColor: [30, 140, 200],
+    baseScale: 1.0,
+    hoverScale: 1.04,
+    canInteract: () => !isModalOpen && canRestart,
   });
   restartButton.onClick(triggerRestart);
 
