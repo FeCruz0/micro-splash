@@ -55,15 +55,18 @@ O jogador assume o controle de uma **baleia-jubarte (_Megaptera novaeangliae_)**
 
 ## 4. Modos de Jogo
 
-Para atender a múltiplos perfis de jogadores, o jogo conta com 3 modos de experiência:
+Para atender a múltiplos perfis de jogadores, o jogo conta com modos dedicados de experiência:
 
 1. **Migração Normal (Completa):**
-   - Rota integral de 27.000 metros através dos 5 biomas.
+   - Rota integral de 30.000 metros através dos 5 biomas marinhos.
    - Gerenciamento rigoroso de oxigênio, perigos ativos e cálculo completo do Eco-Score.
 2. **Migração Serena (Acessibilidade & Crianças):**
    - **Fôlego Infinito (`∞`)**: Sem dreno de oxigênio e sem risco de desmaio subaquático.
    - Navegação relaxante e contemplativa com foco na beleza do mar e aprendizado de fatos ecológicos.
-3. **Migração Rápida (Desafio de 60 Segundos):**
+3. **Desafio Semanal (Competitivo Comunitário):**
+   - Semente determinística semanal gerando rota idêntica para todos os participantes do mundo.
+   - Certificado Oficial com selo digital e cálculo padronizado de pontuação de travessia.
+4. **Migração Rápida (Desafio de 60 Segundos):**
    - Partida cronometrada com contagem regressiva visível no topo da tela.
    - **Seletor de Bioma:** Permite iniciar diretamente no Labirinto Polar (Antártica), Desvio Urbano (Costa Urbana) ou Cânions de Arraial (Boqueirão).
    - Tela dedicada de encerramento (`challengeEndScreen`) com distância percorrida, krill ingerido e pontuação instantânea.
@@ -95,9 +98,9 @@ Para atender a múltiplos perfis de jogadores, o jogo conta com 3 modos de exper
 
 ---
 
-## 7. Engenharia de Áudio 16-Bit Retrô
+## 7. Engenharia de Áudio 16-Bit Retrô & Masterização
 
-O áudio do jogo é gerado em tempo real via Web Audio API, aplicando as técnicas de sintetizadores de 16-bits (SNES SPC700 / Trackers):
+O áudio do jogo é gerado em tempo real via Web Audio API, aplicando as técnicas de sintetizadores de 16-bits (SNES SPC700 / Trackers) combinadas a processamento de sinal contemporâneo:
 
 1. **Trilha Sonora "Aquatic Ambiance" (Inspirada em David Wise):**
    - Andamento em **75 BPM** e tom em **Dó Menor (C minor)**.
@@ -109,3 +112,9 @@ O áudio do jogo é gerado em tempo real via Web Audio API, aplicando as técnic
    - **Canal 2 (O Gemido / Cello):** Mix de Sine e Sawtooth 1-2 oitavas abaixo com filtro passa-baixa dinâmico severo (190Hz -> 70Hz).
    - **Canal 3 (Percussão Biológica / Zíper):** Onda Square sub-grave (C0) com pitch bend negativo extremo em sequência de 5 estalos desacelerados.
    - **Barramento de Eco do SNES:** Delay de 180ms com 52% de feedback e filtro passa-baixa em 420Hz, simulando a reverberação abissal do oceano.
+3. **Masterização e Limiter Anti-Clipping:**
+   - Inserção de `DynamicsCompressorNode` (threshold `-6dB`, ratio `12`, attack `3ms`, release `250ms`) na saída principal.
+   - Rampas assintóticas de ganho com `setTargetAtTime` em todos os nós, prevenindo estalos e distorções acústicas.
+4. **Espacialização Estéreo & Acústica por Profundidade:**
+   - Posicionamento 2D de fontes sonoras através de `StereoPannerNode` baseado na distância da jubarte.
+   - Reverb convolutivo marinho (impulso procedural de 1.8s) e filtro dinâmico passa-baixas que abafa gradualmente os agudos com a profundidade do mergulho (8.000 Hz na superfície até 1.200 Hz nas fossas).

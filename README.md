@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/FeCruz0/micro-splash/actions/workflows/ci.yml/badge.svg)](https://github.com/FeCruz0/micro-splash/actions/workflows/ci.yml)
 [![Deploy Pages](https://github.com/FeCruz0/micro-splash/actions/workflows/deploy.yml/badge.svg)](https://github.com/FeCruz0/micro-splash/actions/workflows/deploy.yml)
-[![Version](https://img.shields.io/badge/version-1.3.0-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-1.12.0-blue.svg)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![PWA Ready](https://img.shields.io/badge/PWA-Offline--First-orange.svg)](public/manifest.json)
 [![WCAG 2.1 AA](https://img.shields.io/badge/Accessibility-WCAG%202.1%20AA-purple.svg)](docs/ROADMAP.md)
@@ -23,10 +23,12 @@ Este projeto foi concebido com foco em **educação e consciência ecológica**,
   - **Migração Serena:** Modo acessível com fôlego infinito (`∞`) e sem desmaios, ideal para crianças menores e exploração relaxante.
   - **Desafio Semanal:** Semente determinística semanal gerando percurso idêntico com ranking comunitário e Certificado Oficial com selo digital.
 - 📖 **Diário de Bordo da Expedição (Codex):** Enciclopédia interativa no menu com fichas biológicas das espécies, fatos ecológicos desbloqueados na rota e informações de conservação do _Instituto Baleia Jubarte_ e UNESCO.
-- 🎵 **Sonoplastia 16-Bit Retrô em Tempo Real:**
+- 🎵 **Sonoplastia 16-Bit Retrô, Espacialização & Masterização em Tempo Real:**
   - Trilha adaptativa inspirada em _Donkey Kong Country: Aquatic Ambiance_ (David Wise) com baixo _wavetable_ aveludado e arpejos híbridos de harpa e coral.
-  - Jukebox com modos comutáveis: _Chiptune Dinâmica_, _Ambiente Contemplativo_ (somente hidrofones e cantos) e _Modo Foco_ (apenas SFX).
+  - Jukebox com modos comutáveis: _Chiptune Dinâmica_, _Ambiente Contemplativo_ (somente hidrofones e cantos) e _Modo Foco_ (apenas SFX) com crossfade suave.
   - Canto da baleia estruturado em **3 canais de síntese** (Assobio LFO, Gemido Cello gutural e Percussão zíper) com barramento de eco passa-baixa estilo SNES acionado pelo biosonar.
+  - Masterização profissional com limiter dinâmico anti-clipping, transições de ganho sem estalos e espacialização estéreo 2D por posição relativa (`StereoPannerNode`).
+  - Acústica subaquática imersiva: reverb convolutivo marinho e filtro dinâmico de abafamento por profundidade (8.000Hz na superfície a 1.200Hz nas fossas abissais).
 - 🌐 **Totens Interativos & PWA Offline-First:**
   - Suporte completo a Progressive Web App para totens escolares e museus sem necessidade de conexão com a internet.
   - Container Docker de produção multi-stage (`Dockerfile.prod`) com apenas **21.2 MB** e Nginx embutido.
@@ -72,10 +74,10 @@ O _Micro Splash_ prioriza a acessibilidade desde a sua concepção:
 
 - **Linguagem:** [TypeScript 5](https://www.typescriptlang.org/) (Strict Mode)
 - **Engine 2D:** [Kaboom.js](https://kaboomjs.com/)
-- **Áudio:** Web Audio API nativa com síntese procedural e gerador de ruído rosa
+- **Áudio:** Web Audio API nativa com síntese procedural, limiter dinâmico, espacialização estéreo 2D e acústica convolutiva
 - **Validação de Schemas:** [Zod](https://zod.dev/) para integridade estrita de dados
 - **Build Tool & Dev Server:** [Vite 6](https://vitejs.dev/)
-- **Testes Unitários:** [Vitest](https://vitest.dev/) com `@vitest/coverage-v8`
+- **Testes Unitários:** [Vitest](https://vitest.dev/) (47 suítes e 318 testes automatizados) com `@vitest/coverage-v8`
 - **Linters & Formatadores:** ESLint 9 Flat Config + Prettier
 - **Containerização:** Docker Multi-stage + Nginx Alpine (imagem de apenas ~21.2 MB)
 
