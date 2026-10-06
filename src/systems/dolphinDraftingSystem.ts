@@ -305,7 +305,7 @@ export function setupDolphinDraftingSystem(k: KaboomCtx, playerController: Playe
         clickSoundTimer += dt;
         if (clickSoundTimer >= 3.2) {
           clickSoundTimer = 0;
-          audioSystem.playDolphinClicks();
+          audioSystem.playDolphinClicks(podX, player.pos.x);
         }
       } else {
         if (!podDraftingStatus[0] && !podDraftingStatus[1] && !podDraftingStatus[2]) {

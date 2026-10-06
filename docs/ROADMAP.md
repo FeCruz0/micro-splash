@@ -509,19 +509,19 @@ _Objetivo: Cobrir elementos visuais não tratados nas fases anteriores — ressu
 
 _Objetivo: Elevar a qualidade sonora sem alterar gameplay — evitar clipping, eliminar cliques, adicionar espacialidade e respeitar o ciclo de vida da aba._
 
-- [ ] **36.1 Limiter no Barramento Master:**
+- [x] **36.1 Limiter no Barramento Master:**
   - `audioEngine.ts` conecta `masterGain` (`volume × 1.35`) direto ao `destination`. Inserir `DynamicsCompressorNode` (threshold `-6dB`, ratio `12`, attack `3ms`, release `250ms`) entre master e saída para evitar clipping em picos de SFX simultâneos.
-- [ ] **36.2 Rampas de Ganho sem Cliques:**
+- [x] **36.2 Rampas de Ganho sem Cliques:**
   - `setVolume`, `toggleMute`, `pauseAmbient` e `updateSoundtrackPlayback` usam `setValueAtTime` (salto instantâneo → estalo audível). Substituir por `setTargetAtTime(valor, now, 0.05)`, padrão já usado em `audioMusic.ts`.
-- [ ] **36.3 Crossfade entre Modos de Trilha:**
+- [x] **36.3 Crossfade entre Modos de Trilha:**
   - Troca chiptune/ambiente/foco salta o `ambientGain` entre `0.04`, `0.12` e `0.015`. Aplicar crossfade de ~0.6s entre `biomeEngine` e ambiência.
-- [ ] **36.4 Panning Estéreo por Posição:**
+- [x] **36.4 Panning Estéreo por Posição:**
   - Nenhum `StereoPannerNode` no projeto. Panear SFX de navios, golfinhos, krill, lixo e gelo conforme X relativo à baleia (`pan = clamp((objX - playerX) / (width/2), -1, 1)`).
-- [ ] **36.5 Reverb Subaquático & Abafamento por Profundidade:**
+- [x] **36.5 Reverb Subaquático & Abafamento por Profundidade:**
   - Adicionar `ConvolverNode` com impulso procedural (ruído com decaimento exponencial ~1.8s) no barramento de SFX e low-pass global modulado pelo Y da baleia (superfície ~8kHz → fundo ~1.2kHz).
-- [ ] **36.6 Pausa de Áudio com Aba Oculta:**
+- [x] **36.6 Pausa de Áudio com Aba Oculta:**
   - Sem handler `visibilitychange`. Suspender `AudioContext` ao ocultar a aba e retomar ao voltar (respeitando estado de mute).
-- [ ] **36.7 Loop de Ruído Oceânico sem Costura:**
+- [x] **36.7 Loop de Ruído Oceânico sem Costura:**
   - O buffer de ruído marrom de 4s em `startAmbientOcean` tem descontinuidade no ponto de loop. Aplicar crossfade de ~50ms entre início e fim do buffer.
 
 ### 🛠️ FASE 37: Qualidade de Código & Consistência Técnica Visual

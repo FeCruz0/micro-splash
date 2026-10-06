@@ -7,6 +7,27 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [1.12.0] - 2026-10-06 — Masterização & Espacialização de Áudio (Fase 36)
+
+### Adicionado & Modificado
+
+- **Limiter no Barramento Master (Fase 36.1)**:
+  - `src/systems/audio/audioEngine.ts`: Inserido `DynamicsCompressorNode` (threshold `-6dB`, ratio `12`, attack `3ms`, release `250ms`) conectado entre o `masterGain` e o `destination` para prevenir saturação acústica (clipping) em picos com múltiplos SFX simultâneos.
+- **Rampas de Ganho Suaves sem Cliques (Fase 36.2)**:
+  - `src/systems/audio/audioEngine.ts`: Substituídos os saltos instantâneos de `setValueAtTime` por interpolação assintótica `setTargetAtTime(valor, now, 0.05)` nos controles de volume, comutação de mudo, pausa de áudio ambiente e trocas de trilha, eliminando estalos audíveis.
+- **Crossfade Gradual entre Modos de Trilha Sonora (Fase 36.3)**:
+  - `src/systems/audio/audioEngine.ts`: Aplicada constante de tempo de `0.2s` (~0.6s de transição completa) no `ambientGain` e motor de biomas ao alternar dinamicamente entre Chiptune 16-Bit, Ambiente Contemplativa e Modo Foco.
+- **Panning Estéreo 2D por Coordenada Espacial (Fase 36.4)**:
+  - `src/systems/audio/audioSFX.ts` & `src/systems/audioSystem.ts`: Implementado algoritmo de balanço estéreo com `StereoPannerNode` limitado em `[-1, 1]` baseado na posição relativa `(sourceX - playerX) / 400`. Integrado espacialmente aos sons de sucção de krill, impacto em plástico, emaranhamento de redes, quebra de gelo, espirros d'água, vazamento de óleo, cliques de golfinhos, chilreios de pinguins e buzinas graves de navios cargueiros.
+- **Reverb Subaquático Convolutivo & Filtro Passa-Baixas por Profundidade (Fase 36.5)**:
+  - `src/systems/audio/audioEngine.ts`: Barramento de efeitos com resposta ao impulso convolutiva procedural marinha (`1.8s`, decaimento exponencial `3.2`, blend dry/wet `0.78 / 0.22`) e filtro `BiquadFilterNode` modulado em tempo real pela profundidade do mergulho da jubarte (8.000Hz na lâmina d'água até 1.200Hz nas fossas abissais).
+- **Pausa Automática no Gerenciamento de Ciclo de Vida da Aba (Fase 36.6)**:
+  - `src/systems/audio/audioEngine.ts`: Adicionado listener para `document.visibilitychange` suspendendo o `AudioContext` ao minimizar ou ocultar a aba e restabelecendo-o graciosamente ao retornar, prevenindo gasto desnecessário de CPU e descontinuidade sonora.
+- **Loop de Ruído Oceânico Contínuo sem Costura (Fase 36.7)**:
+  - `src/systems/audio/audioEngine.ts`: Aplicado crossfade de blend de 50ms nos extremos do buffer de ruído marrom de 4 segundos, eliminando cliques periódicos na reprodução contínua da ambiência submarina.
+
+---
+
 ## [1.11.0] - 2026-10-06 — Polimento Visual dos Sistemas Ausentes (Fase 35)
 
 ### Adicionado & Modificado

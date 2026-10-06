@@ -22,7 +22,7 @@ export class AudioWhale {
   public playWhaleSong(volumeScale: number = 1.0, pitchShift: number = 1.0) {
     if (!this.engine.isSfxEnabled() && !this.engine.isMusicEnabled()) return;
     const ctx = this.engine.getContext();
-    const masterGain = this.engine.getMasterGain();
+    const masterGain = this.engine.getSfxBus() || this.engine.getMasterGain();
     if (!ctx || !masterGain) return;
 
     const now = ctx.currentTime;
@@ -193,7 +193,7 @@ export class AudioWhale {
   public playAbyssalWhaleCall() {
     if (!this.engine.isSfxEnabled()) return;
     const ctx = this.engine.getContext();
-    const masterGain = this.engine.getMasterGain();
+    const masterGain = this.engine.getSfxBus() || this.engine.getMasterGain();
     if (!ctx || !masterGain) return;
 
     const now = ctx.currentTime;

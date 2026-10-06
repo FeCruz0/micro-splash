@@ -158,7 +158,7 @@ export function setupPenguinFlockSystem(k: KaboomCtx) {
 
             if (player && soundTimer >= 3.0 && Math.abs(flockX - player.pos.x) < 600) {
               soundTimer = 0;
-              audioSystem.playPenguinChirp();
+              audioSystem.playPenguinChirp(flockX, player.pos.x);
             }
           }
         }

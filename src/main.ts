@@ -512,6 +512,8 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
       }
       // Sincroniza a trilha sonora adaptativa 16-bit com o bioma atual
       audioSystem.updateBiomeTrack(playerXPosition);
+      // Atualiza a acústica subaquática e ressonância de acordo com a profundidade da baleia
+      audioSystem.updateDepthAcoustics(playerController.gameObj.pos.y);
     } else if (playerController.isFainting() && !isRescueSequenceStarted && !isGameFinished) {
       // Se a baleia já alcançou a enseada final (>= 29.600m) ou está saltando no breach, não inicia resgate de derrota
       if (

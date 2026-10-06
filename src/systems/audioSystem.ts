@@ -2,8 +2,8 @@
  * Fachada Modular do Sistema de Áudio - Micro Splash
  *
  * Centraliza e orquestra os submódulos de áudio mantendo 100% de retrocompatibilidade:
- * - AudioEngine: Inicialização, ciclo de vida, volume, mudo e ambiência oceânica
- * - AudioSFX: Efeitos sonoros procedurais (nado, bolhas, impactos, cliques, fanfarras)
+ * - AudioEngine: Inicialização, ciclo de vida, volume, mudo, ambiência oceânica e acústica subaquática
+ * - AudioSFX: Efeitos sonoros procedurais (nado, bolhas, impactos, cliques, fanfarras, buzinas) com panning estéreo 2D
  * - AudioWhale: Síntese bioacústica avançada dos cantos ancestrais da baleia-jubarte
  * - BiomeMusicEngine: Trilha musical dinâmica 16-Bit estilo David Wise (DKC SNES)
  */
@@ -113,6 +113,10 @@ export class AudioSystem {
     this.engine.updateBiomeTrack(playerX);
   }
 
+  public updateDepthAcoustics(playerY: number) {
+    this.engine.updateDepthAcoustics(playerY);
+  }
+
   public pauseAmbient() {
     this.engine.pauseAmbient();
   }
@@ -123,6 +127,10 @@ export class AudioSystem {
 
   public cleanup() {
     this.engine.cleanup();
+  }
+
+  public calcStereoPan(sourceX?: number, playerX?: number, halfWidth?: number): number {
+    return this.sfx.calcStereoPan(sourceX, playerX, halfWidth);
   }
 
   // =========================================================================
@@ -159,60 +167,64 @@ export class AudioSystem {
     this.sfx.playStrokeThrust();
   }
 
-  public playKrillGulp() {
-    this.sfx.playKrillGulp();
+  public playKrillGulp(sourceX?: number, playerX?: number) {
+    this.sfx.playKrillGulp(sourceX, playerX);
   }
 
-  public playKrillChime() {
-    this.sfx.playKrillChime();
+  public playKrillChime(sourceX?: number, playerX?: number) {
+    this.sfx.playKrillChime(sourceX, playerX);
   }
 
-  public playTrashThud() {
-    this.sfx.playTrashThud();
+  public playTrashThud(sourceX?: number, playerX?: number) {
+    this.sfx.playTrashThud(sourceX, playerX);
   }
 
-  public playNetTangle() {
-    this.sfx.playNetTangle();
+  public playNetTangle(sourceX?: number, playerX?: number) {
+    this.sfx.playNetTangle(sourceX, playerX);
   }
 
   public playBreachLaunch() {
     this.sfx.playBreachLaunch();
   }
 
-  public playWaterSplash() {
-    this.sfx.playWaterSplash();
+  public playWaterSplash(sourceX?: number, playerX?: number) {
+    this.sfx.playWaterSplash(sourceX, playerX);
   }
 
-  public playIceCrackSound() {
-    this.sfx.playIceCrackSound();
+  public playIceCrackSound(sourceX?: number, playerX?: number) {
+    this.sfx.playIceCrackSound(sourceX, playerX);
   }
 
   public playVictoryFanfare() {
     this.sfx.playVictoryFanfare();
   }
 
-  public playOilChoke() {
-    this.sfx.playOilChoke();
+  public playOilChoke(sourceX?: number, playerX?: number) {
+    this.sfx.playOilChoke(sourceX, playerX);
   }
 
-  public playPurifyWhoosh() {
-    this.sfx.playPurifyWhoosh();
+  public playPurifyWhoosh(sourceX?: number, playerX?: number) {
+    this.sfx.playPurifyWhoosh(sourceX, playerX);
   }
 
-  public playDolphinClicks() {
-    this.sfx.playDolphinClicks();
+  public playDolphinClicks(sourceX?: number, playerX?: number) {
+    this.sfx.playDolphinClicks(sourceX, playerX);
   }
 
-  public playPenguinChirp() {
-    this.sfx.playPenguinChirp();
+  public playPenguinChirp(sourceX?: number, playerX?: number) {
+    this.sfx.playPenguinChirp(sourceX, playerX);
   }
 
-  public playPowerupCollect() {
-    this.sfx.playPowerupCollect();
+  public playShipHorn(sourceX?: number, playerX?: number) {
+    this.sfx.playShipHorn(sourceX, playerX);
   }
 
-  public playShieldPop() {
-    this.sfx.playShieldPop();
+  public playPowerupCollect(sourceX?: number, playerX?: number) {
+    this.sfx.playPowerupCollect(sourceX, playerX);
+  }
+
+  public playShieldPop(sourceX?: number, playerX?: number) {
+    this.sfx.playShieldPop(sourceX, playerX);
   }
 
   public playSpeedBoost() {

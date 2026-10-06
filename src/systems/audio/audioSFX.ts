@@ -7,11 +7,53 @@ export class AudioSFX {
     this.engine = engine;
   }
 
+  /**
+   * Calcula o balanceamento estéreo (-1.0 à esquerda, +1.0 à direita)
+   * baseado na posição X do emissor sonoro relativa ao jogador.
+   */
+  public calcStereoPan(sourceX?: number, playerX?: number, halfWidth: number = 400): number {
+    if (sourceX === undefined || playerX === undefined) return 0;
+    if (isNaN(sourceX) || isNaN(playerX) || halfWidth <= 0) return 0;
+    const rawPan = (sourceX - playerX) / halfWidth;
+    return Math.max(-1, Math.min(1, rawPan));
+  }
+
+  /**
+   * Obtém o nó de destino de áudio apropriado:
+   * Se coordenadas espaciais forem fornecidas e StereoPannerNode estiver disponível,
+   * cria um nó de pan estéreo conectado ao barramento sfxBus (ou masterGain).
+   */
+  public getDestinationNode(sourceX?: number, playerX?: number): AudioNode | null {
+    const ctx = this.engine.getContext();
+    if (!ctx) return null;
+
+    const baseDest = this.engine.getSfxBus() || this.engine.getMasterGain();
+    if (!baseDest) return null;
+
+    if (
+      sourceX !== undefined &&
+      playerX !== undefined &&
+      typeof ctx.createStereoPanner === "function"
+    ) {
+      try {
+        const pan = this.calcStereoPan(sourceX, playerX);
+        const panner = ctx.createStereoPanner();
+        panner.pan.setValueAtTime(pan, ctx.currentTime);
+        panner.connect(baseDest);
+        return panner;
+      } catch {
+        return baseDest;
+      }
+    }
+
+    return baseDest;
+  }
+
   public playUiClick() {
     if (!this.engine.isSfxEnabled()) return;
     const ctx = this.engine.getContext();
-    const masterGain = this.engine.getMasterGain();
-    if (!ctx || !masterGain) return;
+    const dest = this.getDestinationNode();
+    if (!ctx || !dest) return;
 
     const now = ctx.currentTime;
     const osc = ctx.createOscillator();
@@ -22,7 +64,7 @@ export class AudioSFX {
     gain.gain.setValueAtTime(0.2, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
     osc.connect(gain);
-    gain.connect(masterGain);
+    gain.connect(dest);
     osc.start(now);
     osc.stop(now + 0.06);
   }
@@ -30,13 +72,13 @@ export class AudioSFX {
   public playSonarSound() {
     if (!this.engine.isSfxEnabled()) return;
     const ctx = this.engine.getContext();
-    const masterGain = this.engine.getMasterGain();
-    if (!ctx || !masterGain) return;
+    const dest = this.getDestinationNode();
+    if (!ctx || !dest) return;
 
     const now = ctx.currentTime;
 
     const playFmPing = (time: number, volume: number) => {
-      if (!ctx || !masterGain) return;
+      if (!ctx || !dest) return;
 
       const carrier = ctx.createOscillator();
       const modulator = ctx.createOscillator();
@@ -67,7 +109,7 @@ export class AudioSFX {
 
       carrier.connect(bandpass);
       bandpass.connect(carrierGain);
-      carrierGain.connect(masterGain);
+      carrierGain.connect(dest);
 
       modulator.start(time);
       carrier.start(time);
@@ -82,8 +124,8 @@ export class AudioSFX {
   public playSonarEcho(delayMs: number = 60) {
     if (!this.engine.isSfxEnabled()) return;
     const ctx = this.engine.getContext();
-    const masterGain = this.engine.getMasterGain();
-    if (!ctx || !masterGain) return;
+    const dest = this.getDestinationNode();
+    if (!ctx || !dest) return;
 
     const time = ctx.currentTime + delayMs / 1000;
     const osc = ctx.createOscillator();
@@ -103,7 +145,7 @@ export class AudioSFX {
 
     osc.connect(filter);
     filter.connect(gain);
-    gain.connect(masterGain);
+    gain.connect(dest);
 
     osc.start(time);
     osc.stop(time + 0.18);
@@ -112,69 +154,62 @@ export class AudioSFX {
   public playBlowholeSpout() {
     if (!this.engine.isSfxEnabled()) return;
     const ctx = this.engine.getContext();
-    const masterGain = this.engine.getMasterGain();
-    if (!ctx || !masterGain) return;
+    const dest = this.getDestinationNode();
+    if (!ctx || !dest) return;
 
     const now = ctx.currentTime;
     const duration = 0.85;
 
     const bufferSize = Math.floor(ctx.sampleRate * duration);
     const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const data = noiseBuffer.getChannelData(0);
+    const output = noiseBuffer.getChannelData(0);
     for (let i = 0; i < bufferSize; i++) {
-      data[i] = Math.random() * 2 - 1;
+      output[i] = Math.random() * 2 - 1;
     }
 
-    const noiseSource = ctx.createBufferSource();
-    noiseSource.buffer = noiseBuffer;
+    const whiteNoise = ctx.createBufferSource();
+    whiteNoise.buffer = noiseBuffer;
 
-    const noiseFilter = ctx.createBiquadFilter();
-    noiseFilter.type = "bandpass";
-    noiseFilter.frequency.setValueAtTime(2200, now);
-    noiseFilter.frequency.exponentialRampToValueAtTime(650, now + 0.45);
-    noiseFilter.Q.value = 2.4;
+    const bandpass = ctx.createBiquadFilter();
+    bandpass.type = "bandpass";
+    bandpass.frequency.setValueAtTime(1400, now);
+    bandpass.frequency.linearRampToValueAtTime(2800, now + 0.18);
+    bandpass.frequency.exponentialRampToValueAtTime(650, now + duration);
+    bandpass.Q.value = 4.2;
 
     const noiseGain = ctx.createGain();
     noiseGain.gain.setValueAtTime(0.001, now);
-    noiseGain.gain.linearRampToValueAtTime(0.35, now + 0.04);
-    noiseGain.gain.exponentialRampToValueAtTime(0.12, now + 0.4);
+    noiseGain.gain.linearRampToValueAtTime(0.48, now + 0.08);
+    noiseGain.gain.exponentialRampToValueAtTime(0.18, now + 0.45);
     noiseGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
 
-    noiseSource.connect(noiseFilter);
-    noiseFilter.connect(noiseGain);
-    noiseGain.connect(masterGain);
+    whiteNoise.connect(bandpass);
+    bandpass.connect(noiseGain);
+    noiseGain.connect(dest);
 
     const subOsc = ctx.createOscillator();
-    const subFilter = ctx.createBiquadFilter();
     const subGain = ctx.createGain();
-
     subOsc.type = "sine";
-    subOsc.frequency.setValueAtTime(140, now);
-    subOsc.frequency.exponentialRampToValueAtTime(75, now + 0.5);
+    subOsc.frequency.setValueAtTime(95, now);
+    subOsc.frequency.exponentialRampToValueAtTime(42, now + 0.4);
 
-    subFilter.type = "lowpass";
-    subFilter.frequency.setValueAtTime(180, now);
-    subFilter.Q.value = 1.8;
+    subGain.gain.setValueAtTime(0.3, now);
+    subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
 
-    subGain.gain.setValueAtTime(0.001, now);
-    subGain.gain.linearRampToValueAtTime(0.28, now + 0.05);
-    subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+    subOsc.connect(subGain);
+    subGain.connect(dest);
 
-    subOsc.connect(subFilter);
-    subFilter.connect(subGain);
-    subGain.connect(masterGain);
-
-    noiseSource.start(now);
+    whiteNoise.start(now);
     subOsc.start(now);
-    noiseSource.stop(now + duration);
-    subOsc.stop(now + 0.55);
+    whiteNoise.stop(now + duration);
+    subOsc.stop(now + 0.4);
   }
 
   public playStrokeThrust() {
     if (!this.engine.isSfxEnabled()) return;
     const ctx = this.engine.getContext();
-    const masterGain = this.engine.getMasterGain();
-    if (!ctx || !masterGain) return;
+    const dest = this.getDestinationNode();
+    if (!ctx || !dest) return;
 
     const now = ctx.currentTime;
     const osc = ctx.createOscillator();
@@ -182,30 +217,29 @@ export class AudioSFX {
     const filter = ctx.createBiquadFilter();
 
     osc.type = "sine";
-    osc.frequency.setValueAtTime(105, now);
-    osc.frequency.exponentialRampToValueAtTime(42, now + 0.18);
+    osc.frequency.setValueAtTime(145, now);
+    osc.frequency.exponentialRampToValueAtTime(48, now + 0.18);
 
     filter.type = "lowpass";
-    filter.frequency.setValueAtTime(200, now);
-    filter.frequency.exponentialRampToValueAtTime(75, now + 0.18);
-    filter.Q.value = 2;
+    filter.frequency.setValueAtTime(180, now);
+    filter.frequency.exponentialRampToValueAtTime(60, now + 0.18);
 
-    gain.gain.setValueAtTime(0.16, now);
+    gain.gain.setValueAtTime(0.32, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
 
     osc.connect(filter);
     filter.connect(gain);
-    gain.connect(masterGain);
+    gain.connect(dest);
 
     osc.start(now);
     osc.stop(now + 0.2);
   }
 
-  public playKrillGulp() {
+  public playKrillGulp(sourceX?: number, playerX?: number) {
     if (!this.engine.isSfxEnabled()) return;
     const ctx = this.engine.getContext();
-    const masterGain = this.engine.getMasterGain();
-    if (!ctx || !masterGain) return;
+    const dest = this.getDestinationNode(sourceX, playerX);
+    if (!ctx || !dest) return;
 
     const now = ctx.currentTime;
 
@@ -228,7 +262,7 @@ export class AudioSFX {
 
     osc.connect(filter);
     filter.connect(gain);
-    gain.connect(masterGain);
+    gain.connect(dest);
 
     osc.start(now);
     osc.stop(now + 0.15);
@@ -245,21 +279,21 @@ export class AudioSFX {
     popGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
 
     popOsc.connect(popGain);
-    popGain.connect(masterGain);
+    popGain.connect(dest);
 
     popOsc.start(now + 0.02);
     popOsc.stop(now + 0.12);
   }
 
-  public playKrillChime() {
-    this.playKrillGulp();
+  public playKrillChime(sourceX?: number, playerX?: number) {
+    this.playKrillGulp(sourceX, playerX);
   }
 
-  public playTrashThud() {
+  public playTrashThud(sourceX?: number, playerX?: number) {
     if (!this.engine.isSfxEnabled()) return;
     const ctx = this.engine.getContext();
-    const masterGain = this.engine.getMasterGain();
-    if (!ctx || !masterGain) return;
+    const dest = this.getDestinationNode(sourceX, playerX);
+    if (!ctx || !dest) return;
 
     const now = ctx.currentTime;
     const osc = ctx.createOscillator();
@@ -279,17 +313,17 @@ export class AudioSFX {
 
     osc.connect(filter);
     filter.connect(gain);
-    gain.connect(masterGain);
+    gain.connect(dest);
 
     osc.start(now);
     osc.stop(now + 0.22);
   }
 
-  public playNetTangle() {
+  public playNetTangle(sourceX?: number, playerX?: number) {
     if (!this.engine.isSfxEnabled()) return;
     const ctx = this.engine.getContext();
-    const masterGain = this.engine.getMasterGain();
-    if (!ctx || !masterGain) return;
+    const dest = this.getDestinationNode(sourceX, playerX);
+    if (!ctx || !dest) return;
 
     const now = ctx.currentTime;
     const osc = ctx.createOscillator();
@@ -309,7 +343,7 @@ export class AudioSFX {
 
     osc.connect(filter);
     filter.connect(gain);
-    gain.connect(masterGain);
+    gain.connect(dest);
 
     osc.start(now);
     osc.stop(now + 0.3);
@@ -318,8 +352,8 @@ export class AudioSFX {
   public playBreachLaunch() {
     if (!this.engine.isSfxEnabled()) return;
     const ctx = this.engine.getContext();
-    const masterGain = this.engine.getMasterGain();
-    if (!ctx || !masterGain) return;
+    const dest = this.getDestinationNode();
+    if (!ctx || !dest) return;
 
     const now = ctx.currentTime;
     const osc = ctx.createOscillator();
@@ -334,19 +368,19 @@ export class AudioSFX {
     gain.gain.exponentialRampToValueAtTime(0.01, now + 1.2);
 
     osc.connect(gain);
-    gain.connect(masterGain);
+    gain.connect(dest);
 
     osc.start(now);
     osc.stop(now + 1.2);
   }
 
-  public playWaterSplash() {
+  public playWaterSplash(sourceX?: number, playerX?: number) {
     this.engine.init();
     this.engine.resumeIfSuspended();
     if (!this.engine.isSfxEnabled()) return;
     const ctx = this.engine.getContext();
-    const masterGain = this.engine.getMasterGain();
-    if (!ctx || !masterGain) return;
+    const dest = this.getDestinationNode(sourceX, playerX);
+    if (!ctx || !dest) return;
 
     const now = ctx.currentTime;
 
@@ -359,144 +393,157 @@ export class AudioSFX {
     plungeOsc.frequency.exponentialRampToValueAtTime(95, now + 0.32);
 
     plungeFilter.type = "lowpass";
-    plungeFilter.frequency.setValueAtTime(850, now);
-    plungeFilter.frequency.exponentialRampToValueAtTime(180, now + 0.32);
-    plungeFilter.Q.value = 3.2;
+    plungeFilter.frequency.setValueAtTime(480, now);
+    plungeFilter.frequency.exponentialRampToValueAtTime(120, now + 0.32);
+    plungeFilter.Q.value = 3.5;
 
-    plungeGain.gain.setValueAtTime(1.1, now);
-    plungeGain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+    plungeGain.gain.setValueAtTime(0.01, now);
+    plungeGain.gain.linearRampToValueAtTime(0.5, now + 0.04);
+    plungeGain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
 
     plungeOsc.connect(plungeFilter);
     plungeFilter.connect(plungeGain);
-    plungeGain.connect(masterGain);
+    plungeGain.connect(dest);
+
     plungeOsc.start(now);
     plungeOsc.stop(now + 0.35);
 
-    const bufferSize = Math.floor(ctx.sampleRate * 0.45);
-    const splashBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const data = splashBuffer.getChannelData(0);
+    const noiseDuration = 0.5;
+    const bufferSize = Math.floor(ctx.sampleRate * noiseDuration);
+    const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const noiseData = noiseBuffer.getChannelData(0);
     for (let i = 0; i < bufferSize; i++) {
-      const raw = Math.random() * 2 - 1;
-      const quantized = Math.round(raw * 8) / 8;
-      data[i] = quantized * Math.exp(-i / (bufferSize * 0.35));
+      noiseData[i] = Math.random() * 2 - 1;
     }
 
     const noiseSource = ctx.createBufferSource();
-    noiseSource.buffer = splashBuffer;
+    noiseSource.buffer = noiseBuffer;
 
     const noiseFilter = ctx.createBiquadFilter();
-    noiseFilter.type = "lowpass";
-    noiseFilter.frequency.setValueAtTime(2800, now);
-    noiseFilter.frequency.exponentialRampToValueAtTime(450, now + 0.42);
-    noiseFilter.Q.value = 1.8;
+    noiseFilter.type = "bandpass";
+    noiseFilter.frequency.setValueAtTime(2200, now);
+    noiseFilter.frequency.exponentialRampToValueAtTime(650, now + noiseDuration);
+    noiseFilter.Q.value = 2.0;
 
     const noiseGain = ctx.createGain();
-    noiseGain.gain.setValueAtTime(1.0, now);
-    noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+    noiseGain.gain.setValueAtTime(0.01, now);
+    noiseGain.gain.linearRampToValueAtTime(0.42, now + 0.05);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + noiseDuration);
 
     noiseSource.connect(noiseFilter);
     noiseFilter.connect(noiseGain);
-    noiseGain.connect(masterGain);
+    noiseGain.connect(dest);
+
     noiseSource.start(now);
-    noiseSource.stop(now + 0.45);
+    noiseSource.stop(now + noiseDuration);
 
-    const bloops = [
-      { delay: 0.04, freqStart: 540, freqEnd: 240, gain: 0.65 },
-      { delay: 0.11, freqStart: 440, freqEnd: 200, gain: 0.55 },
-      { delay: 0.19, freqStart: 620, freqEnd: 280, gain: 0.45 },
-    ];
-
-    bloops.forEach((b) => {
-      if (!ctx || !masterGain) return;
-      const dropTime = now + b.delay;
+    const playDroplet = (timeOffset: number, freq: number, vol: number) => {
+      if (!ctx || !dest) return;
       const dropOsc = ctx.createOscillator();
       const dropGain = ctx.createGain();
 
       dropOsc.type = "sine";
-      dropOsc.frequency.setValueAtTime(b.freqStart, dropTime);
-      dropOsc.frequency.exponentialRampToValueAtTime(b.freqEnd, dropTime + 0.14);
+      dropOsc.frequency.setValueAtTime(freq, now + timeOffset);
+      dropOsc.frequency.exponentialRampToValueAtTime(freq * 1.5, now + timeOffset + 0.06);
 
-      dropGain.gain.setValueAtTime(b.gain, dropTime);
-      dropGain.gain.exponentialRampToValueAtTime(0.01, dropTime + 0.14);
+      dropGain.gain.setValueAtTime(vol, now + timeOffset);
+      dropGain.gain.exponentialRampToValueAtTime(0.001, now + timeOffset + 0.07);
 
       dropOsc.connect(dropGain);
-      dropGain.connect(masterGain);
-      dropOsc.start(dropTime);
-      dropOsc.stop(dropTime + 0.14);
-    });
+      dropGain.connect(dest);
+
+      dropOsc.start(now + timeOffset);
+      dropOsc.stop(now + timeOffset + 0.07);
+    };
+
+    playDroplet(0.12, 1200, 0.14);
+    playDroplet(0.19, 1650, 0.12);
+    playDroplet(0.26, 950, 0.16);
+    playDroplet(0.34, 1400, 0.09);
   }
 
-  public playIceCrackSound() {
+  public playIceCrackSound(sourceX?: number, playerX?: number) {
     if (!this.engine.isSfxEnabled()) return;
     const ctx = this.engine.getContext();
-    const masterGain = this.engine.getMasterGain();
-    if (!ctx || !masterGain) return;
+    const dest = this.getDestinationNode(sourceX, playerX);
+    if (!ctx || !dest) return;
 
     const now = ctx.currentTime;
 
     const crackOsc = ctx.createOscillator();
     const crackGain = ctx.createGain();
     crackOsc.type = "sawtooth";
-    crackOsc.frequency.setValueAtTime(2400, now);
-    crackOsc.frequency.exponentialRampToValueAtTime(320, now + 0.18);
+    crackOsc.frequency.setValueAtTime(800, now);
+    crackOsc.frequency.exponentialRampToValueAtTime(180, now + 0.18);
 
     crackGain.gain.setValueAtTime(0.38, now);
-    crackGain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+    crackGain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
 
     crackOsc.connect(crackGain);
-    crackGain.connect(masterGain);
-    crackOsc.start(now);
-    crackOsc.stop(now + 0.18);
+    crackGain.connect(dest);
 
-    const bufferSize = Math.floor(ctx.sampleRate * 0.25);
-    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.3));
+    crackOsc.start(now);
+    crackOsc.stop(now + 0.2);
+
+    const noiseLen = 0.22;
+    const bufSize = Math.floor(ctx.sampleRate * noiseLen);
+    const noiseBuf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+    const data = noiseBuf.getChannelData(0);
+    for (let i = 0; i < bufSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * 0.7;
     }
 
-    const noiseSource = ctx.createBufferSource();
-    noiseSource.buffer = buffer;
+    const noiseSrc = ctx.createBufferSource();
+    noiseSrc.buffer = noiseBuf;
 
     const filter = ctx.createBiquadFilter();
     filter.type = "bandpass";
-    filter.frequency.setValueAtTime(1600, now);
-    filter.frequency.exponentialRampToValueAtTime(500, now + 0.25);
-    filter.Q.value = 2.0;
+    filter.frequency.setValueAtTime(1800, now);
+    filter.Q.value = 3.5;
 
     const noiseGain = ctx.createGain();
-    noiseGain.gain.setValueAtTime(0.42, now);
-    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+    noiseGain.gain.setValueAtTime(0.28, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + noiseLen);
 
-    noiseSource.connect(filter);
+    noiseSrc.connect(filter);
     filter.connect(noiseGain);
-    noiseGain.connect(masterGain);
-    noiseSource.start(now);
+    noiseGain.connect(dest);
+
+    noiseSrc.start(now);
+    noiseSrc.stop(now + noiseLen);
   }
 
   public playVictoryFanfare() {
-    if (!this.engine.isSfxEnabled()) return;
+    if (!this.engine.isSfxEnabled() && !this.engine.isMusicEnabled()) return;
     const ctx = this.engine.getContext();
-    const masterGain = this.engine.getMasterGain();
-    if (!ctx || !masterGain) return;
+    const dest = this.getDestinationNode();
+    if (!ctx || !dest) return;
 
     const now = ctx.currentTime;
-    const notes = [261.63, 329.63, 392.0, 523.25, 659.25, 783.99];
+    const notes = [
+      { f: 523.25, d: 0.14, t: 0 },
+      { f: 659.25, d: 0.14, t: 0.14 },
+      { f: 783.99, d: 0.14, t: 0.28 },
+      { f: 1046.5, d: 0.45, t: 0.42 },
+      { f: 880.0, d: 0.14, t: 0.9 },
+      { f: 1046.5, d: 0.65, t: 1.05 },
+    ];
 
-    notes.forEach((freq, idx) => {
-      const noteStart = now + idx * 0.11;
+    notes.forEach(({ f, t }) => {
+      if (!ctx || !dest) return;
+      const noteStart = now + t;
       const carrier = ctx.createOscillator();
       const mod = ctx.createOscillator();
       const modGain = ctx.createGain();
       const noteGain = ctx.createGain();
 
-      carrier.type = "triangle";
-      carrier.frequency.setValueAtTime(freq, noteStart);
+      carrier.type = "sine";
+      carrier.frequency.setValueAtTime(f, noteStart);
 
-      mod.type = "sine";
-      mod.frequency.setValueAtTime(freq * 2, noteStart);
+      mod.type = "triangle";
+      mod.frequency.setValueAtTime(f * 2, noteStart);
 
-      modGain.gain.setValueAtTime(freq * 0.5, noteStart);
+      modGain.gain.setValueAtTime(f * 0.4, noteStart);
       modGain.gain.exponentialRampToValueAtTime(1, noteStart + 1.2);
 
       mod.connect(modGain);
@@ -506,7 +553,7 @@ export class AudioSFX {
       noteGain.gain.exponentialRampToValueAtTime(0.001, noteStart + 1.6);
 
       carrier.connect(noteGain);
-      noteGain.connect(masterGain);
+      noteGain.connect(dest);
 
       mod.start(noteStart);
       carrier.start(noteStart);
@@ -515,11 +562,11 @@ export class AudioSFX {
     });
   }
 
-  public playOilChoke() {
+  public playOilChoke(sourceX?: number, playerX?: number) {
     if (!this.engine.isSfxEnabled()) return;
     const ctx = this.engine.getContext();
-    const masterGain = this.engine.getMasterGain();
-    if (!ctx || !masterGain) return;
+    const dest = this.getDestinationNode(sourceX, playerX);
+    if (!ctx || !dest) return;
 
     const now = ctx.currentTime;
 
@@ -556,7 +603,7 @@ export class AudioSFX {
     filter.connect(gain);
     noise.connect(noiseFilter);
     noiseFilter.connect(gain);
-    gain.connect(masterGain);
+    gain.connect(dest);
 
     osc.start(now);
     noise.start(now);
@@ -564,11 +611,11 @@ export class AudioSFX {
     noise.stop(now + 0.35);
   }
 
-  public playPurifyWhoosh() {
+  public playPurifyWhoosh(sourceX?: number, playerX?: number) {
     if (!this.engine.isSfxEnabled()) return;
     const ctx = this.engine.getContext();
-    const masterGain = this.engine.getMasterGain();
-    if (!ctx || !masterGain) return;
+    const dest = this.getDestinationNode(sourceX, playerX);
+    if (!ctx || !dest) return;
 
     const now = ctx.currentTime;
 
@@ -599,7 +646,7 @@ export class AudioSFX {
     osc.connect(gain);
     noise.connect(filter);
     filter.connect(gain);
-    gain.connect(masterGain);
+    gain.connect(dest);
 
     osc.start(now);
     noise.start(now);
@@ -607,11 +654,11 @@ export class AudioSFX {
     noise.stop(now + 0.5);
   }
 
-  public playDolphinClicks() {
+  public playDolphinClicks(sourceX?: number, playerX?: number) {
     if (!this.engine.isSfxEnabled()) return;
     const ctx = this.engine.getContext();
-    const masterGain = this.engine.getMasterGain();
-    if (!ctx || !masterGain) return;
+    const dest = this.getDestinationNode(sourceX, playerX);
+    if (!ctx || !dest) return;
 
     const now = ctx.currentTime;
 
@@ -628,7 +675,7 @@ export class AudioSFX {
       gain.gain.exponentialRampToValueAtTime(0.001, clickStart + 0.035);
 
       osc.connect(gain);
-      gain.connect(masterGain);
+      gain.connect(dest);
 
       osc.start(clickStart);
       osc.stop(clickStart + 0.035);
@@ -647,17 +694,17 @@ export class AudioSFX {
     wGain.gain.exponentialRampToValueAtTime(0.001, whistleStart + 0.3);
 
     wOsc.connect(wGain);
-    wGain.connect(masterGain);
+    wGain.connect(dest);
 
     wOsc.start(whistleStart);
     wOsc.stop(whistleStart + 0.3);
   }
 
-  public playPenguinChirp() {
+  public playPenguinChirp(sourceX?: number, playerX?: number) {
     if (!this.engine.isSfxEnabled()) return;
     const ctx = this.engine.getContext();
-    const masterGain = this.engine.getMasterGain();
-    if (!ctx || !masterGain) return;
+    const dest = this.getDestinationNode(sourceX, playerX);
+    if (!ctx || !dest) return;
 
     const now = ctx.currentTime;
 
@@ -673,23 +720,60 @@ export class AudioSFX {
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
 
     osc.connect(gain);
-    gain.connect(masterGain);
+    gain.connect(dest);
 
     osc.start(now);
     osc.stop(now + 0.12);
   }
 
-  public playPowerupCollect() {
+  public playShipHorn(sourceX?: number, playerX?: number) {
     if (!this.engine.isSfxEnabled()) return;
     const ctx = this.engine.getContext();
-    const masterGain = this.engine.getMasterGain();
-    if (!ctx || !masterGain) return;
+    const dest = this.getDestinationNode(sourceX, playerX);
+    if (!ctx || !dest) return;
+
+    const now = ctx.currentTime;
+    const osc1 = ctx.createOscillator();
+    const osc2 = ctx.createOscillator();
+    const filter = ctx.createBiquadFilter();
+    const gain = ctx.createGain();
+
+    osc1.type = "sawtooth";
+    osc1.frequency.setValueAtTime(110, now);
+    osc2.type = "square";
+    osc2.frequency.setValueAtTime(138.6, now); // Dissonância naval industrial
+
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(380, now);
+    filter.Q.value = 2.0;
+
+    gain.gain.setValueAtTime(0.01, now);
+    gain.gain.linearRampToValueAtTime(0.24, now + 0.15);
+    gain.gain.setValueAtTime(0.24, now + 0.9);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 1.4);
+
+    osc1.connect(filter);
+    osc2.connect(filter);
+    filter.connect(gain);
+    gain.connect(dest);
+
+    osc1.start(now);
+    osc2.start(now);
+    osc1.stop(now + 1.4);
+    osc2.stop(now + 1.4);
+  }
+
+  public playPowerupCollect(sourceX?: number, playerX?: number) {
+    if (!this.engine.isSfxEnabled()) return;
+    const ctx = this.engine.getContext();
+    const dest = this.getDestinationNode(sourceX, playerX);
+    if (!ctx || !dest) return;
 
     const now = ctx.currentTime;
     const notes = [1046.5, 1318.5, 1567.98, 2093.0]; // C6, E6, G6, C7
 
     notes.forEach((freq, idx) => {
-      if (!ctx || !masterGain) return;
+      if (!ctx || !dest) return;
       const noteTime = now + idx * 0.05;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
@@ -701,18 +785,18 @@ export class AudioSFX {
       gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.22);
 
       osc.connect(gain);
-      gain.connect(masterGain);
+      gain.connect(dest);
 
       osc.start(noteTime);
       osc.stop(noteTime + 0.22);
     });
   }
 
-  public playShieldPop() {
+  public playShieldPop(sourceX?: number, playerX?: number) {
     if (!this.engine.isSfxEnabled()) return;
     const ctx = this.engine.getContext();
-    const masterGain = this.engine.getMasterGain();
-    if (!ctx || !masterGain) return;
+    const dest = this.getDestinationNode(sourceX, playerX);
+    if (!ctx || !dest) return;
 
     const now = ctx.currentTime;
 
@@ -727,7 +811,7 @@ export class AudioSFX {
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
 
     osc.connect(gain);
-    gain.connect(masterGain);
+    gain.connect(dest);
 
     osc.start(now);
     osc.stop(now + 0.15);
@@ -736,8 +820,8 @@ export class AudioSFX {
   public playSpeedBoost() {
     if (!this.engine.isSfxEnabled()) return;
     const ctx = this.engine.getContext();
-    const masterGain = this.engine.getMasterGain();
-    if (!ctx || !masterGain) return;
+    const dest = this.getDestinationNode();
+    if (!ctx || !dest) return;
 
     const now = ctx.currentTime;
 
@@ -759,7 +843,7 @@ export class AudioSFX {
 
     osc.connect(filter);
     filter.connect(gain);
-    gain.connect(masterGain);
+    gain.connect(dest);
 
     osc.start(now);
     osc.stop(now + 0.45);

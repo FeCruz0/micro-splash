@@ -11,6 +11,12 @@ export const SOUNDTRACK_MODE_LABELS: Record<SoundtrackMode, string> = {
 export class AudioEngine {
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
+  private masterLimiter: DynamicsCompressorNode | null = null;
+  private sfxBus: GainNode | null = null;
+  private depthFilter: BiquadFilterNode | null = null;
+  private reverbConvolver: ConvolverNode | null = null;
+  private reverbDryGain: GainNode | null = null;
+  private reverbWetGain: GainNode | null = null;
   private isMuted: boolean = false;
   private isInitialized: boolean = false;
   private ambientGain: GainNode | null = null;
@@ -22,6 +28,7 @@ export class AudioEngine {
   private isMigrationAudioRunning: boolean = false;
   private soundtrackMode: SoundtrackMode = "chiptune";
   private ambientWhaleTimer: any = null;
+  private visibilityHandler: (() => void) | null = null;
 
   // Motor musical procedural Aquatic Ambience + 16-Bit Lofi Ocean
   public readonly biomeEngine: BiomeMusicEngine = new BiomeMusicEngine();
@@ -31,19 +38,134 @@ export class AudioEngine {
 
     this.loadSettings();
 
+    if (typeof window === "undefined") return;
+
     try {
       const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioCtxClass) return;
 
       this.ctx = new AudioCtxClass();
+
+      // 36.1 Limiter no Barramento Master (Threshold -6dB, ratio 12, attack 3ms, release 250ms)
+      this.masterLimiter = this.ctx.createDynamicsCompressor();
+      this.masterLimiter.threshold.setValueAtTime(-6, this.ctx.currentTime);
+      this.masterLimiter.knee.setValueAtTime(0, this.ctx.currentTime);
+      this.masterLimiter.ratio.setValueAtTime(12, this.ctx.currentTime);
+      this.masterLimiter.attack.setValueAtTime(0.003, this.ctx.currentTime);
+      this.masterLimiter.release.setValueAtTime(0.25, this.ctx.currentTime);
+
       this.masterGain = this.ctx.createGain();
-      this.masterGain.gain.value = this.volume * 1.35;
-      this.masterGain.connect(this.ctx.destination);
+      this.masterGain.gain.setValueAtTime(this.volume * 1.35, this.ctx.currentTime);
+
+      // Conexão do grafo master: masterGain -> masterLimiter -> destination
+      this.masterGain.connect(this.masterLimiter);
+      this.masterLimiter.connect(this.ctx.destination);
+
+      // 36.5 Configuração do barramento de SFX, Reverb Convolutivo e Filtro de Profundidade
+      this.setupSfxBusAndReverb();
+
+      // 36.6 Listener de Page Visibility API para pausa com aba oculta
+      this.setupVisibilityListener();
 
       this.isInitialized = true;
     } catch (e) {
       console.warn("Web Audio não suportado neste navegador:", e);
     }
+  }
+
+  private setupSfxBusAndReverb() {
+    if (!this.ctx || !this.masterGain) return;
+
+    try {
+      this.sfxBus = this.ctx.createGain();
+      this.sfxBus.gain.setValueAtTime(1.0, this.ctx.currentTime);
+
+      // Filtro passa-baixas hidrostático (superfície 8000Hz -> abismo 1200Hz)
+      this.depthFilter = this.ctx.createBiquadFilter();
+      this.depthFilter.type = "lowpass";
+      this.depthFilter.frequency.setValueAtTime(8000, this.ctx.currentTime);
+      this.depthFilter.Q.setValueAtTime(0.7, this.ctx.currentTime);
+
+      this.sfxBus.connect(this.depthFilter);
+
+      // Sinal direto (Dry) ~0.78
+      this.reverbDryGain = this.ctx.createGain();
+      this.reverbDryGain.gain.setValueAtTime(0.78, this.ctx.currentTime);
+      this.depthFilter.connect(this.reverbDryGain);
+      this.reverbDryGain.connect(this.masterGain);
+
+      // Sinal com reverb convolutivo marinho (Wet) ~0.22
+      this.reverbWetGain = this.ctx.createGain();
+      this.reverbWetGain.gain.setValueAtTime(0.22, this.ctx.currentTime);
+
+      this.reverbConvolver = this.ctx.createConvolver();
+      this.reverbConvolver.buffer = this.createUnderwaterImpulseResponse(this.ctx, 1.8, 3.2);
+
+      this.depthFilter.connect(this.reverbConvolver);
+      this.reverbConvolver.connect(this.reverbWetGain);
+      this.reverbWetGain.connect(this.masterGain);
+    } catch (e) {
+      console.warn("Erro ao configurar barramento de SFX e reverb:", e);
+    }
+  }
+
+  public createUnderwaterImpulseResponse(
+    ctx: AudioContext,
+    duration: number = 1.8,
+    decay: number = 3.2
+  ): AudioBuffer {
+    const sampleRate = ctx.sampleRate || 44100;
+    const length = Math.max(1, Math.floor(sampleRate * duration));
+    const impulse = ctx.createBuffer(2, length, sampleRate);
+    const left = impulse.getChannelData(0);
+    const right = impulse.getChannelData(1);
+
+    for (let i = 0; i < length; i++) {
+      const t = i / length;
+      const env = Math.exp(-t * decay);
+      // Atenuação suave de frequências muito altas na cauda simulando absorção na água salgada
+      const highFreqDamping = 1 - 0.45 * t;
+      left[i] = (Math.random() * 2 - 1) * env * highFreqDamping;
+      right[i] = (Math.random() * 2 - 1) * env * highFreqDamping;
+    }
+    return impulse;
+  }
+
+  public updateDepthAcoustics(playerY: number, maxDepth: number = 360) {
+    if (!this.depthFilter || !this.ctx || this.ctx.state === "closed") return;
+    const surfaceY = 80; // GAME_CONFIG.SEA_LEVEL
+    const abyssY = Math.max(surfaceY + 80, maxDepth - 40);
+    const t = Math.max(0, Math.min(1, (playerY - surfaceY) / (abyssY - surfaceY)));
+    const targetFreq = 8000 - t * (8000 - 1200);
+    this.depthFilter.frequency.setTargetAtTime(targetFreq, this.ctx.currentTime, 0.1);
+  }
+
+  private setupVisibilityListener() {
+    if (typeof document === "undefined" || this.visibilityHandler) return;
+
+    this.visibilityHandler = () => {
+      if (!this.ctx || this.ctx.state === "closed") return;
+
+      if (document.hidden) {
+        if (this.ctx.state === "running") {
+          this.ctx.suspend().catch(() => {});
+        }
+      } else {
+        if (this.isMigrationAudioRunning && !this.isMuted) {
+          if (this.ctx.state === "suspended") {
+            this.ctx.resume().catch(() => {});
+          }
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", this.visibilityHandler);
+  }
+
+  private removeVisibilityListener() {
+    if (typeof document === "undefined" || !this.visibilityHandler) return;
+    document.removeEventListener("visibilitychange", this.visibilityHandler);
+    this.visibilityHandler = null;
   }
 
   public getContext(): AudioContext | null {
@@ -52,6 +174,30 @@ export class AudioEngine {
 
   public getMasterGain(): GainNode | null {
     return this.masterGain;
+  }
+
+  public getMasterLimiter(): DynamicsCompressorNode | null {
+    return this.masterLimiter;
+  }
+
+  public getSfxBus(): GainNode | null {
+    return this.sfxBus;
+  }
+
+  public getDepthFilter(): BiquadFilterNode | null {
+    return this.depthFilter;
+  }
+
+  public getReverbConvolver(): ConvolverNode | null {
+    return this.reverbConvolver;
+  }
+
+  public getReverbDryGain(): GainNode | null {
+    return this.reverbDryGain;
+  }
+
+  public getReverbWetGain(): GainNode | null {
+    return this.reverbWetGain;
   }
 
   public isReady(): boolean {
@@ -144,22 +290,25 @@ export class AudioEngine {
   }
 
   public updateSoundtrackPlayback(onAmbientWhale?: () => void) {
-    if (!this.ctx || !this.isMigrationAudioRunning) return;
+    if (!this.ctx || !this.isMigrationAudioRunning || this.ctx.state === "closed") return;
 
     if (this.ambientWhaleTimer) {
       clearInterval(this.ambientWhaleTimer);
       this.ambientWhaleTimer = null;
     }
 
+    // 36.3 Crossfade gradual de ~0.6s entre modos (3 constantes de tempo = 0.6s)
+    const fadeConstant = 0.2;
+
     if (this.soundtrackMode === "chiptune") {
       this.biomeEngine.setVolume(this.musicEnabled ? 0.38 : 0);
       if (this.ambientGain) {
-        this.ambientGain.gain.setValueAtTime(0.04, this.ctx.currentTime);
+        this.ambientGain.gain.setTargetAtTime(0.04, this.ctx.currentTime, fadeConstant);
       }
     } else if (this.soundtrackMode === "ambient") {
       this.biomeEngine.setVolume(0);
       if (this.ambientGain) {
-        this.ambientGain.gain.setValueAtTime(0.12, this.ctx.currentTime);
+        this.ambientGain.gain.setTargetAtTime(0.12, this.ctx.currentTime, fadeConstant);
       }
       if (onAmbientWhale) {
         onAmbientWhale();
@@ -172,15 +321,16 @@ export class AudioEngine {
     } else if (this.soundtrackMode === "sfx_only") {
       this.biomeEngine.setVolume(0);
       if (this.ambientGain) {
-        this.ambientGain.gain.setValueAtTime(0.015, this.ctx.currentTime);
+        this.ambientGain.gain.setTargetAtTime(0.015, this.ctx.currentTime, fadeConstant);
       }
     }
   }
 
+  // 36.2 Rampa de ganho sem estalos (setTargetAtTime 50ms)
   public setVolume(val: number) {
     this.volume = Math.max(0, Math.min(1, val));
-    if (this.masterGain && this.ctx && !this.isMuted) {
-      this.masterGain.gain.setValueAtTime(this.volume * 1.35, this.ctx.currentTime);
+    if (this.masterGain && this.ctx && this.ctx.state !== "closed" && !this.isMuted) {
+      this.masterGain.gain.setTargetAtTime(this.volume * 1.35, this.ctx.currentTime, 0.05);
     }
     this.saveSettings();
   }
@@ -214,15 +364,17 @@ export class AudioEngine {
     }
   }
 
+  // 36.2 Rampa de ganho no mudo sem estalos (setTargetAtTime 50ms)
   public toggleMute(): boolean {
     this.init();
-    if (!this.masterGain || !this.ctx) return false;
+    if (!this.masterGain || !this.ctx || this.ctx.state === "closed") return false;
     this.resumeIfSuspended();
 
     this.isMuted = !this.isMuted;
-    this.masterGain.gain.setValueAtTime(
+    this.masterGain.gain.setTargetAtTime(
       this.isMuted ? 0 : this.volume * 1.35,
-      this.ctx.currentTime
+      this.ctx.currentTime,
+      0.05
     );
     return this.isMuted;
   }
@@ -237,9 +389,10 @@ export class AudioEngine {
     }
   }
 
+  // 36.2 Rampa suave ao silenciar ambiência sem cliques
   public pauseAmbient() {
-    if (this.ambientGain && this.ctx) {
-      this.ambientGain.gain.setValueAtTime(0, this.ctx.currentTime);
+    if (this.ambientGain && this.ctx && this.ctx.state !== "closed") {
+      this.ambientGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.05);
     }
     this.biomeEngine.stop();
   }
@@ -251,6 +404,7 @@ export class AudioEngine {
   }
 
   public cleanup() {
+    this.removeVisibilityListener();
     this.stopMigrationAudio();
     if (this.ctx) {
       try {
@@ -286,6 +440,16 @@ export class AudioEngine {
         b5 = -0.7616 * b5 - white * 0.016898;
         output[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.11;
         b6 = white * 0.115926;
+      }
+
+      // 36.7 Loop de ruído oceânico sem costura: crossfade de ~50ms entre fim e início do buffer
+      const crossfadeSamples = Math.floor(this.ctx.sampleRate * 0.05); // ~50ms
+      for (let i = 0; i < crossfadeSamples; i++) {
+        const t = i / crossfadeSamples;
+        const endIdx = bufferSize - crossfadeSamples + i;
+        const blended = output[i] * t + output[endIdx] * (1 - t);
+        output[i] = blended;
+        output[endIdx] = blended;
       }
 
       this.ambientNoiseSource = this.ctx.createBufferSource();

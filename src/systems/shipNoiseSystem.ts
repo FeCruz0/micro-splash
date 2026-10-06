@@ -3,6 +3,7 @@ import { GAME_CONFIG, TAGS } from "../config";
 import type { PlayerController } from "../entities/player";
 import { createFishingTrawler } from "../entities/boat";
 import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
+import { audioSystem } from "./audioSystem";
 
 export function setupShipNoiseSystem(
   k: ReturnType<typeof kaboom>,
@@ -75,6 +76,12 @@ export function setupShipNoiseSystem(
       noiseTimer += k.dt();
       if (noiseTimer >= 2.5) {
         noiseTimer = 0;
+
+        // Se o navio estiver a uma distância audível da baleia, toca o grave da buzina com panning estéreo
+        const distToPlayer = Math.abs(ship.pos.x - playerController.gameObj.pos.x);
+        if (distToPlayer < 1400) {
+          audioSystem.playShipHorn(ship.pos.x, playerController.gameObj.pos.x);
+        }
 
         const noiseRing = k.add([
           k.circle(20),

@@ -168,15 +168,16 @@ export function setupIceSurfaceSystem(
           }
 
           // 2. Efeitos Sonoros e Tremor
-          audioSystem.playIceCrackSound();
-          audioSystem.playWaterSplash();
+          const player = k.get(TAGS.PLAYER)[0];
+          const playerX = player ? player.pos.x : undefined;
+          audioSystem.playIceCrackSound(x + width * 0.5, playerX);
+          audioSystem.playWaterSplash(x + width * 0.5, playerX);
           k.shake(4.5);
 
           // 3. Registra nova fenda dinâmica para respirar livremente durante a partida
           activeIceGaps.push({ start: x - 5, end: x + width + 5 });
 
           // 4. Se a baleia estiver em cima do bloco, empurra para o mar e assegura mergulho
-          const player = k.get(TAGS.PLAYER)[0];
           if (player) {
             if (player.pos.y <= icePosY + 15) {
               player.pos.y = Math.max(player.pos.y, icePosY + 22);

@@ -192,6 +192,7 @@ export class PresentationModeManager {
       this.playerController.setSpeed(this.k.vec2(100, 0));
       this.k.camPos(point.x + 160, this.k.camPos().y);
       audioSystem.updateBiomeTrack(point.x);
+      audioSystem.updateDepthAcoustics(point.y);
     }
     this.updateContent();
   }

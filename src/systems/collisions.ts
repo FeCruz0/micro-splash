@@ -21,7 +21,7 @@ export function setupCollisions(
     gameState.addTrash();
 
     // Som de impacto no plástico e vibração tátil
-    audioSystem.playTrashThud();
+    audioSystem.playTrashThud(trash.pos?.x, _player.pos?.x);
     hapticsSystem.triggerCollision();
 
     // Aplica desaceleração instantânea (perde 50% da velocidade)
@@ -40,7 +40,7 @@ export function setupCollisions(
     if (playerController.isFrozen()) return;
 
     if (vent.collectAir && vent.collectAir()) {
-      audioSystem.playPowerupCollect();
+      audioSystem.playPowerupCollect(vent.pos?.x, _player.pos?.x);
       playerController.restoreOxygen(playerController.getMaxOxygen() * 0.35);
       accessibilitySystem.triggerShake(k, 1.5);
     }
@@ -53,8 +53,8 @@ export function setupCollisions(
     k.destroy(krill);
     gameState.addKrill();
 
-    // Som biológico de sucção e deglutição de krill (Fase 5)
-    audioSystem.playKrillGulp();
+    // Som biológico de sucção e deglutição de krill com espacialização estéreo (Fase 5/34)
+    audioSystem.playKrillGulp(krill.pos?.x, _player.pos?.x);
 
     // Aplica impulso, restaura fôlego e evolui +1% em velocidade máx e oxigênio máx permanente
     playerController.consumeKrill();
@@ -65,7 +65,7 @@ export function setupCollisions(
     if (playerController.isFrozen()) return;
 
     k.destroy(net); // remove rede do mapa
-    audioSystem.playNetTangle();
+    audioSystem.playNetTangle(net.pos?.x, _player.pos?.x);
     hapticsSystem.triggerCollision();
 
     if (!playerController.isTrapped()) {
