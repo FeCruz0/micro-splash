@@ -7,6 +7,25 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [1.11.0] - 2026-10-06 — Polimento Visual dos Sistemas Ausentes (Fase 35)
+
+### Adicionado & Modificado
+
+- **Jatos de Ressurgência em Leque com Gradiente de Opacidade (Fase 35.1)**:
+  - `src/systems/upwellingSystem.ts`: Substituído o retângulo rígido e bordas grossas por um sistema orgânico de feixes ascendentes em leque (6 filamentos com 3 segmentos cada), com dispersão angular (`-7°` a `+7°`), cores turquesa-luminosas e gradiente vertical de opacidade (base densa `0.55`, meio `0.35`, topo etéreo `0.18`), além de ondulação senoidal e preservação da física de colisão.
+- **Kelp Bentônico com Gradiente de Cor por Altura e Exposição Solar (Fase 35.2)**:
+  - `src/systems/benthicFloorSystem.ts`: Implementada função `calculateKelpSegmentColor` com interpolação linear contínua dos nós da alga, variando do marrom-escuro de fixação rochosa na base (`rgb(55, 35, 15)`) até as folhas dourado-esverdeadas no topo (`rgb(110, 130, 40)`), refletindo o fototropismo marinho real.
+- **Anêmonas Bentônicas com Pulsação Rítmica e Tentáculos Vivos (Fase 35.3)**:
+  - `src/systems/benthicFloorSystem.ts`: Animação de pulsação respiratória senoidal em anêmonas (escala vertical oscilando entre `0.85` e `1.15` em ciclo de ~2.5s) acompanhada por tentáculos periféricos radiantes oscilando em contra-fase.
+- **Linhas de Fluxo Visíveis em Correntes Oceânicas (Fase 35.4)**:
+  - `src/systems/oceanCurrentsSystem.ts`: Renderização de 5 vetores horizontais translúcidos (`rect 42×2.5px`, tom oceanográfico `rgb(100, 150, 200, 0.25)`) com deslocamento contínuo na direção da corrente (tanto favorável quanto contrária), tornando o perigo/impulso visível e intuitivo para o jogador.
+- **Traineira de Pesca Artesanal no Setor Urbano com Rede Lançada (Fase 35.5)**:
+  - `src/entities/boat.ts` & `src/systems/shipNoiseSystem.ts`: Criação do barco pesqueiro `createFishingTrawler` (60×20px) com cabine de comando, mastro central, braço de guincho com carretel de tração e rede de arrasto suspensa na popa entrando na água, conferindo contexto narrativo autêntico à presença de redes na Costa Urbana.
+- **Refluxo de Espuma Circular ao Quebrar Blocos de Gelo (Fase 35.6)**:
+  - `src/systems/iceSurface.ts`: Adicionadas 6–8 partículas circulares brancas (`circle 3–6px`, opacidade 0.9, gravidade 480px/s²) simulando respingos espumosos de água do mar gelada espirrada no impacto de quebra do gelo polar, diferenciadas dos estilhaços cristalinos retangulares.
+
+---
+
 ## [1.10.0] - 2026-10-05 — Telas de Jogo: Visual & Polimento de UI (Fase 34)
 
 ### Adicionado & Modificado

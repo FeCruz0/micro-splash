@@ -492,15 +492,61 @@ _Objetivo: Elevar todas as telas de interface (splash, menu, vitória, resgate, 
 
 _Objetivo: Cobrir elementos visuais não tratados nas fases anteriores — ressurgência, kelp/corais bentônicos, ventos térmicos e correntes oceânicas visíveis._
 
-- [ ] **35.1 Jatos de Ressurgência com Mais Detalhes Visuais:**
+- [x] **35.1 Jatos de Ressurgência com Mais Detalhes Visuais:**
   - Jatos atuais: `rect(30, 80, radius: 10)` azul `(0, 220, 255, 0.4)` com `outline: 3` branco (`upwellingSystem.ts` linha 48). Parecem cápsulas rígidas. Redesenhar como feixes de linhas finas (`rect 4×80px`) em leque de 5–7 ângulos ligeiramente diferentes, sem border rígido, com gradiente de opacity (mais denso na base, mais transparente no topo) — visual de corrente d'água subindo, não de objeto sólido.
-- [ ] **35.2 Kelp com Gradiente de Cor por Altura:**
+- [x] **35.2 Kelp com Gradiente de Cor por Altura:**
   - O kelp no `benthicFloorSystem.ts` usa cor uniforme por planta. O kelp real tem base marrom-escura e folhas dourado-esverdeadas no topo (por exposição à luz). Aplicar cor progressiva por segmento: base `(55, 35, 15)` → topo `(110, 130, 40)` — usando o índice `s` do loop de segmentos.
-- [ ] **35.3 Corais com Animação de Abertura/Fechamento:**
+- [x] **35.3 Corais com Animação de Abertura/Fechamento:**
   - Corais no `benthicFloorSystem.ts` têm tipos `"brain"`, `"fan"`, `"anemone"`. Os tipos `fan` e `anemone` são ideais para animação de pulsação — anêmonas abrem e fecham os tentáculos com `sin(time)`. Implementar variação de escala Y `(0.85–1.15)` em ciclo de 2–3s nos corais do tipo `anemone`.
-- [ ] **35.4 Correntes Oceânicas Visíveis (Favoráveis e Contrárias):**
+- [x] **35.4 Correntes Oceânicas Visíveis (Favoráveis e Contrárias):**
   - O sistema de correntes contrárias empurra fisicamente a baleia mas é completamente invisível — o jogador percebe o efeito mas não vê o elemento. Representar com 4–6 linhas de traço horizontais (`rect 40×2px`) em azul-cinza `(100, 150, 200, 0.25)` se movendo na direção da corrente — setas de fluxo animadas como em mapas oceanográficos.
-- [ ] **35.5 Barco de Pesca Realista no Bioma da Costa Urbana:**
+- [x] **35.5 Barco de Pesca Realista no Bioma da Costa Urbana:**
   - Além dos navios cargueiros, o bioma urbano deveria ter embarcações pesqueiras menores (traineiras/arrastradores) que despejam redes — seria o `ghostNet` com origem visual clara em vez de aparecer do nada. Um barco de pesca `60×20px` estacionado com rede visível sendo lançada por ele daria contexto narrativo ao perigo.
-- [ ] **35.6 Refluxo de Espuma nos Blocos de Gelo ao Serem Quebrados:**
+- [x] **35.6 Refluxo de Espuma nos Blocos de Gelo ao Serem Quebrados:**
   - Ao quebrar um bloco de gelo, os estilhaços são retangulares. Adicionar 6–8 partículas circulares brancas `(circle 3–6px)` em adição aos estilhaços quadrados, simulando espuma de água gelada espirrada pelo impacto — diferente das partículas de gelo em forma de shard.
+
+### 🎧 FASE 36: Masterização & Espacialização de Áudio
+
+_Objetivo: Elevar a qualidade sonora sem alterar gameplay — evitar clipping, eliminar cliques, adicionar espacialidade e respeitar o ciclo de vida da aba._
+
+- [ ] **36.1 Limiter no Barramento Master:**
+  - `audioEngine.ts` conecta `masterGain` (`volume × 1.35`) direto ao `destination`. Inserir `DynamicsCompressorNode` (threshold `-6dB`, ratio `12`, attack `3ms`, release `250ms`) entre master e saída para evitar clipping em picos de SFX simultâneos.
+- [ ] **36.2 Rampas de Ganho sem Cliques:**
+  - `setVolume`, `toggleMute`, `pauseAmbient` e `updateSoundtrackPlayback` usam `setValueAtTime` (salto instantâneo → estalo audível). Substituir por `setTargetAtTime(valor, now, 0.05)`, padrão já usado em `audioMusic.ts`.
+- [ ] **36.3 Crossfade entre Modos de Trilha:**
+  - Troca chiptune/ambiente/foco salta o `ambientGain` entre `0.04`, `0.12` e `0.015`. Aplicar crossfade de ~0.6s entre `biomeEngine` e ambiência.
+- [ ] **36.4 Panning Estéreo por Posição:**
+  - Nenhum `StereoPannerNode` no projeto. Panear SFX de navios, golfinhos, krill, lixo e gelo conforme X relativo à baleia (`pan = clamp((objX - playerX) / (width/2), -1, 1)`).
+- [ ] **36.5 Reverb Subaquático & Abafamento por Profundidade:**
+  - Adicionar `ConvolverNode` com impulso procedural (ruído com decaimento exponencial ~1.8s) no barramento de SFX e low-pass global modulado pelo Y da baleia (superfície ~8kHz → fundo ~1.2kHz).
+- [ ] **36.6 Pausa de Áudio com Aba Oculta:**
+  - Sem handler `visibilitychange`. Suspender `AudioContext` ao ocultar a aba e retomar ao voltar (respeitando estado de mute).
+- [ ] **36.7 Loop de Ruído Oceânico sem Costura:**
+  - O buffer de ruído marrom de 4s em `startAmbientOcean` tem descontinuidade no ponto de loop. Aplicar crossfade de ~50ms entre início e fim do buffer.
+
+### 🛠️ FASE 37: Qualidade de Código & Consistência Técnica Visual
+
+_Objetivo: Reduzir dívida técnica, padronizar utilitários e alinhar o código às regras de `ai.rules` sem alterar gameplay._
+
+- [ ] **37.1 Spawn Independente de Taxa de Quadros:**
+  - Spawns usam `Math.random() < taxa` por frame (`upwellingSystem.ts` jatos `0.4`/krill `0.005`, `oceanCurrentsSystem.ts` partículas `0.25`, entre outros) — em 144Hz geram ~2.4× mais objetos que em 60Hz. Converter para `taxa × deltaTime` normalizado (idêntico em 60Hz).
+- [ ] **37.2 `prefers-reduced-motion` Global:**
+  - Fase 26.6 cobre `collisions.ts`/`playerPhysics.ts`, mas `k.shake()` em `upwellingSystem.ts`, `iceSurface.ts` e outros ignora a preferência. Centralizar em helper `safeShake(k, intensidade)` consultando `accessibilitySystem`.
+- [ ] **37.3 Adoção Unificada de `attachButtonHoverEffect`:**
+  - `onHoverUpdate` manual duplicado em 13 arquivos de `src/ui/`. Migrar para o utilitário de `animationUtils.ts`.
+- [ ] **37.4 Nomenclatura Explícita (Clean Code):**
+  - Renomear abreviações: `currentX`/`dir` (`shipNoiseSystem.ts`), `rad` (`breachSystem.ts`), `idx`/`cIdx`/`p`/`s` (`audioSFX`, `parallaxSky`, `oilSpill`, `particlePool`, `penguinFlock`, `dolphinDrafting`, `benthicFloor`), `btn`/`idx` (`gamepadSystem.ts`).
+- [ ] **37.5 Utilitário Tipado de Persistência (`utils/storage.ts`):**
+  - 15 arquivos repetem `try/catch` + `JSON.parse` + `typeof localStorage`. Criar `readStorage<T>(key, schema, fallback)` / `writeStorage(key, value)` validando com schemas de `src/schemas`.
+- [ ] **37.6 Remoção do `any` Remanescente:**
+  - Apesar da Fase 11.2, restam usos em ~27 arquivos (`ambientWhaleTimer: any`, `window as any`, `allShipBodies: any[]`). Trocar por `GameObj`, `ReturnType<typeof setInterval>` e `Window & { webkitAudioContext?: typeof AudioContext }`.
+- [ ] **37.7 Decomposição de Arquivos Extensos:**
+  - `codexScreen.ts` (~1100 linhas) → uma função por aba; `optionsScreen.ts` (37KB), `audioSFX.ts` (23KB), `canyonSystem.ts` (22KB) em submódulos; cenas de `main.ts` (588 linhas) para `src/scenes/`.
+- [ ] **37.8 Guarda de Ambiente no `AudioEngine`:**
+  - `init()` acessa `window` sem guarda, gerando `ReferenceError` no stderr dos testes. Adicionar `typeof window !== "undefined"`.
+- [ ] **37.9 Logs via `errorReporter`:**
+  - `console.*` direto em 7 arquivos. Rotear para `errorReporter` com níveis (`warn`/`error`).
+- [ ] **37.10 RNG Injetável (`utils/random.ts`):**
+  - `Math.random()` em ~50 arquivos. Centralizar em gerador com seed opcional para testes determinísticos.
+- [ ] **37.11 Auditoria de Listeners de `window`:**
+  - 7 arquivos de `src/ui/` registram `addEventListener`. Garantir remoção no fechamento do modal/cena e guarda de ambiente.

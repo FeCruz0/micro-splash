@@ -15,6 +15,23 @@ interface CoralDetail {
   type: "brain" | "fan" | "anemone";
   baseY: number;
   animPhase: number;
+  tentacles?: GameObj[];
+}
+
+/**
+ * Calcula a cor progressiva do segmento de kelp (Fase 35.2).
+ * Interpola da base marrom-escura (55, 35, 15) para o topo dourado-esverdeado (110, 130, 40).
+ */
+export function calculateKelpSegmentColor(
+  k: ReturnType<typeof kaboom>,
+  segmentIndex: number,
+  totalSegments: number
+) {
+  const progressRatio = totalSegments > 1 ? segmentIndex / (totalSegments - 1) : 0;
+  const redChannel = Math.round(55 + (110 - 55) * progressRatio);
+  const greenChannel = Math.round(35 + (130 - 35) * progressRatio);
+  const blueChannel = Math.round(15 + (40 - 15) * progressRatio);
+  return k.rgb(redChannel, greenChannel, blueChannel);
 }
 
 export const KELP_SPAWN_X = [
@@ -53,18 +70,16 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
     const segHeight = plantHeight / segmentCount;
     const segments: GameObj[] = [];
 
-    // Tonalidades dourado-esverdeadas autênticas de Macrocystis pyrifera (Kelp)
-    const baseColor = plantIdx % 2 === 0 ? k.rgb(75, 95, 45) : k.rgb(105, 115, 40);
-
     for (let s = 0; s < segmentCount; s++) {
       // Largura afunilando em direção ao topo
       const segWidth = 14 - s * 1.4;
+      const segmentColor = calculateKelpSegmentColor(k, s, segmentCount);
 
       // Haste central
       const stem = k.add([
         k.rect(segWidth, segHeight + 4, { radius: 3 }),
         k.pos(xPos, floorY - (s + 1) * segHeight),
-        k.color(baseColor),
+        k.color(segmentColor),
         k.opacity(0.85 * (0.4 + 0.6 * transitionFactor)),
         k.anchor("bot"),
         k.z(s % 2 === 0 ? -3 : 2), // Alterna camadas para profundidade 2.5D
@@ -78,7 +93,7 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
       const leaf = k.add([
         k.rect(leafWidth, leafHeight, { radius: leafHeight / 2 }),
         k.pos(xPos + leafSide * (segWidth + 4), floorY - (s + 0.5) * segHeight),
-        k.color(baseColor),
+        k.color(segmentColor),
         k.opacity(0.75 * (0.4 + 0.6 * transitionFactor)),
         k.anchor("center"),
         k.rotate(leafSide * 25),
@@ -301,8 +316,9 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
       ]);
 
       // Tentáculos da anêmona
+      const tentacles: GameObj[] = [];
       for (let t = -3; t <= 3; t++) {
-        k.add([
+        const tentacle = k.add([
           k.rect(3, 16, { radius: 2 }),
           k.pos(xPos + t * 4, floorY - 12),
           k.color(110, 255, 220),
@@ -311,9 +327,10 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
           k.rotate(t * 8),
           k.z(-3),
         ]);
+        tentacles.push(tentacle);
       }
 
-      corals.push({ obj: anemone, type: "anemone", baseY: floorY - 4, animPhase: cIdx });
+      corals.push({ obj: anemone, type: "anemone", baseY: floorY - 4, animPhase: cIdx, tentacles });
     }
 
     // Pequenos Peixes de Recife coloridos passeando próximos aos corais (Donzelas e Cirurgiões)
@@ -392,8 +409,21 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
         if (coral.type === "fan") {
           coral.obj.angle = Math.sin(time * 1.4 + coral.animPhase) * 4;
         } else if (coral.type === "anemone") {
-          const breathe = 1 + Math.sin(time * 2.2 + coral.animPhase) * 0.08;
-          coral.obj.scale = k.vec2(breathe, 1 / breathe);
+          const cycleTime = time * 2.5 + coral.animPhase;
+          // Variação de escala Y entre 0.85 e 1.15 em ciclo senoidal de 2 a 3s (Fase 35.3)
+          const verticalScale = 1.0 + Math.sin(cycleTime) * 0.15;
+          const horizontalScale = 1.0 - Math.sin(cycleTime) * 0.08;
+          coral.obj.scale = k.vec2(horizontalScale, verticalScale);
+
+          if (coral.tentacles) {
+            const totalTentacles = coral.tentacles.length;
+            coral.tentacles.forEach((tentacle, tentacleIndex) => {
+              const baseAngle = (tentacleIndex - (totalTentacles - 1) / 2) * 8;
+              const angleSpread = Math.sin(cycleTime) * 6 * (baseAngle >= 0 ? 1 : -1);
+              tentacle.angle = baseAngle + angleSpread;
+              tentacle.scale = k.vec2(1.0, verticalScale);
+            });
+          }
         }
       });
     }

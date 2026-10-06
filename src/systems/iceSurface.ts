@@ -90,11 +90,11 @@ export function setupIceSurfaceSystem(
 
           // 1. Estilhaços de gelo cristalinos com física e gravidade
           const pool = getParticlePool();
-          for (let p = 0; p < 14; p++) {
+          for (let shardIndex = 0; shardIndex < 14; shardIndex++) {
             const shardSize = 3 + Math.random() * 5;
             const shardX = x + width * Math.random();
             const shardY = icePosY + iceHeight * Math.random();
-            const shardVel = k.vec2((Math.random() - 0.5) * 260, -60 - Math.random() * 190);
+            const shardVelocity = k.vec2((Math.random() - 0.5) * 260, -60 - Math.random() * 190);
 
             if (pool) {
               pool.spawnRect({
@@ -104,7 +104,7 @@ export function setupIceSurfaceSystem(
                 color: k.rgb(230, 248, 255),
                 opacity: 0.95,
                 z: 15,
-                vel: shardVel,
+                vel: shardVelocity,
                 fadeRate: 1.5,
                 maxLife: 0.65,
               });
@@ -118,10 +118,51 @@ export function setupIceSurfaceSystem(
               ]);
 
               shard.onUpdate(() => {
-                shardVel.y += 680 * k.dt(); // Gravidade nos estilhaços
-                shard.pos = shard.pos.add(shardVel.scale(k.dt()));
-                shard.opacity -= k.dt() * 1.5;
+                const deltaTime = k.dt();
+                shardVelocity.y += 680 * deltaTime; // Gravidade nos estilhaços
+                shard.pos = shard.pos.add(shardVelocity.scale(deltaTime));
+                shard.opacity -= deltaTime * 1.5;
                 if (shard.opacity <= 0) k.destroy(shard);
+              });
+            }
+          }
+
+          // 1.1. Refluxo de espuma e borrifo de água gelada circular (Fase 35.6: circle 3-6px)
+          const foamCount = 7;
+          for (let foamIndex = 0; foamIndex < foamCount; foamIndex++) {
+            const foamRadius = 3 + Math.random() * 3;
+            const foamX = x + width * Math.random();
+            const foamY = icePosY + iceHeight * 0.5 + (Math.random() - 0.5) * 8;
+            const foamVelocity = k.vec2((Math.random() - 0.5) * 220, -120 - Math.random() * 140);
+
+            if (pool) {
+              pool.spawnCircle({
+                pos: k.vec2(foamX, foamY),
+                radius: foamRadius,
+                color: k.rgb(255, 255, 255),
+                opacity: 0.9,
+                z: 16,
+                vel: foamVelocity,
+                gravityY: 480,
+                fadeRate: 1.8,
+                maxLife: 0.55,
+              });
+            } else {
+              const foam = k.add([
+                k.circle(foamRadius),
+                k.pos(foamX, foamY),
+                k.color(255, 255, 255),
+                k.opacity(0.9),
+                k.z(16),
+                "ice_break_foam",
+              ]);
+
+              foam.onUpdate(() => {
+                const deltaTime = k.dt();
+                foamVelocity.y += 480 * deltaTime;
+                foam.pos = foam.pos.add(foamVelocity.scale(deltaTime));
+                foam.opacity -= deltaTime * 1.8;
+                if (foam.opacity <= 0) k.destroy(foam);
               });
             }
           }

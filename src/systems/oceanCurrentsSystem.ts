@@ -1,4 +1,4 @@
-import type { KaboomCtx } from "kaboom";
+import type { KaboomCtx, GameObj } from "kaboom";
 import { TAGS } from "../config";
 import type { PlayerController } from "../entities/player";
 import { audioSystem } from "./audioSystem";
@@ -29,6 +29,53 @@ export const DEFAULT_OCEAN_CURRENTS: CurrentZone[] = [
   // 3. Correnteza Contrária 2 (Travessia profunda - fundo do mar)
   { startX: 9800, endX: 11400, y: 280, height: 125, force: 185, type: "opposing" },
 ];
+
+/**
+ * Cria linhas de traço horizontais indicando a direção do fluxo vetorial (Fase 35.4).
+ * Semelhante a setas de correntes em cartas náuticas oceanográficas.
+ */
+export function createCurrentVectorLines(
+  k: KaboomCtx,
+  currentBox: GameObj,
+  zoneWidth: number,
+  zoneHeight: number,
+  isFavorable: boolean
+): GameObj[] {
+  const lineCount = 5;
+  const vectorLines: GameObj[] = [];
+  const lineSpacing = zoneHeight / (lineCount + 1);
+
+  for (let lineIndex = 0; lineIndex < lineCount; lineIndex++) {
+    const verticalPosition = lineSpacing * (lineIndex + 1);
+    const dashLength = 40;
+    const dashHeight = 2;
+    const horizontalOffset = Math.random() * zoneWidth;
+
+    const vectorDash = currentBox.add([
+      k.rect(dashLength, dashHeight, { radius: 1 }),
+      k.pos(horizontalOffset, verticalPosition),
+      k.color(100, 150, 200),
+      k.opacity(0.25),
+      "ocean_current_vector_line",
+    ]);
+
+    // Direção da corrente: favorável move para a direita (+X), contrária move para a esquerda (-X)
+    const flowSpeed = isFavorable ? 220 : -180;
+    vectorDash.onUpdate(() => {
+      const deltaTime = k.dt();
+      vectorDash.pos.x += flowSpeed * deltaTime;
+      if (isFavorable && vectorDash.pos.x > zoneWidth + 20) {
+        vectorDash.pos.x = -dashLength;
+      } else if (!isFavorable && vectorDash.pos.x < -dashLength - 20) {
+        vectorDash.pos.x = zoneWidth + 20;
+      }
+    });
+
+    vectorLines.push(vectorDash);
+  }
+
+  return vectorLines;
+}
 
 /**
  * Sistema Unificado de Correntezas Oceânicas (Favoráveis e Contrárias).
@@ -62,7 +109,10 @@ export function setupOceanCurrentsSystem(
       "ocean_current",
     ]);
 
-    // 2. Filamentos e esteiras aquáticas dinâmicas
+    // 2. Linhas vetoriais oceanográficas de fluxo visível (Fase 35.4)
+    createCurrentVectorLines(k, currentBox, width, zone.height, isFavorable);
+
+    // 3. Filamentos e esteiras aquáticas dinâmicas
     const filamentCount = Math.max(6, Math.min(16, Math.round(width / 180)));
     for (let i = 0; i < filamentCount; i++) {
       const filamentWidth = k.rand(40, 95);
@@ -85,16 +135,16 @@ export function setupOceanCurrentsSystem(
       let sway = Math.random() * Math.PI * 2;
 
       streamLine.onUpdate(() => {
-        const dt = k.dt();
-        sway += dt * 3;
+        const deltaTime = k.dt();
+        sway += deltaTime * 3;
 
         if (isFavorable) {
-          streamLine.pos.x += dt * streamSpeed;
+          streamLine.pos.x += deltaTime * streamSpeed;
           if (streamLine.pos.x > width + 40) {
             streamLine.pos.x = -filamentWidth;
           }
         } else {
-          streamLine.pos.x -= dt * streamSpeed;
+          streamLine.pos.x -= deltaTime * streamSpeed;
           if (streamLine.pos.x < -filamentWidth - 20) {
             streamLine.pos.x = width + 20;
           }
@@ -105,25 +155,25 @@ export function setupOceanCurrentsSystem(
       });
     }
 
-    // 3. Vórtices e redemoinhos sutis (para correntes contrárias)
+    // 4. Vórtices e redemoinhos sutis (para correntes contrárias)
     if (!isFavorable) {
       const vortexCount = Math.max(2, Math.round(width / 600));
       for (let v = 0; v < vortexCount; v++) {
-        const vx = (v + 0.5) * (width / vortexCount);
-        const vy = zone.height * 0.5 + (Math.random() - 0.5) * 25;
+        const vortexX = (v + 0.5) * (width / vortexCount);
+        const vortexY = zone.height * 0.5 + (Math.random() - 0.5) * 25;
 
         const vortex = currentBox.add([
           k.circle(k.rand(6, 12)),
-          k.pos(vx, vy),
+          k.pos(vortexX, vortexY),
           k.color(180, 210, 245),
           k.opacity(0.25),
           k.outline(1.5, k.rgb(230, 240, 255)),
         ]);
 
-        let vAngle = Math.random() * 10;
+        let vortexAngle = Math.random() * 10;
         vortex.onUpdate(() => {
-          vAngle -= k.dt() * 4;
-          vortex.opacity = 0.18 + Math.sin(vAngle) * 0.12;
+          vortexAngle -= k.dt() * 4;
+          vortex.opacity = 0.18 + Math.sin(vortexAngle) * 0.12;
         });
       }
     }

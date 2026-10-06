@@ -1,6 +1,7 @@
-import kaboom from "kaboom";
+import kaboom, { type GameObj } from "kaboom";
 import { GAME_CONFIG, TAGS } from "../config";
 import type { PlayerController } from "../entities/player";
+import { createFishingTrawler } from "../entities/boat";
 import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 
 export function setupShipNoiseSystem(
@@ -8,7 +9,14 @@ export function setupShipNoiseSystem(
   playerController: PlayerController
 ) {
   let isSystemActive = true;
-  const allShipBodies: any[] = [];
+  const allShipBodies: GameObj[] = [];
+
+  // Traineiras de pesca artesanal estacionadas com redes na Costa Urbana (Fase 35.5)
+  const fishingTrawlerPositions = [13800, 16200];
+  fishingTrawlerPositions.forEach((positionX) => {
+    const trawler = createFishingTrawler(k, positionX);
+    allShipBodies.push(trawler);
+  });
 
   const ships = [
     { minX: 12400, maxX: 14400, currentX: 13200, speed: 45, dir: 1 },
@@ -188,15 +196,15 @@ export function setupShipNoiseSystem(
 
   const activate = () => {
     isSystemActive = true;
-    allShipBodies.forEach((s) => {
-      s.hidden = false;
+    allShipBodies.forEach((shipBody) => {
+      shipBody.hidden = false;
     });
   };
 
   const deactivate = () => {
     isSystemActive = false;
-    allShipBodies.forEach((s) => {
-      s.hidden = true;
+    allShipBodies.forEach((shipBody) => {
+      shipBody.hidden = true;
     });
   };
 
