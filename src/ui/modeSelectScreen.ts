@@ -84,13 +84,17 @@ export function showModeSelectScreen(
     ])
   );
 
+  let keyHandler: ((event: KeyboardEvent) => void) | null = null;
+
   const destroyAll = () => {
     if (isClosed) return;
     isClosed = true;
     if (focusGroup) {
       focusGroup.destroy();
     }
-    window.removeEventListener("keydown", keyHandler);
+    if (typeof window !== "undefined" && keyHandler) {
+      window.removeEventListener("keydown", keyHandler);
+    }
     elements.forEach((el) => {
       try {
         if (typeof el.destroy === "function") {
@@ -714,11 +718,13 @@ export function showModeSelectScreen(
     ringZ: 315,
   });
 
-  const keyHandler = (e: KeyboardEvent) => {
+  keyHandler = (event: KeyboardEvent) => {
     if (isClosed) return;
-    if (e.key === "Escape") {
+    if (event.key === "Escape") {
       close();
     }
   };
-  window.addEventListener("keydown", keyHandler);
+  if (typeof window !== "undefined") {
+    window.addEventListener("keydown", keyHandler);
+  }
 }

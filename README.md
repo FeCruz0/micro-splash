@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/FeCruz0/micro-splash/actions/workflows/ci.yml/badge.svg)](https://github.com/FeCruz0/micro-splash/actions/workflows/ci.yml)
 [![Deploy Pages](https://github.com/FeCruz0/micro-splash/actions/workflows/deploy.yml/badge.svg)](https://github.com/FeCruz0/micro-splash/actions/workflows/deploy.yml)
-[![Version](https://img.shields.io/badge/version-1.12.0-blue.svg)](package.json)
+[![Version](https://img.shields.io/badge/version-1.13.0-blue.svg)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![PWA Ready](https://img.shields.io/badge/PWA-Offline--First-orange.svg)](public/manifest.json)
 [![WCAG 2.1 AA](https://img.shields.io/badge/Accessibility-WCAG%202.1%20AA-purple.svg)](docs/ROADMAP.md)
@@ -77,7 +77,7 @@ O _Micro Splash_ prioriza a acessibilidade desde a sua concepção:
 - **Áudio:** Web Audio API nativa com síntese procedural, limiter dinâmico, espacialização estéreo 2D e acústica convolutiva
 - **Validação de Schemas:** [Zod](https://zod.dev/) para integridade estrita de dados
 - **Build Tool & Dev Server:** [Vite 6](https://vitejs.dev/)
-- **Testes Unitários:** [Vitest](https://vitest.dev/) (47 suítes e 318 testes automatizados) com `@vitest/coverage-v8`
+- **Testes Unitários:** [Vitest](https://vitest.dev/) (48 suítes e 327 testes automatizados) com `@vitest/coverage-v8`
 - **Linters & Formatadores:** ESLint 9 Flat Config + Prettier
 - **Containerização:** Docker Multi-stage + Nginx Alpine (imagem de apenas ~21.2 MB)
 

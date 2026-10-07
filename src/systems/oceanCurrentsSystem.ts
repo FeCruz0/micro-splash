@@ -2,6 +2,7 @@ import type { KaboomCtx, GameObj } from "kaboom";
 import { TAGS } from "../config";
 import type { PlayerController } from "../entities/player";
 import { audioSystem } from "./audioSystem";
+import { safeShake } from "../utils/camera";
 
 /**
  * Interface que modela uma zona delimitada de correnteza oceânica.
@@ -214,33 +215,36 @@ export function setupOceanCurrentsSystem(
             audioSystem.playSpeedBoost();
           }
 
-          // Partículas douradas de fluxo favorável na baleia
-          if (Math.random() < 0.25) {
-            const p = k.add([
+          // Partículas douradas de fluxo favorável na baleia (normalizado por deltaTime)
+          const normalizedDeltaTime = dt * 60;
+          if (Math.random() < 0.25 * normalizedDeltaTime) {
+            const particle = k.add([
               k.circle(k.rand(2, 3.5)),
               k.pos(playerPos.x + k.rand(-25, 25), playerPos.y + k.rand(-10, 10)),
               k.color(255, 235, 140),
               k.opacity(0.8),
               k.z(15),
             ]);
-            p.onUpdate(() => {
-              p.pos.x += 180 * k.dt();
-              p.opacity -= k.dt() * 2.8;
-              if (p.opacity <= 0) k.destroy(p);
+            particle.onUpdate(() => {
+              particle.pos.x += 180 * k.dt();
+              particle.opacity -= k.dt() * 2.8;
+              if (particle.opacity <= 0) k.destroy(particle);
             });
           }
         } else {
           // Empurra a jubarte para trás (-X)
           playerController.setSpeed(k.vec2(currentSpeed.x - zone.force * dt, currentSpeed.y));
 
-          // Leve turbulência visual na tela
-          if (Math.random() < 0.15) {
-            k.shake(1.0);
+          // Leve turbulência visual na tela com guarda de movimento reduzido
+          const normalizedDeltaTime = dt * 60;
+          if (Math.random() < 0.15 * normalizedDeltaTime) {
+            safeShake(k, 1.0);
           }
         }
 
-        // Micro-bolhas de esforço/resistência ao nadar contra a correnteza
-        if (!isAlignedWithFlow && Math.random() < 0.22) {
+        // Micro-bolhas de esforço/resistência ao nadar contra a correnteza (normalizado por deltaTime)
+        const normalizedDeltaTime = dt * 60;
+        if (!isAlignedWithFlow && Math.random() < 0.22 * normalizedDeltaTime) {
           const bubble = k.add([
             k.circle(k.rand(1.5, 3)),
             k.pos(playerPos.x + (facingRight ? 40 : -40), playerPos.y + k.rand(-8, 8)),

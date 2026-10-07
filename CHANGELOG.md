@@ -7,6 +7,35 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [1.13.0] - 2026-10-06 — Qualidade de Código & Consistência Técnica Visual (Fase 37)
+
+### Adicionado & Modificado
+
+- **Spawn Independente de Taxa de Quadros (Fase 37.1)**:
+  - `src/systems/upwellingSystem.ts` & `src/systems/oceanCurrentsSystem.ts`: Normalizadas probabilidades de spawn de jatos de ressurgência, cardumes de krill e partículas de fluxo hidrodinâmico pelo fator `deltaTime * 60`, assegurando geração invariante em monitores de 60Hz, 120Hz ou 144Hz+.
+- **Centralização de `prefers-reduced-motion` com `safeShake` (Fase 37.2)**:
+  - `src/utils/camera.ts`: Criado helper `safeShake(k, intensity)` consultando o subsistema de acessibilidade; substituídas chamadas diretas de `k.shake()` em `upwellingSystem.ts`, `oceanCurrentsSystem.ts`, `iceSurface.ts`, `breachSystem.ts` e `shipNoiseSystem.ts` para suprimir tremores em modo reduzido.
+- **Adoção Unificada de `attachButtonHoverEffect` (Fase 37.3)**:
+  - `src/ui/challengeEndScreen.ts`: Substituídos listeners manuais de `onHoverUpdate`/`onHoverEnd` pelo utilitário padronizado com transições táteis e realce cromático consistente.
+- **Nomenclatura Explícita e Clean Code (Fase 37.4)**:
+  - Renomeadas variáveis crípticas em múltiplos módulos: `currentX` → `initialXPosition` e `dir` → `movementDirection` em `shipNoiseSystem.ts`; `rad` → `angleInRadians` em `breachSystem.ts`; `btn`/`idx` → `button`/`buttonIndex` em `gamepadSystem.ts`.
+- **Utilitário Tipado de Persistência com Schemas Zod (Fase 37.5)**:
+  - `src/utils/storage.ts`: Desenvolvidas funções puras `readLocalStorageWithSchema<T>`, `writeLocalStorage<T>` e `removeLocalStorageItem` com validação de schemas em tempo de execução e tolerância a falhas.
+- **Remoção de Usos Residuais de `any` (Fase 37.6)**:
+  - `src/systems/audio/audioEngine.ts`: Tipados timers com `ReturnType<typeof setInterval>` e extensões de `Window` com `webkitAudioContext`.
+  - `src/systems/breachSystem.ts` & `src/systems/shipNoiseSystem.ts`: Tipados elementos de interface e resíduos com `GameObj`.
+  - `src/systems/gamepadSystem.ts`: Tipado evento com `GamepadEvent`.
+- **Guardas de Ambiente no `AudioEngine` (Fase 37.8)**:
+  - `src/systems/audio/audioEngine.ts`: Adicionadas guardas de ambiente `typeof window !== "undefined"` e `typeof localStorage !== "undefined"` para evitar exceções em SSR e suítes de teste.
+- **Logs e Telemetria Estruturada com Níveis (Fase 37.9)**:
+  - `src/utils/errorReporter.ts`: Centralização de emissão de mensagens com severidade (`information`, `warning`, `error`), suporte a ouvintes, supressão em testes e ponte com o serviço de telemetria `errorReporter`.
+- **Gerador Pseudoaleatório Determinístico (Fase 37.10)**:
+  - `src/utils/random.ts`: Implementado algoritmo Mulberry32 com injeção de semente arbitrária para testes determinísticos e métodos utilitários `getRandomFloat`, `getRandomInteger` e `getRandomChoice`.
+- **Suíte de Testes da Fase 37**:
+  - `tests/phase37_code_quality.test.ts`: 9 testes automatizados cobrindo persistência com Zod, determinismo do PRNG, guarda de movimento reduzido no `safeShake` e controle de telemetria.
+
+---
+
 ## [1.12.0] - 2026-10-06 — Masterização & Espacialização de Áudio (Fase 36)
 
 ### Adicionado & Modificado

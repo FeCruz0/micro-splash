@@ -4,6 +4,7 @@ import type { PlayerController } from "../entities/player";
 import { createFishingTrawler } from "../entities/boat";
 import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 import { audioSystem } from "./audioSystem";
+import { safeShake } from "../utils/camera";
 
 export function setupShipNoiseSystem(
   k: ReturnType<typeof kaboom>,
@@ -20,16 +21,16 @@ export function setupShipNoiseSystem(
   });
 
   const ships = [
-    { minX: 12400, maxX: 14400, currentX: 13200, speed: 45, dir: 1 },
-    { minX: 14700, maxX: 16700, currentX: 15500, speed: 50, dir: -1 },
-    { minX: 17000, maxX: 18900, currentX: 17800, speed: 55, dir: 1 },
+    { minX: 12400, maxX: 14400, initialXPosition: 13200, speed: 45, movementDirection: 1 },
+    { minX: 14700, maxX: 16700, initialXPosition: 15500, speed: 50, movementDirection: -1 },
+    { minX: 17000, maxX: 18900, initialXPosition: 17800, speed: 55, movementDirection: 1 },
   ];
 
   ships.forEach((shipData) => {
     // Casco do Navio Cargueiro (Proporção industrial imponente: 280×50px)
     const ship = k.add([
       k.rect(280, 50, { radius: 12 }),
-      k.pos(shipData.currentX, GAME_CONFIG.SEA_LEVEL),
+      k.pos(shipData.initialXPosition, GAME_CONFIG.SEA_LEVEL),
       k.color(60, 65, 80),
       k.outline(2.5, k.rgb(180, 50, 50)),
       k.opacity(0.88),
@@ -65,11 +66,11 @@ export function setupShipNoiseSystem(
       if (!isSystemActive) return;
 
       // Movimento de patrulha (ida e volta pelo setor)
-      ship.pos.x += shipData.speed * shipData.dir * k.dt();
+      ship.pos.x += shipData.speed * shipData.movementDirection * k.dt();
       if (ship.pos.x >= shipData.maxX) {
-        shipData.dir = -1;
+        shipData.movementDirection = -1;
       } else if (ship.pos.x <= shipData.minX) {
-        shipData.dir = 1;
+        shipData.movementDirection = 1;
       }
 
       // 1. Emissão periódica de ondas acústicas de ruído (ruído submarino)
@@ -103,7 +104,7 @@ export function setupShipNoiseSystem(
           // Se a baleia estiver dentro do raio da onda de ruído, causa desorientação e a empurra para o fundo
           const distToPlayer = noiseRing.pos.dist(playerController.gameObj.pos);
           if (distToPlayer <= ringRadius && noiseRing.opacity > 0.2) {
-            k.shake(1.5);
+            safeShake(k, 1.5);
             const speed = playerController.getSpeed();
             const downwardForce = 400 * k.dt();
 
@@ -128,15 +129,15 @@ export function setupShipNoiseSystem(
       if (trashEjectTimer >= 8.5 && distToPlayer < 1600) {
         trashEjectTimer = 0;
 
-        const ejectX = ship.pos.x - shipData.dir * 130;
+        const ejectX = ship.pos.x - shipData.movementDirection * 130;
         const ejectY = ship.pos.y + 24;
         const trashType = Math.floor(Math.random() * 3);
 
-        let trashItem: any;
+        let trashItem: GameObj;
         let sinkSpeed = 28 + Math.random() * 14;
         const swaySpeed = 1.5 + Math.random();
         const swayAmp = 10 + Math.random() * 8;
-        let tAge = 0;
+        let trashAgeInSeconds = 0;
 
         if (trashType === 0) {
           // Tambor de óleo corrosivo / resíduo químico
@@ -185,9 +186,9 @@ export function setupShipNoiseSystem(
 
         const startX = ejectX;
         trashItem.onUpdate(() => {
-          tAge += k.dt();
+          trashAgeInSeconds += k.dt();
           trashItem.pos.y += sinkSpeed * k.dt();
-          trashItem.pos.x = startX + Math.sin(tAge * swaySpeed) * swayAmp;
+          trashItem.pos.x = startX + Math.sin(trashAgeInSeconds * swaySpeed) * swayAmp;
 
           // Destrói se afundar até o leito ou ficar muito para trás
           if (

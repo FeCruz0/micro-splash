@@ -1,3 +1,5 @@
+import { reportInformation } from "../utils/errorReporter";
+
 /**
  * Sistema de Entrada para Gamepad / Joystick (W3C Gamepad API)
  *
@@ -30,6 +32,9 @@ export class GamepadSystem {
   private isConnected: boolean = false;
   private gamepadName: string = "";
 
+  private onConnectedHandler: ((event: Event) => void) | null = null;
+  private onDisconnectedHandler: (() => void) | null = null;
+
   constructor() {
     this.setupListeners();
   }
@@ -37,18 +42,34 @@ export class GamepadSystem {
   private setupListeners() {
     if (typeof window === "undefined") return;
 
-    window.addEventListener("gamepadconnected", (e: any) => {
+    this.onConnectedHandler = (event: Event) => {
+      const gamepadEvent = event as GamepadEvent;
       this.isConnected = true;
-      this.gamepadName = e.gamepad?.id || "Gamepad Conectado";
-      console.log(`🎮 Gamepad detectado: ${this.gamepadName}`);
-    });
+      this.gamepadName = gamepadEvent.gamepad?.id || "Gamepad Conectado";
+      reportInformation(`Gamepad detectado: ${this.gamepadName}`);
+    };
 
-    window.addEventListener("gamepaddisconnected", () => {
+    this.onDisconnectedHandler = () => {
       this.isConnected = false;
       this.gamepadName = "";
       this.prevButtonStates = [];
-      console.log("🎮 Gamepad desconectado.");
-    });
+      reportInformation("Gamepad desconectado.");
+    };
+
+    window.addEventListener("gamepadconnected", this.onConnectedHandler);
+    window.addEventListener("gamepaddisconnected", this.onDisconnectedHandler);
+  }
+
+  public cleanup() {
+    if (typeof window === "undefined") return;
+    if (this.onConnectedHandler) {
+      window.removeEventListener("gamepadconnected", this.onConnectedHandler);
+      this.onConnectedHandler = null;
+    }
+    if (this.onDisconnectedHandler) {
+      window.removeEventListener("gamepaddisconnected", this.onDisconnectedHandler);
+      this.onDisconnectedHandler = null;
+    }
   }
 
   public getActiveGamepad(): Gamepad | null {
@@ -93,14 +114,14 @@ export class GamepadSystem {
       };
     }
 
-    const isBtnDown = (idx: number): boolean => {
-      const btn = pad.buttons[idx];
-      return Boolean(btn && (btn.pressed || btn.value > 0.4));
+    const isButtonDown = (buttonIndex: number): boolean => {
+      const button = pad.buttons[buttonIndex];
+      return Boolean(button && (button.pressed || button.value > 0.4));
     };
 
-    const isBtnJustPressed = (idx: number): boolean => {
-      const down = isBtnDown(idx);
-      const wasDown = Boolean(this.prevButtonStates[idx]);
+    const isButtonJustPressed = (buttonIndex: number): boolean => {
+      const down = isButtonDown(buttonIndex);
+      const wasDown = Boolean(this.prevButtonStates[buttonIndex]);
       return down && !wasDown;
     };
 
@@ -110,16 +131,16 @@ export class GamepadSystem {
     // 2: X (Xbox) / Quadrado (PlayStation)
     // 8: Back / Select
     // 9: Start / Options
-    const strokeDown = isBtnDown(0);
-    const strokePressed = isBtnJustPressed(0);
-    const sonarPressed = isBtnDown(1) || isBtnDown(2);
-    const pausePressed = isBtnJustPressed(9) || isBtnJustPressed(8);
+    const strokeDown = isButtonDown(0);
+    const strokePressed = isButtonJustPressed(0);
+    const sonarPressed = isButtonDown(1) || isButtonDown(2);
+    const pausePressed = isButtonJustPressed(9) || isButtonJustPressed(8);
 
     // D-Pad
-    const dpadUp = isBtnDown(12);
-    const dpadDown = isBtnDown(13);
-    const dpadLeft = isBtnDown(14);
-    const dpadRight = isBtnDown(15);
+    const dpadUp = isButtonDown(12);
+    const dpadDown = isButtonDown(13);
+    const dpadLeft = isButtonDown(14);
+    const dpadRight = isButtonDown(15);
 
     // Eixos Analógicos com Deadzone
     const rawAxisX = pad.axes[0] ?? 0;
@@ -134,8 +155,8 @@ export class GamepadSystem {
     const right = dpadRight || axisX > this.deadzone;
 
     // Atualiza histórico de botões para detecção de borda no próximo frame
-    for (let i = 0; i < pad.buttons.length; i++) {
-      this.prevButtonStates[i] = isBtnDown(i);
+    for (let buttonIndex = 0; buttonIndex < pad.buttons.length; buttonIndex++) {
+      this.prevButtonStates[buttonIndex] = isButtonDown(buttonIndex);
     }
 
     return {

@@ -65,6 +65,8 @@ export function showLeaderboardScreen(k: KaboomCtx, onClose: () => void) {
     ])
   );
 
+  let keyHandler: ((event: KeyboardEvent) => void) | null = null;
+
   const close = () => {
     if (isClosed) return;
     isClosed = true;
@@ -72,7 +74,9 @@ export function showLeaderboardScreen(k: KaboomCtx, onClose: () => void) {
     if (focusGroup) {
       focusGroup.destroy();
     }
-    window.removeEventListener("keydown", keyHandler);
+    if (typeof window !== "undefined" && keyHandler) {
+      window.removeEventListener("keydown", keyHandler);
+    }
     elements.forEach((el) => {
       try {
         k.destroy(el);
@@ -550,11 +554,13 @@ export function showLeaderboardScreen(k: KaboomCtx, onClose: () => void) {
     ringZ: 315,
   });
 
-  const keyHandler = (e: KeyboardEvent) => {
+  keyHandler = (event: KeyboardEvent) => {
     if (isClosed) return;
-    if (e.key === "Escape") {
+    if (event.key === "Escape") {
       close();
     }
   };
-  window.addEventListener("keydown", keyHandler);
+  if (typeof window !== "undefined") {
+    window.addEventListener("keydown", keyHandler);
+  }
 }

@@ -7,6 +7,7 @@ import { showInitialsInputModal } from "./initialsInputModal";
 import { showQuizModal } from "./quizModal";
 import { showShareModal } from "./shareModal";
 import { extractVictoryCardData } from "./victoryCard";
+import { attachButtonHoverEffect } from "./animationUtils";
 
 export function showChallengeEndScreen(
   k: KaboomCtx,
@@ -205,15 +206,10 @@ function renderChallengeEndContent(
   ]);
   elements.push(btnQuizLabel);
 
-  btnQuiz.onHoverUpdate(() => {
-    if (!quizCompleted && !isModalOpen) {
-      btnQuiz.color = k.rgb(35, 150, 220);
-    }
-  });
-  btnQuiz.onHoverEnd(() => {
-    if (!quizCompleted && !isModalOpen) {
-      btnQuiz.color = k.rgb(25, 125, 185);
-    }
+  attachButtonHoverEffect(k, btnQuiz, {
+    baseColor: [25, 125, 185],
+    hoverColor: [35, 150, 220],
+    canInteract: () => !quizCompleted && !isModalOpen,
   });
 
   const openQuiz = () => {
@@ -266,11 +262,10 @@ function renderChallengeEndContent(
     ])
   );
 
-  btnShare.onHoverUpdate(() => {
-    if (!isModalOpen) btnShare.color = k.rgb(25, 140, 155);
-  });
-  btnShare.onHoverEnd(() => {
-    if (!isModalOpen) btnShare.color = k.rgb(18, 105, 120);
+  attachButtonHoverEffect(k, btnShare, {
+    baseColor: [18, 105, 120],
+    hoverColor: [25, 140, 155],
+    canInteract: () => !isModalOpen,
   });
 
   btnShare.onClick(() => {
@@ -324,11 +319,10 @@ function renderChallengeEndContent(
     onPlayAgain();
   };
 
-  btnAgain.onHoverUpdate(() => {
-    if (!isModalOpen) btnAgain.color = k.rgb(30, 140, 210);
-  });
-  btnAgain.onHoverEnd(() => {
-    if (!isModalOpen) btnAgain.color = k.rgb(20, 120, 180);
+  attachButtonHoverEffect(k, btnAgain, {
+    baseColor: [20, 120, 180],
+    hoverColor: [30, 140, 210],
+    canInteract: () => canInteract && !isModalOpen,
   });
   btnAgain.onClick(handlePlayAgain);
 
@@ -366,11 +360,10 @@ function renderChallengeEndContent(
     onReturnMenu();
   };
 
-  btnMenu.onHoverUpdate(() => {
-    if (!isModalOpen) btnMenu.color = k.rgb(45, 80, 130);
-  });
-  btnMenu.onHoverEnd(() => {
-    if (!isModalOpen) btnMenu.color = k.rgb(30, 60, 100);
+  attachButtonHoverEffect(k, btnMenu, {
+    baseColor: [30, 60, 100],
+    hoverColor: [45, 80, 130],
+    canInteract: () => canInteract && !isModalOpen,
   });
   btnMenu.onClick(handleReturnMenu);
 

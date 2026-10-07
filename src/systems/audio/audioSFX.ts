@@ -162,47 +162,54 @@ export class AudioSFX {
 
     const bufferSize = Math.floor(ctx.sampleRate * duration);
     const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const output = noiseBuffer.getChannelData(0);
+    const noiseData = noiseBuffer.getChannelData(0);
     for (let i = 0; i < bufferSize; i++) {
-      output[i] = Math.random() * 2 - 1;
+      noiseData[i] = Math.random() * 2 - 1;
     }
 
-    const whiteNoise = ctx.createBufferSource();
-    whiteNoise.buffer = noiseBuffer;
+    const noiseSource = ctx.createBufferSource();
+    noiseSource.buffer = noiseBuffer;
 
-    const bandpass = ctx.createBiquadFilter();
-    bandpass.type = "bandpass";
-    bandpass.frequency.setValueAtTime(1400, now);
-    bandpass.frequency.linearRampToValueAtTime(2800, now + 0.18);
-    bandpass.frequency.exponentialRampToValueAtTime(650, now + duration);
-    bandpass.Q.value = 4.2;
+    const noiseFilter = ctx.createBiquadFilter();
+    noiseFilter.type = "bandpass";
+    noiseFilter.frequency.setValueAtTime(2200, now);
+    noiseFilter.frequency.exponentialRampToValueAtTime(650, now + 0.45);
+    noiseFilter.Q.value = 2.4;
 
     const noiseGain = ctx.createGain();
     noiseGain.gain.setValueAtTime(0.001, now);
-    noiseGain.gain.linearRampToValueAtTime(0.48, now + 0.08);
-    noiseGain.gain.exponentialRampToValueAtTime(0.18, now + 0.45);
+    noiseGain.gain.linearRampToValueAtTime(0.35, now + 0.04);
+    noiseGain.gain.exponentialRampToValueAtTime(0.12, now + 0.4);
     noiseGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
 
-    whiteNoise.connect(bandpass);
-    bandpass.connect(noiseGain);
+    noiseSource.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
     noiseGain.connect(dest);
 
     const subOsc = ctx.createOscillator();
+    const subFilter = ctx.createBiquadFilter();
     const subGain = ctx.createGain();
+
     subOsc.type = "sine";
-    subOsc.frequency.setValueAtTime(95, now);
-    subOsc.frequency.exponentialRampToValueAtTime(42, now + 0.4);
+    subOsc.frequency.setValueAtTime(140, now);
+    subOsc.frequency.exponentialRampToValueAtTime(75, now + 0.5);
 
-    subGain.gain.setValueAtTime(0.3, now);
-    subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+    subFilter.type = "lowpass";
+    subFilter.frequency.setValueAtTime(180, now);
+    subFilter.Q.value = 1.8;
 
-    subOsc.connect(subGain);
+    subGain.gain.setValueAtTime(0.001, now);
+    subGain.gain.linearRampToValueAtTime(0.28, now + 0.05);
+    subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+
+    subOsc.connect(subFilter);
+    subFilter.connect(subGain);
     subGain.connect(dest);
 
-    whiteNoise.start(now);
+    noiseSource.start(now);
     subOsc.start(now);
-    whiteNoise.stop(now + duration);
-    subOsc.stop(now + 0.4);
+    noiseSource.stop(now + duration);
+    subOsc.stop(now + 0.55);
   }
 
   public playStrokeThrust() {
@@ -217,14 +224,15 @@ export class AudioSFX {
     const filter = ctx.createBiquadFilter();
 
     osc.type = "sine";
-    osc.frequency.setValueAtTime(145, now);
-    osc.frequency.exponentialRampToValueAtTime(48, now + 0.18);
+    osc.frequency.setValueAtTime(105, now);
+    osc.frequency.exponentialRampToValueAtTime(42, now + 0.18);
 
     filter.type = "lowpass";
-    filter.frequency.setValueAtTime(180, now);
-    filter.frequency.exponentialRampToValueAtTime(60, now + 0.18);
+    filter.frequency.setValueAtTime(200, now);
+    filter.frequency.exponentialRampToValueAtTime(75, now + 0.18);
+    filter.Q.value = 2;
 
-    gain.gain.setValueAtTime(0.32, now);
+    gain.gain.setValueAtTime(0.16, now);
     gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
 
     osc.connect(filter);
@@ -393,73 +401,71 @@ export class AudioSFX {
     plungeOsc.frequency.exponentialRampToValueAtTime(95, now + 0.32);
 
     plungeFilter.type = "lowpass";
-    plungeFilter.frequency.setValueAtTime(480, now);
-    plungeFilter.frequency.exponentialRampToValueAtTime(120, now + 0.32);
-    plungeFilter.Q.value = 3.5;
+    plungeFilter.frequency.setValueAtTime(850, now);
+    plungeFilter.frequency.exponentialRampToValueAtTime(180, now + 0.32);
+    plungeFilter.Q.value = 3.2;
 
-    plungeGain.gain.setValueAtTime(0.01, now);
-    plungeGain.gain.linearRampToValueAtTime(0.5, now + 0.04);
-    plungeGain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+    plungeGain.gain.setValueAtTime(1.1, now);
+    plungeGain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
 
     plungeOsc.connect(plungeFilter);
     plungeFilter.connect(plungeGain);
     plungeGain.connect(dest);
-
     plungeOsc.start(now);
     plungeOsc.stop(now + 0.35);
 
-    const noiseDuration = 0.5;
-    const bufferSize = Math.floor(ctx.sampleRate * noiseDuration);
-    const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-    const noiseData = noiseBuffer.getChannelData(0);
+    const bufferSize = Math.floor(ctx.sampleRate * 0.45);
+    const splashBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = splashBuffer.getChannelData(0);
     for (let i = 0; i < bufferSize; i++) {
-      noiseData[i] = Math.random() * 2 - 1;
+      const raw = Math.random() * 2 - 1;
+      const quantized = Math.round(raw * 8) / 8;
+      data[i] = quantized * Math.exp(-i / (bufferSize * 0.35));
     }
 
     const noiseSource = ctx.createBufferSource();
-    noiseSource.buffer = noiseBuffer;
+    noiseSource.buffer = splashBuffer;
 
     const noiseFilter = ctx.createBiquadFilter();
-    noiseFilter.type = "bandpass";
-    noiseFilter.frequency.setValueAtTime(2200, now);
-    noiseFilter.frequency.exponentialRampToValueAtTime(650, now + noiseDuration);
-    noiseFilter.Q.value = 2.0;
+    noiseFilter.type = "lowpass";
+    noiseFilter.frequency.setValueAtTime(2800, now);
+    noiseFilter.frequency.exponentialRampToValueAtTime(450, now + 0.42);
+    noiseFilter.Q.value = 1.8;
 
     const noiseGain = ctx.createGain();
-    noiseGain.gain.setValueAtTime(0.01, now);
-    noiseGain.gain.linearRampToValueAtTime(0.42, now + 0.05);
-    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + noiseDuration);
+    noiseGain.gain.setValueAtTime(1.0, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
 
     noiseSource.connect(noiseFilter);
     noiseFilter.connect(noiseGain);
     noiseGain.connect(dest);
-
     noiseSource.start(now);
-    noiseSource.stop(now + noiseDuration);
+    noiseSource.stop(now + 0.45);
 
-    const playDroplet = (timeOffset: number, freq: number, vol: number) => {
+    const bloops = [
+      { delay: 0.04, freqStart: 540, freqEnd: 240, gain: 0.65 },
+      { delay: 0.11, freqStart: 440, freqEnd: 200, gain: 0.55 },
+      { delay: 0.19, freqStart: 620, freqEnd: 280, gain: 0.45 },
+    ];
+
+    bloops.forEach((b) => {
       if (!ctx || !dest) return;
+      const dropTime = now + b.delay;
       const dropOsc = ctx.createOscillator();
       const dropGain = ctx.createGain();
 
       dropOsc.type = "sine";
-      dropOsc.frequency.setValueAtTime(freq, now + timeOffset);
-      dropOsc.frequency.exponentialRampToValueAtTime(freq * 1.5, now + timeOffset + 0.06);
+      dropOsc.frequency.setValueAtTime(b.freqStart, dropTime);
+      dropOsc.frequency.exponentialRampToValueAtTime(b.freqEnd, dropTime + 0.14);
 
-      dropGain.gain.setValueAtTime(vol, now + timeOffset);
-      dropGain.gain.exponentialRampToValueAtTime(0.001, now + timeOffset + 0.07);
+      dropGain.gain.setValueAtTime(b.gain, dropTime);
+      dropGain.gain.exponentialRampToValueAtTime(0.01, dropTime + 0.14);
 
       dropOsc.connect(dropGain);
       dropGain.connect(dest);
-
-      dropOsc.start(now + timeOffset);
-      dropOsc.stop(now + timeOffset + 0.07);
-    };
-
-    playDroplet(0.12, 1200, 0.14);
-    playDroplet(0.19, 1650, 0.12);
-    playDroplet(0.26, 950, 0.16);
-    playDroplet(0.34, 1400, 0.09);
+      dropOsc.start(dropTime);
+      dropOsc.stop(dropTime + 0.14);
+    });
   }
 
   public playIceCrackSound(sourceX?: number, playerX?: number) {
@@ -473,44 +479,42 @@ export class AudioSFX {
     const crackOsc = ctx.createOscillator();
     const crackGain = ctx.createGain();
     crackOsc.type = "sawtooth";
-    crackOsc.frequency.setValueAtTime(800, now);
-    crackOsc.frequency.exponentialRampToValueAtTime(180, now + 0.18);
+    crackOsc.frequency.setValueAtTime(2400, now);
+    crackOsc.frequency.exponentialRampToValueAtTime(320, now + 0.18);
 
     crackGain.gain.setValueAtTime(0.38, now);
-    crackGain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+    crackGain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
 
     crackOsc.connect(crackGain);
     crackGain.connect(dest);
-
     crackOsc.start(now);
-    crackOsc.stop(now + 0.2);
+    crackOsc.stop(now + 0.18);
 
-    const noiseLen = 0.22;
-    const bufSize = Math.floor(ctx.sampleRate * noiseLen);
-    const noiseBuf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
-    const data = noiseBuf.getChannelData(0);
-    for (let i = 0; i < bufSize; i++) {
-      data[i] = (Math.random() * 2 - 1) * 0.7;
+    const bufferSize = Math.floor(ctx.sampleRate * 0.25);
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.3));
     }
 
-    const noiseSrc = ctx.createBufferSource();
-    noiseSrc.buffer = noiseBuf;
+    const noiseSource = ctx.createBufferSource();
+    noiseSource.buffer = buffer;
 
     const filter = ctx.createBiquadFilter();
     filter.type = "bandpass";
-    filter.frequency.setValueAtTime(1800, now);
-    filter.Q.value = 3.5;
+    filter.frequency.setValueAtTime(1600, now);
+    filter.frequency.exponentialRampToValueAtTime(500, now + 0.25);
+    filter.Q.value = 2.0;
 
     const noiseGain = ctx.createGain();
-    noiseGain.gain.setValueAtTime(0.28, now);
-    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + noiseLen);
+    noiseGain.gain.setValueAtTime(0.42, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
 
-    noiseSrc.connect(filter);
+    noiseSource.connect(filter);
     filter.connect(noiseGain);
     noiseGain.connect(dest);
-
-    noiseSrc.start(now);
-    noiseSrc.stop(now + noiseLen);
+    noiseSource.start(now);
+    noiseSource.stop(now + 0.25);
   }
 
   public playVictoryFanfare() {
@@ -520,30 +524,23 @@ export class AudioSFX {
     if (!ctx || !dest) return;
 
     const now = ctx.currentTime;
-    const notes = [
-      { f: 523.25, d: 0.14, t: 0 },
-      { f: 659.25, d: 0.14, t: 0.14 },
-      { f: 783.99, d: 0.14, t: 0.28 },
-      { f: 1046.5, d: 0.45, t: 0.42 },
-      { f: 880.0, d: 0.14, t: 0.9 },
-      { f: 1046.5, d: 0.65, t: 1.05 },
-    ];
+    const notes = [261.63, 329.63, 392.0, 523.25, 659.25, 783.99];
 
-    notes.forEach(({ f, t }) => {
+    notes.forEach((freq, idx) => {
       if (!ctx || !dest) return;
-      const noteStart = now + t;
+      const noteStart = now + idx * 0.11;
       const carrier = ctx.createOscillator();
       const mod = ctx.createOscillator();
       const modGain = ctx.createGain();
       const noteGain = ctx.createGain();
 
-      carrier.type = "sine";
-      carrier.frequency.setValueAtTime(f, noteStart);
+      carrier.type = "triangle";
+      carrier.frequency.setValueAtTime(freq, noteStart);
 
-      mod.type = "triangle";
-      mod.frequency.setValueAtTime(f * 2, noteStart);
+      mod.type = "sine";
+      mod.frequency.setValueAtTime(freq * 2, noteStart);
 
-      modGain.gain.setValueAtTime(f * 0.4, noteStart);
+      modGain.gain.setValueAtTime(freq * 0.5, noteStart);
       modGain.gain.exponentialRampToValueAtTime(1, noteStart + 1.2);
 
       mod.connect(modGain);

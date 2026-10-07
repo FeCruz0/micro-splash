@@ -223,6 +223,9 @@ export function createKioskScene(k: KaboomCtx) {
   const exitKiosk = () => {
     if (hasExited) return;
     hasExited = true;
+    if (typeof window !== "undefined") {
+      window.removeEventListener("touchstart", exitKiosk);
+    }
     audioSystem.playUiClick();
     audioSystem.stopMigrationAudio();
 

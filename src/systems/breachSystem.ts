@@ -1,7 +1,8 @@
-import kaboom from "kaboom";
+import kaboom, { type GameObj } from "kaboom";
 import { GAME_CONFIG } from "../config";
 import { audioSystem } from "./audioSystem";
 import { analytics } from "../services/analytics";
+import { safeShake } from "../utils/camera";
 import type { PlayerController } from "../entities/player";
 import type { GameState } from "./state";
 
@@ -35,7 +36,7 @@ export interface BreachSystemConfig {
 export function setupBreachSystem(config: BreachSystemConfig) {
   const { k, playerController, gameState, onBreachComplete, showPrompt = true } = config;
 
-  let promptBanner: any = null;
+  let promptBanner: GameObj | null = null;
   let isBreachTriggered = false;
   let hasLeftWater = false;
   let isBreachFinished = false;
@@ -124,7 +125,7 @@ export function setupBreachSystem(config: BreachSystemConfig) {
 
         // Grande estrondo de água e tremor
         audioSystem.playWaterSplash();
-        k.shake(8);
+        safeShake(k, 8);
 
         // Explosão majestosa de reentrada (Splashdown) em arco simétrico (Fase 31.1)
         createBreachReentrySplash(k, k.vec2(playerPos.x, GAME_CONFIG.SEA_LEVEL), 24);
@@ -199,10 +200,10 @@ export function createWaterSplash(
   // 1. Gotículas de spray em pixel art 16-bits (quadrados angulares com paleta aquática retrô)
   for (let i = 0; i < particleCount; i++) {
     const angle = k.rand(-155, -25);
-    const rad = k.deg2rad(angle);
+    const angleInRadians = k.deg2rad(angle);
     const speed = k.rand(140, 360);
-    const velX = Math.cos(rad) * speed;
-    const velY = Math.sin(rad) * speed;
+    const velX = Math.cos(angleInRadians) * speed;
+    const velY = Math.sin(angleInRadians) * speed;
     const size = k.rand(3, 6);
 
     const colors = [k.rgb(255, 255, 255), k.rgb(190, 240, 255), k.rgb(120, 215, 255)];
@@ -295,11 +296,11 @@ export function calculateBreachReentryParticleData(
 
   // Arco simétrico balístico: ângulos de 35° a 75° em relação à horizontal
   const angleDeg = 35 + spreadProgress * 40;
-  const rad = (angleDeg * Math.PI) / 180;
+  const angleInRadians = (angleDeg * Math.PI) / 180;
   const speed = 190 + (pairIndex % 3) * 60; // 190 a 310 px/s
 
-  const velX = dir * Math.cos(rad) * speed;
-  const velY = -Math.sin(rad) * speed; // impulso para cima
+  const velX = dir * Math.cos(angleInRadians) * speed;
+  const velY = -Math.sin(angleInRadians) * speed; // impulso para cima
 
   return {
     dir,

@@ -528,25 +528,40 @@ _Objetivo: Elevar a qualidade sonora sem alterar gameplay — evitar clipping, e
 
 _Objetivo: Reduzir dívida técnica, padronizar utilitários e alinhar o código às regras de `ai.rules` sem alterar gameplay._
 
-- [ ] **37.1 Spawn Independente de Taxa de Quadros:**
+- [x] **37.1 Spawn Independente de Taxa de Quadros:**
   - Spawns usam `Math.random() < taxa` por frame (`upwellingSystem.ts` jatos `0.4`/krill `0.005`, `oceanCurrentsSystem.ts` partículas `0.25`, entre outros) — em 144Hz geram ~2.4× mais objetos que em 60Hz. Converter para `taxa × deltaTime` normalizado (idêntico em 60Hz).
-- [ ] **37.2 `prefers-reduced-motion` Global:**
+- [x] **37.2 `prefers-reduced-motion` Global:**
   - Fase 26.6 cobre `collisions.ts`/`playerPhysics.ts`, mas `k.shake()` em `upwellingSystem.ts`, `iceSurface.ts` e outros ignora a preferência. Centralizar em helper `safeShake(k, intensidade)` consultando `accessibilitySystem`.
-- [ ] **37.3 Adoção Unificada de `attachButtonHoverEffect`:**
+- [x] **37.3 Adoção Unificada de `attachButtonHoverEffect`:**
   - `onHoverUpdate` manual duplicado em 13 arquivos de `src/ui/`. Migrar para o utilitário de `animationUtils.ts`.
-- [ ] **37.4 Nomenclatura Explícita (Clean Code):**
+- [x] **37.4 Nomenclatura Explícita (Clean Code):**
   - Renomear abreviações: `currentX`/`dir` (`shipNoiseSystem.ts`), `rad` (`breachSystem.ts`), `idx`/`cIdx`/`p`/`s` (`audioSFX`, `parallaxSky`, `oilSpill`, `particlePool`, `penguinFlock`, `dolphinDrafting`, `benthicFloor`), `btn`/`idx` (`gamepadSystem.ts`).
-- [ ] **37.5 Utilitário Tipado de Persistência (`utils/storage.ts`):**
+- [x] **37.5 Utilitário Tipado de Persistência (`utils/storage.ts`):**
   - 15 arquivos repetem `try/catch` + `JSON.parse` + `typeof localStorage`. Criar `readStorage<T>(key, schema, fallback)` / `writeStorage(key, value)` validando com schemas de `src/schemas`.
-- [ ] **37.6 Remoção do `any` Remanescente:**
+- [x] **37.6 Remoção do `any` Remanescente:**
   - Apesar da Fase 11.2, restam usos em ~27 arquivos (`ambientWhaleTimer: any`, `window as any`, `allShipBodies: any[]`). Trocar por `GameObj`, `ReturnType<typeof setInterval>` e `Window & { webkitAudioContext?: typeof AudioContext }`.
 - [ ] **37.7 Decomposição de Arquivos Extensos:**
   - `codexScreen.ts` (~1100 linhas) → uma função por aba; `optionsScreen.ts` (37KB), `audioSFX.ts` (23KB), `canyonSystem.ts` (22KB) em submódulos; cenas de `main.ts` (588 linhas) para `src/scenes/`.
-- [ ] **37.8 Guarda de Ambiente no `AudioEngine`:**
+- [x] **37.8 Guarda de Ambiente no `AudioEngine`:**
   - `init()` acessa `window` sem guarda, gerando `ReferenceError` no stderr dos testes. Adicionar `typeof window !== "undefined"`.
-- [ ] **37.9 Logs via `errorReporter`:**
+- [x] **37.9 Logs via `errorReporter`:**
   - `console.*` direto em 7 arquivos. Rotear para `errorReporter` com níveis (`warn`/`error`).
-- [ ] **37.10 RNG Injetável (`utils/random.ts`):**
+- [x] **37.10 RNG Injetável (`utils/random.ts`):**
   - `Math.random()` em ~50 arquivos. Centralizar em gerador com seed opcional para testes determinísticos.
-- [ ] **37.11 Auditoria de Listeners de `window`:**
+- [x] **37.11 Auditoria de Listeners de `window`:**
   - 7 arquivos de `src/ui/` registram `addEventListener`. Garantir remoção no fechamento do modal/cena e guarda de ambiente.
+
+### 📱 FASE 38: PWA Offline Avançado & Telemetria Educativa
+
+_Objetivo: Elevar a experiência autônoma em totens e feiras de ciências com instalação PWA assistida, gestão de cache e métricas de impacto pedagógico._
+
+- [ ] **38.1 Prompt Customizado de Instalação PWA & Status de Rede (`src/ui/pwaInstallModal.ts`):**
+  - Capturar `beforeinstallprompt` e fornecer botão estilizado de instalação no menu e opções sem alertas nativos. Exibir status de conectividade em tempo real (`Online 🟢 / Offline 📡`).
+- [ ] **38.2 Gestão de Cache Dinâmico & Atualização Silenciosa do Service Worker (`src/utils/swManager.ts`):**
+  - Estratégia stale-while-revalidate para dados pedagógicos (`data/facts.json`) e áudio. Notificação sutil in-game quando uma nova versão for instalada em segundo plano.
+- [ ] **38.3 Telemetria Educativa Local & Métrica de Conscientização (`src/systems/telemetrySystem.ts`):**
+  - Rastreamento local-first de impacto educacional: contagem de fatos lidos, quizzes completados e tempo de engajamento, com exportação/visualização segura para educadores e feiras.
+- [ ] **38.4 Modo Exibição Contínua para Totens (Kiosk Auto-Reset Configurável):**
+  - Configuração nas Opções para tempo de inatividade em totens (30s, 60s, 120s ou desativado), retornando ao menu e tela de atração automaticamente.
+- [ ] **38.5 Testes Automatizados da Fase 38 (`tests/phase38_pwa_telemetry.test.ts`):**
+  - Suíte de testes unitários cobrindo ciclo de vida PWA, validação de cache e registro de telemetria educativa.

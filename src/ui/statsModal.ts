@@ -300,12 +300,16 @@ export function showStatsModal(k: KaboomCtx, onClose: () => void) {
 
   const focusItems: FocusableItem[] = [];
 
+  let keyHandler: ((event: KeyboardEvent) => void) | null = null;
+
   const close = () => {
     if (isClosed) return;
     isClosed = true;
     audioSystem.playUiClick();
     focusGroup.destroy();
-    window.removeEventListener("keydown", keyHandler);
+    if (typeof window !== "undefined" && keyHandler) {
+      window.removeEventListener("keydown", keyHandler);
+    }
     elements.forEach((el) => {
       try {
         k.destroy(el);
@@ -389,12 +393,13 @@ export function showStatsModal(k: KaboomCtx, onClose: () => void) {
     isEnabled: () => !isClosed && canInteract,
   });
 
-  // Teclas ESC / ENTER para fechar
-  const keyHandler = (e: KeyboardEvent) => {
+  keyHandler = (event: KeyboardEvent) => {
     if (isClosed || !canInteract) return;
-    if (e.key === "Escape") {
+    if (event.key === "Escape") {
       close();
     }
   };
-  window.addEventListener("keydown", keyHandler);
+  if (typeof window !== "undefined") {
+    window.addEventListener("keydown", keyHandler);
+  }
 }

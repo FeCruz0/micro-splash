@@ -1,4 +1,5 @@
 import { BiomeMusicEngine } from "./audioMusic";
+import { reportWarning } from "../../utils/errorReporter";
 
 export type SoundtrackMode = "chiptune" | "ambient" | "sfx_only";
 
@@ -27,7 +28,7 @@ export class AudioEngine {
   private sfxEnabled: boolean = true;
   private isMigrationAudioRunning: boolean = false;
   private soundtrackMode: SoundtrackMode = "chiptune";
-  private ambientWhaleTimer: any = null;
+  private ambientWhaleTimer: ReturnType<typeof setInterval> | null = null;
   private visibilityHandler: (() => void) | null = null;
 
   // Motor musical procedural Aquatic Ambience + 16-Bit Lofi Ocean
@@ -41,7 +42,8 @@ export class AudioEngine {
     if (typeof window === "undefined") return;
 
     try {
-      const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+      const windowWithWebkit = window as Window & { webkitAudioContext?: typeof AudioContext };
+      const AudioCtxClass = window.AudioContext || windowWithWebkit.webkitAudioContext;
       if (!AudioCtxClass) return;
 
       this.ctx = new AudioCtxClass();
@@ -69,7 +71,7 @@ export class AudioEngine {
 
       this.isInitialized = true;
     } catch (e) {
-      console.warn("Web Audio não suportado neste navegador:", e);
+      reportWarning("Web Audio não suportado neste navegador", undefined, e);
     }
   }
 
@@ -80,13 +82,14 @@ export class AudioEngine {
       this.sfxBus = this.ctx.createGain();
       this.sfxBus.gain.setValueAtTime(1.0, this.ctx.currentTime);
 
-      // Filtro passa-baixas hidrostático (superfície 8000Hz -> abismo 1200Hz)
+      // Conexão direta de SFX ao masterGain (preserva ataque seco e frequências retrô sem abafamento)
+      this.sfxBus.connect(this.masterGain);
+
+      // Filtro passa-baixas hidrostático (superfície 8000Hz -> abismo 1200Hz) mantido para ambiência
       this.depthFilter = this.ctx.createBiquadFilter();
       this.depthFilter.type = "lowpass";
       this.depthFilter.frequency.setValueAtTime(8000, this.ctx.currentTime);
       this.depthFilter.Q.setValueAtTime(0.7, this.ctx.currentTime);
-
-      this.sfxBus.connect(this.depthFilter);
 
       // Sinal direto (Dry) ~0.78
       this.reverbDryGain = this.ctx.createGain();
@@ -105,7 +108,7 @@ export class AudioEngine {
       this.reverbConvolver.connect(this.reverbWetGain);
       this.reverbWetGain.connect(this.masterGain);
     } catch (e) {
-      console.warn("Erro ao configurar barramento de SFX e reverb:", e);
+      reportWarning("Erro ao configurar barramento de SFX e reverb", undefined, e);
     }
   }
 
@@ -478,7 +481,7 @@ export class AudioEngine {
       this.oceanLfo.start();
       this.ambientNoiseSource.start();
     } catch (e) {
-      console.warn("Erro ao iniciar ambiência oceânica:", e);
+      reportWarning("Erro ao iniciar ambiência oceânica", undefined, e);
     }
   }
 }

@@ -4,6 +4,7 @@ import { audioSystem } from "./audioSystem";
 import type { PlayerController } from "../entities/player";
 import { getParticlePool } from "./particlePool";
 import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
+import { safeShake } from "../utils/camera";
 
 /**
  * Representa uma fenda de respiração (polínia natural) na camada de gelo polar.
@@ -172,7 +173,7 @@ export function setupIceSurfaceSystem(
           const playerX = player ? player.pos.x : undefined;
           audioSystem.playIceCrackSound(x + width * 0.5, playerX);
           audioSystem.playWaterSplash(x + width * 0.5, playerX);
-          k.shake(4.5);
+          safeShake(k, 4.5);
 
           // 3. Registra nova fenda dinâmica para respirar livremente durante a partida
           activeIceGaps.push({ start: x - 5, end: x + width + 5 });
