@@ -49,4 +49,7 @@ export interface PlayerController {
   getSliceTransforms?: () => any[];
   getSpineCurvature?: () => number;
   getPitchFlexion?: () => number;
+
+  // Fase 42: Nadadeiras Peitorais Independentes e Hidrodinâmica de Diedro
+  getPectoralFinTransforms?: () => any;
 }

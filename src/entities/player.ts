@@ -15,6 +15,11 @@ import {
   spawnPectoralTipVortices,
 } from "./player/playerParticles";
 import { calculateWhaleSliceTransforms, type WhaleSliceData } from "./player/playerSliceRenderer";
+import {
+  calculatePectoralFinTransforms,
+  setupPectoralFins,
+  type DualPectoralFinsData,
+} from "./player/playerPectoralFin";
 
 export type { PlayerController } from "./player/types";
 
@@ -109,6 +114,8 @@ export function createPlayer(
   let isStrokeInMotion = false; // Indica se o ciclo muscular da batida está ativo (0 a 0.5s)
   let pectoralVortexTimer = 0; // Temporizador para emissão de vórtices peitorais em rotação (Fase 40.5)
   let currentSliceTransforms: WhaleSliceData[] = []; // Fatias corporais sagitais da coluna (Fase 41)
+  let currentPectoralFinTransforms: DualPectoralFinsData | null = null; // Hidroplanos peitorais com diedro (Fase 42)
+  const pectoralFinsSystem = setupPectoralFins(k, baleia);
 
   const causticsComps: any[] = [
     typeof k.rect === "function" ? k.rect(48, 10, { radius: 5 }) : {},
@@ -140,6 +147,7 @@ export function createPlayer(
 
   if (typeof baleia.onDestroy === "function") {
     baleia.onDestroy(() => {
+      pectoralFinsSystem.destroy();
       if (typeof k.destroy === "function") {
         k.destroy(whaleCaustics);
         k.destroy(whaleVentralFlash);
@@ -373,6 +381,21 @@ export function createPlayer(
       isFacingRight: controlsMgr.isFacingRight(),
     });
 
+    // Fase 42: Nadadeiras Peitorais Independentes e Hidrodinâmica de Diedro
+    currentPectoralFinTransforms = calculatePectoralFinTransforms({
+      bodyAngleInDegrees: baleia.angle,
+      pitchAngularVelocity: pitchVelocity,
+      spineCurvatureInDegrees: spineCurvature,
+      currentRoll,
+      horizontalSpeed,
+      strokeProgress: physicsMgr.getStrokeTimer() / GAME_CONFIG.MAX_STROKE_TIME,
+      isMuscularStroke,
+      idleBlendFactor: idleBlend,
+      timeInSeconds: k.time(),
+      isFacingRight: controlsMgr.isFacingRight(),
+    });
+    pectoralFinsSystem.update(currentPectoralFinTransforms, controlsMgr.isFacingRight());
+
     // Squash & Stretch muscular na batida, arqueamento em curva de arfagem e respiração calma em repouso
     if (baleia.scale) {
       let targetScaleX = 1.0;
@@ -448,7 +471,8 @@ export function createPlayer(
           baleia.pos,
           baleia.angle,
           controlsMgr.isFacingRight(),
-          pitchVelocity
+          pitchVelocity,
+          pectoralFinsSystem.getNearTipWorldPos()
         );
       }
     } else {
@@ -691,5 +715,8 @@ export function createPlayer(
     getSliceTransforms: () => currentSliceTransforms,
     getSpineCurvature: () => controlsMgr.getSpineCurvature(),
     getPitchFlexion: () => controlsMgr.getPitchFlexion(),
+
+    // Fase 42: Nadadeiras Peitorais Independentes e Hidrodinâmica de Diedro
+    getPectoralFinTransforms: () => currentPectoralFinTransforms,
   };
 }

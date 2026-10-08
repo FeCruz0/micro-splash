@@ -488,7 +488,8 @@ export function spawnPectoralTipVortices(
   whalePosition: Vec2,
   pitchAngleInDegrees: number,
   isFacingRight: boolean,
-  angularVelocity: number
+  angularVelocity: number,
+  customTipPosition?: Vec2
 ): void {
   const pool = getParticlePool();
   const particleCount = 2;
@@ -499,14 +500,19 @@ export function spawnPectoralTipVortices(
   for (let index = 0; index < particleCount; index++) {
     const data = calculatePectoralVortexData(index, isFacingRight, angularVelocity);
 
-    // Rotaciona o offset relativo da ponta da nadadeira pelo ângulo de inclinação
-    const rotatedOffsetX = data.offsetX * cosAngle - data.offsetY * sinAngle;
-    const rotatedOffsetY = data.offsetX * sinAngle + data.offsetY * cosAngle;
+    let spawnPosition: Vec2;
+    if (customTipPosition) {
+      spawnPosition = k.vec2(
+        customTipPosition.x + (index === 0 ? 0 : isFacingRight ? -4 : 4),
+        customTipPosition.y + (index === 0 ? 0 : 2)
+      );
+    } else {
+      // Rotaciona o offset relativo da ponta da nadadeira pelo ângulo de inclinação
+      const rotatedOffsetX = data.offsetX * cosAngle - data.offsetY * sinAngle;
+      const rotatedOffsetY = data.offsetX * sinAngle + data.offsetY * cosAngle;
 
-    const spawnPosition = k.vec2(
-      whalePosition.x + rotatedOffsetX,
-      whalePosition.y + rotatedOffsetY
-    );
+      spawnPosition = k.vec2(whalePosition.x + rotatedOffsetX, whalePosition.y + rotatedOffsetY);
+    }
     const velocity = k.vec2(data.velX, data.velY);
     const color = k.rgb(data.color[0], data.color[1], data.color[2]);
 

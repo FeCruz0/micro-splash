@@ -616,11 +616,11 @@ _Objetivo: Eliminar o aspecto de bloco rígido do sprite da baleia fatiando proc
 
 _Objetivo: Destacar as nadadeiras peitorais gigantescas da jubarte com camada articulada independente que responde a manobras, diedro de planeio e maré._
 
-- [ ] **42.1 Sprite e Componente de Nadadeira Peitoral Articulada (`src/entities/player/playerPectoralFin.ts`):**
+- [x] **42.1 Sprite e Componente de Nadadeira Peitoral Articulada (`src/entities/player/playerPectoralFin.ts`):**
   - Criar componente de nadadeira peitoral independente anexado ao tórax com controle de ângulo diedro e amplitude de batimento.
-- [ ] **42.2 Dinâmica de Diedro e Vórtices de Ponta (`src/entities/player/playerPectoralFin.ts`, `src/entities/player/playerParticles.ts`):**
+- [x] **42.2 Dinâmica de Diedro e Vórtices de Ponta (`src/entities/player/playerPectoralFin.ts`, `src/entities/player/playerParticles.ts`):**
   - Modular a rotação e escala em perspectiva da peitoral durante curvas bruscas e planeios, acoplando a emissão de micro-vórtices na ponta da asa.
-- [ ] **42.3 Testes de Articulação Peitoral (`tests/phase42_pectoral_fin.test.ts`):**
+- [x] **42.3 Testes de Articulação Peitoral (`tests/phase42_pectoral_fin.test.ts`):**
   - Testes unitários de acoplamento geométrico, ângulo diedro e taxa de emissão de partículas.
 
 ### 🦴 FASE 43: Articulação Multissegmentar de Cauda e Flukes (Multi-Part Puppet Rig)
