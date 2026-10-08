@@ -35,6 +35,7 @@
 - Git commands must be executed only by the user.
 - The AI must supply a concise commit message proposal at the end of execution using the conventional commits standard:
   Format: `type(scope): message` (e.g. `feat(roles): add inertia edit component`)
+- Resumos de commits, explicações e descrições do que foi commitado devem ser enviados SEMPRE exclusivamente em português (PT-BR).
 
 # 6. UX & DESIGN AESTHETICS
 # ------------------------------------------------------------------------------
