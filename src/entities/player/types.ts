@@ -44,4 +44,9 @@ export interface PlayerController {
   isFacingRight?: () => boolean;
   setCurrentFlowModifier?: (modifier: number) => void;
   getCurrentFlowModifier?: () => number;
+
+  // Fase 41: Deformação Sagital por Fatiamento Segmentado (Vertical Slice Ribbon)
+  getSliceTransforms?: () => any[];
+  getSpineCurvature?: () => number;
+  getPitchFlexion?: () => number;
 }

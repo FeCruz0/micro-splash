@@ -598,3 +598,49 @@ _Objetivo: Eliminar a rotação rígida estática ao subir/descer na água, impl
   - Micro-vórtices via `ParticlePool` nas pontas das peitorais durante curvas verticais de alta velocidade angular.
 - [x] **40.6 Testes Automatizados de Biomecânica de Arfagem (`tests/phase40_whale_pitch_biomechanics.test.ts`):**
   - Suíte de testes validando cálculos de curvatura espinhal, inércia de cauda, estabilidade dos ângulos e regressão zero no jogo.
+
+### 🌊 FASE 41: Deformação da Coluna por Fatiamento Segmentado em Tempo Real (Vertical Slice Ribbon)
+
+_Objetivo: Eliminar o aspecto de bloco rígido do sprite da baleia fatiando proceduralmente a renderização em 4 segmentos contínuos com ondas viajantes de propulsão e atraso inercial da cauda a 60 FPS._
+
+- [x] **41.1 Motor de Renderização de Fatiamento Sagital (`src/entities/player/playerSliceRenderer.ts`):**
+  - Fatiar a renderização do sprite atual em 4 segmentos verticais contínuos (Rostro, Tórax, Pedúnculo e Flukes), permitindo deslocamento e rotação angular diferencial em cada seção.
+- [x] **41.2 Propagação de Onda Viajante de Propulsão (_Traveling Wave_) (`src/entities/player.ts`, `src/entities/player/playerSliceRenderer.ts`):**
+  - Implementar propagação senoidal com defasagem de fase progressiva ao longo do comprimento do corpo ($x$), mantendo o crânio rígido e a cauda com máxima amplitude oscilatória.
+- [x] **41.3 Sincronização de Iluminação, Cáusticos e Caixa de Colisão (`src/entities/player.ts`):**
+  - Alinhar reflexos solares cáusticos e brilhos ventrais com as fatias deformadas em tempo real sem alterar a física da caixa de colisão central.
+- [x] **41.4 Testes Automatizados de Fatiamento e Integridade (`tests/phase41_whale_slice_deformation.test.ts`):**
+  - Validar cálculos das fatias, continuidade visual sem frestas entre segmentos e estabilidade de 60 FPS com 100% de aprovação (370 testes).
+
+### 🪽 FASE 42: Nadadeiras Peitorais Independentes e Hidrodinâmica de Diedro (Floating Pectoral Hydrofoils)
+
+_Objetivo: Destacar as nadadeiras peitorais gigantescas da jubarte com camada articulada independente que responde a manobras, diedro de planeio e maré._
+
+- [ ] **42.1 Sprite e Componente de Nadadeira Peitoral Articulada (`src/entities/player/playerPectoralFin.ts`):**
+  - Criar componente de nadadeira peitoral independente anexado ao tórax com controle de ângulo diedro e amplitude de batimento.
+- [ ] **42.2 Dinâmica de Diedro e Vórtices de Ponta (`src/entities/player/playerPectoralFin.ts`, `src/entities/player/playerParticles.ts`):**
+  - Modular a rotação e escala em perspectiva da peitoral durante curvas bruscas e planeios, acoplando a emissão de micro-vórtices na ponta da asa.
+- [ ] **42.3 Testes de Articulação Peitoral (`tests/phase42_pectoral_fin.test.ts`):**
+  - Testes unitários de acoplamento geométrico, ângulo diedro e taxa de emissão de partículas.
+
+### 🦴 FASE 43: Articulação Multissegmentar de Cauda e Flukes (Multi-Part Puppet Rig)
+
+_Objetivo: Estruturar hierarquia de nós esqueléticos (Puppet Rig) para desvincular a cabeça rígida da cauda oscilatória, permitindo ampla deformação angular._
+
+- [ ] **43.1 Decomposição Hierárquica em Nós (`src/entities/player/playerPuppetRig.ts`):**
+  - Estruturar rig hierárquico dividindo a baleia em Cabeça-Tórax (líder cinemático) e Cauda-Flukes (seguidor inercial amortecido).
+- [ ] **43.2 Articulação de Flukes com Ângulo de Ataque Dinâmico (`src/entities/player/playerPuppetRig.ts`):**
+  - Calcular ângulo de ataque ótimo da lâmina caudal contra o vetor de fluxo d'água durante propulsão muscular e repouso.
+- [ ] **43.3 Testes de Rigging e Desempenho (`tests/phase43_puppet_rig.test.ts`):**
+  - Testes unitários para estabilidade das juntas cinemáticas e ausência de sobrecarga de renderização.
+
+### 🎨 FASE 44: Expansão do Spritesheet de Alta Fluidez e Detalhamento Biomecânico (High-Frame Pixel Art)
+
+_Objetivo: Expandir o spritesheet `whale.png` de 8 para 16 quadros com ciclos completos de downstroke, upstroke e micro-movimentos anatômicos desenhados à mão._
+
+- [ ] **44.1 Redesenho e Expansão do Spritesheet para 16 Quadros (`public/sprites/whale.png`, `src/main.ts`):**
+  - Expandir a folha de sprites com 16 frames com curvatura sagital anatômica e poses intermediárias de flexão.
+- [ ] **44.2 Mapeamento Harmônico de Animações com Interpolador de Estados (`src/entities/player.ts`):**
+  - Mapear a transição suave entre poses em função da velocidade de nado e do estado físico.
+- [ ] **44.3 Testes de Carregamento e Consistência de Animação (`tests/phase44_high_frame_sprites.test.ts`):**
+  - Testes de integridade das dimensões da textura, framesets e reprodução contínua.

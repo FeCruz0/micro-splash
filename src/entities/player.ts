@@ -14,6 +14,7 @@ import {
   spawnTailStrokeBubbles,
   spawnPectoralTipVortices,
 } from "./player/playerParticles";
+import { calculateWhaleSliceTransforms, type WhaleSliceData } from "./player/playerSliceRenderer";
 
 export type { PlayerController } from "./player/types";
 
@@ -107,6 +108,7 @@ export function createPlayer(
   let strokeCooldownTimer = 0; // Cooldown de 1.0s para evitar batidas consecutivas rápidas
   let isStrokeInMotion = false; // Indica se o ciclo muscular da batida está ativo (0 a 0.5s)
   let pectoralVortexTimer = 0; // Temporizador para emissão de vórtices peitorais em rotação (Fase 40.5)
+  let currentSliceTransforms: WhaleSliceData[] = []; // Fatias corporais sagitais da coluna (Fase 41)
 
   const causticsComps: any[] = [
     typeof k.rect === "function" ? k.rect(48, 10, { radius: 5 }) : {},
@@ -358,6 +360,19 @@ export function createPlayer(
     const pitchFlexion = controlsMgr.getPitchFlexion();
     const pitchVelocity = controlsMgr.getPitchAngularVelocity();
 
+    // Fase 41: Deformação Sagital por Fatiamento Segmentado (Vertical Slice Ribbon)
+    currentSliceTransforms = calculateWhaleSliceTransforms({
+      spineCurvatureInDegrees: spineCurvature,
+      pitchFlexionInDegrees: pitchFlexion,
+      pitchAngularVelocity: pitchVelocity,
+      strokeProgress: physicsMgr.getStrokeTimer() / GAME_CONFIG.MAX_STROKE_TIME,
+      isMuscularStroke,
+      timeInSeconds: k.time(),
+      horizontalSpeed,
+      idleBlendFactor: idleBlend,
+      isFacingRight: controlsMgr.isFacingRight(),
+    });
+
     // Squash & Stretch muscular na batida, arqueamento em curva de arfagem e respiração calma em repouso
     if (baleia.scale) {
       let targetScaleX = 1.0;
@@ -534,10 +549,17 @@ export function createPlayer(
       whaleVentralFlash.opacity = 0;
     }
 
-    // Alinhamento geométrico com o corpo da baleia
+    // Alinhamento geométrico com o tórax flexionado da baleia (Fase 41)
+    const thoraxSlice = currentSliceTransforms[1];
+    const thoraxOffset = thoraxSlice
+      ? k.vec2(thoraxSlice.localOffset.x * 0.15, thoraxSlice.localOffset.y)
+      : k.vec2(0, 0);
+    const thoraxAngle = thoraxSlice ? thoraxSlice.relativeAngleInDegrees * 0.35 : 0;
+
     if (whaleCaustics && whaleCaustics.pos && typeof whaleCaustics.pos.add === "function") {
-      whaleCaustics.pos = baleia.pos.add(upNormal.scale(7));
-      whaleCaustics.angle = baleia.angle;
+      const causticsOffset = upNormal.scale(7).add(thoraxOffset);
+      whaleCaustics.pos = baleia.pos.add(causticsOffset);
+      whaleCaustics.angle = baleia.angle + thoraxAngle;
       if (whaleCaustics.scale && baleia.scale) {
         whaleCaustics.scale.x = baleia.scale.x;
         whaleCaustics.scale.y = baleia.scale.y;
@@ -549,8 +571,9 @@ export function createPlayer(
       whaleVentralFlash.pos &&
       typeof whaleVentralFlash.pos.add === "function"
     ) {
-      whaleVentralFlash.pos = baleia.pos.add(downNormal.scale(6 + Math.abs(pitchFlexion) * 2));
-      whaleVentralFlash.angle = baleia.angle;
+      const ventralOffset = downNormal.scale(6 + Math.abs(pitchFlexion) * 2).add(thoraxOffset);
+      whaleVentralFlash.pos = baleia.pos.add(ventralOffset);
+      whaleVentralFlash.angle = baleia.angle + thoraxAngle;
       if (whaleVentralFlash.scale && baleia.scale) {
         whaleVentralFlash.scale.x = baleia.scale.x;
         whaleVentralFlash.scale.y = baleia.scale.y;
@@ -663,5 +686,10 @@ export function createPlayer(
       oxygenMgr.setCurrentFlowModifier(mod);
     },
     getCurrentFlowModifier: () => oxygenMgr.getCurrentFlowModifier(),
+
+    // Fase 41: Deformação Sagital por Fatiamento Segmentado (Vertical Slice Ribbon)
+    getSliceTransforms: () => currentSliceTransforms,
+    getSpineCurvature: () => controlsMgr.getSpineCurvature(),
+    getPitchFlexion: () => controlsMgr.getPitchFlexion(),
   };
 }
