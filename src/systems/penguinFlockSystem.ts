@@ -3,6 +3,7 @@ import { GAME_CONFIG, TAGS } from "../config";
 import { audioSystem } from "./audioSystem";
 import { getParticlePool } from "./particlePool";
 import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
+import { getActivePlayerObject } from "../entities/player";
 
 /**
  * Sistema de Colônias Residentes de Pinguins-de-Magalhães (*Spheniscus magellanicus*) em Loop Contínuo.
@@ -140,7 +141,7 @@ export function setupPenguinFlockSystem(k: KaboomCtx) {
       if (!isSystemActive) return;
 
       const dt = k.dt();
-      const player = k.get(TAGS.PLAYER)[0];
+      const player = getActivePlayerObject() ?? (k.get ? k.get(TAGS.PLAYER)?.[0] : null);
 
       // 1. Simulação do Loop Pré-Programado
       if (turnState === "cruise") {
