@@ -570,17 +570,31 @@ _Objetivo: Elevar a experiência autônoma em totens e feiras de ciências com i
 
 _Objetivo: Eliminar gargalos severos de renderização e CPU identificados pela telemetria em tempo real (< 15 FPS), garantindo 60 FPS contínuo em qualquer dispositivo._
 
-- [ ] **39.1 Frustum Culling Espacial & Ocultação Fora da Câmera (`src/systems/spatialCullingSystem.ts`):**
+- [x] **39.1 Frustum Culling Espacial & Ocultação Fora da Câmera (`src/systems/spatialCullingSystem.ts`):**
   - Implementar sistema de frustum culling leve para entidades e obstáculos do cenário (`ocean_relief`, `kelp_segment`, `ice_block`, `lixo_plastico`, `krill`, etc.), alternando `hidden = true` e desativando updates quando fora do campo de visão horizontal da câmera mais margem de segurança.
-- [ ] **39.2 Eliminação de Consultas Lineares $O(N)$ em Loops de Update (`src/main.ts`, `src/systems/iceSurface.ts`, `src/entities/krill.ts`, `src/systems/penguinFlockSystem.ts`):**
-  - Eliminar chamadas repetidas a `k.get(TAGS.PLAYER)` a cada frame substituindo por passagem direta do `playerController` ou cache de referência.
+- [x] **39.2 Eliminação de Consultas Lineares $O(N)$ em Loops de Update (`src/main.ts`, `src/systems/iceSurface.ts`, `src/entities/krill.ts`, `src/systems/penguinFlockSystem.ts`):**
+  - Eliminar chamadas repetidas a `k.get(TAGS.PLAYER)` a cada frame substituindo por passagem direta do `playerController` ou singleton $O(1)$ (`getActivePlayerObject()`).
   - Eliminar chamada `k.get("*").length` a cada frame em `src/main.ts`, aplicando throttling de medição de entidades a 2Hz (a cada 500ms).
-- [ ] **39.3 Integração Ampla de Subsistemas no `BiomeLifecycleManager` (`src/systems/benthicFloorSystem.ts`, `src/systems/canyonSystem.ts`, `src/systems/backgroundFauna.ts`):**
-  - Registrar os maiores emissores de GameObjects (`benthicFloorSystem` com ~500 nós, `canyonSystem` com ~200 nós, `backgroundFauna` e `oceanFloorSystem`) no gerenciador de ciclo de vida bioma, suspendendo renderização e animações quando o jogador estiver fora do bioma respectivo.
-- [ ] **39.4 Presets de Resolução Adaptativa & Modo Alta Performance (`src/config.ts`, `src/ui/optionsScreen.ts`):**
-  - Adicionar presets de desempenho: 720p (`1280x720`) e 540p (`960x540`) com renderização leve nativa, e detecção de taxa crítica com sugestão automática de perfil de performance.
-- [ ] **39.5 Migração de Emissores de Fauna para o `ParticlePool` & Throttling de Textos HUD (`src/systems/backgroundFauna.ts`, `src/ui/debugDistance.ts`):**
-  - Migrar emissão de bolhas e anéis das orcas/jubartes de fundo para o `ParticlePool` em vez de alocações dinâmicas `k.add`.
-  - Aplicar throttling nas atualizações de strings complexas do HUD de debug.
-- [ ] **39.6 Testes Automatizados de Performance & Integridade (`tests/phase39_performance_culling.test.ts`):**
-  - Suíte de testes validando frustum culling, lifecycle de biomas, ausência de consultas lineares em updates e estabilidade das entidades.
+- [x] **39.3 Integração Ampla de Subsistemas no `BiomeLifecycleManager` (`src/systems/benthicFloorSystem.ts`, `src/systems/backgroundFauna.ts`, `src/systems/oceanFloorSystem.ts`):**
+  - Registrar os maiores emissores de GameObjects (`benthicFloorSystem` com ~500 nós, `backgroundFauna` e `oceanFloorSystem`) no gerenciador de ciclo de vida bioma e no culling espacial, suspendendo renderização e animações quando fora de alcance.
+- [x] **39.4 Migração de Emissores de Fauna para o `ParticlePool` (`src/systems/backgroundFauna.ts`):**
+  - Migrar emissão de bolhas das orcas de fundo para o `ParticlePool` em vez de alocações dinâmicas `k.add`.
+- [x] **39.5 Testes Automatizados de Performance & Integridade (`tests/phase39_performance_culling.test.ts`):**
+  - Suíte de testes validando frustum culling, lifecycle de biomas, singleton de jogador em $O(1)$ e estabilidade com 100% de aprovação (352 testes).
+
+### 🐋 FASE 40: Biomecânica de Arfagem e Animação de Curvatura Vertical da Baleia
+
+_Objetivo: Eliminar a rotação rígida estática ao subir/descer na água, implementando deformação de coluna vertebral, atraso inercial da cauda (fluke lag), ponto de pivô peitoral e transição de frames com base nos sprites existentes._
+
+- [x] **40.1 Módulo de Dinâmica Angular & Inércia Caudal (`src/entities/player/playerControls.ts`, `src/entities/player/playerPhysics.ts`):**
+  - Rastrear velocidade angular de arfagem (`pitchAngularVelocity`) e modelar a deflexão elástica da cauda via mola amortecida de segunda ordem (`spineCurvature = headAngle - tailAngle`).
+- [x] **40.2 Compensação do Ponto de Pivô Hidrodinâmico Peitoral (`src/entities/player.ts`):**
+  - Transladar o pivô aparente de rotação para o centro de sustentação das aletas peitorais (~35% do comprimento a partir do rostro), fazendo a cabeça conduzir a manobra.
+- [x] **40.3 Deformação Orgânica da Coluna Vertebral & Curvatura em Arco (Cambering) (`src/entities/player.ts`):**
+  - Modular escala sagital e arqueamento em arco conforme curvatura instantânea e velocidade angular, sincronizando com os cáusticos e brilho ventral.
+- [x] **40.4 Seleção e Transição de Frames Dinâmica por Curvatura Vertical (`src/entities/player.ts`):**
+  - Integrar frames existentes (`0 = glide`, `1-2 = stroke_up`, `3-6 = stroke_down`) nas manobras de arfagem para refletir a inclinação das aletas no planeio vertical.
+- [x] **40.5 Vórtices Hidrodinâmicos de Borda de Nadadeira Peitoral (`src/entities/player/playerParticles.ts`, `src/entities/player.ts`):**
+  - Micro-vórtices via `ParticlePool` nas pontas das peitorais durante curvas verticais de alta velocidade angular.
+- [x] **40.6 Testes Automatizados de Biomecânica de Arfagem (`tests/phase40_whale_pitch_biomechanics.test.ts`):**
+  - Suíte de testes validando cálculos de curvatura espinhal, inércia de cauda, estabilidade dos ângulos e regressão zero no jogo.

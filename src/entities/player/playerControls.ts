@@ -20,6 +20,9 @@ export class PlayerControlsManager {
   private facingRight = true;
   private targetCamOffset = 200;
   private angle = 0;
+  private tailAngle = 0;
+  private pitchAngularVelocity = 0;
+  private spineCurvature = 0;
 
   constructor(k: KaboomCtx, touchState?: TouchControlsState) {
     this.k = k;
@@ -48,6 +51,29 @@ export class PlayerControlsManager {
 
   public setAngle(angle: number): void {
     this.angle = angle;
+  }
+
+  public getTailAngle(): number {
+    return this.tailAngle;
+  }
+
+  public getPitchAngularVelocity(): number {
+    return this.pitchAngularVelocity;
+  }
+
+  public getSpineCurvature(): number {
+    return this.spineCurvature;
+  }
+
+  public getPitchFlexion(): number {
+    return this.k.clamp(this.spineCurvature / 15, -1, 1);
+  }
+
+  public resetPitchDynamics(targetAngle: number = this.angle): void {
+    this.angle = targetAngle;
+    this.tailAngle = targetAngle;
+    this.pitchAngularVelocity = 0;
+    this.spineCurvature = 0;
   }
 
   public pollInputs(strokeTimer: number): PlayerInputSnapshot {
@@ -102,6 +128,8 @@ export class PlayerControlsManager {
     isTrapped: boolean,
     inAir: boolean = false
   ): void {
+    const previousAngle = this.angle;
+
     // A baleia não pode virar horizontalmente enquanto estiver no ar (fora d'água)
     if (!inAir) {
       if (inputs.isLeftDown) {
@@ -118,11 +146,17 @@ export class PlayerControlsManager {
 
     if (isTrapped) {
       this.angle = this.k.lerp(this.angle, 0, 0.05);
+      this.tailAngle = this.k.lerp(this.tailAngle, this.angle, Math.min(1, dt * 6));
+      this.spineCurvature = this.angle - this.tailAngle;
+      this.pitchAngularVelocity = dt > 0.0001 ? (this.angle - previousAngle) / dt : 0;
       return;
     }
 
     // Se estiver no ar, a arfagem segue a balística da trajetória
     if (inAir) {
+      this.tailAngle = this.k.lerp(this.tailAngle, this.angle, Math.min(1, dt * 7));
+      this.spineCurvature = this.angle - this.tailAngle;
+      this.pitchAngularVelocity = dt > 0.0001 ? (this.angle - previousAngle) / dt : 0;
       return;
     }
 
@@ -134,5 +168,18 @@ export class PlayerControlsManager {
     } else {
       this.angle = this.k.lerp(this.angle, 0, 0.05);
     }
+
+    // Dinâmica de Arfagem e Inércia Elástica Caudal
+    const instantVelocity = dt > 0.0001 ? (this.angle - previousAngle) / dt : 0;
+    this.pitchAngularVelocity = this.k.lerp(
+      this.pitchAngularVelocity,
+      instantVelocity,
+      Math.min(1, dt * 10)
+    );
+
+    // Amortecimento de 2ª ordem para a cauda acompanhar a cabeça com arrasto hidrodinâmico
+    const tailStiffness = 8.5;
+    this.tailAngle = this.k.lerp(this.tailAngle, this.angle, Math.min(1, dt * tailStiffness));
+    this.spineCurvature = this.angle - this.tailAngle;
   }
 }

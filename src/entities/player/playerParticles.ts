@@ -438,3 +438,91 @@ export function spawnTailStrokeBubbles(k: KaboomCtx, pos: Vec2, isFacingRight: b
     }
   }
 }
+
+export interface PectoralVortexData {
+  radius: number;
+  offsetX: number;
+  offsetY: number;
+  velX: number;
+  velY: number;
+  life: number;
+  color: [number, number, number];
+  opacity: number;
+}
+
+/**
+ * Calcula dados dos micro-vórtices de ponta de nadadeira peitoral (Fase 40.5).
+ */
+export function calculatePectoralVortexData(
+  index: number,
+  isFacingRight: boolean,
+  angularVelocity: number
+): PectoralVortexData {
+  const directionSign = isFacingRight ? 1 : -1;
+  const turnDirection = Math.sign(angularVelocity);
+  const radius = 1.2 + (index % 2) * 0.5;
+  const offsetX = directionSign * (14 + index * 4);
+  const offsetY = 12 + index * 3;
+  // Vórtice é deslocado no sentido de reação da rotação vertical
+  const velY = -turnDirection * (18 + index * 8);
+  const velX = -directionSign * (10 + Math.abs(angularVelocity) * 0.15);
+  const life = 0.35 + index * 0.1;
+
+  return {
+    radius,
+    offsetX,
+    offsetY,
+    velX,
+    velY,
+    life,
+    color: [190, 240, 255],
+    opacity: 0.45,
+  };
+}
+
+/**
+ * Emite micro-vórtices translúcidos nas extremidades das nadadeiras peitorais durante curvas verticais (Fase 40.5).
+ */
+export function spawnPectoralTipVortices(
+  k: KaboomCtx,
+  whalePosition: Vec2,
+  pitchAngleInDegrees: number,
+  isFacingRight: boolean,
+  angularVelocity: number
+): void {
+  const pool = getParticlePool();
+  const particleCount = 2;
+  const angleInRadians = (pitchAngleInDegrees * Math.PI) / 180;
+  const cosAngle = Math.cos(angleInRadians);
+  const sinAngle = Math.sin(angleInRadians);
+
+  for (let index = 0; index < particleCount; index++) {
+    const data = calculatePectoralVortexData(index, isFacingRight, angularVelocity);
+
+    // Rotaciona o offset relativo da ponta da nadadeira pelo ângulo de inclinação
+    const rotatedOffsetX = data.offsetX * cosAngle - data.offsetY * sinAngle;
+    const rotatedOffsetY = data.offsetX * sinAngle + data.offsetY * cosAngle;
+
+    const spawnPosition = k.vec2(
+      whalePosition.x + rotatedOffsetX,
+      whalePosition.y + rotatedOffsetY
+    );
+    const velocity = k.vec2(data.velX, data.velY);
+    const color = k.rgb(data.color[0], data.color[1], data.color[2]);
+
+    if (pool) {
+      pool.spawnCircle({
+        pos: spawnPosition,
+        radius: data.radius,
+        color,
+        opacity: data.opacity,
+        z: 14,
+        vel: velocity,
+        fadeRate: 1.2,
+        maxLife: data.life,
+        boundaryY: GAME_CONFIG.SEA_LEVEL,
+        boundaryYMode: "less",
+      });
+    }
+  }
+}
