@@ -57,7 +57,7 @@ export interface PectoralFinComputationParameters {
 }
 
 /** Comprimento físico da nadadeira peitoral da jubarte no jogo (em pixels) */
-const PECTORAL_FIN_LENGTH = 34;
+export const PECTORAL_FIN_LENGTH = 34;
 
 /**
  * Calcula os polígonos locais em foice anatômica da nadadeira peitoral com tubérculos.
@@ -144,22 +144,22 @@ export function calculatePectoralFinTransforms(
   const baseLocalX = isFacingRight ? 16 : -16;
   const baseLocalY = 6;
 
-  // Cálculo trigonométrico da ponta da asa para a nadadeira frontal
+  // Cálculo trigonométrico da ponta da asa para a nadadeira frontal nativa do sprite
   const nearSweepAngleInRadians = (sweepAngleInDegrees * Math.PI) / 180;
   const nearDihedralAngleInRadians = (nearFinDihedralAngleInDegrees * Math.PI) / 180;
-  const nearTipDeltaX = -Math.sin(nearSweepAngleInRadians) * PECTORAL_FIN_LENGTH * 0.7;
-  const nearTipDeltaY = Math.cos(nearDihedralAngleInRadians) * PECTORAL_FIN_LENGTH;
+  const nearTipDeltaX = -(10 + Math.sin(nearSweepAngleInRadians) * 4);
+  const nearTipDeltaY = 10 + Math.sin(nearDihedralAngleInRadians) * 6;
 
-  const nearTipLocalX = isFacingRight ? baseLocalX + nearTipDeltaX : baseLocalX - nearTipDeltaX;
+  const nearTipLocalX = isFacingRight ? 16 + nearTipDeltaX : -(16 + nearTipDeltaX);
   const nearTipLocalY = baseLocalY + nearTipDeltaY;
 
-  // Cálculo da ponta da asa para a nadadeira traseira (comprimida em escala ~80%)
+  // Cálculo da ponta da asa para a nadadeira traseira (perspectiva atenuada)
   const farSweepAngleInRadians = (sweepAngleInDegrees * 1.1 * Math.PI) / 180;
   const farDihedralAngleInRadians = (farFinDihedralAngleInDegrees * Math.PI) / 180;
-  const farTipDeltaX = -Math.sin(farSweepAngleInRadians) * PECTORAL_FIN_LENGTH * 0.55;
-  const farTipDeltaY = Math.cos(farDihedralAngleInRadians) * PECTORAL_FIN_LENGTH * 0.75;
+  const farTipDeltaX = -(8 + Math.sin(farSweepAngleInRadians) * 4);
+  const farTipDeltaY = 8 + Math.sin(farDihedralAngleInRadians) * 5;
 
-  const farTipLocalX = isFacingRight ? baseLocalX + farTipDeltaX : baseLocalX - farTipDeltaX;
+  const farTipLocalX = isFacingRight ? 16 + farTipDeltaX : -(16 + farTipDeltaX);
   const farTipLocalY = baseLocalY + farTipDeltaY;
 
   // Escalas e opacidades em perspectiva
@@ -194,11 +194,14 @@ export function calculatePectoralFinTransforms(
 }
 
 /**
- * Cria e acopla as entidades visuais das nadadeiras peitorais ao GameObj da baleia.
+ * Inicializa o rastreamento cinemático das pontas das nadadeiras peitorais para ancoragem de vórtices.
+ *
+ * Como o sprite original da jubarte já contém ambas as nadadeiras ilustradas em pixel art,
+ * este módulo gerencia as coordenadas cinemáticas dinâmicas sem sobreposição poligonal intrusiva.
  *
  * @param k - Instância do contexto Kaboom.js.
  * @param baleia - GameObj representativo da baleia protagonista.
- * @returns Controlador do ciclo de vida das nadadeiras peitorais.
+ * @returns Controlador cinemático das nadadeiras peitorais.
  */
 export function setupPectoralFins(
   k: KaboomCtx,
@@ -208,67 +211,12 @@ export function setupPectoralFins(
   destroy: () => void;
   getNearTipWorldPos: () => Vec2;
 } {
-  const hasPolygon = typeof k.polygon === "function";
-  const polygonPoints = hasPolygon ? getPectoralFinPolygonVertices(k) : [];
-
-  // Nadadeira dorsal oposta (segundo plano, renderizada atrás do corpo)
-  const farFinObj: GameObj<any> | null =
-    hasPolygon && typeof k.add === "function"
-      ? k.add([
-          k.pos(baleia.pos),
-          k.polygon(polygonPoints),
-          k.rotate(0),
-          k.color(32, 46, 68),
-          k.opacity(0.65),
-          k.anchor("topleft"),
-          typeof k.scale === "function" ? k.scale(0.82, 1) : {},
-          k.z(-1),
-        ])
-      : null;
-
-  // Nadadeira frontal (primeiro plano, renderizada à frente do corpo com ventre claro)
-  const nearFinObj: GameObj<any> | null =
-    hasPolygon && typeof k.add === "function"
-      ? k.add([
-          k.pos(baleia.pos),
-          k.polygon(polygonPoints),
-          k.rotate(0),
-          k.color(230, 242, 255),
-          k.opacity(0.92),
-          k.anchor("topleft"),
-          typeof k.scale === "function" ? k.scale(1, 1) : {},
-          k.z(2),
-        ])
-      : null;
-
   let currentNearTipWorldPos = baleia.pos;
 
-  function update(transforms: DualPectoralFinsData, isFacingRight: boolean): void {
-    const { nearFin, farFin } = transforms;
+  function update(transforms: DualPectoralFinsData, _isFacingRight: boolean): void {
+    const { nearFin } = transforms;
 
-    // Atualiza nadadeira frontal
-    if (nearFinObj) {
-      nearFinObj.pos = baleia.pos.add(k.vec2(nearFin.baseLocalOffset.x, nearFin.baseLocalOffset.y));
-      nearFinObj.angle = baleia.angle + nearFin.finAngleInDegrees;
-      nearFinObj.opacity = nearFin.opacity;
-      if (nearFinObj.scale) {
-        nearFinObj.scale.x = isFacingRight ? 1.0 : -1.0;
-        nearFinObj.scale.y = nearFin.scaleFactor.y;
-      }
-    }
-
-    // Atualiza nadadeira oposta
-    if (farFinObj) {
-      farFinObj.pos = baleia.pos.add(k.vec2(farFin.baseLocalOffset.x, farFin.baseLocalOffset.y));
-      farFinObj.angle = baleia.angle + farFin.finAngleInDegrees;
-      farFinObj.opacity = farFin.opacity;
-      if (farFinObj.scale) {
-        farFinObj.scale.x = isFacingRight ? 0.82 : -0.82;
-        farFinObj.scale.y = farFin.scaleFactor.y;
-      }
-    }
-
-    // Calcula posição no mundo da ponta da asa para ancoragem de partículas
+    // Calcula posição no mundo da ponta da asa para ancoragem de micro-vórtices
     if (baleia.pos && typeof baleia.pos.add === "function") {
       currentNearTipWorldPos = baleia.pos.add(
         k.vec2(nearFin.tipLocalOffset.x, nearFin.tipLocalOffset.y)
@@ -277,12 +225,7 @@ export function setupPectoralFins(
   }
 
   function destroy(): void {
-    if (nearFinObj && typeof nearFinObj.destroy === "function") {
-      nearFinObj.destroy();
-    }
-    if (farFinObj && typeof farFinObj.destroy === "function") {
-      farFinObj.destroy();
-    }
+    // Cleanup sem alocações órfãs
   }
 
   return {
