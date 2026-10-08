@@ -1,6 +1,7 @@
 import type { GameObj, KaboomCtx, Vec2 } from "kaboom";
 import { GAME_CONFIG, TAGS } from "../config";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
+import { getActivePlayerObject } from "./player";
 
 interface BoidMember {
   obj: GameObj;
@@ -134,12 +135,17 @@ export function createKrill(k: KaboomCtx, position: Vec2): GameObj {
     krillCluster.pos.y = currentY;
     krillCluster.pos.x = position.x;
 
+    // Se estiver fora da tela pelo culling espacial, pula cálculos de dispersão
+    if (krillCluster.hidden) {
+      return;
+    }
+
     // Detecção de proximidade com a baleia para dispersão reativa
-    const player = k.get(TAGS.PLAYER)[0];
+    const player = getActivePlayerObject() ?? (k.get ? k.get(TAGS.PLAYER)?.[0] : null);
     let isScattering = false;
     let scatterDir = k.vec2(0, 0);
 
-    if (player && player.exists()) {
+    if (player && (!player.exists || player.exists())) {
       const dist = player.pos.dist(krillCluster.pos);
       if (dist < 110 && dist > 0.001) {
         isScattering = true;

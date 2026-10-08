@@ -16,6 +16,18 @@ import {
 
 export type { PlayerController } from "./player/types";
 
+let activePlayerObject: any = null;
+
+export function setActivePlayerObject(playerObject: any): void {
+  activePlayerObject = playerObject;
+}
+
+export function getActivePlayerObject(): any {
+  return activePlayerObject && (!activePlayerObject.exists || activePlayerObject.exists())
+    ? activePlayerObject
+    : null;
+}
+
 export function createPlayer(
   k: KaboomCtx,
   initialX: number = 120,
@@ -36,6 +48,7 @@ export function createPlayer(
     comps.push(k.scale(1, 1));
   }
   const baleia = k.add(comps);
+  activePlayerObject = baleia;
 
   const oxygenMgr = new PlayerOxygenManager(k);
   const physicsMgr = new PlayerPhysicsManager(k);
