@@ -12,6 +12,7 @@ import {
   spawnDraftingTrail,
   spawnTailWaterRipples,
   spawnTailStrokeBubbles,
+  spawnPectoralTipVortices,
 } from "./player/playerParticles";
 
 export type { PlayerController } from "./player/types";
@@ -26,6 +27,42 @@ export function getActivePlayerObject(): any {
   return activePlayerObject && (!activePlayerObject.exists || activePlayerObject.exists())
     ? activePlayerObject
     : null;
+}
+
+/**
+ * Calcula a velocidade de deriva e oscilação hidrodinâmica em repouso (swell oceânico e correnteza).
+ *
+ * Reproduz o comportamento natural das criaturas marinhas do jogo (orcas e jubartes passantes),
+ * aplicando um movimento orbital elíptico composto por:
+ * 1. Surge horizontal (indo e voltando com a correnteza): ~±16px de oscilação em repouso.
+ * 2. Heave vertical (subindo e descendo com o swell): ~±9.5px de flutuabilidade.
+ *
+ * @param timeInSeconds - Tempo de execução atual em segundos.
+ * @param idleBlendFactor - Fator de blend de repouso (0.0 a 1.0).
+ * @returns Vetor com componentes de velocidade `surgeVelocityX` e `heaveVelocityY` em px/s.
+ */
+export function calculateOceanIdleDrift(
+  timeInSeconds: number,
+  idleBlendFactor: number
+): { surgeVelocityX: number; heaveVelocityY: number } {
+  if (idleBlendFactor <= 0) {
+    return { surgeVelocityX: 0, heaveVelocityY: 0 };
+  }
+
+  const swellFrequency = 0.85;
+  const rippleFrequency = 2.1;
+
+  const surgeVelocityX =
+    (Math.cos(timeInSeconds * swellFrequency) * 12.0 +
+      Math.cos(timeInSeconds * rippleFrequency) * 2.5) *
+    idleBlendFactor;
+
+  const heaveVelocityY =
+    (Math.sin(timeInSeconds * swellFrequency) * 5.5 +
+      Math.sin(timeInSeconds * rippleFrequency) * 1.2) *
+    idleBlendFactor;
+
+  return { surgeVelocityX, heaveVelocityY };
 }
 
 export function createPlayer(
@@ -69,6 +106,7 @@ export function createPlayer(
   let currentRoll = 0;
   let strokeCooldownTimer = 0; // Cooldown de 1.0s para evitar batidas consecutivas rápidas
   let isStrokeInMotion = false; // Indica se o ciclo muscular da batida está ativo (0 a 0.5s)
+  let pectoralVortexTimer = 0; // Temporizador para emissão de vórtices peitorais em rotação (Fase 40.5)
 
   const causticsComps: any[] = [
     typeof k.rect === "function" ? k.rect(48, 10, { radius: 5 }) : {},
@@ -272,12 +310,23 @@ export function createPlayer(
       } else {
         const inWater = baleia.pos.y >= GAME_CONFIG.SEA_LEVEL;
         if (inWater && !isTrapped && !isFrozen && !oxygenMgr.isFaintingState()) {
-          // Quando o jogador não estiver controlando com uma batida ativa, a jubarte executa
-          // um movimento natural de nado calmo contínuo para se manter flutuando enquanto cai devagar
-          // (idêntico ao nado gracioso das orcas e jubartes passantes)
-          if (animState !== "idle_swim") {
-            animState = "idle_swim";
-            baleia.play("idle_swim");
+          // Fase 40.4: Seleção dinâmica de frames por curvatura vertical / arfagem:
+          // Se o jogador estiver fazendo subida ativa (pitchAngle < -14 ou spineCurvature < -5),
+          // os frames 1-2 (stroke_up) representam as aletas caudais sustentando o planeio ascendente.
+          const pitchAngleDeg = controlsMgr.getAngle();
+          const spineCurvatureDeg = controlsMgr.getSpineCurvature();
+
+          if (pitchAngleDeg < -14 || spineCurvatureDeg < -5) {
+            if (animState !== "stroke_up") {
+              animState = "stroke_up";
+              baleia.play("stroke_up");
+            }
+          } else {
+            // Quando em repouso ou planeio nivelado, a jubarte executa movimento de nado calmo contínuo
+            if (animState !== "idle_swim") {
+              animState = "idle_swim";
+              baleia.play("idle_swim");
+            }
           }
         } else if (animState !== "glide") {
           animState = "glide";
@@ -286,16 +335,16 @@ export function createPlayer(
       }
     }
 
-    // 6. Deformação Orgânica (Squash & Stretch), Roll em Perspectiva e Ondulação do Nado
+    // 6. Deformação Orgânica (Squash & Stretch), Curvatura Espinhal (Cambering) e Roll em Perspectiva
     const isMuscularStroke =
       isStrokeInMotion && !isTrapped && !isFrozen && !oxygenMgr.isFaintingState();
 
     const currentSpeed = physicsMgr.getSpeed();
-    const speedLen = currentSpeed.len();
+    const horizontalSpeed = Math.abs(currentSpeed.x);
     const inWater = baleia.pos.y >= GAME_CONFIG.SEA_LEVEL;
 
-    // Fator de blend suave para repouso (0 quando em alta velocidade, 1 quando completamente estática)
-    const idleBlend = k.clamp((35 - speedLen) / 35, 0, 1);
+    // Fator de blend de repouso: ativado quando a baleia fica horizontalmente estática (não está nadando para frente)
+    const idleBlend = isMuscularStroke ? 0 : k.clamp((35 - horizontalSpeed) / 35, 0, 1);
 
     // Roll em Perspectiva ao mudar bruscamente de profundidade (Fase 17.2)
     const pitchAngle = controlsMgr.getAngle();
@@ -304,7 +353,12 @@ export function createPlayer(
     currentRoll = k.lerp(currentRoll, targetRoll, dt * 6);
     const rollForeshortening = 1.0 - Math.abs(currentRoll) * 0.12;
 
-    // Squash & Stretch muscular na batida (alongamento hidrodinâmico e relaxamento) e respiração calma em repouso
+    // Biomecânica da Fase 40: Curvatura espinhal (Camber) e Inércia Caudal
+    const spineCurvature = controlsMgr.getSpineCurvature();
+    const pitchFlexion = controlsMgr.getPitchFlexion();
+    const pitchVelocity = controlsMgr.getPitchAngularVelocity();
+
+    // Squash & Stretch muscular na batida, arqueamento em curva de arfagem e respiração calma em repouso
     if (baleia.scale) {
       let targetScaleX = 1.0;
       let targetScaleY = 1.0;
@@ -314,7 +368,7 @@ export function createPlayer(
         const muscularThrust = Math.sin(strokeProgress * Math.PI) * 0.07;
         targetScaleX = 1.0 + muscularThrust;
         targetScaleY = 1.0 - muscularThrust * 0.65;
-      } else if (speedLen > 35) {
+      } else if (horizontalSpeed > 35) {
         const glideBreathing = Math.sin(k.time() * 3) * 0.015;
         targetScaleX = 1.0 + glideBreathing;
         targetScaleY = 1.0 - glideBreathing;
@@ -325,8 +379,14 @@ export function createPlayer(
         targetScaleY = 1.0 + idleBreath;
       }
 
-      // Aplica a compressão em perspectiva da rolagem longitudinal
-      targetScaleY = targetScaleY * rollForeshortening;
+      // Modulação de Curvatura Espinhal (Cambering sagital orgânico):
+      // - Ao subir (pitchFlexion < 0): expansão ventral e leve compressão longitudinal
+      // - Ao descer (pitchFlexion > 0): arqueamento dorsal e afilamento de fluxo
+      const camberScaleY = 1.0 + Math.abs(pitchFlexion) * 0.12;
+      const camberScaleX = 1.0 - Math.abs(pitchFlexion) * 0.06;
+
+      targetScaleX = targetScaleX * camberScaleX;
+      targetScaleY = targetScaleY * camberScaleY * rollForeshortening;
 
       baleia.scale.x = k.lerp(baleia.scale.x, targetScaleX, dt * 8);
       baleia.scale.y = k.lerp(baleia.scale.y, targetScaleY, dt * 8);
@@ -338,23 +398,47 @@ export function createPlayer(
       if (isMuscularStroke) {
         const strokeProgress = physicsMgr.getStrokeTimer() / GAME_CONFIG.MAX_STROKE_TIME;
         swimSway = Math.sin(strokeProgress * Math.PI * 2) * 3.2;
-      } else if (speedLen > 30) {
+      } else if (horizontalSpeed > 35) {
         // Balanço suave e majestoso em planeio hidrodinâmico
-        swimSway = Math.sin(k.time() * 3.2) * Math.min(1.2, speedLen / 100);
+        swimSway = Math.sin(k.time() * 3.2) * Math.min(1.2, horizontalSpeed / 100);
       } else if (!isTrapped && inWater) {
-        // Balanço do mar quando estática — composto por swell oceânico longo (0.8 rad/s) e ripple de ondas (2.1 rad/s)
-        const swell = Math.sin(k.time() * 0.8) * 2.2;
+        // Balanço do mar quando horizontalmente estática — composto por swell oceânico longo (0.85 rad/s) e ripple de ondas (2.1 rad/s)
+        const swell = Math.sin(k.time() * 0.85) * 2.4;
         const ripple = Math.sin(k.time() * 2.1) * 0.6;
         swimSway = (swell + ripple) * idleBlend;
       }
     }
 
-    // Torção sutil de roll em perspectiva na inclinação
+    // Fase 40.2 & 40.3: Rotação composta com deflexão da espinha e pivô hidrodinâmico
+    // A flexão da cauda atenua o giro rígido, fazendo a cabeça apontar primeiro e o corpo dobrar
+    const spineFlexAngle = spineCurvature * 0.42;
+    const baseAngle = controlsMgr.isFacingRight()
+      ? controlsMgr.getAngle()
+      : -controlsMgr.getAngle();
     const rollTilt = currentRoll * 2.2;
+
     baleia.angle =
-      (controlsMgr.isFacingRight() ? controlsMgr.getAngle() : -controlsMgr.getAngle()) +
+      baseAngle -
+      (controlsMgr.isFacingRight() ? spineFlexAngle : -spineFlexAngle) +
       swimSway +
       rollTilt;
+
+    // Fase 40.5: Emissão de micro-vórtices nas aletas peitorais durante guinadas bruscas
+    if (inWater && !isTrapped && !isFrozen && Math.abs(pitchVelocity) > 28) {
+      pectoralVortexTimer -= dt;
+      if (pectoralVortexTimer <= 0) {
+        pectoralVortexTimer = 0.12; // taxa de 8Hz em rotações ativas
+        spawnPectoralTipVortices(
+          k,
+          baleia.pos,
+          baleia.angle,
+          controlsMgr.isFacingRight(),
+          pitchVelocity
+        );
+      }
+    } else {
+      pectoralVortexTimer = Math.max(0, pectoralVortexTimer - dt);
+    }
 
     // 7. Física e movimento
     const movementResult = physicsMgr.updateMovement(
@@ -388,10 +472,20 @@ export function createPlayer(
       const strokeProgress = physicsMgr.getStrokeTimer() / GAME_CONFIG.MAX_STROKE_TIME;
       const dorsoventralHeave = Math.sin(strokeProgress * Math.PI * 2) * 0.7;
       baleia.pos.y += dorsoventralHeave;
-    } else if (!movementResult.inAir && !isTrapped && !isFrozen && speedLen < 30) {
-      // Balanço vertical oceânico (heave) e flutuabilidade neutra em repouso
-      const oceanHeaveVel = Math.cos(k.time() * 1.0) * 4.5 * idleBlend;
-      baleia.pos.y += oceanHeaveVel * dt;
+    } else if (!movementResult.inAir && !isTrapped && !isFrozen && idleBlend > 0.001) {
+      // Balanço oceânico em repouso (surge horizontal e heave vertical) sincronizado com a correnteza marinha
+      const { surgeVelocityX, heaveVelocityY } = calculateOceanIdleDrift(k.time(), idleBlend);
+
+      baleia.pos.x += surgeVelocityX * dt;
+      baleia.pos.x = Math.max(20, baleia.pos.x);
+
+      // Salvaguarda para não empurrar a jubarte acima da linha d'água durante o balanço em repouso
+      const surfaceElevationLimit = GAME_CONFIG.SEA_LEVEL + 4;
+      if (baleia.pos.y + heaveVelocityY * dt < surfaceElevationLimit) {
+        baleia.pos.y = Math.max(baleia.pos.y, surfaceElevationLimit);
+      } else {
+        baleia.pos.y += heaveVelocityY * dt;
+      }
     }
 
     // 10. Cor conforme perda de oxigênio e rede
@@ -455,7 +549,7 @@ export function createPlayer(
       whaleVentralFlash.pos &&
       typeof whaleVentralFlash.pos.add === "function"
     ) {
-      whaleVentralFlash.pos = baleia.pos.add(downNormal.scale(6));
+      whaleVentralFlash.pos = baleia.pos.add(downNormal.scale(6 + Math.abs(pitchFlexion) * 2));
       whaleVentralFlash.angle = baleia.angle;
       if (whaleVentralFlash.scale && baleia.scale) {
         whaleVentralFlash.scale.x = baleia.scale.x;
