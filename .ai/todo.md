@@ -1,54 +1,45 @@
-# Plano de Implementação — Fase 38: PWA Offline Avançado & Telemetria Educativa
+# Plano de Implementação — Fase 39: Otimização Extrema de Performance & Taxa de Quadros (60 FPS Sólido)
 
 Status: Concluído
-Data: 2026-10-07
-Alvo: v1.14.0
+Data: 2026-10-08
+Alvo: v1.15.0
 
 ---
 
 ## 📋 Lista de Tarefas Atômicas
 
-- [x] **38.1 Gerenciador PWA, Prompt Customizado de Instalação & Status de Rede (`src/utils/pwaManager.ts`, `src/ui/pwaInstallModal.ts`)**
-  - **Arquivos**: `src/utils/pwaManager.ts`, `src/ui/pwaInstallModal.ts`, `src/main.ts`
+- [x] **39.1 Frustum Culling Espacial & Ocultação Fora da Câmera (`src/systems/spatialCullingSystem.ts`)**
+  - **Arquivos**: `src/systems/spatialCullingSystem.ts`, `src/main.ts`
   - **Ação**:
-    - Capturar `beforeinstallprompt` sem alertas nativos intrusivos (Regra 6 de UX).
-    - Criado helper `pwaManager` com detecção de estado instalável e monitoramento de rede (`online` / `offline`).
-    - Modal customizado e estilizado `showPwaInstallModal`.
+    - Criar `SpatialCullingSystem` que monitora a posição horizontal da câmera (`camX`) e aplica `hidden = true` em entidades de cenário e obstáculos (`ocean_relief`, `kelp_segment`, `ice_block`, `lixo_plastico`, `krill`, etc.) quando fora de `[camX - margin, camX + viewWidth + margin]` (margem de ~320px).
+    - Impedir que a GPU e o motor 2D renderizem polígonos, contornos e texturas de objetos a milhares de metros de distância.
 
-- [x] **38.2 Gestão de Cache Dinâmico & Atualização Silenciosa do Service Worker (`public/sw.js`, `src/utils/swManager.ts`)**
-  - **Arquivos**: `public/sw.js`, `src/utils/swManager.ts`
+- [x] **39.2 Eliminação de Consultas Lineares $O(N)$ em Loops de Update (`src/main.ts`, `src/systems/iceSurface.ts`, `src/entities/krill.ts`, `src/systems/penguinFlockSystem.ts`)**
+  - **Arquivos**: `src/main.ts`, `src/systems/iceSurface.ts`, `src/entities/krill.ts`, `src/systems/penguinFlockSystem.ts`, `src/entities/player.ts`
   - **Ação**:
-    - Estratégia Stale-While-Revalidate e cache-first no Service Worker.
-    - Criado `swManager` com suporte a `hasUpdateAvailable`, `checkForServiceWorkerUpdates` e `skipWaitingAndReload`.
+    - Substituir chamadas a `k.get(TAGS.PLAYER)[0]` em loops de update por injeção direta de referência do `playerController` ou singleton $O(1)$ (`getActivePlayerObject()`), eliminando ~80.000 iterações de busca por frame.
+    - Em `src/main.ts`, trocar a execução incondicional de `k.get("*").length` a 60 FPS por medição com throttling a cada 500ms (2Hz), zerando a alocação contínua de arrays temporários e pressão no Garbage Collector.
 
-- [x] **38.3 Telemetria Educativa Local & Métrica de Conscientização (`src/systems/telemetrySystem.ts`)**
-  - **Arquivos**: `src/systems/telemetrySystem.ts`, `src/ui/factPopup.ts`, `src/ui/quizModal.ts`, `src/ui/statsModal.ts`
+- [x] **39.3 Integração Ampla de Subsistemas no `BiomeLifecycleManager` (`src/systems/benthicFloorSystem.ts`, `src/systems/backgroundFauna.ts`, `src/systems/oceanFloorSystem.ts`)**
+  - **Arquivos**: `src/systems/benthicFloorSystem.ts`, `src/systems/backgroundFauna.ts`, `src/systems/oceanFloorSystem.ts`
   - **Ação**:
-    - Criado `TelemetrySystem` com rastreamento local-first validado por Zod: contagem de fatos lidos, quizzes, acertos e lixo plástico.
-    - Exibição de índice de conscientização no modal de estatísticas.
+    - Registrar os subsistemas pesados no `BiomeLifecycleManager` e no `SpatialCullingManager`.
+    - Ao estarem fora de alcance ou com `hidden = true`, suspender cálculos matemáticos de ondas, dispersão e animações senoidais.
 
-- [x] **38.4 Modo Exibição Contínua para Totens (Kiosk Auto-Reset Configurável)**
-  - **Arquivos**: `src/systems/kioskMode.ts`, `src/ui/mainMenu.ts`
+- [x] **39.4 Migração de Emissores de Fauna para o `ParticlePool` (`src/systems/backgroundFauna.ts`)**
+  - **Arquivos**: `src/systems/backgroundFauna.ts`
   - **Ação**:
-    - Configurado tempo limite de totem via `getKioskIdleTimeoutSeconds` e `setKioskIdleTimeoutSeconds` com persistência segura em Zod.
-    - Integrado no loop de inatividade do menu principal.
+    - Migrar emissores de bolhas de orcas de fundo para o `ParticlePool` existente, eliminando alocações dinâmicas contínuas via `k.add`.
 
-- [x] **38.5 Testes Automatizados da Fase 38 (`tests/phase38_pwa_telemetry.test.ts`)**
-  - **Arquivos**: `tests/phase38_pwa_telemetry.test.ts`
+- [x] **39.5 Testes Automatizados de Performance & Integridade (`tests/phase39_performance_culling.test.ts`)**
+  - **Arquivos**: `tests/phase39_performance_culling.test.ts`
   - **Ação**:
-    - Suíte com 13 testes unitários cobrindo ciclo de vida PWA, telemetria, storage e kiosk timeout (341 testes globais passando).
-
-- [x] **Debug: Contador de FPS em Tempo Real no Cabeçalho do HUD de Diagnósticos**
-  - **Arquivos**: `src/ui/debugDistance.ts`, `src/main.ts`, `tests/f3Diagnostics.test.ts`
-  - **Ação**:
-    - Adicionado badge de FPS com paleta adaptativa (verde >=55, âmbar 45-54, vermelho <45).
-    - Exibição consistente em ambos os modos (migração serena e padrão).
-    - Suporte a acionamento pelas teclas F8 e F3.
+    - Criar suíte de testes unitários cobrindo o algoritmo puro de culling espacial (`isEntityInFrustum`), gerenciamento dinâmico no `SpatialCullingManager`, acesso $O(1)$ ao player singleton e garantia de 100% de aprovação na suíte global (50 arquivos, 352 testes).
 
 ---
 
 ## 🧪 Estratégia de Testes
 
-1. Executado `tests/f3Diagnostics.test.ts` (8 testes passando).
-2. Executado `tests/phase38_pwa_telemetry.test.ts` (13 testes passando).
-3. Executado `npm test` garantindo regressão zero na suíte global (49 arquivos de teste, 343 testes no total).
+1. Executar `tests/phase39_performance_culling.test.ts`.
+2. Executar `tests/f3Diagnostics.test.ts` validando indicador de FPS e alertas.
+3. Executar `npm test` garantindo regressão zero na suíte global (50 arquivos de teste, 343+ testes).
