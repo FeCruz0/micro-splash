@@ -4,6 +4,7 @@ import { accessibilitySystem } from "../systems/accessibilitySystem";
 import type { GameState } from "../systems/state";
 import { recordQuizResult } from "../systems/cumulativeStats";
 import { analytics } from "../services/analytics";
+import { telemetrySystem } from "../systems/telemetrySystem";
 import quizData from "../../data/quiz.json";
 
 export interface QuizQuestion {
@@ -332,6 +333,7 @@ export function showQuizModal(
       isAnswered = true;
 
       const isCorrect = optIdx === q.correctIndex;
+      telemetrySystem.recordQuizAnswer(isCorrect);
       analytics.trackQuizTaken({
         questionId: q.id,
         isCorrect,

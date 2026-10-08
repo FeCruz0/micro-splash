@@ -7,6 +7,7 @@ import {
 } from "../systems/cumulativeStats";
 import { audioSystem } from "../systems/audioSystem";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
+import { telemetrySystem } from "../systems/telemetrySystem";
 import { createFocusGroup, type FocusableItem } from "./keyboardNav";
 
 export function showStatsModal(k: KaboomCtx, onClose: () => void) {
@@ -163,9 +164,9 @@ export function showStatsModal(k: KaboomCtx, onClose: () => void) {
     },
     {
       icon: "🎓",
-      title: "QUIZ ECOLÓGICO",
+      title: "QUIZ & CONSCIENTIZAÇÃO",
       mainVal: `${stats.quizCorrectAnswers} Acertos`,
-      subVal: `${stats.quizzesTaken} Quizzes realizados`,
+      subVal: `Impacto: ${telemetrySystem.calculateEducationalImpactScore()} pts (${stats.quizzesTaken} quizzes)`,
       color: k.rgb(140, 255, 180),
     },
   ];

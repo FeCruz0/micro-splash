@@ -555,13 +555,13 @@ _Objetivo: Reduzir dívida técnica, padronizar utilitários e alinhar o código
 
 _Objetivo: Elevar a experiência autônoma em totens e feiras de ciências com instalação PWA assistida, gestão de cache e métricas de impacto pedagógico._
 
-- [ ] **38.1 Prompt Customizado de Instalação PWA & Status de Rede (`src/ui/pwaInstallModal.ts`):**
+- [x] **38.1 Prompt Customizado de Instalação PWA & Status de Rede (`src/ui/pwaInstallModal.ts`):**
   - Capturar `beforeinstallprompt` e fornecer botão estilizado de instalação no menu e opções sem alertas nativos. Exibir status de conectividade em tempo real (`Online 🟢 / Offline 📡`).
-- [ ] **38.2 Gestão de Cache Dinâmico & Atualização Silenciosa do Service Worker (`src/utils/swManager.ts`):**
+- [x] **38.2 Gestão de Cache Dinâmico & Atualização Silenciosa do Service Worker (`src/utils/swManager.ts`):**
   - Estratégia stale-while-revalidate para dados pedagógicos (`data/facts.json`) e áudio. Notificação sutil in-game quando uma nova versão for instalada em segundo plano.
-- [ ] **38.3 Telemetria Educativa Local & Métrica de Conscientização (`src/systems/telemetrySystem.ts`):**
+- [x] **38.3 Telemetria Educativa Local & Métrica de Conscientização (`src/systems/telemetrySystem.ts`):**
   - Rastreamento local-first de impacto educacional: contagem de fatos lidos, quizzes completados e tempo de engajamento, com exportação/visualização segura para educadores e feiras.
-- [ ] **38.4 Modo Exibição Contínua para Totens (Kiosk Auto-Reset Configurável):**
+- [x] **38.4 Modo Exibição Contínua para Totens (Kiosk Auto-Reset Configurável):**
   - Configuração nas Opções para tempo de inatividade em totens (30s, 60s, 120s ou desativado), retornando ao menu e tela de atração automaticamente.
-- [ ] **38.5 Testes Automatizados da Fase 38 (`tests/phase38_pwa_telemetry.test.ts`):**
+- [x] **38.5 Testes Automatizados da Fase 38 (`tests/phase38_pwa_telemetry.test.ts`):**
   - Suíte de testes unitários cobrindo ciclo de vida PWA, validação de cache e registro de telemetria educativa.

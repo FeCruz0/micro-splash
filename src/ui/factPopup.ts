@@ -2,8 +2,10 @@ import kaboom from "kaboom";
 import { type Fact } from "../systems/state";
 import { ttsSystem } from "../systems/ttsSystem";
 import { FONT_TITLE, FONT_BODY } from "../config";
+import { telemetrySystem } from "../systems/telemetrySystem";
 
 export function showFactPopup(k: ReturnType<typeof kaboom>, fact: Fact) {
+  telemetrySystem.recordFactRead(fact.id);
   // Quebra de linha adaptativa em conteúdo educacional (Fase 32.4)
   const contentW = Math.min(500, k.width() - 80);
   const width = contentW + 36;

@@ -7,6 +7,7 @@ import { createFocusGroup, type FocusableItem } from "./keyboardNav";
 import { hasSeenOnboarding, showOnboardingModal } from "./onboardingModal";
 import { t } from "../i18n/i18n";
 import { attachButtonHoverEffect } from "./animationUtils";
+import { getKioskIdleTimeoutSeconds } from "../systems/kioskMode";
 
 export function createMainMenu(
   k: KaboomCtx,
@@ -390,10 +391,11 @@ export function createMainMenu(
   k.onMousePress(resetIdle);
   k.onMouseMove(resetIdle);
 
+  const idleTimeout = getKioskIdleTimeoutSeconds();
   const idleLoop = k.onUpdate(() => {
-    if (!isModalOpen) {
+    if (!isModalOpen && idleTimeout > 0) {
       idleTime += k.dt();
-      if (idleTime >= 45) {
+      if (idleTime >= idleTimeout) {
         idleLoop.cancel();
         k.go("kiosk");
       }

@@ -47,16 +47,18 @@ describe("F3 Diagnostics & Sparkline HUD", () => {
         width: () => 1920,
         height: () => 1080,
         add: vi.fn((props: any[]) => {
+          const textComp = props?.find((p) => p && p.type === "text");
           const obj: any = {
             props,
             hidden: false,
-            text: "",
+            text: textComp ? textComp.t : "",
             color: null,
             width: 0,
             add: vi.fn((childProps: any[]) => {
+              const childText = childProps?.find((p) => p && p.type === "text");
               const child: any = {
                 props: childProps,
-                text: "",
+                text: childText ? childText.t : "",
                 color: null,
                 width: 0,
               };
@@ -75,6 +77,7 @@ describe("F3 Diagnostics & Sparkline HUD", () => {
         z: (v: number) => ({ type: "z", v }),
         text: (t: string, opts?: any) => ({ type: "text", t, opts }),
         rgb: (r: number, g: number, b: number) => ({ r, g, b }),
+        vec2: (x: number, y: number) => ({ x, y, len: () => Math.hypot(x, y) }),
         destroy: vi.fn(),
       } as any;
     }
@@ -108,6 +111,40 @@ describe("F3 Diagnostics & Sparkline HUD", () => {
       hud.update(100, { fps: 30, entities: 25, activeParticles: 50, totalParticles: 200 });
       const history = hud.getFpsHistory();
       expect(history[history.length - 1]).toBe(30);
+    });
+
+    it("displays real-time FPS counter badge in header and updates dynamically", () => {
+      const mockK = createMockKaboom();
+      const hud = createDebugDistanceUI(mockK);
+
+      expect(hud.getFpsText()).toBe("-- FPS");
+
+      hud.setVisible(true);
+
+      // Atualiza com 60 FPS estável
+      hud.update(50, { fps: 60 });
+      expect(hud.getFpsText()).toBe("60 FPS");
+
+      // Atualiza com 50 FPS (faixa de atenção)
+      hud.update(50, { fps: 50 });
+      expect(hud.getFpsText()).toBe("50 FPS");
+
+      // Atualiza com 28 FPS (crítico)
+      hud.update(50, { fps: 28 });
+      expect(hud.getFpsText()).toBe("28 FPS");
+    });
+
+    it("displays FPS counter badge even in serene mode", () => {
+      const mockK = createMockKaboom();
+      const mockSereneController = {
+        isSereneMode: () => true,
+      } as any;
+
+      const hud = createDebugDistanceUI(mockK, mockSereneController);
+      hud.setVisible(true);
+      hud.update(100, { fps: 60 });
+
+      expect(hud.getFpsText()).toBe("60 FPS");
     });
   });
 });

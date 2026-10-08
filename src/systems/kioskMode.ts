@@ -1,6 +1,19 @@
 import type { KaboomCtx } from "kaboom";
+import { z } from "zod";
 import { audioSystem } from "./audioSystem";
 import { setupLightRaysSystem } from "./lightRaysSystem";
+import { readLocalStorageWithSchema, writeLocalStorage } from "../utils/storage";
+
+const KIOSK_TIMEOUT_STORAGE_KEY = "micro_splash_kiosk_timeout";
+const KioskTimeoutSchema = z.number().int().nonnegative().default(45);
+
+export function getKioskIdleTimeoutSeconds(): number {
+  return readLocalStorageWithSchema(KIOSK_TIMEOUT_STORAGE_KEY, KioskTimeoutSchema, 45);
+}
+
+export function setKioskIdleTimeoutSeconds(seconds: number): void {
+  writeLocalStorage(KIOSK_TIMEOUT_STORAGE_KEY, Math.max(0, Math.floor(seconds)));
+}
 
 /**
  * Modo Kiosk (Attract Mode / Demonstração Cinematográfica Autônoma)

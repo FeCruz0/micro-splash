@@ -135,6 +135,27 @@ export function createDebugDistanceUI(k: KaboomCtx, playerController?: PlayerCon
     k.color(160, 215, 255),
   ]);
 
+  // Badge de Taxa de Quadros (FPS) em tempo real com coloração adaptativa
+  const fpsBadgeWidth = Math.round(62 * scale);
+  const fpsBadgeX =
+    containerWidth - Math.round(12 * scale) - f8BadgeWidth - Math.round(6 * scale) - fpsBadgeWidth;
+
+  const fpsBadgeBg = container.add([
+    k.rect(fpsBadgeWidth, modePillHeight, { radius: 6 }),
+    k.pos(fpsBadgeX, Math.round(10 * scale)),
+    k.color(10, 26, 48),
+    k.outline(1.2, k.rgb(74, 222, 128)),
+  ]);
+
+  const fpsBadgeText = container.add([
+    k.text("-- FPS", {
+      size: fontSizeTech,
+      font: "Outfit",
+    }),
+    k.pos(fpsBadgeX + Math.round(8 * scale), Math.round(14 * scale)),
+    k.color(74, 222, 128),
+  ]);
+
   // 3. Card Interno de Bioma & Distância
   const insetCardHeight = Math.round(52 * scale);
   container.add([
@@ -260,6 +281,7 @@ export function createDebugDistanceUI(k: KaboomCtx, playerController?: PlayerCon
     getContainer: (): GameObj => container,
     isVisible: (): boolean => !container.hidden,
     getFpsHistory: (): number[] => [...fpsHistory],
+    getFpsText: (): string => fpsBadgeText.text,
     setVisible: (visible: boolean): void => {
       container.hidden = !visible;
     },
@@ -277,9 +299,35 @@ export function createDebugDistanceUI(k: KaboomCtx, playerController?: PlayerCon
         return;
       }
 
+      // Determina FPS instantâneo e atualiza o badge do cabeçalho
+      let curFps = 60;
+      if (perfStats && perfStats.fps !== undefined) {
+        curFps = Math.round(perfStats.fps);
+      } else if (typeof k.dt === "function") {
+        const dt = k.dt();
+        curFps = dt > 0 ? Math.round(1 / dt) : 60;
+      }
+
+      fpsBadgeText.text = `${curFps} FPS`;
+      if (curFps >= 55) {
+        fpsBadgeText.color = k.rgb(74, 222, 128);
+        if (fpsBadgeBg.outline && typeof fpsBadgeBg.outline === "object") {
+          fpsBadgeBg.outline.color = k.rgb(34, 197, 94);
+        }
+      } else if (curFps >= 45) {
+        fpsBadgeText.color = k.rgb(250, 204, 21);
+        if (fpsBadgeBg.outline && typeof fpsBadgeBg.outline === "object") {
+          fpsBadgeBg.outline.color = k.rgb(234, 179, 8);
+        }
+      } else {
+        fpsBadgeText.color = k.rgb(248, 113, 113);
+        if (fpsBadgeBg.outline && typeof fpsBadgeBg.outline === "object") {
+          fpsBadgeBg.outline.color = k.rgb(239, 68, 68);
+        }
+      }
+
       // Atualiza métricas de hardware se fornecidas
       if (perfStats) {
-        const curFps = perfStats.fps !== undefined ? perfStats.fps : 60;
         fpsHistory.push(curFps);
         if (fpsHistory.length > 60) {
           fpsHistory.shift();
@@ -326,7 +374,9 @@ export function createDebugDistanceUI(k: KaboomCtx, playerController?: PlayerCon
 
       // Atualiza fôlego, velocidade e status se o playerController foi fornecido
       if (playerController) {
-        const vel = playerController.getSpeed?.() ?? k.vec2(0, 0);
+        const vel =
+          playerController.getSpeed?.() ??
+          (typeof k.vec2 === "function" ? k.vec2(0, 0) : { x: 0, y: 0, len: () => 0 });
         const speedLen = Math.round(
           typeof vel?.len === "function"
             ? vel.len()

@@ -46,6 +46,7 @@ import { accessibilitySystem } from "./systems/accessibilitySystem";
 import { gamepadSystem } from "./systems/gamepadSystem";
 import { analytics } from "./services/analytics";
 import { errorReporter } from "./services/errorReporter";
+import { initPwaManager } from "./utils/pwaManager";
 
 // Interfaces da Fase 6: Menu Principal, Seleção de Modo, Opções e Codex
 import { createMainMenu } from "./ui/mainMenu";
@@ -58,6 +59,7 @@ import { createSplashScreen } from "./ui/splashScreen";
 
 // Inicializa observabilidade e proteção contra exceções em totens (Fase 27)
 errorReporter.setupGlobalHandlers();
+initPwaManager();
 
 import { setupLetterboxBorders } from "./systems/letterboxSystem";
 
@@ -378,14 +380,17 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
     audioSystem.toggleMute();
   });
 
-  // Tecla 'F8': Alterna o Painel de Telemetria e Diagnóstico de Desenvolvedor (Fôlego, Distância, Velocidade, FPS, etc.)
+  // Teclas 'F8' e 'F3': Alterna o Painel de Telemetria e Diagnóstico de Desenvolvedor (Fôlego, Distância, Velocidade, FPS, etc.)
   // Garante que o menu de debug seja estritamente visual e não pause a partida
-  k.onKeyPress("f8", () => {
+  const toggleDebugMenu = () => {
     if (k.debug) {
       k.debug.paused = false;
     }
     debugDistanceUI.toggle();
-  });
+  };
+
+  k.onKeyPress("f8", toggleDebugMenu);
+  k.onKeyPress("f3", toggleDebugMenu);
 
   // 5. Ativa colisões, ressurgência e o clímax do Salto Majestoso (Breach)
   setupCollisions(k, playerController, gameState);
