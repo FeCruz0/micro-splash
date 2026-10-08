@@ -1,6 +1,9 @@
 import kaboom from "kaboom";
-import { TAGS } from "../config";
 import { audioSystem } from "./audioSystem";
+import { getActivePlayerObject } from "../entities/player";
+import { getParticlePool } from "./particlePool";
+import { getSpatialCullingManager } from "./spatialCullingSystem";
+import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 
 /**
  * Cria elementos estéticos de fauna marinha de fundo com sprites e comportamentos enriquecidos:
@@ -50,6 +53,9 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
     },
   ];
 
+  const cullingManager = getSpatialCullingManager();
+  const orcaObjects: any[] = [];
+
   orcaPods.forEach((pod) => {
     pod.members.forEach((m) => {
       const orca = k.add([
@@ -61,11 +67,14 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
         k.anchor("center"),
         k.z(-5),
       ]);
+      orcaObjects.push(orca);
+      cullingManager?.registerEntity(orca, () => pod.basePos.x + m.offsetX);
 
       let timer = Math.random() * 10;
       let bubbleTimer = Math.random() * 3;
 
       orca.onUpdate(() => {
+        if (orca.hidden) return;
         const dt = k.dt();
         timer += dt;
         bubbleTimer += dt;
@@ -76,23 +85,23 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
         orca.pos.y = pod.basePos.y + m.offsetY + Math.cos(timer * 0.55) * 9;
         orca.angle = Math.cos(timer * 0.85) * 3.5;
 
-        // Bolhas de mergulho / respiração polar subaquática
+        // Bolhas de mergulho / respiração polar subaquática via pool de partículas
         if (bubbleTimer >= 3.8) {
           bubbleTimer = 0;
-          const bubble = k.add([
-            k.circle(1.5 * m.scale),
-            k.pos(orca.pos.x + 22 * m.scale, orca.pos.y - 8 * m.scale),
-            k.color(200, 235, 255),
-            k.opacity(0.45),
-            k.anchor("center"),
-            k.z(-4),
-          ]);
-          bubble.onUpdate(() => {
-            bubble.pos.y -= k.dt() * 24;
-            bubble.pos.x += Math.sin(bubble.pos.y * 0.1) * 0.5;
-            bubble.opacity -= k.dt() * 0.35;
-            if (bubble.opacity <= 0) k.destroy(bubble);
-          });
+          const pool = getParticlePool();
+          const bubblePos = k.vec2(orca.pos.x + 22 * m.scale, orca.pos.y - 8 * m.scale);
+          if (pool) {
+            pool.spawnCircle({
+              pos: bubblePos,
+              radius: 1.5 * m.scale,
+              color: k.rgb(200, 235, 255),
+              opacity: 0.45,
+              z: -4,
+              vel: k.vec2(0, -24),
+              fadeRate: 0.35,
+              maxLife: 1.4,
+            });
+          }
         }
       });
     });
@@ -108,6 +117,8 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
     { x: 10800, y: 320 },
   ];
 
+  const passingWhaleObjects: any[] = [];
+
   passingWhalePositions.forEach((pos) => {
     const whaleBg = k.add([
       k.sprite("jubarte_bg", { anim: "swim" }),
@@ -117,11 +128,14 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
       k.anchor("center"),
       k.z(-4),
     ]);
+    passingWhaleObjects.push(whaleBg);
+    cullingManager?.registerEntity(whaleBg, () => pos.x);
 
     let pulseTimer = 0;
     let swimTimer = Math.random() * 10;
 
     whaleBg.onUpdate(() => {
+      if (whaleBg.hidden) return;
       const dt = k.dt();
       pulseTimer += dt;
       swimTimer += dt;
@@ -178,7 +192,7 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
         }
 
         // 3. Canto da baleia distante se o jogador estiver em alcance auditivo (< 1500px)
-        const player = k.get(TAGS.PLAYER)[0];
+        const player = getActivePlayerObject();
         if (player && player.pos.dist(whaleBg.pos) < 1500) {
           audioSystem.playWhaleSong(0.42, 0.88);
         }
@@ -210,12 +224,17 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
     k.z(-4),
   ]);
 
+  cullingManager?.registerEntity(motherWhale, () => 25800);
+  cullingManager?.registerEntity(calfWhale, () => 25848);
+
   let sanctuaryTimer = 0;
   let motherPulseTimer = 0;
 
   motherWhale.onUpdate(() => {
-    sanctuaryTimer += k.dt();
-    motherPulseTimer += k.dt();
+    if (motherWhale.hidden) return;
+    const dt = k.dt();
+    sanctuaryTimer += dt;
+    motherPulseTimer += dt;
 
     // Nado em escalão: a mãe gera uma esteira suave e o filhote a acompanha
     motherWhale.pos.y = 260 + Math.sin(sanctuaryTimer * 0.75) * 8;
@@ -228,7 +247,7 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
     // Emissão de sonar acolhedor e canto do berçário se o jogador estiver próximo
     if (motherPulseTimer >= 8.5) {
       motherPulseTimer = 0;
-      const player = k.get(TAGS.PLAYER)[0];
+      const player = getActivePlayerObject();
       if (player && player.pos.dist(motherWhale.pos) < 1800) {
         // Anel de sonar ciano-dourado acolhedor
         const ring = k.add([
@@ -282,6 +301,8 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
     k.z(-7), // Plano mais distante de fundo abissal
   ]);
 
+  cullingManager?.registerEntity(leviathan, () => leviathan.pos.x);
+
   let levTimer = 0;
   let levCallTimer = 0;
 
@@ -295,13 +316,16 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
     if (leviathan.pos.x > 10800) {
       leviathan.pos.x = 8000;
     }
+
+    if (leviathan.hidden) return;
+
     leviathan.pos.y = 425 + Math.sin(levTimer * 0.4) * 14;
     leviathan.angle = Math.sin(levTimer * 0.4) * 3.0; // arfagem de mergulho profundo
 
     // A cada ~11 segundos, emite um infrassom oceânico e feixe de cliques acústicos
     if (levCallTimer >= 11.5) {
       levCallTimer = 0;
-      const player = k.get(TAGS.PLAYER)[0];
+      const player = getActivePlayerObject();
       if (player && player.pos.dist(leviathan.pos) < 1700) {
         audioSystem.playAbyssalWhaleCall();
 
@@ -342,4 +366,70 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
       }
     }
   });
+
+  // ===========================================================================
+  // 5. REGISTRO NO GERENCIADOR DE CICLO DE VIDA GEOGRÁFICO
+  // ===========================================================================
+  const biomeMgr = getBiomeLifecycleManager();
+  if (biomeMgr) {
+    let orcasActive = true;
+    biomeMgr.registerModule({
+      id: "fauna_orcas",
+      name: "Orcas Polares (Antártica)",
+      minX: 0,
+      maxX: 5000,
+      activate: () => {
+        orcasActive = true;
+      },
+      deactivate: () => {
+        orcasActive = false;
+      },
+      isActive: () => orcasActive,
+    });
+
+    let pelagicActive = true;
+    biomeMgr.registerModule({
+      id: "fauna_pelagic_whales",
+      name: "Jubartes Passantes (Mar Aberto)",
+      minX: 5000,
+      maxX: 12000,
+      activate: () => {
+        pelagicActive = true;
+      },
+      deactivate: () => {
+        pelagicActive = false;
+      },
+      isActive: () => pelagicActive,
+    });
+
+    let cachaloteActive = true;
+    biomeMgr.registerModule({
+      id: "fauna_cachalote",
+      name: "Cachalote Abissal",
+      minX: 7500,
+      maxX: 11200,
+      activate: () => {
+        cachaloteActive = true;
+      },
+      deactivate: () => {
+        cachaloteActive = false;
+      },
+      isActive: () => cachaloteActive,
+    });
+
+    let sanctuaryActive = true;
+    biomeMgr.registerModule({
+      id: "fauna_sanctuary",
+      name: "Berçário de Baleias (Santuário)",
+      minX: 24500,
+      maxX: 27500,
+      activate: () => {
+        sanctuaryActive = true;
+      },
+      deactivate: () => {
+        sanctuaryActive = false;
+      },
+      isActive: () => sanctuaryActive,
+    });
+  }
 }

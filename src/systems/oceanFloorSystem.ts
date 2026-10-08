@@ -1,5 +1,6 @@
 import type { KaboomCtx } from "kaboom";
 import { GAME_CONFIG, TAGS } from "../config";
+import { getSpatialCullingManager } from "./spatialCullingSystem";
 
 export interface SubmarineRelief {
   startX: number;
@@ -284,6 +285,7 @@ export function generateReliefCapPolygonPoints(
  */
 export function setupOceanFloorSystem(k: KaboomCtx) {
   const floorBaseY = k.height() - 40;
+  const cullingManager = getSpatialCullingManager();
 
   SUBMARINE_RELIEFS.forEach((relief) => {
     let revealTimer = 0;
@@ -340,6 +342,7 @@ export function setupOceanFloorSystem(k: KaboomCtx) {
         },
       },
     ]);
+    cullingManager?.registerEntity(shapeObj, () => relief.startX + relief.width / 2);
 
     // 2. Colisor Físico Sólido (Impede a baleia de atravessar o relevo)
     k.add([
@@ -357,24 +360,33 @@ export function setupOceanFloorSystem(k: KaboomCtx) {
     const capPoints = generateReliefCapPolygonPoints(relief, floorBaseY).map((pt) =>
       k.vec2(pt.x, pt.y)
     );
-    k.add([k.polygon(capPoints), k.pos(relief.startX, 0), k.color(capColor), k.z(2)]);
+    const capObj = k.add([
+      k.polygon(capPoints),
+      k.pos(relief.startX, 0),
+      k.color(capColor),
+      k.z(2),
+    ]);
+    cullingManager?.registerEntity(capObj, () => relief.startX + relief.width / 2);
 
     // 4. Detalhes Geológicos (Fendas minerais e pedregulhos)
     const detailCount = 3;
     for (let d = 0; d < detailCount; d++) {
       const dx = relief.startX + relief.width * (0.32 + d * 0.16);
       const dy = peakY + 12 + d * 6;
-      k.add([
+      const detailObj = k.add([
         k.rect(14 + d * 6, 2.5, { radius: 1 }),
         k.pos(dx, dy),
         k.color(k.rgb(capColor.r * 1.3, capColor.g * 1.3, capColor.b * 1.3)),
         k.opacity(0.6),
         k.z(2),
       ]);
+      cullingManager?.registerEntity(detailObj, () => dx);
     }
 
     // 5. Atualização de luminescência e eco por Biosonar
     shapeObj.onUpdate(() => {
+      if (shapeObj.hidden && revealTimer <= 0) return;
+
       if (revealTimer > 0) {
         revealTimer -= k.dt();
         const flashIntensity = Math.min(1, revealTimer / 1.5);

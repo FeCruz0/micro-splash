@@ -40,6 +40,7 @@ import { createKioskScene } from "./systems/kioskMode";
 import { setupTouchControls } from "./ui/touchControls";
 import { initParticlePool } from "./systems/particlePool";
 import { initBiomeLifecycleManager } from "./systems/biomeLifecycleManager";
+import { initSpatialCullingManager } from "./systems/spatialCullingSystem";
 import { recordMigrationStart, recordMigrationEnd } from "./systems/cumulativeStats";
 import { initPresentationMode } from "./systems/presentationMode";
 import { accessibilitySystem } from "./systems/accessibilitySystem";
@@ -323,13 +324,14 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
     }
   };
 
-  // 2. Instancia obstáculos, krill, redes e bolsões de ar procedurais (com semente determinística caso informada)
-  const obstacleData = loadLevelLayout(k, true, options.seed);
-
-  // 2.5. Inicializa Núcleo de Otimização & Performance (Fase 15) e Apresentação (Fase 16)
+  // 2.5. Inicializa Núcleo de Otimização & Performance (Fase 15 & 39) e Apresentação (Fase 16)
   const particlePool = initParticlePool(k);
   const biomeManager = initBiomeLifecycleManager(k);
+  const spatialCulling = initSpatialCullingManager(k);
   const presentationMode = initPresentationMode(k, playerController);
+
+  // 2. Instancia obstáculos, krill, redes e bolsões de ar procedurais (com semente determinística caso informada)
+  const obstacleData = loadLevelLayout(k, true, options.seed);
 
   // 3. Inicializa os Sistemas dos 5 Biomas e Correntezas Oceânicas Procedurais
   setupIceSurfaceSystem(k, playerController);
@@ -417,6 +419,8 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
   });
 
   let isRescueSequenceStarted = false;
+  let cachedEntityCount = 0;
+  let entityCountThrottleTimer = 0;
 
   // 6. Loop Principal
   k.onUpdate(() => {
@@ -444,11 +448,18 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
     const dt = k.dt();
     const playerXPosition = playerController.gameObj.pos.x;
 
-    // Atualização dos Sistemas de Performance de Baixo Nível (Fase 15)
+    // Atualização dos Sistemas de Performance de Baixo Nível (Fase 15 & 39)
     particlePool.update(dt);
     biomeManager.update(playerXPosition);
+    spatialCulling.update(k.camPos ? k.camPos().x : playerXPosition);
 
     if (debugDistanceUI.isVisible()) {
+      entityCountThrottleTimer += dt;
+      if (entityCountThrottleTimer >= 0.5 || cachedEntityCount === 0) {
+        entityCountThrottleTimer = 0;
+        cachedEntityCount = k.get("*").length;
+      }
+
       const stats = particlePool.getStats();
       const instantFps = Math.round(1 / Math.max(0.001, dt));
       const activeMods = biomeManager.getActiveModules();
@@ -456,7 +467,7 @@ k.scene("game", (options: GameOptions = { mode: "standard" }) => {
 
       debugDistanceUI.update(playerXPosition, {
         fps: instantFps,
-        entities: k.get("*").length,
+        entities: cachedEntityCount,
         activeParticles: stats.activeCircles + stats.activeRects,
         totalParticles: stats.totalCircles + stats.totalRects,
         activeModules: modsText,

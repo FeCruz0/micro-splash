@@ -286,28 +286,35 @@ export function generateProceduralLayout(
  * @param seed - Semente opcional de inicialização (se omitida, gera aleatória).
  * @returns Objeto com os metadados das posições geradas.
  */
+import { getSpatialCullingManager } from "./spatialCullingSystem";
+
 export function spawnProceduralLevel(k: KaboomCtx, seed?: number): ProceduralObstacleData {
   const actualSeed = seed ?? Math.floor(Math.random() * 1000000);
   const layout = generateProceduralLayout(actualSeed, k.height());
+  const cullingManager = getSpatialCullingManager();
 
   // Instancia Lixos Plásticos
   layout.trashPositions.forEach((pos) => {
-    createTrash(k, k.vec2(pos.x, pos.y));
+    const trash = createTrash(k, k.vec2(pos.x, pos.y));
+    cullingManager?.registerEntity(trash, () => pos.x);
   });
 
   // Instancia Krills
   layout.krillPositions.forEach((pos) => {
-    createKrill(k, k.vec2(pos.x, pos.y));
+    const krill = createKrill(k, k.vec2(pos.x, pos.y));
+    cullingManager?.registerEntity(krill, () => pos.x);
   });
 
   // Instancia Redes Fantasmas
   layout.netPositions.forEach((pos) => {
-    createGhostNet(k, k.vec2(pos.x, pos.y));
+    const net = createGhostNet(k, k.vec2(pos.x, pos.y));
+    cullingManager?.registerEntity(net, () => pos.x);
   });
 
   // Instancia Colunas de Bolhas Naturais (Bolsões de Ar)
   layout.bubbleVentPositions.forEach((vent) => {
-    createBubbleVent(k, k.vec2(vent.x, vent.y), vent.height ?? 220);
+    const ventObj = createBubbleVent(k, k.vec2(vent.x, vent.y), vent.height ?? 220);
+    cullingManager?.registerEntity(ventObj, () => vent.x);
   });
 
   return layout;

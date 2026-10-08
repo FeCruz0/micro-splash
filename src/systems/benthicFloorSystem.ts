@@ -1,5 +1,7 @@
 import kaboom, { type GameObj } from "kaboom";
 import { calculateBiomeTransitionFactor } from "./biomeTransitionSystem";
+import { getSpatialCullingManager } from "./spatialCullingSystem";
+import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 
 interface KelpPlant {
   segments: GameObj[];
@@ -56,6 +58,7 @@ export const LITHOTHAMNION_SPAWN_X = [
  */
 export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
   const floorY = k.height() - 40;
+  const cullingManager = getSpatialCullingManager();
 
   // ===========================================================================
   // 1. FLORESTAS DE KELP GIGANTE NA ANTÁRTICA (0m a 5.000m)
@@ -85,6 +88,7 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
         k.z(s % 2 === 0 ? -3 : 2), // Alterna camadas para profundidade 2.5D
         "kelp_segment",
       ]);
+      cullingManager?.registerEntity(stem, () => xPos);
 
       // Lâmina foliar lateral ondulante
       const leafSide = s % 2 === 0 ? 1 : -1;
@@ -100,6 +104,7 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
         k.z(-3),
         "kelp_leaf",
       ]);
+      cullingManager?.registerEntity(leaf, () => xPos);
 
       segments.push(stem);
       segments.push(leaf);
@@ -142,6 +147,7 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
         k.z(-3),
         "polar_red_algae",
       ]);
+      cullingManager?.registerEntity(blade, () => xPos);
       blades.push(blade);
     }
 
@@ -181,6 +187,7 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
         k.z(-3),
         "urban_seagrass",
       ]);
+      cullingManager?.registerEntity(blade, () => xPos);
       blades.push(blade);
     }
 
@@ -194,7 +201,7 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
             ? k.rgb(60, 160, 230) // Sacola plástica azul
             : k.rgb(230, 230, 230); // Fita de isopor/branca
 
-    k.add([
+    const waste = k.add([
       k.rect(3.5, 3.5, { radius: 1 }),
       k.pos(xPos + 3, floorY - 8 - (sIdx % 3) * 6),
       k.color(trashColor),
@@ -204,6 +211,7 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
       k.z(-2),
       "entangled_plastic_waste",
     ]);
+    cullingManager?.registerEntity(waste, () => xPos);
 
     urbanSeagrassPlants.push({
       blades,
@@ -223,7 +231,7 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
     // Tonalidades rosadas e arroxeadas autênticas de algas calcárias (Lithothamnion)
     const crustColor = k.rgb(180 + (lIdx % 3) * 12, 95 + (lIdx % 4) * 8, 135 + (lIdx % 2) * 16);
 
-    k.add([
+    const crust = k.add([
       k.rect(crustW, crustH, { radius: 2 }),
       k.pos(xPos, floorY - 2 + (lIdx % 3) * 1.2),
       k.color(crustColor),
@@ -231,10 +239,11 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
       k.z(-3),
       "lithothamnion_crust",
     ]);
+    cullingManager?.registerEntity(crust, () => xPos);
 
     // Nódulos de rodolitos circulares dispersos adjacentes
     if (lIdx % 2 === 0) {
-      k.add([
+      const nodule = k.add([
         k.circle(3.5),
         k.pos(xPos + crustW * 0.7, floorY - 3),
         k.color(195, 110, 145),
@@ -242,6 +251,7 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
         k.z(-3),
         "lithothamnion_nodule",
       ]);
+      cullingManager?.registerEntity(nodule, () => xPos);
     }
   });
 
@@ -270,9 +280,10 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
         k.z(-3),
         "coral_brain",
       ]);
+      cullingManager?.registerEntity(brain, () => xPos);
 
       // Sulcos internos do coral-cérebro
-      k.add([
+      const groove = k.add([
         k.circle(12),
         k.pos(xPos, floorY - 14),
         k.color(255, 155, 165),
@@ -280,6 +291,7 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
         k.anchor("center"),
         k.z(-3),
       ]);
+      cullingManager?.registerEntity(groove, () => xPos);
 
       corals.push({ obj: brain, type: "brain", baseY: floorY - 6, animPhase: cIdx });
     } else if (coralType === "fan") {
@@ -300,6 +312,7 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
         k.z(-3),
         "coral_fan",
       ]);
+      cullingManager?.registerEntity(fan, () => xPos);
 
       corals.push({ obj: fan, type: "fan", baseY: floorY, animPhase: cIdx });
     } else {
@@ -314,6 +327,7 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
         k.z(-3),
         "coral_anemone",
       ]);
+      cullingManager?.registerEntity(anemone, () => xPos);
 
       // Tentáculos da anêmona
       const tentacles: GameObj[] = [];
@@ -327,6 +341,7 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
           k.rotate(t * 8),
           k.z(-3),
         ]);
+        cullingManager?.registerEntity(tentacle, () => xPos);
         tentacles.push(tentacle);
       }
 
@@ -348,8 +363,10 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
           phase: cIdx * 1.7,
         },
       ]);
+      cullingManager?.registerEntity(reefFish, () => reefFish.pos.x);
 
       reefFish.onUpdate(() => {
+        if (reefFish.hidden) return;
         const t = k.time();
         reefFish.pos.x =
           reefFish.basePos.x + Math.sin(t * reefFish.swimSpeed + reefFish.phase) * 18;
@@ -369,6 +386,7 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
     if (camX < 5500) {
       kelpForest.forEach((plant) => {
         if (Math.abs(plant.baseX - camX) > viewDist) return;
+        if (plant.segments[0]?.hidden) return;
 
         const baseSway = Math.sin(time * plant.swaySpeed + plant.swayPhase);
 
@@ -383,6 +401,7 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
 
       polarAlgaePlants.forEach((algae) => {
         if (Math.abs(algae.baseX - camX) > viewDist) return;
+        if (algae.blades[0]?.hidden) return;
         const sway = Math.sin(time * algae.swaySpeed + algae.swayPhase);
         algae.blades.forEach((blade, bIdx) => {
           blade.angle = (bIdx - algae.blades.length / 2) * 8 + sway * 12;
@@ -394,6 +413,7 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
     if (camX >= 11500 && camX <= 19500) {
       urbanSeagrassPlants.forEach((grass) => {
         if (Math.abs(grass.baseX - camX) > viewDist) return;
+        if (grass.blades[0]?.hidden) return;
         const sway = Math.sin(time * grass.swaySpeed + grass.swayPhase);
         grass.blades.forEach((blade, bIdx) => {
           blade.angle = (bIdx - grass.blades.length / 2) * 6 + sway * 10;
@@ -405,6 +425,7 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
     if (camX > 18500) {
       corals.forEach((coral) => {
         if (Math.abs(coral.obj.pos.x - camX) > viewDist) return;
+        if (coral.obj.hidden) return;
 
         if (coral.type === "fan") {
           coral.obj.angle = Math.sin(time * 1.4 + coral.animPhase) * 4;
@@ -428,4 +449,55 @@ export function setupBenthicFloorSystem(k: ReturnType<typeof kaboom>) {
       });
     }
   });
+
+  // ===========================================================================
+  // 5. REGISTRO NO GERENCIADOR DE CICLO DE VIDA GEOGRÁFICO
+  // ===========================================================================
+  const biomeMgr = getBiomeLifecycleManager();
+  if (biomeMgr) {
+    let polarActive = true;
+    biomeMgr.registerModule({
+      id: "benthic_polar",
+      name: "Bentos Polar (Kelp & Algas)",
+      minX: 0,
+      maxX: 5200,
+      activate: () => {
+        polarActive = true;
+      },
+      deactivate: () => {
+        polarActive = false;
+      },
+      isActive: () => polarActive,
+    });
+
+    let urbanActive = true;
+    biomeMgr.registerModule({
+      id: "benthic_urban",
+      name: "Bentos Urbano (Ervas & Resíduos)",
+      minX: 11800,
+      maxX: 19200,
+      activate: () => {
+        urbanActive = true;
+      },
+      deactivate: () => {
+        urbanActive = false;
+      },
+      isActive: () => urbanActive,
+    });
+
+    let coralActive = true;
+    biomeMgr.registerModule({
+      id: "benthic_coral",
+      name: "Bentos Coralino (Rodolitos & Recifes)",
+      minX: 18800,
+      maxX: 30200,
+      activate: () => {
+        coralActive = true;
+      },
+      deactivate: () => {
+        coralActive = false;
+      },
+      isActive: () => coralActive,
+    });
+  }
 }
