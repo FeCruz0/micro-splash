@@ -93,15 +93,15 @@ k.onKeyPress("f11", () => {
 });
 
 k.loadSprite("baleia", "/sprites/whale.png", {
-  sliceX: 8,
+  sliceX: 16,
   sliceY: 1,
   anims: {
     glide: 0,
-    idle_swim: { from: 1, to: 6, loop: true, speed: 3.6 },
-    stroke_up: { from: 1, to: 2, speed: 10 },
-    stroke_down: { from: 3, to: 6, speed: 12 },
-    swim: { from: 1, to: 6, loop: true, speed: 8 },
-    feed: 7,
+    idle_swim: { from: 1, to: 4, loop: true, speed: 4 },
+    stroke_down: { from: 5, to: 9, speed: 14 },
+    stroke_up: { from: 10, to: 13, speed: 12 },
+    swim: { from: 5, to: 13, loop: true, speed: 10 },
+    feed: { from: 14, to: 15, loop: true, speed: 6 },
   },
 });
 

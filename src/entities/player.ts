@@ -21,6 +21,7 @@ import {
   type DualPectoralFinsData,
 } from "./player/playerPectoralFin";
 import { calculateWhalePuppetRig, type PuppetRigTransforms } from "./player/playerPuppetRig";
+import type { WhaleAnimationState } from "./player/playerAnimation";
 
 export type { PlayerController } from "./player/types";
 
@@ -99,8 +100,7 @@ export function createPlayer(
   const sonarMgr = new PlayerSonarManager(k);
   const controlsMgr = new PlayerControlsManager(k, touchState);
 
-  let animState: "glide" | "idle_swim" | "stroke_up" | "stroke_down" | "swim" | "feed" =
-    "idle_swim";
+  let animState: WhaleAnimationState = "idle_swim";
   let feedTimer = 0;
 
   let isTrapped = false;
@@ -314,7 +314,7 @@ export function createPlayer(
     } else {
       if (isStrokeInMotion && !isTrapped && !oxygenMgr.isFaintingState()) {
         const strokePhase = physicsMgr.getStrokeTimer() / GAME_CONFIG.MAX_STROKE_TIME;
-        const targetAnim = strokePhase < 0.5 ? "stroke_up" : "stroke_down";
+        const targetAnim: WhaleAnimationState = strokePhase <= 0.55 ? "stroke_down" : "stroke_up";
         if (animState !== targetAnim) {
           animState = targetAnim;
           baleia.play(targetAnim);
@@ -738,5 +738,8 @@ export function createPlayer(
 
     // Fase 43: Articulação Multissegmentar de Cauda e Flukes (Multi-Part Puppet Rig)
     getPuppetRigTransforms: () => currentPuppetRigTransforms,
+
+    // Fase 44: Spritesheet Expandido de 16 Quadros e Interpolação Harmônica
+    getAnimationState: () => animState,
   };
 }

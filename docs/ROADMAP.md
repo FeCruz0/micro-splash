@@ -638,9 +638,9 @@ _Objetivo: Estruturar hierarquia de nós esqueléticos (Puppet Rig) para desvinc
 
 _Objetivo: Expandir o spritesheet `whale.png` de 8 para 16 quadros com ciclos completos de downstroke, upstroke e micro-movimentos anatômicos desenhados à mão._
 
-- [ ] **44.1 Redesenho e Expansão do Spritesheet para 16 Quadros (`public/sprites/whale.png`, `src/main.ts`):**
+- [x] **44.1 Redesenho e Expansão do Spritesheet para 16 Quadros (`public/sprites/whale.png`, `src/main.ts`):**
   - Expandir a folha de sprites com 16 frames com curvatura sagital anatômica e poses intermediárias de flexão.
-- [ ] **44.2 Mapeamento Harmônico de Animações com Interpolador de Estados (`src/entities/player.ts`):**
+- [x] **44.2 Mapeamento Harmônico de Animações com Interpolador de Estados (`src/entities/player.ts`):**
   - Mapear a transição suave entre poses em função da velocidade de nado e do estado físico.
-- [ ] **44.3 Testes de Carregamento e Consistência de Animação (`tests/phase44_high_frame_sprites.test.ts`):**
+- [x] **44.3 Testes de Carregamento e Consistência de Animação (`tests/phase44_high_frame_sprites.test.ts`):**
   - Testes de integridade das dimensões da textura, framesets e reprodução contínua.

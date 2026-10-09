@@ -4,12 +4,12 @@ const zlib = require("node:zlib");
 
 // =============================================================================
 // GERADOR PROCEDURAL DA JUBARTE PROTAGONISTA (Megaptera novaeangliae)
-// Polimento Visual Total — 8 frames × 128×64 px = 1024×64 px
+// Polimento Visual Total — 16 frames × 128×64 px = 2048×64 px
 // Proporções anatômicas reais: corpo achatado dorsoventralmente, ventre volumoso,
 // cabeça larga com rostro achatado, peitorais gigantes em foice.
 // =============================================================================
 
-const WIDTH = 1024;
+const WIDTH = 2048;
 const HEIGHT = 64;
 const FRAME_W = 128;
 
@@ -245,32 +245,68 @@ function renderFrame(fi) {
   let tailOff = 0,
     flukeTilt = 0,
     pecOff = 0;
-  const isFeed = fi === 7;
+  const isFeed = fi >= 14;
 
   if (fi === 1) {
-    tailOff = -3.5;
-    flukeTilt = -0.22;
-    pecOff = -1.0;
-  } else if (fi === 2) {
-    tailOff = -5.8;
-    flukeTilt = -0.36;
-    pecOff = -1.6;
-  } else if (fi === 3) {
     tailOff = -1.2;
+    flukeTilt = -0.08;
+    pecOff = -0.4;
+  } else if (fi === 2) {
+    tailOff = 0.0;
+    flukeTilt = 0.0;
+    pecOff = 0.0;
+  } else if (fi === 3) {
+    tailOff = 1.2;
     flukeTilt = 0.08;
     pecOff = 0.4;
   } else if (fi === 4) {
-    tailOff = 3.5;
-    flukeTilt = 0.25;
-    pecOff = 1.1;
+    tailOff = 0.0;
+    flukeTilt = 0.0;
+    pecOff = 0.0;
   } else if (fi === 5) {
+    tailOff = 1.5;
+    flukeTilt = 0.1;
+    pecOff = 0.5;
+  } else if (fi === 6) {
+    tailOff = 3.6;
+    flukeTilt = 0.24;
+    pecOff = 1.1;
+  } else if (fi === 7) {
     tailOff = 5.8;
     flukeTilt = 0.38;
     pecOff = 1.6;
-  } else if (fi === 6) {
-    tailOff = 1.6;
-    flukeTilt = 0.12;
-    pecOff = 0.5;
+  } else if (fi === 8) {
+    tailOff = 4.2;
+    flukeTilt = 0.28;
+    pecOff = 1.2;
+  } else if (fi === 9) {
+    tailOff = 2.0;
+    flukeTilt = 0.14;
+    pecOff = 0.6;
+  } else if (fi === 10) {
+    tailOff = -1.5;
+    flukeTilt = -0.1;
+    pecOff = -0.4;
+  } else if (fi === 11) {
+    tailOff = -3.8;
+    flukeTilt = -0.24;
+    pecOff = -1.1;
+  } else if (fi === 12) {
+    tailOff = -5.8;
+    flukeTilt = -0.36;
+    pecOff = -1.6;
+  } else if (fi === 13) {
+    tailOff = -3.2;
+    flukeTilt = -0.2;
+    pecOff = -0.9;
+  } else if (fi === 14) {
+    tailOff = 0.5;
+    flukeTilt = 0.04;
+    pecOff = 0.2;
+  } else if (fi === 15) {
+    tailOff = 0.0;
+    flukeTilt = 0.0;
+    pecOff = 0.0;
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -769,8 +805,8 @@ function renderFrame(fi) {
   }
 }
 
-// Renderiza os 8 frames
-for (let f = 0; f < 8; f++) renderFrame(f);
+// Renderiza os 16 frames
+for (let f = 0; f < 16; f++) renderFrame(f);
 
 // =============================================================================
 // FASE 7: SELF-SHADOW — borda inferior de cada pixel opaco recebe sombra oceânica

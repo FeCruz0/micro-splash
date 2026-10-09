@@ -55,4 +55,7 @@ export interface PlayerController {
 
   // Fase 43: Articulação Multissegmentar de Cauda e Flukes (Multi-Part Puppet Rig)
   getPuppetRigTransforms?: () => any;
+
+  // Fase 44: Spritesheet Expandido de 16 Quadros e Interpolação Harmônica
+  getAnimationState?: () => string;
 }
