@@ -1,72 +1,73 @@
-# Plano de Implementação — Fase 42: Nadadeiras Peitorais Independentes e Hidrodinâmica de Diedro (Floating Pectoral Hydrofoils)
+# Plano de Implementação — Fase 43: Articulação Multissegmentar de Cauda e Flukes (Multi-Part Puppet Rig)
 
 Status: Concluído
 Data: 2026-10-08
-Alvo: v1.18.0
+Alvo: v1.19.0
 
 ---
 
-## 🔬 Diagnóstico e Fundamentação Biomecânica da Fase 42
+## 🔬 Diagnóstico e Fundamentação Biomecânica da Fase 43
 
-1. **Assinatura Anatômica da Jubarte (_Megaptera novaeangliae_)**:
-   - As nadadeiras peitorais da jubarte são as maiores do reino animal (~33% do comprimento total do corpo, medindo até 5 metros em espécimes adultas).
-   - Elas possuem **tubérculos hidrodinâmicos** na borda de ataque e operam como verdadeiros hidroplanos de alta manobrabilidade.
-   - Em animais reais, as peitorais **nunca ficam coladas estaticamente à lateral do corpo**:
-     - Durante curvas e giros verticais (subida/descida), elas alteram o **ângulo diedro** (abertura para cima/baixo) e o enflechamento (_sweep_).
-     - Durante planeios em alta velocidade, flexionam para trás reduzindo o arrasto hidrodinâmico.
-     - Durante repouso na maré, ondulam suavemente como asas de planador suspensas na correnteza.
+1. **Cinemática Caudal de Cetáceos (_Megaptera novaeangliae_)**:
+   - Em mamíferos marinhos reais, a propulsão é gerada por oscilação vertical da coluna lombar e do pedúnculo caudal.
+   - O crânio e o tórax atuam como corpo hidrodinâmico semi-rígido de sustentação (líder cinemático), enquanto a cauda e os flukes formam uma cadeia de múltiplos elos flexíveis amortecidos por água.
+   - **Ângulo de Ataque Dinâmico ($\alpha\_{\text{AoA}}$)**:
+     - A lâmina terminal dos flukes (cauda bifurcada) não permanece fixa no mesmo ângulo do pedúnculo.
+     - Durante a batida descendente (_downstroke_), a lâmina dos flukes flete para cima contra a resistência da água gerando sustentação vetorial para frente.
+     - Durante a batida ascendente (_upstroke_), a lâmina flete para baixo.
+     - Em repouso e planeio hidrodinâmico, a cauda acomoda-se com amortecimento viscoso passivo à esteira de fluxo.
 
 2. **Limitação Atual no Jogo**:
-   - As nadadeiras peitorais estão desenhadas como pixels fixos na textura de `whale.png`.
-   - Embora a Fase 40 tenha adicionado a emissão de vórtices peitorais (`spawnPectoralTipVortices`), a nadadeira em si não possui mobilidade geométrica independente, mantendo a impressão visual de rigidez escapular.
+   - A Fase 41 implementou fatiamento vertical sagital com defasagem de fase senoidal contínua.
+   - No entanto, a orientação da cauda terminal e dos flukes ainda depende de funções senoidais isoladas, sem uma cadeia esquelética hierárquica articulada que calcule o vetor de fluxo d'água incidente e o ângulo de ataque real da lâmina propulsora.
 
 3. **Arquitetura da Solução**:
-   - Criar uma camada procedural e articulada de **hidroplanos peitorais flutuantes** (`playerPectoralFin.ts`) acoplada ao tórax da baleia:
-     - **Nadadeira Frontal (Foreground, z > 0)**: Asa em foice com dorso escuro e ventre branco estriado, respondendo a diedro e rolagem.
-     - **Nadadeira Traseira (Background, z < 0)**: Asa oposta renderizada com perspectiva comprimida e iluminação atenuada.
-     - Ponta da asa móvel que alimenta diretamente a emissão de micro-vórtices em manobras bruscas.
+   - Criar módulo cinemático hierárquico `playerPuppetRig.ts`:
+     - **Cadeia de 4 Nós Esqueléticos**:
+       1. `CranialThorax` (Raiz / Líder cinemático).
+       2. `AbdominalSpine` (Junta lombar flexível).
+       3. `CaudalPeduncle` (Junta oscilatória de alta amplitude).
+       4. `FlukeBlade` (Hidroplano terminal com rotação de ângulo de ataque $\alpha_{\text{AoA}}$).
+     - Integração direta com `playerSliceRenderer.ts` e `player.ts` para enriquecer a deformação sagital contínua com cinemática de esqueleto orgânico.
 
 ---
 
 ## 📋 Lista de Tarefas Atômicas
 
-- [x] **42.1 Módulo Cinemático de Hidroplanos Peitorais (`src/entities/player/playerPectoralFin.ts`)**
-  - **Arquivos**: `src/entities/player/playerPectoralFin.ts`
+- [x] **43.1 Módulo Hierárquico de Puppet Rig (`src/entities/player/playerPuppetRig.ts`)**
+  - **Arquivos**: `src/entities/player/playerPuppetRig.ts`
   - **Ação**:
-    - Definir as interfaces `PectoralFinTransform` e `PectoralFinComputationParameters`.
-    - Implementar a função pura `calculatePectoralFinTransform(...)`:
-      - Ponto de fixação no tórax (Fatia 1 / x = ~16px, y = ~8px relativo ao centro do corpo).
-      - Rastrear ângulo diedro dinâmico: $\theta_{\text{dihedral}} \in [-18^\circ, +24^\circ]$ proporcional à velocidade angular de arfagem (`pitchAngularVelocity`) e à rolagem em perspectiva (`currentRoll`).
-      - Calcular enflechamento (_sweep_): recuo da ponta da nadadeira em alta velocidade ($\theta_{\text{sweep}} \in [0^\circ, 22^\circ]$ proporcional a `horizontalSpeed / 200`).
-      - Calcular coordenadas exatas da base e da ponta da nadadeira (necessárias para emissão de vórtices).
+    - Definir as interfaces de nó esquelético `PuppetBoneNode`, `PuppetRigTransforms` e parâmetros `PuppetRigParameters`.
+    - Implementar a função cinemática pura `calculateWhalePuppetRig(...)`:
+      - Resolver cadeia cinemática direta (_forward kinematics_) a partir do nó raiz.
+      - Calcular amortecimento inercial e restrições articulares anatômicas (limites angulares de flexão).
 
-- [x] **42.2 Renderização Procedural com Perspectiva e Camadas Z (`src/entities/player/playerPectoralFin.ts`)**
-  - **Arquivos**: `src/entities/player/playerPectoralFin.ts`
+- [x] **43.2 Hidrodinâmica da Lâmina dos Flukes com Ângulo de Ataque ($\alpha\_{\text{AoA}}$) (`src/entities/player/playerPuppetRig.ts`)**
+  - **Arquivos**: `src/entities/player/playerPuppetRig.ts`
   - **Ação**:
-    - Implementar componente visual que desenha a silhueta em foice com curvatura anatômica e tubérculos suaves na borda de ataque.
-    - Separar em camada frontal (asa visível com ventre claro) e camada dorsal oposta (asa de fundo escurecida para profundidade 3D).
-    - Modular a escala em perspectiva com base no `currentRoll` e na arfagem.
+    - Calcular a velocidade vetorial instantânea da lâmina e o fluxo de água incidente.
+    - Deduzir $\alpha_{\text{AoA}} \in [-28^\circ, +28^\circ]$ para gerar empuxo propulsor ótimo no _downstroke_ e _upstroke_.
+    - Modelar complacência viscosa passiva em repouso marinho e planeio hidrodinâmico.
 
-- [x] **42.3 Integração com a Entidade Baleia e Emissores de Vórtice (`src/entities/player.ts`, `src/entities/player/playerParticles.ts`)**
-  - **Arquivos**: `src/entities/player.ts`, `src/entities/player/playerParticles.ts`
+- [x] **43.3 Acoplamento do Puppet Rig ao Renderizador Sagital e ao Jogador (`src/entities/player/playerSliceRenderer.ts`, `src/entities/player.ts`, `src/entities/player/types.ts`)**
+  - **Arquivos**: `src/entities/player/playerSliceRenderer.ts`, `src/entities/player.ts`, `src/entities/player/types.ts`
   - **Ação**:
-    - Anexar as nadadeiras peitorais ao ciclo de renderização e atualização de `baleia`.
-    - Atualizar `spawnPectoralTipVortices` para receber a posição real calculada da ponta da nadadeira peitoral, eliminando aproximações estáticas de offset.
-    - Sincronizar a ondulação de repouso das aletas com o `idleBlend` e o swell marinho.
+    - Alimentar as fatias corporais (`WhaleSliceData`) com as rotações e deltas locais dos nós esqueléticos correspondentes.
+    - Expor `getPuppetRigTransforms` no `PlayerController` para inspeção e testes.
 
-- [x] **42.4 Testes Automatizados de Articulação Peitoral (`tests/phase42_pectoral_fin.test.ts`)**
-  - **Arquivos**: `tests/phase42_pectoral_fin.test.ts`
+- [x] **43.4 Suíte de Testes Automatizados de Puppet Rig (`tests/phase43_puppet_rig.test.ts`)**
+  - **Arquivos**: `tests/phase43_puppet_rig.test.ts`
   - **Ação**:
-    - Testar cálculo de diedro em manobras de subida e descida.
-    - Testar enflechamento progressivo com aumento de velocidade horizontal.
-    - Validar posições de ponta de asa e coordenadas de emissão de vórtices.
-    - Garantir 100% de aprovação na suíte global (52+ arquivos de teste).
+    - Testar estabilidade da cadeia cinemática (comprimento total preservado e sem quebras).
+    - Testar resposta angular de $\alpha_{\text{AoA}}$ em fases ativas de propulsão e planeio.
+    - Testar espelhamento especular de orientação (direita vs esquerda).
+    - Assegurar 100% de aprovação e zero regressão na suíte global de testes.
 
 ---
 
 ## 🧪 Estratégia de Testes
 
-1. Executar `npx vitest run tests/phase42_pectoral_fin.test.ts`.
-2. Executar `npx vitest run tests/phase41_whale_slice_deformation.test.ts tests/phase40_whale_pitch_biomechanics.test.ts tests/visuals.test.ts`.
-3. Executar `npm test` para assegurar regressão zero na suíte global.
-4. Executar `npm run build` para validação rigorosa de tipagem e empacotamento Vite.
+1. Executar `npx vitest run tests/phase43_puppet_rig.test.ts`.
+2. Executar `npx vitest run tests/phase42_pectoral_fin.test.ts tests/phase41_whale_slice_deformation.test.ts tests/phase40_whale_pitch_biomechanics.test.ts`.
+3. Executar `npm test` para assegurar 100% de sucesso na suíte completa (54 arquivos de teste).
+4. Executar `npm run build` para garantir estrita conformidade de tipos TypeScript e empacotamento Vite.

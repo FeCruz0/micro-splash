@@ -20,6 +20,7 @@ import {
   setupPectoralFins,
   type DualPectoralFinsData,
 } from "./player/playerPectoralFin";
+import { calculateWhalePuppetRig, type PuppetRigTransforms } from "./player/playerPuppetRig";
 
 export type { PlayerController } from "./player/types";
 
@@ -115,6 +116,7 @@ export function createPlayer(
   let pectoralVortexTimer = 0; // Temporizador para emissão de vórtices peitorais em rotação (Fase 40.5)
   let currentSliceTransforms: WhaleSliceData[] = []; // Fatias corporais sagitais da coluna (Fase 41)
   let currentPectoralFinTransforms: DualPectoralFinsData | null = null; // Hidroplanos peitorais com diedro (Fase 42)
+  let currentPuppetRigTransforms: PuppetRigTransforms | null = null; // Cadeia esquelética multissegmentar (Fase 43)
   const pectoralFinsSystem = setupPectoralFins(k, baleia);
 
   const causticsComps: any[] = [
@@ -368,6 +370,20 @@ export function createPlayer(
     const pitchFlexion = controlsMgr.getPitchFlexion();
     const pitchVelocity = controlsMgr.getPitchAngularVelocity();
 
+    // Fase 43: Articulação Multissegmentar de Cauda e Flukes (Multi-Part Puppet Rig)
+    currentPuppetRigTransforms = calculateWhalePuppetRig({
+      bodyAngleInDegrees: baleia.angle,
+      spineCurvatureInDegrees: spineCurvature,
+      pitchAngularVelocity: pitchVelocity,
+      strokeProgress: physicsMgr.getStrokeTimer() / GAME_CONFIG.MAX_STROKE_TIME,
+      isMuscularStroke,
+      horizontalSpeed,
+      verticalSpeed: physicsMgr.getSpeed().y,
+      idleBlendFactor: idleBlend,
+      timeInSeconds: k.time(),
+      isFacingRight: controlsMgr.isFacingRight(),
+    });
+
     // Fase 41: Deformação Sagital por Fatiamento Segmentado (Vertical Slice Ribbon)
     currentSliceTransforms = calculateWhaleSliceTransforms({
       spineCurvatureInDegrees: spineCurvature,
@@ -379,6 +395,7 @@ export function createPlayer(
       horizontalSpeed,
       idleBlendFactor: idleBlend,
       isFacingRight: controlsMgr.isFacingRight(),
+      puppetRig: currentPuppetRigTransforms,
     });
 
     // Fase 42: Nadadeiras Peitorais Independentes e Hidrodinâmica de Diedro
@@ -718,5 +735,8 @@ export function createPlayer(
 
     // Fase 42: Nadadeiras Peitorais Independentes e Hidrodinâmica de Diedro
     getPectoralFinTransforms: () => currentPectoralFinTransforms,
+
+    // Fase 43: Articulação Multissegmentar de Cauda e Flukes (Multi-Part Puppet Rig)
+    getPuppetRigTransforms: () => currentPuppetRigTransforms,
   };
 }

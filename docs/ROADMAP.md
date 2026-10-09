@@ -627,11 +627,11 @@ _Objetivo: Destacar as nadadeiras peitorais gigantescas da jubarte com camada ar
 
 _Objetivo: Estruturar hierarquia de nós esqueléticos (Puppet Rig) para desvincular a cabeça rígida da cauda oscilatória, permitindo ampla deformação angular._
 
-- [ ] **43.1 Decomposição Hierárquica em Nós (`src/entities/player/playerPuppetRig.ts`):**
+- [x] **43.1 Decomposição Hierárquica em Nós (`src/entities/player/playerPuppetRig.ts`):**
   - Estruturar rig hierárquico dividindo a baleia em Cabeça-Tórax (líder cinemático) e Cauda-Flukes (seguidor inercial amortecido).
-- [ ] **43.2 Articulação de Flukes com Ângulo de Ataque Dinâmico (`src/entities/player/playerPuppetRig.ts`):**
+- [x] **43.2 Articulação de Flukes com Ângulo de Ataque Dinâmico (`src/entities/player/playerPuppetRig.ts`):**
   - Calcular ângulo de ataque ótimo da lâmina caudal contra o vetor de fluxo d'água durante propulsão muscular e repouso.
-- [ ] **43.3 Testes de Rigging e Desempenho (`tests/phase43_puppet_rig.test.ts`):**
+- [x] **43.3 Testes de Rigging e Desempenho (`tests/phase43_puppet_rig.test.ts`):**
   - Testes unitários para estabilidade das juntas cinemáticas e ausência de sobrecarga de renderização.
 
 ### 🎨 FASE 44: Expansão do Spritesheet de Alta Fluidez e Detalhamento Biomecânico (High-Frame Pixel Art)

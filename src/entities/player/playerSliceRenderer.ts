@@ -37,6 +37,8 @@ export interface WhaleSliceData {
   };
 }
 
+import type { PuppetRigTransforms } from "./playerPuppetRig";
+
 export interface WhaleSliceComputationParameters {
   /** Curvatura espinhal elástica instantânea da coluna (headAngle - tailAngle, em graus) */
   spineCurvatureInDegrees: number;
@@ -56,6 +58,8 @@ export interface WhaleSliceComputationParameters {
   idleBlendFactor: number;
   /** Orientação horizontal da baleia (true = virada para a direita, false = esquerda) */
   isFacingRight: boolean;
+  /** Esqueleto de Puppet Rig opcional para acoplamento dinâmico dos flukes */
+  puppetRig?: PuppetRigTransforms | null;
 }
 
 /** Configuração anatômica estática das 4 seções corporais no spritesheet de 128x64 px */
@@ -199,9 +203,11 @@ export function calculateWhaleSliceTransforms(
       : -sliceConfig.baseLocalCenterX;
 
     // Ângulo relativo composto da fatia
-    const relativeAngleInDegrees = isFacingRight
-      ? spineDeflectionAngleInDegrees + shearAngleInDegrees * 0.4
-      : -(spineDeflectionAngleInDegrees + shearAngleInDegrees * 0.4);
+    let combinedRelativeAngle = spineDeflectionAngleInDegrees + shearAngleInDegrees * 0.4;
+    if (sliceConfig.name === "flukes" && parameters.puppetRig) {
+      combinedRelativeAngle += parameters.puppetRig.flukeAngleOfAttackInDegrees * 0.35;
+    }
+    const relativeAngleInDegrees = isFacingRight ? combinedRelativeAngle : -combinedRelativeAngle;
 
     // Compressão sagital em função da flexão
     const sliceScaleY =

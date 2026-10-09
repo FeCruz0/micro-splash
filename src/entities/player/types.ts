@@ -52,4 +52,7 @@ export interface PlayerController {
 
   // Fase 42: Nadadeiras Peitorais Independentes e Hidrodinâmica de Diedro
   getPectoralFinTransforms?: () => any;
+
+  // Fase 43: Articulação Multissegmentar de Cauda e Flukes (Multi-Part Puppet Rig)
+  getPuppetRigTransforms?: () => any;
 }
