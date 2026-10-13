@@ -1,4 +1,6 @@
 import type { LeaderboardEntry } from "../systems/leaderboard";
+import { readLocalStorageWithSchema, writeLocalStorage } from "../utils/storage";
+import { LeaderboardEntriesArraySchema } from "../schemas/storageSchemas";
 
 const DEFAULT_API_URL = "https://micro-splash-leaderboard.felipe.workers.dev";
 const REQUEST_TIMEOUT_MS = 3500;
@@ -41,18 +43,8 @@ export function getCachedLeaderboard(
   type: "global" | "weekly",
   weekKey?: string
 ): LeaderboardEntry[] | null {
-  try {
-    if (typeof localStorage === "undefined") return null;
-    const raw = localStorage.getItem(getCacheKey(type, weekKey));
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) {
-      return parsed;
-    }
-  } catch (err) {
-    console.warn("Erro ao ler cache do leaderboard:", err);
-  }
-  return null;
+  const cacheKey = getCacheKey(type, weekKey);
+  return readLocalStorageWithSchema(cacheKey, LeaderboardEntriesArraySchema.nullable(), null);
 }
 
 export function saveCachedLeaderboard(
@@ -60,12 +52,8 @@ export function saveCachedLeaderboard(
   entries: LeaderboardEntry[],
   weekKey?: string
 ): void {
-  try {
-    if (typeof localStorage === "undefined") return;
-    localStorage.setItem(getCacheKey(type, weekKey), JSON.stringify(entries));
-  } catch (err) {
-    console.warn("Erro ao salvar cache do leaderboard:", err);
-  }
+  const cacheKey = getCacheKey(type, weekKey);
+  writeLocalStorage(cacheKey, entries);
 }
 
 export async function fetchOnlineLeaderboard(

@@ -1,4 +1,6 @@
 import factsData from "../../data/facts.json";
+import { readLocalStorageWithSchema, writeLocalStorage } from "../utils/storage";
+import { HighscoreSchema, UnlockedFactsArraySchema } from "../schemas/storageSchemas";
 
 export interface Fact {
   id: string;
@@ -26,13 +28,14 @@ export function createGameState(options: GameOptions = { mode: "standard" }) {
   let trashCount = 0;
   let elapsedTime = 0;
   let timeRemaining = options.timeLimit || 60;
-  let highScore = Number(localStorage.getItem("micro_splash_highscore") || 0);
+  let highScore = readLocalStorageWithSchema("micro_splash_highscore", HighscoreSchema, 0);
 
   // Carrega fatos já desbloqueados para o Diário de Bordo (Codex)
-  let storedFacts: string[] = [];
-  try {
-    storedFacts = JSON.parse(localStorage.getItem("micro_splash_unlocked_facts") || "[]");
-  } catch {}
+  const storedFacts = readLocalStorageWithSchema(
+    "micro_splash_unlocked_facts",
+    UnlockedFactsArraySchema,
+    []
+  );
   const triggeredFacts = new Set<string>(storedFacts);
   let didBreach = false;
   let quizScore = 0;
@@ -126,7 +129,7 @@ export function createGameState(options: GameOptions = { mode: "standard" }) {
 
       if (score > highScore) {
         highScore = score;
-        localStorage.setItem("micro_splash_highscore", highScore.toString());
+        writeLocalStorage("micro_splash_highscore", highScore);
       }
       return score;
     },
@@ -136,12 +139,7 @@ export function createGameState(options: GameOptions = { mode: "standard" }) {
       factsData.forEach((fact: Fact) => {
         if (playerXPosition >= fact.triggerX && !triggeredFacts.has(fact.id)) {
           triggeredFacts.add(fact.id);
-          try {
-            localStorage.setItem(
-              "micro_splash_unlocked_facts",
-              JSON.stringify(Array.from(triggeredFacts))
-            );
-          } catch {}
+          writeLocalStorage("micro_splash_unlocked_facts", Array.from(triggeredFacts));
           onFactTriggered(fact);
         }
       });

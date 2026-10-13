@@ -1,4 +1,6 @@
 import type { LeaderboardEntry } from "./leaderboard";
+import { readLocalStorageWithSchema, writeLocalStorage } from "../utils/storage";
+import { LeaderboardEntriesArraySchema } from "../schemas/storageSchemas";
 
 export interface WeeklyChallengeInfo {
   weekKey: string; // ex: "2026-W39"
@@ -89,21 +91,13 @@ function getWeeklyStorageKey(weekKey?: string): string {
 }
 
 export function getWeeklyTop10Entries(weekKey?: string): LeaderboardEntry[] {
-  try {
-    if (typeof localStorage === "undefined") return [...DEFAULT_WEEKLY_LEADERBOARD];
-    const key = getWeeklyStorageKey(weekKey);
-    const raw = localStorage.getItem(key);
-    if (!raw) {
-      return [...DEFAULT_WEEKLY_LEADERBOARD];
-    }
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed.slice(0, 10);
-    }
-  } catch (err) {
-    console.warn("Erro ao ler ranking semanal do localStorage:", err);
-  }
-  return [...DEFAULT_WEEKLY_LEADERBOARD];
+  const key = getWeeklyStorageKey(weekKey);
+  const entries = readLocalStorageWithSchema(
+    key,
+    LeaderboardEntriesArraySchema,
+    DEFAULT_WEEKLY_LEADERBOARD
+  );
+  return entries.length > 0 ? entries.slice(0, 10) : [...DEFAULT_WEEKLY_LEADERBOARD];
 }
 
 export function addWeeklyLeaderboardEntry(entry: LeaderboardEntry, weekKey?: string): boolean {
@@ -128,13 +122,7 @@ export function addWeeklyLeaderboardEntry(entry: LeaderboardEntry, weekKey?: str
   entries.sort((a, b) => b.score - a.score);
 
   const top10 = entries.slice(0, 10);
-  try {
-    if (typeof localStorage !== "undefined") {
-      localStorage.setItem(getWeeklyStorageKey(weekKey), JSON.stringify(top10));
-    }
-  } catch (err) {
-    console.warn("Erro ao salvar ranking semanal no localStorage:", err);
-  }
+  writeLocalStorage(getWeeklyStorageKey(weekKey), top10);
 
   return top10.some(
     (e) =>

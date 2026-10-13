@@ -7,6 +7,8 @@
 import ptBR from "./locales/pt-BR.json";
 import enUS from "./locales/en-US.json";
 import gn from "./locales/gn.json";
+import { readLocalStorageWithSchema, writeLocalStorage } from "../utils/storage";
+import { SupportedLocaleSchema } from "../schemas/storageSchemas";
 
 export type SupportedLocale = "pt-BR" | "en-US" | "gn";
 
@@ -36,11 +38,13 @@ class I18nManager {
   }
 
   private detectInitialLocale(): SupportedLocale {
-    if (typeof localStorage !== "undefined") {
-      const saved = localStorage.getItem(STORAGE_KEY) as SupportedLocale;
-      if (saved && LOCALES[saved]) {
-        return saved;
-      }
+    const saved = readLocalStorageWithSchema(
+      STORAGE_KEY,
+      SupportedLocaleSchema,
+      "" as SupportedLocale
+    );
+    if (saved && LOCALES[saved as SupportedLocale]) {
+      return saved as SupportedLocale;
     }
 
     if (typeof navigator !== "undefined" && navigator.language) {
@@ -63,9 +67,7 @@ class I18nManager {
   public setLocale(locale: SupportedLocale): void {
     if (!LOCALES[locale]) return;
     this.currentLocale = locale;
-    if (typeof localStorage !== "undefined") {
-      localStorage.setItem(STORAGE_KEY, locale);
-    }
+    writeLocalStorage(STORAGE_KEY, locale);
     this.listeners.forEach((listener) => {
       try {
         listener(locale);

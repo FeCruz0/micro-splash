@@ -11,17 +11,33 @@ export function readLocalStorageWithSchema<DataType>(
   schema: z.ZodType<DataType>,
   fallbackValue: DataType
 ): DataType {
+  const cloneFallback = (): DataType => {
+    if (typeof fallbackValue === "object" && fallbackValue !== null) {
+      return Array.isArray(fallbackValue)
+        ? ([...fallbackValue] as unknown as DataType)
+        : { ...fallbackValue };
+    }
+    return fallbackValue;
+  };
+
   try {
     if (typeof localStorage === "undefined") {
-      return fallbackValue;
+      return cloneFallback();
     }
 
     const storedRawString = localStorage.getItem(storageKey);
     if (storedRawString === null) {
-      return fallbackValue;
+      return cloneFallback();
     }
 
-    const parsedJsonData = JSON.parse(storedRawString);
+    let parsedJsonData: unknown;
+    try {
+      parsedJsonData = JSON.parse(storedRawString);
+    } catch {
+      // Suporta strings e identificadores armazenados em formato bruto
+      parsedJsonData = storedRawString;
+    }
+
     const validationResult = schema.safeParse(parsedJsonData);
 
     if (!validationResult.success) {
@@ -30,7 +46,7 @@ export function readLocalStorageWithSchema<DataType>(
         { storageKey },
         validationResult.error
       );
-      return fallbackValue;
+      return cloneFallback();
     }
 
     return validationResult.data;
@@ -40,7 +56,7 @@ export function readLocalStorageWithSchema<DataType>(
       { storageKey },
       error
     );
-    return fallbackValue;
+    return cloneFallback();
   }
 }
 
@@ -54,7 +70,8 @@ export function writeLocalStorage<DataType>(storageKey: string, valueToStore: Da
       return false;
     }
 
-    const serializedData = JSON.stringify(valueToStore);
+    const serializedData =
+      typeof valueToStore === "string" ? valueToStore : JSON.stringify(valueToStore);
     localStorage.setItem(storageKey, serializedData);
     return true;
   } catch (error) {

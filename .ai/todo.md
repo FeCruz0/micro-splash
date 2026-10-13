@@ -49,7 +49,7 @@ Alvo: v1.14.0
 - [x] **2.1 Criação de Schemas Faltantes em `src/schemas/`**
   - **Arquivos**: `src/schemas/storageSchemas.ts` (ou schemas modulares correspondentes).
   - **Ação**: Definir schemas Zod estritos para Highscore, Estatísticas Cumulativas, Opções de Acessibilidade, Haptics, Áudio e Desafio Semanal.
-- [ ] **2.2 Migração em Configuração, Estado Global e Serviços**
+- [x] **2.2 Migração em Configuração, Estado Global e Serviços**
   - **Arquivos**: `src/config.ts`, `src/systems/state.ts`, `src/i18n/i18n.ts`, `src/services/leaderboardApi.ts`, `src/systems/leaderboard.ts`, `src/systems/weeklyChallenge.ts`, `src/systems/cumulativeStats.ts`.
   - **Ação**: Substituir acessos diretos a `localStorage` por `readLocalStorageWithSchema` e `writeLocalStorage`.
 - [ ] **2.3 Migração em Sistemas Periféricos e UI**

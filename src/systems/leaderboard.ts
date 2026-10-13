@@ -1,6 +1,8 @@
 import type { GameMode } from "./state";
 import { submitOnlineScore } from "../services/leaderboardApi";
 import { addWeeklyLeaderboardEntry } from "./weeklyChallenge";
+import { readLocalStorageWithSchema, writeLocalStorage } from "../utils/storage";
+import { LeaderboardEntriesArraySchema } from "../schemas/storageSchemas";
 
 export interface LeaderboardEntry {
   initials: string;
@@ -27,20 +29,12 @@ export const DEFAULT_LEADERBOARD: LeaderboardEntry[] = [
 ];
 
 export function getTop10Entries(): LeaderboardEntry[] {
-  try {
-    if (typeof localStorage === "undefined") return [...DEFAULT_LEADERBOARD];
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
-      return [...DEFAULT_LEADERBOARD];
-    }
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed.slice(0, 10);
-    }
-  } catch (err) {
-    console.warn("Erro ao ler leaderboard do localStorage:", err);
-  }
-  return [...DEFAULT_LEADERBOARD];
+  const entries = readLocalStorageWithSchema(
+    STORAGE_KEY,
+    LeaderboardEntriesArraySchema,
+    DEFAULT_LEADERBOARD
+  );
+  return entries.length > 0 ? entries.slice(0, 10) : [...DEFAULT_LEADERBOARD];
 }
 
 export function isTop10Score(score: number): boolean {
@@ -77,13 +71,7 @@ export function addLeaderboardEntry(entry: LeaderboardEntry): boolean {
   entries.sort((a, b) => b.score - a.score);
 
   const top10 = entries.slice(0, 10);
-  try {
-    if (typeof localStorage !== "undefined") {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(top10));
-    }
-  } catch (err) {
-    console.warn("Erro ao salvar leaderboard no localStorage:", err);
-  }
+  writeLocalStorage(STORAGE_KEY, top10);
 
   // Tenta submeter em segundo plano ao backend Cloudflare Worker (não bloqueia UI)
   try {

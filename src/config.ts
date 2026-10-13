@@ -1,3 +1,10 @@
+import { readLocalStorageWithSchema, writeLocalStorage } from "./utils/storage";
+import {
+  ResolutionKeySchema,
+  DisplayModeSchema,
+  LetterboxColorSchema,
+} from "./schemas/storageSchemas";
+
 export const GAME_CONFIG = {
   GRAVITY: 0,
   SINK_RATE: 20, // Afundamento suave constante da água
@@ -189,12 +196,11 @@ export function getSavedResolution(): {
   label: string;
   aspect: string;
 } {
-  let saved: string | null = null;
   const deviceKey = getDeviceResolutionStorageKey();
-
-  if (typeof localStorage !== "undefined") {
-    saved = localStorage.getItem(deviceKey) || localStorage.getItem("micro_splash_resolution");
-  }
+  const savedDevice = readLocalStorageWithSchema(deviceKey, ResolutionKeySchema, "");
+  const saved =
+    savedDevice ||
+    readLocalStorageWithSchema("micro_splash_resolution", ResolutionKeySchema, "1080p");
 
   // Modo Automático (Fase 33.2)
   if (saved === "auto") {
@@ -226,39 +232,39 @@ export function getSavedResolution(): {
  * Salva a resolução tanto na chave global quanto na chave do dispositivo atual (Fase 33.6).
  */
 export function setSavedResolution(key: ResolutionKey): void {
-  if (typeof localStorage !== "undefined") {
-    const deviceKey = getDeviceResolutionStorageKey();
-    localStorage.setItem(deviceKey, key);
-    localStorage.setItem("micro_splash_resolution", key);
-  }
+  const deviceKey = getDeviceResolutionStorageKey();
+  writeLocalStorage(deviceKey, key);
+  writeLocalStorage("micro_splash_resolution", key);
 }
 
 export type DisplayMode = "stretch" | "letterbox";
 
 export function getSavedDisplayMode(): DisplayMode {
-  if (typeof localStorage === "undefined") return "stretch";
-  const saved = localStorage.getItem("micro_splash_display_mode");
-  return saved === "letterbox" ? "letterbox" : "stretch";
+  const mode = readLocalStorageWithSchema(
+    "micro_splash_display_mode",
+    DisplayModeSchema,
+    "stretch"
+  );
+  return mode === "letterbox" ? "letterbox" : "stretch";
 }
 
 export function setSavedDisplayMode(mode: DisplayMode): void {
-  if (typeof localStorage !== "undefined") {
-    localStorage.setItem("micro_splash_display_mode", mode);
-  }
+  writeLocalStorage("micro_splash_display_mode", mode);
 }
 
 export type LetterboxColor = "black" | "ocean";
 
 export function getSavedLetterboxColor(): LetterboxColor {
-  if (typeof localStorage === "undefined") return "black";
-  const saved = localStorage.getItem("micro_splash_letterbox_color");
-  return saved === "ocean" ? "ocean" : "black";
+  const color = readLocalStorageWithSchema(
+    "micro_splash_letterbox_color",
+    LetterboxColorSchema,
+    "black"
+  );
+  return color === "ocean" ? "ocean" : "black";
 }
 
 export function setSavedLetterboxColor(color: LetterboxColor): void {
-  if (typeof localStorage !== "undefined") {
-    localStorage.setItem("micro_splash_letterbox_color", color);
-  }
+  writeLocalStorage("micro_splash_letterbox_color", color);
 }
 
 export const APP_VERSION = typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "1.3.0";

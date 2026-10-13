@@ -68,6 +68,6 @@ export type StoredUnlockedFacts = z.infer<typeof UnlockedFactsArraySchema>;
 // 8. Display & Configuration Schemas
 export const ResolutionKeySchema = z.string().min(1);
 export const DisplayModeSchema = z.enum(["stretch", "letterbox", "pixel_perfect"]);
-export const LetterboxColorSchema = z.enum(["black", "ocean_deep", "navy"]);
+export const LetterboxColorSchema = z.enum(["black", "ocean", "ocean_deep", "navy"]);
 export const TouchControlsModeSchema = z.enum(["auto", "always_on", "disabled"]);
-export const SupportedLocaleSchema = z.enum(["pt-BR", "en-US", "es-ES"]);
+export const SupportedLocaleSchema = z.enum(["pt-BR", "en-US", "gn", "es-ES"]);
