@@ -46,7 +46,7 @@ Alvo: v1.14.0
 
 ### Etapa 2: Migração Total da Persistência para Schemas Zod (`src/utils/storage.ts`)
 
-- [ ] **2.1 Criação de Schemas Faltantes em `src/schemas/`**
+- [x] **2.1 Criação de Schemas Faltantes em `src/schemas/`**
   - **Arquivos**: `src/schemas/storageSchemas.ts` (ou schemas modulares correspondentes).
   - **Ação**: Definir schemas Zod estritos para Highscore, Estatísticas Cumulativas, Opções de Acessibilidade, Haptics, Áudio e Desafio Semanal.
 - [ ] **2.2 Migração em Configuração, Estado Global e Serviços**
