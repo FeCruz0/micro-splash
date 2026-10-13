@@ -644,3 +644,131 @@ _Objetivo: Expandir o spritesheet `whale.png` de 8 para 16 quadros com ciclos co
   - Mapear a transição suave entre poses em função da velocidade de nado e do estado físico.
 - [x] **44.3 Testes de Carregamento e Consistência de Animação (`tests/phase44_high_frame_sprites.test.ts`):**
   - Testes de integridade das dimensões da textura, framesets e reprodução contínua.
+
+### 🛡️ FASE 45: Robustez de Tipagem & Consolidação de Utilitários
+
+_Objetivo: Fechar resíduos das Fases 37.5, 37.6 e 37.10 e elevar a segurança de tipos sem alterar gameplay._
+
+- [ ] **45.1 Ativação Gradual de `strict` (`tsconfig.json`):**
+  - Habilitar `strictNullChecks`, `noImplicitAny` e por fim `strict: true`, corrigindo erros por diretório.
+- [ ] **45.2 Reativação de `no-explicit-any` (`eslint.config.js`):**
+  - Promover a regra para `warn` e eliminar os ~50 arquivos com `any` restantes (`GameObj`, tipos de Kaboom, `unknown` + Zod).
+- [ ] **45.3 Migração Total para `utils/random.ts`:**
+  - Substituir `Math.random()` remanescente (~28 arquivos: entidades, partículas, clima, fauna, UI e áudio).
+- [ ] **45.4 Unificação do `errorReporter`:**
+  - Fundir `src/services/errorReporter.ts` e `src/utils/errorReporter.ts` em módulo único com níveis.
+- [ ] **45.5 Persistência Exclusiva via `utils/storage.ts`:**
+  - Migrar acessos diretos a `localStorage` (~17 arquivos: `config.ts`, `i18n.ts`, `state.ts`, `audioEngine.ts`, UI) para leitura/escrita validada por schemas Zod.
+- [ ] **45.6 Lint de Scripts, Worker e Service Worker:**
+  - Incluir `scripts/`, `server/` e `public/sw.js` no ESLint com overrides de ambiente (Node / ServiceWorker).
+- [ ] **45.7 Testes da Fase 45 (`tests/phase45_type_safety.test.ts`):**
+  - Garantir ausência de `Math.random` e `localStorage` direto fora dos utilitários via teste estático.
+
+### 📦 FASE 46: Bundle, Code-Splitting & Performance de Renderização
+
+_Objetivo: Reduzir o chunk principal (~587 kB) e eliminar consultas e alocações redundantes por quadro._
+
+- [ ] **46.1 Code-Splitting de Telas Pesadas (`src/ui/`, `vite.config.ts`):**
+  - `import()` dinâmico para `codexScreen`, `optionsScreen`, `victoryCard`, `shareModal`, `statsModal`; `manualChunks` para `kaboom` e `zod`.
+- [ ] **46.2 Registro Completo no Culling e Lifecycle:**
+  - Incluir `parallaxSkySystem`, `weatherSystem`, `bioluminescenceSystem`, `marineSnowSystem` e `lightRaysSystem` no `spatialCullingSystem`/`BiomeLifecycleManager`.
+- [ ] **46.3 Eliminação de `k.get()` Residual:**
+  - Substituir consultas em `penguinFlockSystem`, `iceSurface`, `krill`, `playerSonar` e `main.ts` por registros cacheados.
+- [ ] **46.4 Atlas de Sprites Unificado (`public/sprites/`, `scripts/`):**
+  - Consolidar `whale.png` e sprites de fauna em atlas único preservando pixel art e `sliceX`.
+- [ ] **46.5 Cache de Texturas Procedurais:**
+  - Gerar texturas procedurais uma única vez e reutilizar entre cenas.
+- [ ] **46.6 Orçamento de Bundle no CI:**
+  - Falhar build se o chunk principal exceder limite definido.
+
+### 📡 FASE 47: PWA Versionado & Experiência Offline Refinada
+
+_Objetivo: Tornar o Service Worker determinístico por versão e resiliente em totens sem rede._
+
+- [ ] **47.1 `CACHE_NAME` Derivado da Versão (`public/sw.js`, `vite.config.ts`):**
+  - Injetar `__APP_VERSION__`/hash de build em vez do manual `micro-splash-v9`.
+- [ ] **47.2 Precache Completo:**
+  - Incluir `data/facts.json`, `about.html` e bundles JS/CSS com hash gerados pelo Vite.
+- [ ] **47.3 Limite de Entradas do Cache Dinâmico:**
+  - Política de expiração (LRU/teto de entradas) para evitar crescimento indefinido.
+- [ ] **47.4 Tela Offline Estilizada:**
+  - Fallback visual glassmórfico sem diálogos nativos quando recurso não estiver disponível.
+- [ ] **47.5 Testes da Fase 47 (`tests/phase47_pwa_versioning.test.ts`):**
+  - Validar nome de cache, lista de precache e limpeza de versões antigas.
+
+### 🧩 FASE 48: Decomposição Arquitetural & Organização de Módulos
+
+_Objetivo: Concluir a Fase 37.7 e padronizar a estrutura de diretórios._
+
+- [ ] **48.1 Decomposição de Arquivos Extensos:**
+  - `codexScreen.ts` (abas), `optionsScreen.ts` (seções), `audioSFX.ts` (famílias de SFX), `canyonSystem.ts`, `player.ts` em submódulos.
+- [ ] **48.2 Extração de Cenas para `src/scenes/`:**
+  - Remover cenas e definições de clipes de animação de `main.ts`.
+- [ ] **48.3 Padronização de Responsabilidades:**
+  - Resolver duplicidade `systems/audioSystem.ts` × `systems/audio/` e `systems/leaderboard.ts` × `services/leaderboardApi.ts`.
+- [ ] **48.4 Reorganização de `src/ui/`:**
+  - Subpastas `screens/`, `modals/`, `hud/` e `shared/`.
+- [ ] **48.5 Constantes Nomeadas:**
+  - Extrair números mágicos (ex.: `0.55` do `strokePhase`) para `config.ts` segmentado por domínio.
+- [ ] **48.6 Scripts Geradores em ESM/TypeScript (`scripts/`):**
+  - Migrar `generate*.cjs` para `.mjs`/`.ts` com utilitários compartilhados (escritor PNG, paleta).
+
+### ✅ FASE 49: Qualidade, Testes & Pipeline de CI
+
+_Objetivo: Blindar regressões com cobertura mínima, testes por domínio e verificação única._
+
+- [ ] **49.1 Reorganização de Testes por Domínio (`tests/`):**
+  - Agrupar em `player/`, `systems/`, `ui/`, `audio/` mantendo nomes de fase em `describe`.
+- [ ] **49.2 Limiar de Cobertura (`vitest.config.ts`):**
+  - Definir thresholds mínimos de linhas/funções/branches aplicados no CI.
+- [ ] **49.3 Workflow de CI Completo (`.github/workflows/`):**
+  - Executar `lint`, `tsc`, `test`, `build` e `format:check` em cada PR.
+- [ ] **49.4 Snapshots Visuais Determinísticos:**
+  - Usar RNG com semente para snapshots reprodutíveis de cenas-chave.
+- [ ] **49.5 Auditoria de Dependências:**
+  - `npm audit` no CI e atualização automatizada (Dependabot/Renovate).
+- [ ] **49.6 Script Agregador `npm run check`:**
+  - Unificar verificações locais em um único comando.
+
+### ♿ FASE 50: Acessibilidade & Internacionalização Avançadas
+
+_Objetivo: Garantir conformidade WCAG AA e paridade total de traduções._
+
+- [ ] **50.1 Auditoria de Contraste:**
+  - Validar textos sobre fundos translúcidos (HUD, modais, cartões) em WCAG AA.
+- [ ] **50.2 Gestão de Foco em Modais:**
+  - Focus trap e retorno de foco ao fechar em todos os modais e telas.
+- [ ] **50.3 Teste de Paridade de Chaves i18n (`src/i18n/locales/`):**
+  - Falhar testes quando qualquer locale não possuir chaves presentes no idioma base.
+- [ ] **50.4 Formatação via `Intl`:**
+  - Números, distâncias e datas formatados conforme locale ativo.
+- [ ] **50.5 Movimento Reduzido nos Sistemas Recentes:**
+  - Respeitar `prefers-reduced-motion`/`prefers-contrast` em `playerPuppetRig`, `playerPectoralFin` e `playerSliceRenderer`.
+
+### 🎮 FASE 51: Polimento Visual & Áudio Retrô (Chiptune Preservado)
+
+_Objetivo: Refinar coesão visual e mixagem mantendo estritamente a identidade sonora retrô (osciladores 8-bit, ondas quadrada/triangular/ruído, sem samples realistas)._
+
+- [ ] **51.1 Pipeline Unificada de Renderização da Baleia:**
+  - Ordem de atualização explícita entre `playerSliceRenderer`, `playerPuppetRig` e `playerPectoralFin`, eliminando jitter entre camadas.
+- [ ] **51.2 Paleta Centralizada por Estado de Fôlego:**
+  - Módulo único de cores (normal → fôlego baixo) consumido por corpo e nadadeiras.
+- [ ] **51.3 Padronização de Transições:**
+  - Durações e easings unificados em `animationUtils.ts` para cenas e modais.
+- [ ] **51.4 Normalização de Volume Retrô (`src/systems/audio/`):**
+  - Equalizar ganho entre SFX chiptune e trilha sem alterar timbres; manter síntese por osciladores e limiter existente.
+- [ ] **51.5 Crossfade Chiptune entre Biomas:**
+  - Transição suave entre temas 8-bit por rampas de ganho, preservando arranjos e formas de onda retrô.
+- [ ] **51.6 Otimização de Fontes:**
+  - `font-display: swap` e subsetting das TTFs para reduzir precache.
+
+### 📚 FASE 52: Documentação & Experiência do Desenvolvedor
+
+_Objetivo: Sincronizar documentação com o estado real do código._
+
+- [ ] **52.1 Atualização do `docs/ARCHITECTURE.md`:**
+  - Documentar rig da baleia (Fases 41–44) com diagrama de módulos.
+- [ ] **52.2 CHANGELOG Automatizado:**
+  - Geração a partir de Conventional Commits, cobrindo Fases 38–44 pendentes.
+- [ ] **52.3 Reconciliação ROADMAP × Código:**
+  - Revisar itens marcados `[x]` com resíduos (37.5, 37.6, 37.10) e alinhar `.ai/todo.md`.
