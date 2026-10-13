@@ -4,6 +4,7 @@ import { createKrill } from "../entities/krill";
 import { createGhostNet } from "../entities/net";
 import { createBubbleVent } from "../entities/bubbleVent";
 import type { CurrentZone } from "./oceanCurrentsSystem";
+import { getRandomInteger } from "../utils/random";
 
 export interface ProceduralObstacleData {
   trashPositions: Array<{ x: number; y: number }>;
@@ -289,7 +290,7 @@ export function generateProceduralLayout(
 import { getSpatialCullingManager } from "./spatialCullingSystem";
 
 export function spawnProceduralLevel(k: KaboomCtx, seed?: number): ProceduralObstacleData {
-  const actualSeed = seed ?? Math.floor(Math.random() * 1000000);
+  const actualSeed = seed ?? getRandomInteger(0, 999999);
   const layout = generateProceduralLayout(actualSeed, k.height());
   const cullingManager = getSpatialCullingManager();
 

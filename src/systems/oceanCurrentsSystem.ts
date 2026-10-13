@@ -3,6 +3,7 @@ import { TAGS } from "../config";
 import type { PlayerController } from "../entities/player";
 import { audioSystem } from "./audioSystem";
 import { safeShake } from "../utils/camera";
+import { getRandomFloat } from "../utils/random";
 
 /**
  * Interface que modela uma zona delimitada de correnteza oceânica.
@@ -50,7 +51,7 @@ export function createCurrentVectorLines(
     const verticalPosition = lineSpacing * (lineIndex + 1);
     const dashLength = 40;
     const dashHeight = 2;
-    const horizontalOffset = Math.random() * zoneWidth;
+    const horizontalOffset = getRandomFloat(0, zoneWidth);
 
     const vectorDash = currentBox.add([
       k.rect(dashLength, dashHeight, { radius: 1 }),
@@ -118,8 +119,8 @@ export function setupOceanCurrentsSystem(
     for (let i = 0; i < filamentCount; i++) {
       const filamentWidth = k.rand(40, 95);
       const filamentHeight = k.rand(2.0, 3.5);
-      const offsetX = Math.random() * width;
-      const offsetY = 8 + Math.random() * (zone.height - 16);
+      const offsetX = getRandomFloat(0, width);
+      const offsetY = getRandomFloat(8, zone.height - 8);
 
       const streamColor = isFavorable
         ? k.choose([k.rgb(140, 245, 255), k.rgb(255, 230, 140), k.rgb(200, 255, 255)])
@@ -133,7 +134,7 @@ export function setupOceanCurrentsSystem(
       ]);
 
       const streamSpeed = isFavorable ? k.rand(200, 320) : k.rand(150, 230);
-      let sway = Math.random() * Math.PI * 2;
+      let sway = getRandomFloat(0, Math.PI * 2);
 
       streamLine.onUpdate(() => {
         const deltaTime = k.dt();
@@ -161,7 +162,7 @@ export function setupOceanCurrentsSystem(
       const vortexCount = Math.max(2, Math.round(width / 600));
       for (let v = 0; v < vortexCount; v++) {
         const vortexX = (v + 0.5) * (width / vortexCount);
-        const vortexY = zone.height * 0.5 + (Math.random() - 0.5) * 25;
+        const vortexY = zone.height * 0.5 + getRandomFloat(-12.5, 12.5);
 
         const vortex = currentBox.add([
           k.circle(k.rand(6, 12)),
@@ -171,7 +172,7 @@ export function setupOceanCurrentsSystem(
           k.outline(1.5, k.rgb(230, 240, 255)),
         ]);
 
-        let vortexAngle = Math.random() * 10;
+        let vortexAngle = getRandomFloat(0, 10);
         vortex.onUpdate(() => {
           vortexAngle -= k.dt() * 4;
           vortex.opacity = 0.18 + Math.sin(vortexAngle) * 0.12;
@@ -217,7 +218,7 @@ export function setupOceanCurrentsSystem(
 
           // Partículas douradas de fluxo favorável na baleia (normalizado por deltaTime)
           const normalizedDeltaTime = dt * 60;
-          if (Math.random() < 0.25 * normalizedDeltaTime) {
+          if (getRandomFloat(0, 1) < 0.25 * normalizedDeltaTime) {
             const particle = k.add([
               k.circle(k.rand(2, 3.5)),
               k.pos(playerPos.x + k.rand(-25, 25), playerPos.y + k.rand(-10, 10)),
@@ -237,14 +238,14 @@ export function setupOceanCurrentsSystem(
 
           // Leve turbulência visual na tela com guarda de movimento reduzido
           const normalizedDeltaTime = dt * 60;
-          if (Math.random() < 0.15 * normalizedDeltaTime) {
+          if (getRandomFloat(0, 1) < 0.15 * normalizedDeltaTime) {
             safeShake(k, 1.0);
           }
         }
 
         // Micro-bolhas de esforço/resistência ao nadar contra a correnteza (normalizado por deltaTime)
         const normalizedDeltaTime = dt * 60;
-        if (!isAlignedWithFlow && Math.random() < 0.22 * normalizedDeltaTime) {
+        if (!isAlignedWithFlow && getRandomFloat(0, 1) < 0.22 * normalizedDeltaTime) {
           const bubble = k.add([
             k.circle(k.rand(1.5, 3)),
             k.pos(playerPos.x + (facingRight ? 40 : -40), playerPos.y + k.rand(-8, 8)),

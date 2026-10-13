@@ -3,6 +3,7 @@ import { GAME_CONFIG } from "../config";
 import { audioSystem } from "./audioSystem";
 import { analytics } from "../services/analytics";
 import { safeShake } from "../utils/camera";
+import { getRandomFloat, getRandomChoice } from "../utils/random";
 import type { PlayerController } from "../entities/player";
 import type { GameState } from "./state";
 
@@ -99,7 +100,7 @@ export function setupBreachSystem(config: BreachSystemConfig) {
         hasLeftWater = true;
 
         // Partículas douradas e de vapor reluzente na trilha aérea da baleia
-        if (Math.random() < 0.6) {
+        if (getRandomFloat(0, 1) < 0.6) {
           const sparkle = k.add([
             k.circle(k.rand(2, 4)),
             k.pos(playerPos.x - k.rand(10, 25), playerPos.y + k.rand(-10, 10)),
@@ -207,7 +208,7 @@ export function createWaterSplash(
     const size = k.rand(3, 6);
 
     const colors = [k.rgb(255, 255, 255), k.rgb(190, 240, 255), k.rgb(120, 215, 255)];
-    const dropColor = colors[Math.floor(Math.random() * colors.length)];
+    const dropColor = getRandomChoice(colors) ?? colors[0];
 
     const drop = k.add([
       k.rect(size, size),

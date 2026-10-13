@@ -4,6 +4,7 @@ import { getActivePlayerObject } from "../entities/player";
 import { getParticlePool } from "./particlePool";
 import { getSpatialCullingManager } from "./spatialCullingSystem";
 import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
+import { getRandomFloat } from "../utils/random";
 
 /**
  * Cria elementos estéticos de fauna marinha de fundo com sprites e comportamentos enriquecidos:
@@ -70,8 +71,8 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
       orcaObjects.push(orca);
       cullingManager?.registerEntity(orca, () => pod.basePos.x + m.offsetX);
 
-      let timer = Math.random() * 10;
-      let bubbleTimer = Math.random() * 3;
+      let timer = getRandomFloat(0, 10);
+      let bubbleTimer = getRandomFloat(0, 3);
 
       orca.onUpdate(() => {
         if (orca.hidden) return;
@@ -132,7 +133,7 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
     cullingManager?.registerEntity(whaleBg, () => pos.x);
 
     let pulseTimer = 0;
-    let swimTimer = Math.random() * 10;
+    let swimTimer = getRandomFloat(0, 10);
 
     whaleBg.onUpdate(() => {
       if (whaleBg.hidden) return;
@@ -171,7 +172,7 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
         for (let b = 0; b < 5; b++) {
           const bubbleAngle = (b / 5) * Math.PI * 2;
           const bubble = k.add([
-            k.circle(2.2 + Math.random() * 1.5),
+            k.circle(getRandomFloat(2.2, 3.7)),
             k.pos(
               whaleBg.pos.x + Math.cos(bubbleAngle) * 28,
               whaleBg.pos.y + Math.sin(bubbleAngle) * 18
@@ -182,7 +183,7 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
             k.z(-3),
           ]);
 
-          const upwardSpeed = 35 + Math.random() * 25;
+          const upwardSpeed = getRandomFloat(35, 60);
           bubble.onUpdate(() => {
             bubble.pos.y -= k.dt() * upwardSpeed;
             bubble.pos.x += Math.sin(bubble.pos.y * 0.08) * 0.6;

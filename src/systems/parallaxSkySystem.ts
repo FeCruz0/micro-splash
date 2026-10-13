@@ -1,5 +1,6 @@
 import kaboom, { type GameObj } from "kaboom";
 import { GAME_CONFIG } from "../config";
+import { getRandomFloat } from "../utils/random";
 
 interface CloudData {
   obj: GameObj;
@@ -129,7 +130,7 @@ export function setupParallaxSkySystem(k: ReturnType<typeof kaboom>): ParallaxSk
       obj: starObj,
       baseX: i * ((screenW / starCount) * 1.4),
       baseY: starY,
-      blinkPhase: Math.random() * Math.PI * 2,
+      blinkPhase: getRandomFloat(0, Math.PI * 2),
     });
   }
 

@@ -4,6 +4,7 @@ import { audioSystem } from "./audioSystem";
 import { getParticlePool } from "./particlePool";
 import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 import { getActivePlayerObject } from "../entities/player";
+import { getRandomFloat } from "../utils/random";
 
 /**
  * Sistema de Colônias Residentes de Pinguins-de-Magalhães (*Spheniscus magellanicus*) em Loop Contínuo.
@@ -68,8 +69,8 @@ export function setupPenguinFlockSystem(k: KaboomCtx) {
     const penguins: any[] = [];
 
     for (let i = 0; i < colony.count; i++) {
-      const pOffsetX = -i * 18 - Math.random() * 5;
-      const pOffsetY = (i % 2 === 0 ? -6 : 6) + (Math.random() - 0.5) * 4;
+      const pOffsetX = -i * 18 - getRandomFloat(0, 5);
+      const pOffsetY = (i % 2 === 0 ? -6 : 6) + getRandomFloat(-2, 2);
 
       // Corpo em torpedo do pinguim (proporção biológica 14x5px para escala com a jubarte de 108px)
       const pBody = k.add([
@@ -117,7 +118,7 @@ export function setupPenguinFlockSystem(k: KaboomCtx) {
         wing,
         baseOffsetX: pOffsetX,
         baseOffsetY: pOffsetY,
-        swimPhase: Math.random() * Math.PI * 2,
+        swimPhase: getRandomFloat(0, Math.PI * 2),
         isLeaping: false,
         leapProgress: 0,
         leapDelay: i * 0.12, // cascata de saltos sincronizados
@@ -236,7 +237,7 @@ export function setupPenguinFlockSystem(k: KaboomCtx) {
             // Respingos na quebra da água
             if (player && Math.abs(penguin.obj.pos.x - player.pos.x) < 700) {
               if (penguin.leapProgress < 0.15 || penguin.leapProgress > 0.85) {
-                if (Math.random() < 0.3) {
+                if (getRandomFloat(0, 1) < 0.3) {
                   const splashPos = k.vec2(penguin.obj.pos.x, GAME_CONFIG.SEA_LEVEL + 2);
                   const pool = getParticlePool();
                   if (pool) {
@@ -291,10 +292,10 @@ export function setupPenguinFlockSystem(k: KaboomCtx) {
 
         // Trilha de bolhas subaquáticas
         if (player && Math.abs(penguin.obj.pos.x - player.pos.x) < 900) {
-          if (!penguin.isLeaping && Math.random() < 0.12) {
+          if (!penguin.isLeaping && getRandomFloat(0, 1) < 0.12) {
             const bubblePos = k.vec2(
               penguin.obj.pos.x - currentFacing * 12,
-              penguin.obj.pos.y + (Math.random() - 0.5) * 4
+              penguin.obj.pos.y + getRandomFloat(-2, 2)
             );
             const pool = getParticlePool();
             if (pool) {

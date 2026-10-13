@@ -3,6 +3,7 @@ import { GAME_CONFIG } from "../config";
 import type { PlayerController } from "../entities/player";
 import { getParticlePool } from "./particlePool";
 import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
+import { getRandomFloat } from "../utils/random";
 
 /**
  * Sistema de Mancha de Óleo Pré-Arraial (Fase 9.1)
@@ -134,16 +135,17 @@ export function setupOilSpillSystem(k: KaboomCtx, playerController: PlayerContro
         playerController.setOilObstructed(true);
 
         // Respingo de gotículas de óleo negro em contato
-        if (Math.random() < 0.4) {
+        if (getRandomFloat(0, 1) < 0.4) {
           const dropPos = k.vec2(
-            player.pos.x + (Math.random() - 0.5) * 30,
-            GAME_CONFIG.SEA_LEVEL + Math.random() * 4
+            player.pos.x + getRandomFloat(-15, 15),
+            GAME_CONFIG.SEA_LEVEL + getRandomFloat(0, 4)
           );
+          const dropRadius = getRandomFloat(1.5, 3.3);
           const pool = getParticlePool();
           if (pool) {
             pool.spawnCircle({
               pos: dropPos,
-              radius: 1.5 + Math.random() * 1.8,
+              radius: dropRadius,
               color: k.rgb(24, 16, 12),
               opacity: 0.85,
               z: 20,
@@ -153,7 +155,7 @@ export function setupOilSpillSystem(k: KaboomCtx, playerController: PlayerContro
             });
           } else {
             const drop = k.add([
-              k.circle(1.5 + Math.random() * 1.8),
+              k.circle(dropRadius),
               k.pos(dropPos),
               k.color(24, 16, 12),
               k.opacity(0.85),

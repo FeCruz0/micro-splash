@@ -6,6 +6,7 @@ import { getParticlePool } from "./particlePool";
 import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 import { getSpatialCullingManager } from "./spatialCullingSystem";
 import { safeShake } from "../utils/camera";
+import { getRandomFloat } from "../utils/random";
 
 /**
  * Representa uma fenda de respiração (polínia natural) na camada de gelo polar.
@@ -93,10 +94,10 @@ export function setupIceSurfaceSystem(
           // 1. Estilhaços de gelo cristalinos com física e gravidade
           const pool = getParticlePool();
           for (let shardIndex = 0; shardIndex < 14; shardIndex++) {
-            const shardSize = 3 + Math.random() * 5;
-            const shardX = x + width * Math.random();
-            const shardY = icePosY + iceHeight * Math.random();
-            const shardVelocity = k.vec2((Math.random() - 0.5) * 260, -60 - Math.random() * 190);
+            const shardSize = getRandomFloat(3, 8);
+            const shardX = x + getRandomFloat(0, width);
+            const shardY = icePosY + getRandomFloat(0, iceHeight);
+            const shardVelocity = k.vec2(getRandomFloat(-130, 130), getRandomFloat(-250, -60));
 
             if (pool) {
               pool.spawnRect({
@@ -132,10 +133,10 @@ export function setupIceSurfaceSystem(
           // 1.1. Refluxo de espuma e borrifo de água gelada circular (Fase 35.6: circle 3-6px)
           const foamCount = 7;
           for (let foamIndex = 0; foamIndex < foamCount; foamIndex++) {
-            const foamRadius = 3 + Math.random() * 3;
-            const foamX = x + width * Math.random();
-            const foamY = icePosY + iceHeight * 0.5 + (Math.random() - 0.5) * 8;
-            const foamVelocity = k.vec2((Math.random() - 0.5) * 220, -120 - Math.random() * 140);
+            const foamRadius = getRandomFloat(3, 6);
+            const foamX = x + getRandomFloat(0, width);
+            const foamY = icePosY + iceHeight * 0.5 + getRandomFloat(-4, 4);
+            const foamVelocity = k.vec2(getRandomFloat(-110, 110), getRandomFloat(-260, -120));
 
             if (pool) {
               pool.spawnCircle({

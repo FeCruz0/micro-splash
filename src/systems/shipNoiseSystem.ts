@@ -5,6 +5,7 @@ import { createFishingTrawler } from "../entities/boat";
 import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 import { audioSystem } from "./audioSystem";
 import { safeShake } from "../utils/camera";
+import { getRandomFloat, getRandomInteger } from "../utils/random";
 
 export function setupShipNoiseSystem(
   k: ReturnType<typeof kaboom>,
@@ -60,7 +61,7 @@ export function setupShipNoiseSystem(
     ship.add([k.rect(42, 10), k.pos(65, -67), k.color(40, 40, 44), k.anchor("center"), k.z(-2)]);
 
     let noiseTimer = 0;
-    let trashEjectTimer = 3.0 + Math.random() * 4.0;
+    let trashEjectTimer = getRandomFloat(3.0, 7.0);
 
     ship.onUpdate(() => {
       if (!isSystemActive) return;
@@ -109,10 +110,7 @@ export function setupShipNoiseSystem(
             const downwardForce = 400 * k.dt();
 
             playerController.setSpeed(
-              k.vec2(
-                speed.x + (Math.random() * 20 - 10),
-                k.clamp(speed.y + downwardForce, -300, 300)
-              )
+              k.vec2(speed.x + getRandomFloat(-10, 10), k.clamp(speed.y + downwardForce, -300, 300))
             );
           }
 
@@ -131,12 +129,12 @@ export function setupShipNoiseSystem(
 
         const ejectX = ship.pos.x - shipData.movementDirection * 130;
         const ejectY = ship.pos.y + 24;
-        const trashType = Math.floor(Math.random() * 3);
+        const trashType = getRandomInteger(0, 2);
 
         let trashItem: GameObj;
-        let sinkSpeed = 28 + Math.random() * 14;
-        const swaySpeed = 1.5 + Math.random();
-        const swayAmp = 10 + Math.random() * 8;
+        let sinkSpeed = getRandomFloat(28, 42);
+        const swaySpeed = getRandomFloat(1.5, 2.5);
+        const swayAmp = getRandomFloat(10, 18);
         let trashAgeInSeconds = 0;
 
         if (trashType === 0) {

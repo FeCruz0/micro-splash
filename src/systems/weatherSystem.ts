@@ -9,6 +9,7 @@
 import type { GameObj, KaboomCtx } from "kaboom";
 import { GAME_CONFIG } from "../config";
 import type { PlayerController } from "../entities/player";
+import { getRandomFloat } from "../utils/random";
 
 /**
  * Tipo identificador do micro-clima em execução.
@@ -128,7 +129,7 @@ export function setupWeatherSystem(k: KaboomCtx, playerController: PlayerControl
     const size = k.rand(1.5, 3.2);
     const obj = k.add([
       k.circle(size),
-      k.pos(cam.x - screenW / 2 + Math.random() * screenW, Math.random() * 140),
+      k.pos(cam.x - screenW / 2 + getRandomFloat(0, screenW), getRandomFloat(0, 140)),
       k.color(240, 248, 255),
       k.opacity(0),
       k.z(26),
@@ -137,13 +138,13 @@ export function setupWeatherSystem(k: KaboomCtx, playerController: PlayerControl
 
     snowflakes.push({
       obj,
-      relX: Math.random() * (screenW + 100) - 50,
-      relY: Math.random() * 150 - 20,
+      relX: getRandomFloat(-50, screenW + 50),
+      relY: getRandomFloat(-20, 130),
       speedX: k.rand(80, 160), // Vento polar da esquerda para a direita
       speedY: k.rand(40, 85),
       swaySpeed: k.rand(2.0, 4.5),
       swayAmp: k.rand(12, 28),
-      phase: Math.random() * Math.PI * 2,
+      phase: getRandomFloat(0, Math.PI * 2),
       baseOpacity: k.rand(0.45, 0.85),
     });
   }
@@ -156,7 +157,7 @@ export function setupWeatherSystem(k: KaboomCtx, playerController: PlayerControl
     const len = k.rand(8, 15);
     const obj = k.add([
       k.rect(1.6, len, { radius: 0.8 }),
-      k.pos(cam.x - screenW / 2 + Math.random() * screenW, Math.random() * 160),
+      k.pos(cam.x - screenW / 2 + getRandomFloat(0, screenW), getRandomFloat(0, 160)),
       k.rotate(-22), // Chuva oblíqua cortando o céu com vento
       k.color(200, 225, 255),
       k.opacity(0),
@@ -166,8 +167,8 @@ export function setupWeatherSystem(k: KaboomCtx, playerController: PlayerControl
 
     raindrops.push({
       obj,
-      relX: Math.random() * (screenW + 120) - 60,
-      relY: Math.random() * 160 - 30,
+      relX: getRandomFloat(-60, screenW + 60),
+      relY: getRandomFloat(-30, 130),
       speedX: k.rand(180, 290), // Vendaval rápido
       speedY: k.rand(300, 480),
       swaySpeed: 0,
@@ -185,7 +186,7 @@ export function setupWeatherSystem(k: KaboomCtx, playerController: PlayerControl
     const size = k.rand(1.8, 3.8);
     const obj = k.add([
       k.circle(size),
-      k.pos(cam.x - screenW / 2 + Math.random() * screenW, 40 + Math.random() * (screenH - 60)),
+      k.pos(cam.x - screenW / 2 + getRandomFloat(0, screenW), getRandomFloat(40, screenH - 20)),
       k.color(255, 230, 110),
       k.opacity(0),
       k.z(17),
@@ -194,13 +195,13 @@ export function setupWeatherSystem(k: KaboomCtx, playerController: PlayerControl
 
     goldenGlints.push({
       obj,
-      relX: Math.random() * screenW,
-      relY: 40 + Math.random() * (screenH - 60),
+      relX: getRandomFloat(0, screenW),
+      relY: getRandomFloat(40, screenH - 20),
       speedX: k.rand(15, 38), // Brisa suave
       speedY: k.rand(-8, 8),
       swaySpeed: k.rand(1.2, 2.5),
       swayAmp: k.rand(8, 18),
-      phase: Math.random() * Math.PI * 2,
+      phase: getRandomFloat(0, Math.PI * 2),
       baseOpacity: k.rand(0.3, 0.65),
     });
   }
@@ -243,7 +244,7 @@ export function setupWeatherSystem(k: KaboomCtx, playerController: PlayerControl
 
         // Respingo na água quando a gota atinge o nível do mar (SEA_LEVEL ~ 80px)
         if (p.relY >= GAME_CONFIG.SEA_LEVEL && p.relY - p.speedY * dt < GAME_CONFIG.SEA_LEVEL) {
-          if (Math.random() < 0.18 * intensity) {
+          if (getRandomFloat(0, 1) < 0.18 * intensity) {
             const splash = k.add([
               k.circle(k.rand(1.2, 2.2)),
               k.pos(camLeft + p.relX, GAME_CONFIG.SEA_LEVEL + k.rand(-1, 2)),
@@ -260,7 +261,7 @@ export function setupWeatherSystem(k: KaboomCtx, playerController: PlayerControl
 
         // Recicla chuva
         if (p.relX > screenW + 80 || p.relY > 180) {
-          p.relX = Math.random() * (screenW + 60) - 60;
+          p.relX = getRandomFloat(-60, screenW);
           p.relY = -30;
         }
 

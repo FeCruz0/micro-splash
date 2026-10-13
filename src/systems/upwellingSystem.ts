@@ -3,6 +3,7 @@ import { GAME_CONFIG, TAGS } from "../config";
 import { createKrill } from "../entities/krill";
 import type { PlayerController } from "../entities/player";
 import { safeShake } from "../utils/camera";
+import { getRandomFloat } from "../utils/random";
 
 export function createUpwellingStream(
   k: KaboomCtx,
@@ -122,16 +123,16 @@ export function setupUpwellingSystem(k: KaboomCtx, playerController: PlayerContr
       const normalizedDeltaTime = deltaTime * 60;
 
       // fluxo de agua ascendente na diagonal para direita independente de taxa de quadros
-      if (Math.random() < 0.4 * normalizedDeltaTime) {
-        const spawnXPosition = eventOriginXPosition + (Math.random() * 400 - 100);
+      if (getRandomFloat(0, 1) < 0.4 * normalizedDeltaTime) {
+        const spawnXPosition = eventOriginXPosition + getRandomFloat(-100, 300);
         const spawnYPosition = k.height() - 40;
         createUpwellingStream(k, spawnXPosition, spawnYPosition);
       }
 
       // gera cardume de krill na area independente de taxa de quadros
-      if (Math.random() < 0.005 * normalizedDeltaTime) {
-        const krillXPosition = eventOriginXPosition + 300 + Math.random() * 200;
-        const krillYPosition = k.height() - 100 - Math.random() * 200;
+      if (getRandomFloat(0, 1) < 0.005 * normalizedDeltaTime) {
+        const krillXPosition = eventOriginXPosition + 300 + getRandomFloat(0, 200);
+        const krillYPosition = k.height() - 100 - getRandomFloat(0, 200);
         createKrill(k, k.vec2(krillXPosition, krillYPosition));
       }
 

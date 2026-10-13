@@ -2,6 +2,7 @@ import type { KaboomCtx, GameObj } from "kaboom";
 import { GAME_CONFIG } from "../config";
 import type { PlayerController } from "../entities/player";
 import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
+import { getRandomFloat } from "../utils/random";
 
 export interface BioluminescentParticle {
   gameObj: GameObj;
@@ -135,12 +136,12 @@ export function setupBioluminescenceSystem(
 
     ambientPlankton.push({
       gameObj,
-      relX: Math.random() * screenW,
+      relX: getRandomFloat(0, screenW),
       relY:
         GAME_CONFIG.SEA_LEVEL +
         25 +
-        Math.random() * Math.max(80, screenH - GAME_CONFIG.SEA_LEVEL - 50),
-      phase: Math.random() * Math.PI * 2,
+        getRandomFloat(0, Math.max(80, screenH - GAME_CONFIG.SEA_LEVEL - 50)),
+      phase: getRandomFloat(0, Math.PI * 2),
       baseOpacity: typeof k.rand === "function" ? k.rand(0.25, 0.45) : 0.35,
     });
   }

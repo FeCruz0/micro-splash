@@ -1,4 +1,5 @@
 import type { KaboomCtx, Vec2, Color, GameObj } from "kaboom";
+import { getRandomFloat } from "../utils/random";
 
 /**
  * Parâmetros de configuração para emitir uma partícula circular a partir do pool.
@@ -210,7 +211,7 @@ export class ParticlePool {
     candidate.growthRate = opts.growthRate ?? 0;
     candidate.swayFreq = opts.swayFreq ?? 0;
     candidate.swayAmp = opts.swayAmp ?? 0;
-    candidate.swayTimer = Math.random() * Math.PI * 2;
+    candidate.swayTimer = getRandomFloat(0, Math.PI * 2);
     candidate.fadeRate = opts.fadeRate ?? 0;
     candidate.boundaryY = opts.boundaryY ?? null;
     candidate.boundaryYMode = opts.boundaryYMode ?? null;

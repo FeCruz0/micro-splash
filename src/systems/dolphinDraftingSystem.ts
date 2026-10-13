@@ -4,6 +4,7 @@ import { audioSystem } from "./audioSystem";
 import type { PlayerController } from "../entities/player";
 import { getParticlePool } from "./particlePool";
 import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
+import { getRandomFloat } from "../utils/random";
 
 /**
  * Sistema de Cardumes Residentes de Golfinhos-Rotadores (*Stenella longirostris*) e Vácuo Hidrodinâmico (Drafting).
@@ -222,11 +223,8 @@ export function setupDolphinDraftingSystem(k: KaboomCtx, playerController: Playe
           // Respingo na água visível se o jogador estiver por perto
           if (player && Math.abs(podX - player.pos.x) < 800) {
             if (leapProgress < 0.12 || leapProgress > 0.88) {
-              if (Math.random() < 0.3) {
-                const splashPos = k.vec2(
-                  podX + (Math.random() - 0.5) * 40,
-                  GAME_CONFIG.SEA_LEVEL + 3
-                );
+              if (getRandomFloat(0, 1) < 0.3) {
+                const splashPos = k.vec2(podX + getRandomFloat(-20, 20), GAME_CONFIG.SEA_LEVEL + 3);
                 const pool = getParticlePool();
                 if (pool) {
                   pool.spawnCircle({
