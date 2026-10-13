@@ -1,5 +1,6 @@
 import type { KaboomCtx, Vec2 } from "kaboom";
 import { GAME_CONFIG, TAGS } from "../config";
+import { getRandomFloat } from "../utils/random";
 import { audioSystem } from "../systems/audioSystem";
 import type { TouchControlsState } from "../ui/touchControls";
 import type { PlayerController } from "./player/types";
@@ -187,7 +188,7 @@ export function createPlayer(
     // Atualização de Impulso de Correnteza / Boost
     if (speedBoostTimer > 0) {
       speedBoostTimer = Math.max(0, speedBoostTimer - dt);
-      if (Math.random() < 0.35) {
+      if (getRandomFloat(0, 1) < 0.35) {
         const p = k.add([
           k.circle(k.rand(2, 4)),
           k.pos(baleia.pos.add(k.vec2(controlsMgr.isFacingRight() ? -55 : 55, k.rand(-10, 10)))),
@@ -519,7 +520,7 @@ export function createPlayer(
     );
 
     // 9. Esteira de drafting com golfinhos
-    if (isDrafting && Math.random() < 0.35) {
+    if (isDrafting && getRandomFloat(0, 1) < 0.35) {
       spawnDraftingTrail(k, baleia.pos, controlsMgr.isFacingRight());
     }
 

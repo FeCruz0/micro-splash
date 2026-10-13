@@ -1,6 +1,7 @@
 import type { GameObj, KaboomCtx, Vec2 } from "kaboom";
 import { GAME_CONFIG, TAGS } from "../config";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
+import { getRandomFloat, getRandomInteger } from "../utils/random";
 import { getActivePlayerObject } from "./player";
 
 interface BoidMember {
@@ -46,15 +47,15 @@ export function createKrill(k: KaboomCtx, position: Vec2): GameObj {
   const boids: BoidMember[] = [];
 
   for (let i = 0; i < boidCount; i++) {
-    const angle = (i / boidCount) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
-    const radius = 3 + Math.random() * 11;
+    const angle = (i / boidCount) * Math.PI * 2 + getRandomFloat(-0.2, 0.2);
+    const radius = getRandomFloat(3, 14);
     const relX = Math.cos(angle) * radius;
     const relY = Math.sin(angle) * radius;
 
     const isHighContrast = accessibilitySystem.isHighContrast();
     const baseColor = isHighContrast
       ? k.rgb(255, 230, 50)
-      : k.rgb(255, 150 + Math.floor(Math.random() * 45), 60 + Math.floor(Math.random() * 40));
+      : k.rgb(255, getRandomInteger(150, 194), getRandomInteger(60, 99));
 
     const boidObj = k.add(
       [
@@ -73,8 +74,8 @@ export function createKrill(k: KaboomCtx, position: Vec2): GameObj {
     boids.push({
       obj: boidObj,
       relPos: k.vec2(relX, relY),
-      phase: Math.random() * Math.PI * 2,
-      speed: 1.8 + Math.random() * 1.6,
+      phase: getRandomFloat(0, Math.PI * 2),
+      speed: getRandomFloat(1.8, 3.4),
       baseColor,
     });
   }
@@ -123,7 +124,7 @@ export function createKrill(k: KaboomCtx, position: Vec2): GameObj {
     }
   };
 
-  let time = Math.random() * 10;
+  let time = getRandomFloat(0, 10);
   const baseY = position.y;
 
   krillCluster.onUpdate(() => {
@@ -205,7 +206,7 @@ export function createKrill(k: KaboomCtx, position: Vec2): GameObj {
         b.obj.opacity = 0.95;
 
         // Micro-cintilação biológica
-        if (Math.random() < 0.06) {
+        if (getRandomFloat(0, 1) < 0.06) {
           const glint = k.add([
             k.circle(1.2),
             k.pos(b.obj.pos),
@@ -252,14 +253,14 @@ export function createKrill(k: KaboomCtx, position: Vec2): GameObj {
       const p = k.add([
         k.circle(1.8),
         k.pos(
-          krillCluster.pos.x + (Math.random() - 0.5) * 14,
-          krillCluster.pos.y + (Math.random() - 0.5) * 14
+          krillCluster.pos.x + getRandomFloat(-7, 7),
+          krillCluster.pos.y + getRandomFloat(-7, 7)
         ),
         k.color(255, 215, 120),
         k.opacity(0.85),
         k.z(12),
       ]);
-      const dir = k.vec2((Math.random() - 0.5) * 70, (Math.random() - 0.5) * 70);
+      const dir = k.vec2(getRandomFloat(-35, 35), getRandomFloat(-35, 35));
       p.onUpdate(() => {
         p.pos = p.pos.add(dir.scale(k.dt()));
         p.opacity -= k.dt() * 3.2;

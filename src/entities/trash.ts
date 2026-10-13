@@ -1,6 +1,7 @@
 import type { KaboomCtx, Vec2 } from "kaboom";
 import { GAME_CONFIG, TAGS } from "../config";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
+import { getRandomFloat, getRandomInteger } from "../utils/random";
 
 export interface BiomeTrashPalette {
   body: [number, number, number];
@@ -65,7 +66,7 @@ export function createTrash(k: KaboomCtx, position: Vec2) {
   const palette = getBiomeTrashPalette(position.x, isHighContrast);
 
   // 3 tipos procedurais de lixo plástico intercalados
-  const trashType = Math.floor(Math.random() * 3);
+  const trashType = getRandomInteger(0, 2);
   let trash: any;
 
   if (trashType === 0) {
@@ -165,7 +166,7 @@ export function createTrash(k: KaboomCtx, position: Vec2) {
   const baseY = position.y;
 
   // Flutuação suave e decaimento de revelação
-  let time = Math.random() * 10;
+  let time = getRandomFloat(0, 10);
   trash.onUpdate(() => {
     time += k.dt();
     trash.pos.y = baseY + Math.sin(time * 2.2) * 5;

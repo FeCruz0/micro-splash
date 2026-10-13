@@ -1,5 +1,6 @@
 import type { KaboomCtx, Vec2 } from "kaboom";
 import { GAME_CONFIG } from "../config";
+import { getRandomFloat } from "../utils/random";
 
 /**
  * Cria o barco de resgate da Guarda Marítima / Instituto Baleia Jubarte (Fase 34.3).
@@ -184,7 +185,7 @@ export function createFishingTrawler(k: KaboomCtx, positionX: number) {
   trawler.add([k.circle(2), k.pos(56, 8), k.color(245, 140, 40)]);
   trawler.add([k.circle(2), k.pos(52, 18), k.color(245, 190, 40)]);
 
-  let oscillationTime = Math.random() * Math.PI * 2;
+  let oscillationTime = getRandomFloat(0, Math.PI * 2);
   trawler.onUpdate(() => {
     const deltaTime = k.dt();
     oscillationTime += deltaTime * 2.2;

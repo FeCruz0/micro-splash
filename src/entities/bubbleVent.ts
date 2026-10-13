@@ -1,5 +1,6 @@
 import type { GameObj, KaboomCtx, Vec2 } from "kaboom";
 import { TAGS } from "../config";
+import { getRandomFloat } from "../utils/random";
 import { spawnPurifyBubbles } from "./player/playerParticles";
 
 export interface BubbleVentController {
@@ -62,10 +63,11 @@ export function createBubbleVent(
     radius: number;
   }> = [];
 
+  const halfVentWidth = (ventWidth - 10) / 2;
   for (let i = 0; i < bubbleCount; i++) {
     const radius = k.rand(1.5, 3.8);
-    const relX = (Math.random() - 0.5) * (ventWidth - 10);
-    const relY = Math.random() * columnHeight;
+    const relX = getRandomFloat(-halfVentWidth, halfVentWidth);
+    const relY = getRandomFloat(0, columnHeight);
 
     const bObj = k.add([
       k.circle(radius),
@@ -82,7 +84,7 @@ export function createBubbleVent(
       speedY: k.rand(55, 95),
       swaySpeed: k.rand(2.0, 4.0),
       swayAmp: k.rand(3, 8),
-      swayPhase: Math.random() * Math.PI * 2,
+      swayPhase: getRandomFloat(0, Math.PI * 2),
       radius,
     });
   }
@@ -102,7 +104,7 @@ export function createBubbleVent(
       // Reseta ao atingir o topo da coluna
       if (b.relY > columnHeight) {
         b.relY = 0;
-        b.relX = (Math.random() - 0.5) * (ventWidth - 10);
+        b.relX = getRandomFloat(-halfVentWidth, halfVentWidth);
       }
 
       const currentX = position.x + b.relX + Math.sin(b.swayPhase) * b.swayAmp;

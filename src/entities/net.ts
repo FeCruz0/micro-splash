@@ -1,6 +1,7 @@
 import type { KaboomCtx, Vec2 } from "kaboom";
 import { GAME_CONFIG, TAGS } from "../config";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
+import { getRandomFloat } from "../utils/random";
 
 export interface BiomeNetPalette {
   mesh: [number, number, number];
@@ -151,7 +152,7 @@ export function createGhostNet(k: KaboomCtx, position: Vec2) {
 
   const baseY = position.y;
 
-  let time = Math.random() * 10;
+  let time = getRandomFloat(0, 10);
   net.onUpdate(() => {
     time += k.dt();
     net.pos.y = baseY + Math.sin(time * 1.8) * 5; // Balanço suave senoidal

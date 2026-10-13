@@ -1,5 +1,6 @@
 import type { KaboomCtx, Vec2 } from "kaboom";
 import { GAME_CONFIG } from "../../config";
+import { getRandomFloat, getRandomInteger } from "../../utils/random";
 import { audioSystem } from "../../systems/audioSystem";
 import { getParticlePool } from "../../systems/particlePool";
 
@@ -9,14 +10,14 @@ export function spawnOilSpout(k: KaboomCtx, pos: Vec2, isFacingRight: boolean, h
   const pool = getParticlePool();
 
   for (let i = 0; i < 24; i++) {
-    const spread = (Math.random() - 0.5) * 0.35;
-    const speed = 110 + Math.random() * 90;
+    const spread = getRandomFloat(-0.175, 0.175);
+    const speed = getRandomFloat(110, 200);
     const dir = k.vec2(Math.cos(-Math.PI / 2 + spread), Math.sin(-Math.PI / 2 + spread));
     const vel = dir.scale(speed);
     vel.x += hSpeed * 0.2;
-    const pPos = k.vec2(spoutOrigin.x + (Math.random() - 0.5) * 6, spoutOrigin.y);
-    const radius = 1.8 + Math.random() * 2.2;
-    let life = 0.55 + Math.random() * 0.35;
+    const pPos = k.vec2(spoutOrigin.x + getRandomFloat(-3, 3), spoutOrigin.y);
+    const radius = getRandomFloat(1.8, 4.0);
+    let life = getRandomFloat(0.55, 0.9);
 
     if (pool) {
       pool.spawnCircle({
@@ -54,10 +55,10 @@ export function spawnOilSpout(k: KaboomCtx, pos: Vec2, isFacingRight: boolean, h
 export function spawnPurifyBubbles(k: KaboomCtx, pos: Vec2) {
   const pool = getParticlePool();
   for (let i = 0; i < 35; i++) {
-    const pPos = k.vec2(pos.x + (Math.random() - 0.5) * 40, pos.y + (Math.random() - 0.5) * 20);
-    const radius = 2.0 + Math.random() * 2.5;
-    const bLife = 0.8 + Math.random() * 0.5;
-    const vy = -60 - Math.random() * 80;
+    const pPos = k.vec2(pos.x + getRandomFloat(-20, 20), pos.y + getRandomFloat(-10, 10));
+    const radius = getRandomFloat(2.0, 4.5);
+    const bLife = getRandomFloat(0.8, 1.3);
+    const vy = getRandomFloat(-140, -60);
 
     if (pool) {
       pool.spawnCircle({
@@ -131,16 +132,16 @@ export function spawnBlowholeSpout(
     const isRightPlume = i % 2 === 0;
     // Ângulos das duas plumas em V: esquerda ~ -98° (-1.71 rad), direita ~ -82° (-1.43 rad)
     const baseAngle = isRightPlume ? -1.45 : -1.69;
-    const spread = (Math.random() - 0.5) * 0.22;
-    const speed = 190 + Math.random() * 170;
+    const spread = getRandomFloat(-0.11, 0.11);
+    const speed = getRandomFloat(190, 360);
     const dir = k.vec2(Math.cos(baseAngle + spread), Math.sin(baseAngle + spread));
 
     const vel = dir.scale(speed);
     vel.x += hSpeed * 0.35; // herda parte do movimento horizontal da baleia
 
-    const pPos = k.vec2(spoutOrigin.x + (Math.random() - 0.5) * 6, spoutOrigin.y);
-    const radius = 1.8 + Math.random() * 2.2;
-    const life = 0.65 + Math.random() * 0.45;
+    const pPos = k.vec2(spoutOrigin.x + getRandomFloat(-3, 3), spoutOrigin.y);
+    const radius = getRandomFloat(1.8, 4.0);
+    const life = getRandomFloat(0.65, 1.1);
 
     if (pool) {
       pool.spawnCircle({
@@ -189,10 +190,10 @@ export function spawnBaleenSuction(k: KaboomCtx, pos: Vec2, isFacingRight: boole
   const pool = getParticlePool();
 
   for (let i = 0; i < 12; i++) {
-    const pAngle = Math.random() * Math.PI * 2;
-    const dist = 22 + Math.random() * 24;
+    const pAngle = getRandomFloat(0, Math.PI * 2);
+    const dist = getRandomFloat(22, 46);
     const pPos = k.vec2(mouthPos.x + Math.cos(pAngle) * dist, mouthPos.y + Math.sin(pAngle) * dist);
-    const radius = 1.2 + Math.random() * 1.5;
+    const radius = getRandomFloat(1.2, 2.7);
 
     if (pool) {
       pool.spawnCircle({
@@ -231,13 +232,13 @@ export function spawnBaleenSuction(k: KaboomCtx, pos: Vec2, isFacingRight: boole
 
 export function spawnDraftingTrail(k: KaboomCtx, pos: Vec2, isFacingRight: boolean) {
   const trailX = pos.x + (isFacingRight ? -42 : 42);
-  const trailY = pos.y + (Math.random() - 0.5) * 18;
+  const trailY = pos.y + getRandomFloat(-9, 9);
   const pool = getParticlePool();
 
   if (pool) {
     pool.spawnRect({
       pos: k.vec2(trailX, trailY),
-      width: 16 + Math.random() * 14,
+      width: getRandomFloat(16, 30),
       height: 1.5,
       color: k.rgb(140, 240, 255),
       opacity: 0.75,
@@ -248,7 +249,7 @@ export function spawnDraftingTrail(k: KaboomCtx, pos: Vec2, isFacingRight: boole
     });
   } else {
     const trail = k.add([
-      k.rect(16 + Math.random() * 14, 1.5),
+      k.rect(getRandomFloat(16, 30), 1.5),
       k.pos(trailX, trailY),
       k.color(140, 240, 255),
       k.opacity(0.75),
@@ -290,11 +291,11 @@ export function spawnTailWaterRipples(
 
   for (let i = 0; i < rippleCount; i++) {
     const initialRadius = 4 + i * 3;
-    const growthRate = 45 + Math.random() * 15;
+    const growthRate = getRandomFloat(45, 60);
     const life = 0.35 + i * 0.08;
     // O centro da ondulação fica na água onde a cauda bateu, com quase nenhum arrasto artificial
     const ripplePos = tailPos.add(
-      k.vec2((isFacingRight ? -1 : 1) * (i * 4), (Math.random() - 0.5) * 3)
+      k.vec2((isFacingRight ? -1 : 1) * (i * 4), getRandomFloat(-1.5, 1.5))
     );
     const driftVel = k.vec2((isFacingRight ? -1 : 1) * (8 + i * 4), 0);
     // Tom ciano-aquático translúcido e suave
@@ -393,7 +394,7 @@ export function calculateTailStrokeBubbleData(
  * A cada batida muscular, emite 5–8 micro-bolhas que sobem lentamente na esteira da cauda.
  */
 export function spawnTailStrokeBubbles(k: KaboomCtx, pos: Vec2, isFacingRight: boolean) {
-  const count = 5 + Math.floor(Math.random() * 4); // 5 a 8 partículas
+  const count = getRandomInteger(5, 8); // 5 a 8 partículas
   const pool = getParticlePool();
 
   for (let i = 0; i < count; i++) {
