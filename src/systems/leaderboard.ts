@@ -3,6 +3,7 @@ import { submitOnlineScore } from "../services/leaderboardApi";
 import { addWeeklyLeaderboardEntry } from "./weeklyChallenge";
 import { readLocalStorageWithSchema, writeLocalStorage } from "../utils/storage";
 import { LeaderboardEntriesArraySchema } from "../schemas/storageSchemas";
+import { reportWarning } from "../utils/errorReporter";
 
 export interface LeaderboardEntry {
   initials: string;
@@ -75,8 +76,8 @@ export function addLeaderboardEntry(entry: LeaderboardEntry): boolean {
 
   // Tenta submeter em segundo plano ao backend Cloudflare Worker (não bloqueia UI)
   try {
-    submitOnlineScore(newEntry, entry.weekKey).catch((err) => {
-      console.warn("Falha silenciosa ao sincronizar pontuação online:", err);
+    submitOnlineScore(newEntry, entry.weekKey).catch((error) => {
+      reportWarning("Falha silenciosa ao sincronizar pontuação online:", undefined, error);
     });
   } catch {}
 

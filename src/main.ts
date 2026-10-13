@@ -48,6 +48,7 @@ import { gamepadSystem } from "./systems/gamepadSystem";
 import { analytics } from "./services/analytics";
 import { errorReporter } from "./services/errorReporter";
 import { initPwaManager } from "./utils/pwaManager";
+import { reportInformation, reportWarning } from "./utils/errorReporter";
 
 // Interfaces da Fase 6: Menu Principal, Seleção de Modo, Opções e Codex
 import { createMainMenu } from "./ui/mainMenu";
@@ -580,7 +581,7 @@ if (typeof window !== "undefined" && "serviceWorker" in navigator) {
     navigator.serviceWorker.getRegistrations().then((registrations) => {
       for (const registration of registrations) {
         registration.unregister();
-        console.log("[PWA] Service Worker desregistrado para desenvolvimento ativo.");
+        reportInformation("[PWA] Service Worker desregistrado para desenvolvimento ativo.");
       }
     });
     if ("caches" in window) {
@@ -595,10 +596,12 @@ if (typeof window !== "undefined" && "serviceWorker" in navigator) {
       navigator.serviceWorker
         .register("/sw.js")
         .then((registration) => {
-          console.log(`[PWA] Micro Splash Service Worker ativo (Escopo: ${registration.scope})`);
+          reportInformation(
+            `[PWA] Micro Splash Service Worker ativo (Escopo: ${registration.scope})`
+          );
         })
         .catch((err) => {
-          console.warn("[PWA] Falha no registro do Service Worker:", err);
+          reportWarning("[PWA] Falha no registro do Service Worker:", undefined, err);
         });
     });
   }

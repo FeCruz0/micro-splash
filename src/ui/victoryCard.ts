@@ -1,5 +1,6 @@
 import type { GameState } from "../systems/state";
 import { GAME_CONFIG } from "../config";
+import { reportError, reportWarning } from "../utils/errorReporter";
 
 export interface VictoryCardData {
   playerName?: string;
@@ -338,8 +339,8 @@ export function generateAndDownloadVictoryCard(data: VictoryCardData): boolean {
     link.click();
     document.body.removeChild(link);
     return true;
-  } catch (err) {
-    console.error("Erro ao gerar imagem do cartão de vitória:", err);
+  } catch (error) {
+    reportError("Erro ao gerar imagem do cartão de vitória:", error);
     return false;
   }
 }
@@ -415,12 +416,12 @@ export async function shareVictoryCard(data: VictoryCardData): Promise<boolean> 
       url: typeof window !== "undefined" ? window.location.href : undefined,
     });
     return true;
-  } catch (err: any) {
+  } catch (error: any) {
     // Se o usuário cancelou o compartilhamento, não consideramos como erro grave
-    if (err.name === "AbortError") {
+    if (error.name === "AbortError") {
       return false;
     }
-    console.warn("Falha no compartilhamento nativo:", err);
+    reportWarning("Falha no compartilhamento nativo:", undefined, error);
     return false;
   }
 }

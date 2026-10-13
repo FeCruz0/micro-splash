@@ -60,7 +60,7 @@ Alvo: v1.14.0
 
 ### Etapa 3: Roteamento de Logs Residuais (`src/utils/errorReporter.ts`)
 
-- [ ] **3.1 Substituição de `console.*` nos 5 Arquivos Residuais**
+- [x] **3.1 Substituição de `console.*` nos 5 Arquivos Residuais**
   - **Arquivos**: `src/services/leaderboardApi.ts`, `src/ui/victoryCard.ts`, `src/systems/weeklyChallenge.ts`, `src/systems/leaderboard.ts`, `src/main.ts`.
   - **Ação**: Roteamento para `reportWarning`, `reportError` ou `reportInformation`.
 
