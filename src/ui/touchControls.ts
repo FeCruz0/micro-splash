@@ -1,4 +1,6 @@
 import type { KaboomCtx } from "kaboom";
+import { readLocalStorageWithSchema } from "../utils/storage";
+import { TouchControlsModeSchema } from "../schemas/storageSchemas";
 
 export interface TouchControlsState {
   up: boolean;
@@ -46,7 +48,11 @@ if (typeof window !== "undefined") {
 export function isTouchEnvironment(): boolean {
   if (typeof window === "undefined") return false;
 
-  const touchConfig = localStorage.getItem("micro_splash_touch_controls") || "auto";
+  const touchConfig = readLocalStorageWithSchema(
+    "micro_splash_touch_controls",
+    TouchControlsModeSchema,
+    "auto"
+  );
   if (touchConfig === "off") return false;
   if (touchConfig === "on") return true;
 
@@ -296,7 +302,11 @@ export function setupTouchControls(k: KaboomCtx): {
       sessionStorage.setItem("micro_splash_touch_active", "true");
     } catch {}
 
-    const touchConfig = localStorage.getItem("micro_splash_touch_controls") || "auto";
+    const touchConfig = readLocalStorageWithSchema(
+      "micro_splash_touch_controls",
+      TouchControlsModeSchema,
+      "auto"
+    );
     if (touchConfig !== "off" && elements.length === 0) {
       buildControls();
     }

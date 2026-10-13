@@ -89,9 +89,5 @@ export function addLeaderboardEntry(entry: LeaderboardEntry): boolean {
 }
 
 export function resetLeaderboard(): void {
-  try {
-    if (typeof localStorage !== "undefined") {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_LEADERBOARD));
-    }
-  } catch {}
+  writeLocalStorage(STORAGE_KEY, DEFAULT_LEADERBOARD);
 }

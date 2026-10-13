@@ -52,7 +52,7 @@ Alvo: v1.14.0
 - [x] **2.2 Migração em Configuração, Estado Global e Serviços**
   - **Arquivos**: `src/config.ts`, `src/systems/state.ts`, `src/i18n/i18n.ts`, `src/services/leaderboardApi.ts`, `src/systems/leaderboard.ts`, `src/systems/weeklyChallenge.ts`, `src/systems/cumulativeStats.ts`.
   - **Ação**: Substituir acessos diretos a `localStorage` por `readLocalStorageWithSchema` e `writeLocalStorage`.
-- [ ] **2.3 Migração em Sistemas Periféricos e UI**
+- [x] **2.3 Migração em Sistemas Periféricos e UI**
   - **Arquivos**: `src/systems/accessibilitySystem.ts`, `src/systems/hapticsSystem.ts`, `src/systems/ttsSystem.ts`, `src/systems/audio/audioEngine.ts`, `src/ui/optionsScreen.ts`, `src/ui/codexScreen.ts`, `src/ui/mainMenu.ts`, `src/ui/onboardingModal.ts`, `src/ui/touchControls.ts`.
   - **Ação**: Padronizar leitura/escrita blindada contra falhas com fallback seguro.
 

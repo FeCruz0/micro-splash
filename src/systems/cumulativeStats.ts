@@ -1,4 +1,8 @@
-import { readLocalStorageWithSchema, writeLocalStorage } from "../utils/storage";
+import {
+  readLocalStorageWithSchema,
+  writeLocalStorage,
+  removeLocalStorageItem,
+} from "../utils/storage";
 import { CumulativeStatsSchema } from "../schemas/storageSchemas";
 
 export interface CumulativeStats {
@@ -72,9 +76,7 @@ export function recordQuizResult(correctCount: number): CumulativeStats {
 }
 
 export function resetCumulativeStats(): void {
-  try {
-    localStorage.removeItem(STATS_STORAGE_KEY);
-  } catch {}
+  removeLocalStorageItem(STATS_STORAGE_KEY);
 }
 
 export function formatDistanceKm(meters: number): string {

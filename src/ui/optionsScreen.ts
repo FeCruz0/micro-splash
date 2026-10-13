@@ -4,6 +4,8 @@ import { accessibilitySystem } from "../systems/accessibilitySystem";
 import { hapticsSystem } from "../systems/hapticsSystem";
 import { ttsSystem } from "../systems/ttsSystem";
 import { showOnboardingModal } from "./onboardingModal";
+import { readLocalStorageWithSchema, writeLocalStorage } from "../utils/storage";
+import { TouchControlsModeSchema } from "../schemas/storageSchemas";
 import { createFocusGroup, type FocusableItem } from "./keyboardNav";
 import { i18n } from "../i18n/i18n";
 import {
@@ -1022,7 +1024,11 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   });
 
   // --- Linha 5: Controles Touch ---
-  let touchMode = localStorage.getItem("micro_splash_touch_controls") || "auto";
+  let touchMode = readLocalStorageWithSchema(
+    "micro_splash_touch_controls",
+    TouchControlsModeSchema,
+    "auto"
+  );
   const getTouchLabel = (mode: string) => {
     if (mode === "on") return "Touch: ATIVOS 📱";
     if (mode === "off") return "Touch: OFF ❌";
@@ -1061,7 +1067,7 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
     else if (touchMode === "on") touchMode = "off";
     else touchMode = "auto";
 
-    localStorage.setItem("micro_splash_touch_controls", touchMode);
+    writeLocalStorage("micro_splash_touch_controls", touchMode);
     audioSystem.playUiClick();
     btnTouch.color = touchMode === "off" ? k.rgb(45, 55, 75) : k.rgb(20, 90, 140);
     touchText.text = getTouchLabel(touchMode);

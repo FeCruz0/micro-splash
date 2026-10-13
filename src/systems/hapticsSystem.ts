@@ -4,6 +4,9 @@
  * em saltos polares, colisões e no pulso do Biosonar.
  */
 
+import { readLocalStorageWithSchema, writeLocalStorage } from "../utils/storage";
+import { HapticsEnabledSchema } from "../schemas/storageSchemas";
+
 const STORAGE_KEY = "micro_splash_haptics_enabled";
 
 class HapticsSystem {
@@ -23,11 +26,7 @@ class HapticsSystem {
 
   public setEnabled(enabled: boolean): void {
     this.enabled = enabled;
-    try {
-      if (typeof localStorage !== "undefined") {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(enabled));
-      }
-    } catch {}
+    writeLocalStorage(STORAGE_KEY, enabled);
   }
 
   public toggle(): boolean {
@@ -77,14 +76,7 @@ class HapticsSystem {
   }
 
   private loadSettings(): void {
-    try {
-      if (typeof localStorage !== "undefined") {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (saved !== null) {
-          this.enabled = JSON.parse(saved);
-        }
-      }
-    } catch {}
+    this.enabled = readLocalStorageWithSchema(STORAGE_KEY, HapticsEnabledSchema, true);
   }
 }
 

@@ -1,6 +1,8 @@
 import { BiomeMusicEngine } from "./audioMusic";
 import { reportWarning } from "../../utils/errorReporter";
 import { getRandomFloat } from "../../utils/random";
+import { readLocalStorageWithSchema, writeLocalStorage } from "../../utils/storage";
+import { AudioSettingsSchema } from "../../schemas/storageSchemas";
 
 export type SoundtrackMode = "chiptune" | "ambient" | "sfx_only";
 
@@ -235,39 +237,29 @@ export class AudioEngine {
   }
 
   public loadSettings() {
-    try {
-      if (typeof localStorage === "undefined") return;
-      const saved = localStorage.getItem("micro_splash_audio_settings");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (typeof parsed.volume === "number")
-          this.volume = Math.max(0, Math.min(1, parsed.volume));
-        if (typeof parsed.musicEnabled === "boolean") this.musicEnabled = parsed.musicEnabled;
-        if (typeof parsed.sfxEnabled === "boolean") this.sfxEnabled = parsed.sfxEnabled;
-        if (
-          parsed.soundtrackMode === "chiptune" ||
-          parsed.soundtrackMode === "ambient" ||
-          parsed.soundtrackMode === "sfx_only"
-        ) {
-          this.soundtrackMode = parsed.soundtrackMode;
-        }
+    const settings = readLocalStorageWithSchema(
+      "micro_splash_audio_settings",
+      AudioSettingsSchema,
+      {
+        volume: this.volume,
+        musicEnabled: this.musicEnabled,
+        sfxEnabled: this.sfxEnabled,
+        soundtrackMode: this.soundtrackMode,
       }
-    } catch {}
+    );
+    this.volume = Math.max(0, Math.min(1, settings.volume));
+    this.musicEnabled = settings.musicEnabled;
+    this.sfxEnabled = settings.sfxEnabled;
+    this.soundtrackMode = settings.soundtrackMode;
   }
 
   public saveSettings() {
-    try {
-      if (typeof localStorage === "undefined") return;
-      localStorage.setItem(
-        "micro_splash_audio_settings",
-        JSON.stringify({
-          volume: this.volume,
-          musicEnabled: this.musicEnabled,
-          sfxEnabled: this.sfxEnabled,
-          soundtrackMode: this.soundtrackMode,
-        })
-      );
-    } catch {}
+    writeLocalStorage("micro_splash_audio_settings", {
+      volume: this.volume,
+      musicEnabled: this.musicEnabled,
+      sfxEnabled: this.sfxEnabled,
+      soundtrackMode: this.soundtrackMode,
+    });
   }
 
   public getSoundtrackMode(): SoundtrackMode {

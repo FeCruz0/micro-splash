@@ -9,6 +9,8 @@ import { t } from "../i18n/i18n";
 import { attachButtonHoverEffect } from "./animationUtils";
 import { getKioskIdleTimeoutSeconds } from "../systems/kioskMode";
 import { getRandomFloat } from "../utils/random";
+import { readLocalStorageWithSchema } from "../utils/storage";
+import { HighscoreSchema } from "../schemas/storageSchemas";
 
 export function createMainMenu(
   k: KaboomCtx,
@@ -204,7 +206,7 @@ export function createMainMenu(
   ]);
 
   // Placar Recorde com badge elegante e respiro
-  const highScore = Number(localStorage.getItem("micro_splash_highscore") || 0);
+  const highScore = readLocalStorageWithSchema("micro_splash_highscore", HighscoreSchema, 0);
   if (highScore > 0) {
     const formattedScore = highScore.toLocaleString("pt-BR");
     k.add([

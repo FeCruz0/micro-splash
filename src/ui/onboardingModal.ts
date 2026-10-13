@@ -3,25 +3,17 @@ import { audioSystem } from "../systems/audioSystem";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
 import { createFocusGroup, type FocusableItem } from "./keyboardNav";
 import { FONT_TITLE, FONT_BODY, TEXT_SIZE_H1, TEXT_SIZE_BODY, TEXT_SIZE_CAPTION } from "../config";
+import { readLocalStorageWithSchema, writeLocalStorage } from "../utils/storage";
+import { HapticsEnabledSchema } from "../schemas/storageSchemas";
 
 const ONBOARDING_STORAGE_KEY = "micro_splash_onboarding_done";
 
 export function hasSeenOnboarding(): boolean {
-  if (typeof localStorage !== "undefined") {
-    return localStorage.getItem(ONBOARDING_STORAGE_KEY) === "true";
-  }
-  if (typeof window !== "undefined" && window.localStorage) {
-    return window.localStorage.getItem(ONBOARDING_STORAGE_KEY) === "true";
-  }
-  return false;
+  return readLocalStorageWithSchema(ONBOARDING_STORAGE_KEY, HapticsEnabledSchema, false);
 }
 
 export function markOnboardingSeen(): void {
-  if (typeof localStorage !== "undefined") {
-    localStorage.setItem(ONBOARDING_STORAGE_KEY, "true");
-  } else if (typeof window !== "undefined" && window.localStorage) {
-    window.localStorage.setItem(ONBOARDING_STORAGE_KEY, "true");
-  }
+  writeLocalStorage(ONBOARDING_STORAGE_KEY, true);
 }
 
 interface OnboardingSlide {

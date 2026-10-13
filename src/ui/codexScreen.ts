@@ -7,6 +7,8 @@ import { showOnboardingModal } from "./onboardingModal";
 import { createFocusGroup, type FocusableItem } from "./keyboardNav";
 import factsData from "../../data/facts.json";
 import { animateModalEntrance, attachButtonHoverEffect } from "./animationUtils";
+import { readLocalStorageWithSchema } from "../utils/storage";
+import { UnlockedFactsArraySchema } from "../schemas/storageSchemas";
 
 /**
  * Retorna as informações do bioma com base na distância de disparo da descoberta (Fase 34.7).
@@ -165,10 +167,11 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
   }
 
   // Carrega fatos já desbloqueados
-  let unlockedFactIds: string[] = [];
-  try {
-    unlockedFactIds = JSON.parse(localStorage.getItem("micro_splash_unlocked_facts") || "[]");
-  } catch {}
+  const unlockedFactIds: string[] = readLocalStorageWithSchema(
+    "micro_splash_unlocked_facts",
+    UnlockedFactsArraySchema,
+    []
+  );
 
   let activeTab: "species" | "route" | "conservation" = "species";
   let routePage = 0;

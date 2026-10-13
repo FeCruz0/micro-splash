@@ -1,4 +1,10 @@
 import type { KaboomCtx } from "kaboom";
+import { readLocalStorageWithSchema, writeLocalStorage } from "../utils/storage";
+import {
+  ColorModeSchema,
+  ReducedMotionModeSchema,
+  FontScaleKeySchema,
+} from "../schemas/storageSchemas";
 
 /**
  * Sistema de Acessibilidade Universal, Filtros Daltonismo, Movimento Reduzido e Fontes Dinâmicas
@@ -130,11 +136,7 @@ export class AccessibilitySystem {
 
   public setColorMode(mode: ColorMode): void {
     currentColorMode = mode;
-    try {
-      if (typeof localStorage !== "undefined") {
-        localStorage.setItem(STORAGE_KEY_COLOR, mode);
-      }
-    } catch {}
+    writeLocalStorage(STORAGE_KEY_COLOR, mode);
     applyCanvasFilter(mode);
   }
 
@@ -163,11 +165,7 @@ export class AccessibilitySystem {
 
   public setReducedMotion(mode: ReducedMotionMode): void {
     currentReducedMotion = mode;
-    try {
-      if (typeof localStorage !== "undefined") {
-        localStorage.setItem(STORAGE_KEY_REDUCED_MOTION, mode);
-      }
-    } catch {}
+    writeLocalStorage(STORAGE_KEY_REDUCED_MOTION, mode);
   }
 
   public cycleReducedMotion(): ReducedMotionMode {
@@ -211,11 +209,7 @@ export class AccessibilitySystem {
 
   public setFontScale(key: FontScaleKey): void {
     currentFontScale = key;
-    try {
-      if (typeof localStorage !== "undefined") {
-        localStorage.setItem(STORAGE_KEY_FONT_SCALE, key);
-      }
-    } catch {}
+    writeLocalStorage(STORAGE_KEY_FONT_SCALE, key);
   }
 
   public cycleFontScale(): FontScaleKey {
@@ -274,41 +268,17 @@ export class AccessibilitySystem {
   }
 
   private loadSettings(): void {
-    try {
-      if (typeof localStorage !== "undefined") {
-        // Cores
-        const savedColor = localStorage.getItem(STORAGE_KEY_COLOR) as ColorMode | null;
-        if (
-          savedColor &&
-          (savedColor === "normal" ||
-            savedColor === "protanopia" ||
-            savedColor === "deuteranopia" ||
-            savedColor === "high_contrast")
-        ) {
-          currentColorMode = savedColor;
-        }
-
-        // Movimento reduzido
-        const savedMotion = localStorage.getItem(
-          STORAGE_KEY_REDUCED_MOTION
-        ) as ReducedMotionMode | null;
-        if (
-          savedMotion &&
-          (savedMotion === "auto" || savedMotion === "reduced" || savedMotion === "full")
-        ) {
-          currentReducedMotion = savedMotion;
-        }
-
-        // Tamanho de fonte
-        const savedFont = localStorage.getItem(STORAGE_KEY_FONT_SCALE) as FontScaleKey | null;
-        if (
-          savedFont &&
-          (savedFont === "small" || savedFont === "normal" || savedFont === "large")
-        ) {
-          currentFontScale = savedFont;
-        }
-      }
-    } catch {}
+    currentColorMode = readLocalStorageWithSchema(STORAGE_KEY_COLOR, ColorModeSchema, "normal");
+    currentReducedMotion = readLocalStorageWithSchema(
+      STORAGE_KEY_REDUCED_MOTION,
+      ReducedMotionModeSchema,
+      "auto"
+    );
+    currentFontScale = readLocalStorageWithSchema(
+      STORAGE_KEY_FONT_SCALE,
+      FontScaleKeySchema,
+      "normal"
+    );
   }
 }
 

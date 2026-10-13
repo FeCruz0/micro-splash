@@ -4,13 +4,10 @@
 // 100% offline e sem arquivos de áudio externos.
 // =============================================================================
 
-const STORAGE_KEY = "micro_splash_tts";
+import { readLocalStorageWithSchema, writeLocalStorage } from "../utils/storage";
+import { HapticsEnabledSchema } from "../schemas/storageSchemas";
 
-function getStorage(): Storage | null {
-  if (typeof localStorage !== "undefined") return localStorage;
-  if (typeof window !== "undefined" && window.localStorage) return window.localStorage;
-  return null;
-}
+const STORAGE_KEY = "micro_splash_tts";
 
 function getSpeechSynthesis(): SpeechSynthesis | null {
   if (typeof window !== "undefined" && window.speechSynthesis) return window.speechSynthesis;
@@ -40,11 +37,7 @@ class TtsSystem {
   }
 
   private loadState() {
-    const storage = getStorage();
-    if (storage) {
-      const saved = storage.getItem(STORAGE_KEY);
-      this.enabled = saved === "true";
-    }
+    this.enabled = readLocalStorageWithSchema(STORAGE_KEY, HapticsEnabledSchema, false);
   }
 
   public isSupported(): boolean {
@@ -57,10 +50,7 @@ class TtsSystem {
 
   public setEnabled(value: boolean): void {
     this.enabled = value;
-    const storage = getStorage();
-    if (storage) {
-      storage.setItem(STORAGE_KEY, value ? "true" : "false");
-    }
+    writeLocalStorage(STORAGE_KEY, value);
     if (!value) {
       this.stop();
     }
