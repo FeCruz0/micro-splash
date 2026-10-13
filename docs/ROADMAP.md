@@ -772,3 +772,29 @@ _Objetivo: Sincronizar documentação com o estado real do código._
   - Geração a partir de Conventional Commits, cobrindo Fases 38–44 pendentes.
 - [ ] **52.3 Reconciliação ROADMAP × Código:**
   - Revisar itens marcados `[x]` com resíduos (37.5, 37.6, 37.10) e alinhar `.ai/todo.md`.
+
+### ⚡ FASE 53: Otimização Extrema de Frame Time & Taxa de Quadros (Zero Frame Drops)
+
+_Objetivo: Eliminar micro-stutters, alocações por frame no garbage collector e processamento redundante fora da tela, garantindo 60+ FPS estáveis mesmo em cenas com alta densidade de partículas e entidades._
+
+- [ ] **53.1 Throttling & Caching de Atualizações Globais:**
+  - Cachear `camPos()`, `width()` e `height()` por frame no loop principal de `main.ts`.
+  - Aplicar dirty-check e throttling em `updateOceanColors` (apenas recalcular quando profundidade ou bioma sofrerem variação significativa), evitando 12 lerps e alocação de `Color` todo frame.
+- [ ] **53.2 Culling Espacial Acelerado & Pausa de Updates Fora da Tela:**
+  - Evoluir `spatialCullingSystem.ts` para desativar/pausar `onUpdate` de entidades distantes da viewport além de `hidden = true`.
+  - Otimizar busca e remoção no culling substituindo `splice` linear por particionamento espacial em grid / chunks ou swap-and-pop.
+- [ ] **53.3 Reutilização de Buffers & Redução de Pressão no Garbage Collector:**
+  - Pré-alocar e reutilizar buffers de transformações de fatias em `playerSliceRenderer.ts` (`calculateWhaleSliceTransforms`), eliminando novos arrays/objetos a cada frame.
+  - Eliminar instanciações de `vec2` por frame nos boids de cardumes em `krill.ts` e na atração de partículas em `particlePool.ts` através de matemática escalar ou vetores reutilizáveis.
+  - Reutilizar objetos de posição/drift por partícula em `marineSnowSystem.ts`.
+- [ ] **53.4 Short-Circuit de Subsistemas Inativos & Pool com Lista Ativa Densa:**
+  - Aplicar early-return imediato em `weatherSystem.ts` quando o clima for `clear`, evitando iterar 100 partículas inativas.
+  - Reorganizar `particlePool.ts` com array denso de índices ativos (active list swap-and-pop), evitando iterar todos os 170 slots a cada frame.
+  - Adicionar culling de blocos/segmentos visíveis em `benthicFloorSystem.ts` para não iterar plantas e nós fora da câmera.
+- [ ] **53.5 Roteamento de Spawns Residuais para ParticlePool & Batching de Sonar:**
+  - Redirecionar partículas ad-hoc instanciadas via `k.add()` em `player.ts` (bolhas de nado e exaustão) e `breachSystem.ts` (splash de salto) para `ParticlePool`, com delta normalizado por `dt * 60`.
+  - Otimizar `playerSonar.ts`: substituir múltiplas queries lineares `k.get()` por tags agrupadas ou verificação espacial e reaproveitar objetos de eco via pool.
+- [ ] **53.6 Métricas de Frame Time p95/p99 no Overlay de Diagnóstico F3:**
+  - Implementar buffer circular de frame time (últimos 120 quadros) no overlay de debug (F3), exibindo média, p95, p99 e contagem de entidades ativas vs culled.
+- [ ] **53.7 Testes Automatizados de Performance e Estabilidade:**
+  - Criar testes de estresse em `tests/systems/` validando que simulações com 200+ partículas e cardumes mantêm alocações e tempo de processamento dentro dos limites estipulados por frame.
