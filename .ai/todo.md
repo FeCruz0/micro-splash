@@ -38,7 +38,7 @@ Alvo: v1.14.0
 - [x] **1.2 Migração de RNG em Subsistemas de Cenário e Clima**
   - **Arquivos**: `src/systems/backgroundFauna.ts`, `src/systems/iceSurface.ts`, `src/systems/shipNoiseSystem.ts`, `src/systems/oceanCurrentsSystem.ts`, `src/systems/particlePool.ts`, `src/systems/weatherSystem.ts`, `src/systems/dolphinDraftingSystem.ts`, `src/systems/penguinFlockSystem.ts`, `src/systems/parallaxSkySystem.ts`, `src/systems/proceduralObstacles.ts`, `src/systems/upwellingSystem.ts`, `src/systems/bioluminescenceSystem.ts`, `src/systems/breachSystem.ts`, `src/systems/oilSpillSystem.ts`.
   - **Ação**: Integrar `getRandomFloat`/`getRandomInteger` preservando taxas de spawn e variação procedural.
-- [ ] **1.3 Migração de RNG em Áudio e Interface**
+- [x] **1.3 Migração de RNG em Áudio e Interface**
   - **Arquivos**: `src/systems/audio/audioMusic.ts`, `src/systems/audio/audioSFX.ts`, `src/systems/audio/audioEngine.ts`, `src/ui/mainMenu.ts`, `src/ui/hudSystem.ts`, `src/ui/quizModal.ts`, `src/services/errorReporter.ts`.
   - **Ação**: Trocar dispersões randômicas de frequência e UI por `getRandomFloat`/`getRandomChoice`.
 

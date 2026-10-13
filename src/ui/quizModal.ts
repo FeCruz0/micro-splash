@@ -6,6 +6,7 @@ import { recordQuizResult } from "../systems/cumulativeStats";
 import { analytics } from "../services/analytics";
 import { telemetrySystem } from "../systems/telemetrySystem";
 import quizData from "../../data/quiz.json";
+import { getRandomInteger } from "../utils/random";
 
 export interface QuizQuestion {
   id: string;
@@ -21,7 +22,7 @@ export interface QuizQuestion {
 function shuffleArray<T>(array: T[]): T[] {
   const arr = [...array];
   for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = getRandomInteger(0, i);
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
   return arr;

@@ -3,6 +3,7 @@ import type { PlayerController } from "../entities/player";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
 import { FONT_TITLE, FONT_BODY } from "../config";
 import { formatDualDistance } from "../utils/navigation";
+import { getRandomFloat } from "../utils/random";
 
 export type OxygenUrgencyState = "calm" | "warning" | "critical";
 
@@ -198,8 +199,8 @@ export function setupHudSystem(
 
     // Efeito de tremor (tremor leve no aviso e tremor maior no crítico)
     if (currentUrgency === "critical") {
-      const tremorX = (Math.random() - 0.5) * 1.6;
-      const tremorY = (Math.random() - 0.5) * 1.6;
+      const tremorX = getRandomFloat(-0.8, 0.8);
+      const tremorY = getRandomFloat(-0.8, 0.8);
       hudContainer.pos.x = 14 + tremorX;
       hudContainer.pos.y = 14 + tremorY;
 
@@ -208,7 +209,7 @@ export function setupHudSystem(
       const vignettePulse = 0.22 + Math.sin(totalTime * 9) * 0.16;
       vignetteOverlay.opacity = Math.max(0.08, Math.min(0.45, vignettePulse));
     } else if (currentUrgency === "warning") {
-      const tremorX = (Math.random() - 0.5) * 0.6;
+      const tremorX = getRandomFloat(-0.3, 0.3);
       hudContainer.pos.x = 14 + tremorX;
       hudContainer.pos.y = 14;
       vignetteOverlay.hidden = true;

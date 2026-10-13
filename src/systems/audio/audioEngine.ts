@@ -1,5 +1,6 @@
 import { BiomeMusicEngine } from "./audioMusic";
 import { reportWarning } from "../../utils/errorReporter";
+import { getRandomFloat } from "../../utils/random";
 
 export type SoundtrackMode = "chiptune" | "ambient" | "sfx_only";
 
@@ -128,8 +129,8 @@ export class AudioEngine {
       const env = Math.exp(-t * decay);
       // Atenuação suave de frequências muito altas na cauda simulando absorção na água salgada
       const highFreqDamping = 1 - 0.45 * t;
-      left[i] = (Math.random() * 2 - 1) * env * highFreqDamping;
-      right[i] = (Math.random() * 2 - 1) * env * highFreqDamping;
+      left[i] = getRandomFloat(-1, 1) * env * highFreqDamping;
+      right[i] = getRandomFloat(-1, 1) * env * highFreqDamping;
     }
     return impulse;
   }
@@ -434,7 +435,7 @@ export class AudioEngine {
         b5 = 0,
         b6 = 0;
       for (let i = 0; i < bufferSize; i++) {
-        const white = Math.random() * 2 - 1;
+        const white = getRandomFloat(-1, 1);
         b0 = 0.99886 * b0 + white * 0.0555179;
         b1 = 0.99332 * b1 + white * 0.0750759;
         b2 = 0.969 * b2 + white * 0.153852;

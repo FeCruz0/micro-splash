@@ -1,3 +1,5 @@
+import { getRandomFloat } from "../../utils/random";
+
 export const BIOME_INDEX = {
   ANTARCTICA: 0, // 0m - 5.000m (Polar Aquatic Ambience: Cm9, Abmaj7#11, Fm9, Gsus4/Cm)
   OCEAN: 1, // 5.000m - 12.000m (Aquatic Ambience Clássico de David Wise: Cm9, Abmaj7#11, Fm9, Gm7)
@@ -451,7 +453,7 @@ export class BiomeMusicEngine {
     const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
     const data = buffer.getChannelData(0);
     for (let i = 0; i < bufferSize; i++) {
-      data[i] = Math.random() * 2 - 1;
+      data[i] = getRandomFloat(-1, 1);
     }
 
     const noise = this.ctx.createBufferSource();
@@ -481,7 +483,7 @@ export class BiomeMusicEngine {
     const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
     const data = buffer.getChannelData(0);
     for (let i = 0; i < bufferSize; i++) {
-      data[i] = Math.random() * 2 - 1;
+      data[i] = getRandomFloat(-1, 1);
     }
 
     const noise = this.ctx.createBufferSource();

@@ -8,6 +8,7 @@ import { hasSeenOnboarding, showOnboardingModal } from "./onboardingModal";
 import { t } from "../i18n/i18n";
 import { attachButtonHoverEffect } from "./animationUtils";
 import { getKioskIdleTimeoutSeconds } from "../systems/kioskMode";
+import { getRandomFloat } from "../utils/random";
 
 export function createMainMenu(
   k: KaboomCtx,
@@ -36,8 +37,8 @@ export function createMainMenu(
     const comps: any[] = [
       k.circle(radius),
       k.pos(
-        typeof k.rand === "function" ? k.rand(0, screenW) : Math.random() * screenW,
-        typeof k.rand === "function" ? k.rand(0, screenH) : Math.random() * screenH
+        typeof k.rand === "function" ? k.rand(0, screenW) : getRandomFloat(0, screenW),
+        typeof k.rand === "function" ? k.rand(0, screenH) : getRandomFloat(0, screenH)
       ),
       k.color(70, 205, 255),
       k.opacity(typeof k.rand === "function" ? k.rand(0.25, 0.55) : 0.4),
@@ -58,7 +59,7 @@ export function createMainMenu(
       p.pos.x += Math.sin(time * 2.2) * 0.4;
       if (p.pos.y < -12) {
         p.pos.y = screenH + 10;
-        p.pos.x = typeof k.rand === "function" ? k.rand(0, screenW) : Math.random() * screenW;
+        p.pos.x = typeof k.rand === "function" ? k.rand(0, screenW) : getRandomFloat(0, screenW);
       }
     });
     particles.push(p);
@@ -71,8 +72,8 @@ export function createMainMenu(
     const comps: any[] = [
       k.rect(2, 6, { radius: 1 }),
       k.pos(
-        typeof k.rand === "function" ? k.rand(0, screenW) : Math.random() * screenW,
-        typeof k.rand === "function" ? k.rand(0, screenH) : Math.random() * screenH
+        typeof k.rand === "function" ? k.rand(0, screenW) : getRandomFloat(0, screenW),
+        typeof k.rand === "function" ? k.rand(0, screenH) : getRandomFloat(0, screenH)
       ),
       k.color(pColor),
       k.opacity(baseOpacity),
@@ -94,7 +95,7 @@ export function createMainMenu(
       p.opacity = Math.max(0.1, Math.min(0.8, baseOpacity + Math.sin(time * 3) * 0.15));
       if (p.pos.y < -12) {
         p.pos.y = screenH + 10;
-        p.pos.x = typeof k.rand === "function" ? k.rand(0, screenW) : Math.random() * screenW;
+        p.pos.x = typeof k.rand === "function" ? k.rand(0, screenW) : getRandomFloat(0, screenW);
       }
     });
     particles.push(p);
@@ -130,7 +131,8 @@ export function createMainMenu(
       }
       if (p.pos.y < -16) {
         p.pos.y = screenH + 15;
-        p.pos.x = typeof k.rand === "function" ? k.rand(20, screenW - 20) : Math.random() * screenW;
+        p.pos.x =
+          typeof k.rand === "function" ? k.rand(20, screenW - 20) : getRandomFloat(0, screenW);
       }
     });
     particles.push(p);

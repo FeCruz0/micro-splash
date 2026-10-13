@@ -4,6 +4,8 @@
  * Fallback seguro sem dependências pesadas externas e operação silenciosa em ambientes offline.
  */
 
+import { getRandomFloat } from "../utils/random";
+
 export interface CapturedError {
   timestamp: number;
   message: string;
@@ -87,7 +89,7 @@ class ErrorReporter {
       // Disparo de envelope para ingestão em Sentry quando configurado
       try {
         const body = JSON.stringify({
-          event_id: Math.random().toString(36).substring(2),
+          event_id: getRandomFloat(0, 1).toString(36).substring(2),
           timestamp: new Date().toISOString(),
           message,
           extra: context,

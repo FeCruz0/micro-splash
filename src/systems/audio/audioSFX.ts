@@ -1,4 +1,5 @@
 import type { AudioEngine } from "./audioEngine";
+import { getRandomFloat } from "../../utils/random";
 
 export class AudioSFX {
   private engine: AudioEngine;
@@ -164,7 +165,7 @@ export class AudioSFX {
     const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     const noiseData = noiseBuffer.getChannelData(0);
     for (let i = 0; i < bufferSize; i++) {
-      noiseData[i] = Math.random() * 2 - 1;
+      noiseData[i] = getRandomFloat(-1, 1);
     }
 
     const noiseSource = ctx.createBufferSource();
@@ -418,7 +419,7 @@ export class AudioSFX {
     const splashBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     const data = splashBuffer.getChannelData(0);
     for (let i = 0; i < bufferSize; i++) {
-      const raw = Math.random() * 2 - 1;
+      const raw = getRandomFloat(-1, 1);
       const quantized = Math.round(raw * 8) / 8;
       data[i] = quantized * Math.exp(-i / (bufferSize * 0.35));
     }
@@ -494,7 +495,7 @@ export class AudioSFX {
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     const data = buffer.getChannelData(0);
     for (let i = 0; i < bufferSize; i++) {
-      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.3));
+      data[i] = getRandomFloat(-1, 1) * Math.exp(-i / (bufferSize * 0.3));
     }
 
     const noiseSource = ctx.createBufferSource();
@@ -582,7 +583,7 @@ export class AudioSFX {
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     const data = buffer.getChannelData(0);
     for (let i = 0; i < bufferSize; i++) {
-      data[i] = (Math.random() * 2 - 1) * Math.sin(i * 0.05);
+      data[i] = getRandomFloat(-1, 1) * Math.sin(i * 0.05);
     }
     const noise = ctx.createBufferSource();
     noise.buffer = buffer;
@@ -625,7 +626,7 @@ export class AudioSFX {
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     const data = buffer.getChannelData(0);
     for (let i = 0; i < bufferSize; i++) {
-      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (bufferSize * 0.4));
+      data[i] = getRandomFloat(-1, 1) * Math.exp(-i / (bufferSize * 0.4));
     }
     const noise = ctx.createBufferSource();
     noise.buffer = buffer;
