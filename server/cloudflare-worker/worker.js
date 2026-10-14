@@ -12,7 +12,7 @@ const CORS_HEADERS = {
 };
 
 export default {
-  async fetch(request, env, ctx) {
+  async fetch(request, env, _ctx) {
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: CORS_HEADERS });
     }
@@ -133,7 +133,9 @@ async function updateKvLeaderboard(kv, key, newEntry) {
   if (raw) {
     try {
       list = JSON.parse(raw);
-    } catch {}
+    } catch {
+      // Safe fallback to empty list
+    }
   }
 
   list.push(newEntry);

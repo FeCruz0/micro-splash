@@ -649,19 +649,19 @@ _Objetivo: Expandir o spritesheet `whale.png` de 8 para 16 quadros com ciclos co
 
 _Objetivo: Fechar resíduos das Fases 37.5, 37.6 e 37.10 e elevar a segurança de tipos sem alterar gameplay._
 
-- [ ] **45.1 Ativação Gradual de `strict` (`tsconfig.json`):**
+- [x] **45.1 Ativação Gradual de `strict` (`tsconfig.json`):**
   - Habilitar `strictNullChecks`, `noImplicitAny` e por fim `strict: true`, corrigindo erros por diretório.
-- [ ] **45.2 Reativação de `no-explicit-any` (`eslint.config.js`):**
+- [x] **45.2 Reativação de `no-explicit-any` (`eslint.config.js`):**
   - Promover a regra para `warn` e eliminar os ~50 arquivos com `any` restantes (`GameObj`, tipos de Kaboom, `unknown` + Zod).
-- [ ] **45.3 Migração Total para `utils/random.ts`:**
+- [x] **45.3 Migração Total para `utils/random.ts`:**
   - Substituir `Math.random()` remanescente (~28 arquivos: entidades, partículas, clima, fauna, UI e áudio).
-- [ ] **45.4 Unificação do `errorReporter`:**
+- [x] **45.4 Unificação do `errorReporter`:**
   - Fundir `src/services/errorReporter.ts` e `src/utils/errorReporter.ts` em módulo único com níveis.
-- [ ] **45.5 Persistência Exclusiva via `utils/storage.ts`:**
+- [x] **45.5 Persistência Exclusiva via `utils/storage.ts`:**
   - Migrar acessos diretos a `localStorage` (~17 arquivos: `config.ts`, `i18n.ts`, `state.ts`, `audioEngine.ts`, UI) para leitura/escrita validada por schemas Zod.
-- [ ] **45.6 Lint de Scripts, Worker e Service Worker:**
+- [x] **45.6 Lint de Scripts, Worker e Service Worker:**
   - Incluir `scripts/`, `server/` e `public/sw.js` no ESLint com overrides de ambiente (Node / ServiceWorker).
-- [ ] **45.7 Testes da Fase 45 (`tests/phase45_type_safety.test.ts`):**
+- [x] **45.7 Testes da Fase 45 (`tests/phase45_type_safety.test.ts`):**
   - Garantir ausência de `Math.random` e `localStorage` direto fora dos utilitários via teste estático.
 
 ### 📦 FASE 46: Bundle, Code-Splitting & Performance de Renderização

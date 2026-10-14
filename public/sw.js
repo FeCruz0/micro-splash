@@ -57,8 +57,6 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  const url = new URL(event.request.url);
-
   // Requisição de navegação HTML (App Shell): Network-first com fallback para Cache
   if (event.request.mode === "navigate") {
     event.respondWith(

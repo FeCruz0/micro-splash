@@ -52,7 +52,7 @@ function fillCircle(cx, cy, r, color) {
   }
 }
 
-function fillEllipse(cx, cy, rx, ry, color) {
+function _fillEllipse(cx, cy, rx, ry, color) {
   const yStart = Math.max(0, Math.floor(cy - ry));
   const yEnd = Math.min(HEIGHT - 1, Math.ceil(cy + ry));
   const xStart = Math.max(0, Math.floor(cx - rx));
@@ -227,8 +227,7 @@ function renderHumpbackFrame(frameIndex) {
     const spineY = getHumpbackSpineOffset(lx, tailOffset);
     const x = offsetX + lx;
 
-    let topY = 28,
-      botY = 28;
+    let topY, botY;
 
     if (lx > 105) {
       // CABEÇA / ROSTRO PLANO / QUEIXO COM TUBÉRCULOS

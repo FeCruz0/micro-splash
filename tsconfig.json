@@ -7,6 +7,11 @@
     "allowArbitraryExtensions": true,
     "skipLibCheck": true,
 
+    /* Type Checking */
+    "strict": true,
+    "strictNullChecks": true,
+    "noImplicitAny": true,
+
     /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,

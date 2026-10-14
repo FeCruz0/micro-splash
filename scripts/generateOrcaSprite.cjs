@@ -222,8 +222,7 @@ function renderOrcaFrame(frameIndex) {
     const spineY = getOrcaSpineOffset(lx, tailOffset);
     const x = offsetX + lx;
 
-    let topY = 20,
-      botY = 20;
+    let topY, botY;
 
     if (lx > 72) {
       // Cabeça arredondada / melon (focinho compacto)

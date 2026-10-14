@@ -233,8 +233,7 @@ function renderCachaloteFrame(frameIndex) {
     const spineY = getCachaloteSpineOffset(lx, tailOffset);
     const x = offsetX + lx;
 
-    let topY = 32,
-      botY = 32;
+    let topY, botY;
 
     if (lx > 126) {
       // CABEÇA QUADRADA MONUMENTAL (Órgão do espermacete, 1/3 do comprimento total)

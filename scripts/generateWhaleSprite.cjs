@@ -39,7 +39,7 @@ function setPixel(x, y, r, g, b, a = 255) {
   }
 }
 
-function getPixelAlpha(x, y) {
+function _getPixelAlpha(x, y) {
   x = Math.round(x);
   y = Math.round(y);
   if (x < 0 || x >= WIDTH || y < 0 || y >= HEIGHT) return 0;
