@@ -1,4 +1,4 @@
-import kaboom, { type GameObj } from "kaboom";
+import kaboom, { type Color, type EventController, type GameObj } from "kaboom";
 import { GAME_CONFIG } from "../config";
 import { getRandomFloat } from "../utils/random";
 
@@ -201,8 +201,8 @@ export function setupParallaxSkySystem(k: ReturnType<typeof kaboom>): ParallaxSk
   ];
 
   birdSpawnPoints.forEach((b, idx) => {
-    let bodyColor: any;
-    let wingColor: any;
+    let bodyColor: Color;
+    let wingColor: Color;
     let wingLength: number;
     let bodyWidth: number;
     let extraObj: GameObj | undefined = undefined;
@@ -284,7 +284,7 @@ export function setupParallaxSkySystem(k: ReturnType<typeof kaboom>): ParallaxSk
   });
 
   let time = 0;
-  let cancelUpdate: any = null;
+  let cancelUpdate: EventController | (() => void) | null = null;
 
   if (k.onUpdate) {
     cancelUpdate = k.onUpdate(() => {
@@ -419,8 +419,11 @@ export function setupParallaxSkySystem(k: ReturnType<typeof kaboom>): ParallaxSk
 
   const destroy = () => {
     if (cancelUpdate) {
-      if (typeof cancelUpdate === "function") cancelUpdate();
-      else if (cancelUpdate.cancel) cancelUpdate.cancel();
+      if ("cancel" in cancelUpdate && typeof cancelUpdate.cancel === "function") {
+        cancelUpdate.cancel();
+      } else if (typeof cancelUpdate === "function") {
+        (cancelUpdate as () => void)();
+      }
     }
     sunsetBands.forEach((sb) => sb.exists && sb.exists() && k.destroy(sb));
     clouds.forEach((c) => {

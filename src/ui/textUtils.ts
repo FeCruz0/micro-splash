@@ -1,4 +1,4 @@
-import type { KaboomCtx, Vec2, Color, Anchor } from "kaboom";
+import type { KaboomCtx, Vec2, Color, Anchor, GameObj } from "kaboom";
 import { FONT_BODY } from "../config";
 
 export interface ShadowedTextOptions {
@@ -20,8 +20,8 @@ export interface ShadowedTextOptions {
 }
 
 export interface ShadowedTextHandle {
-  main: any;
-  shadow: any;
+  main: GameObj;
+  shadow: GameObj;
   setText: (newText: string) => void;
   destroy: () => void;
 }
@@ -44,7 +44,7 @@ export function addShadowedText(
   const fontName = opts.font ?? FONT_BODY;
   const anchor = opts.anchor ?? "topleft";
 
-  const shadowComponents: any[] = [
+  const shadowObj = k.add([
     k.text(content, {
       size: opts.size,
       font: fontName,
@@ -57,15 +57,10 @@ export function addShadowedText(
     k.color(shadowColor),
     k.opacity(opts.shadowOpacity ?? 0.75),
     k.z(shadowZ),
-  ];
+    ...(opts.fixed !== false ? [k.fixed()] : []),
+  ]);
 
-  if (opts.fixed !== false) {
-    shadowComponents.push(k.fixed());
-  }
-
-  const shadowObj = k.add(shadowComponents);
-
-  const mainComponents: any[] = [
+  const mainObj = k.add([
     k.text(content, {
       size: opts.size,
       font: fontName,
@@ -77,21 +72,10 @@ export function addShadowedText(
     k.anchor(anchor),
     k.color(mainColor),
     k.z(zBase),
-  ];
-
-  if (opts.opacity !== undefined) {
-    mainComponents.push(k.opacity(opts.opacity));
-  }
-
-  if (opts.fixed !== false) {
-    mainComponents.push(k.fixed());
-  }
-
-  if (opts.tag) {
-    mainComponents.push(opts.tag);
-  }
-
-  const mainObj = k.add(mainComponents);
+    ...(opts.opacity !== undefined ? [k.opacity(opts.opacity)] : []),
+    ...(opts.fixed !== false ? [k.fixed()] : []),
+    ...(opts.tag ? [opts.tag] : []),
+  ]);
 
   return {
     main: mainObj,

@@ -1,4 +1,4 @@
-import type { KaboomCtx, Vec2 } from "kaboom";
+import type { GameObj, KaboomCtx, Vec2 } from "kaboom";
 import { GAME_CONFIG, TAGS } from "../config";
 import { getRandomFloat } from "../utils/random";
 import { audioSystem } from "../systems/audioSystem";
@@ -26,13 +26,13 @@ import type { WhaleAnimationState } from "./player/playerAnimation";
 
 export type { PlayerController } from "./player/types";
 
-let activePlayerObject: any = null;
+let activePlayerObject: GameObj | null = null;
 
-export function setActivePlayerObject(playerObject: any): void {
+export function setActivePlayerObject(playerObject: GameObj | null): void {
   activePlayerObject = playerObject;
 }
 
-export function getActivePlayerObject(): any {
+export function getActivePlayerObject(): GameObj | null {
   return activePlayerObject && (!activePlayerObject.exists || activePlayerObject.exists())
     ? activePlayerObject
     : null;
@@ -80,7 +80,7 @@ export function createPlayer(
   isSereneMode: boolean = false,
   touchState?: TouchControlsState
 ): PlayerController {
-  const comps: any[] = [
+  const baleia = k.add([
     k.sprite("baleia", { anim: "idle_swim" }),
     k.pos(initialX, 200),
     k.area({ shape: new k.Rect(k.vec2(-54, -19), 108, 42) }),
@@ -89,11 +89,8 @@ export function createPlayer(
     k.color(255, 255, 255),
     k.anchor("center"),
     TAGS.PLAYER,
-  ];
-  if (typeof k.scale === "function") {
-    comps.push(k.scale(1, 1));
-  }
-  const baleia = k.add(comps);
+    ...(typeof k.scale === "function" ? [k.scale(1, 1)] : []),
+  ]);
   activePlayerObject = baleia;
 
   const oxygenMgr = new PlayerOxygenManager(k);
@@ -120,7 +117,7 @@ export function createPlayer(
   let currentPuppetRigTransforms: PuppetRigTransforms | null = null; // Cadeia esquelética multissegmentar (Fase 43)
   const pectoralFinsSystem = setupPectoralFins(k, baleia);
 
-  const causticsComps: any[] = [
+  const whaleCaustics = k.add([
     typeof k.rect === "function" ? k.rect(48, 10, { radius: 5 }) : {},
     k.pos(initialX, 200),
     k.rotate(0),
@@ -128,13 +125,10 @@ export function createPlayer(
     typeof k.opacity === "function" ? k.opacity(0) : { opacity: 0 },
     k.anchor("center"),
     typeof k.z === "function" ? k.z(1) : { z: 1 },
-  ];
-  if (typeof k.scale === "function") {
-    causticsComps.push(k.scale(1, 1));
-  }
-  const whaleCaustics = k.add(causticsComps);
+    ...(typeof k.scale === "function" ? [k.scale(1, 1)] : []),
+  ]);
 
-  const ventralComps: any[] = [
+  const whaleVentralFlash = k.add([
     typeof k.rect === "function" ? k.rect(44, 7, { radius: 3.5 }) : {},
     k.pos(initialX, 200),
     k.rotate(0),
@@ -142,11 +136,8 @@ export function createPlayer(
     typeof k.opacity === "function" ? k.opacity(0) : { opacity: 0 },
     k.anchor("center"),
     typeof k.z === "function" ? k.z(1) : { z: 1 },
-  ];
-  if (typeof k.scale === "function") {
-    ventralComps.push(k.scale(1, 1));
-  }
-  const whaleVentralFlash = k.add(ventralComps);
+    ...(typeof k.scale === "function" ? [k.scale(1, 1)] : []),
+  ]);
 
   if (typeof baleia.onDestroy === "function") {
     baleia.onDestroy(() => {

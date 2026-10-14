@@ -1,4 +1,4 @@
-import type { KaboomCtx } from "kaboom";
+import type { GameObj, KaboomCtx } from "kaboom";
 import { FONT_TITLE, FONT_BODY, TEXT_SIZE_DISPLAY, TEXT_SIZE_CAPTION } from "../config";
 import { createKeyBadge } from "./keyBadge";
 
@@ -60,7 +60,7 @@ export function createSplashScreen(k: KaboomCtx, onFinish: () => void) {
   }
 
   // Mini-baleia nadando na tela de abertura
-  let whaleObj: any = null;
+  let whaleObj: GameObj | null = null;
   try {
     whaleObj = k.add([
       k.sprite("baleia", { anim: "idle_swim" }),
@@ -78,8 +78,8 @@ export function createSplashScreen(k: KaboomCtx, onFinish: () => void) {
   const letters = "MICRO-SPLASH".split("");
   const letterSpacing = 31;
   const startX = cx - ((letters.length - 1) * letterSpacing) / 2;
-  const letterObjects: any[] = [];
-  const letterShadows: any[] = [];
+  const letterObjects: GameObj[] = [];
+  const letterShadows: GameObj[] = [];
 
   letters.forEach((char, i) => {
     const charX = startX + i * letterSpacing;

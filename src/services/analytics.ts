@@ -19,14 +19,17 @@ class AnalyticsService {
 
   constructor() {
     const metaEnv =
-      typeof import.meta !== "undefined" && import.meta.env ? import.meta.env : ({} as any);
+      typeof import.meta !== "undefined" && import.meta.env
+        ? (import.meta.env as Record<string, string | undefined>)
+        : {};
     this.domain = metaEnv.VITE_PLAUSIBLE_DOMAIN || "";
     this.apiHost = metaEnv.VITE_PLAUSIBLE_API_HOST || "https://plausible.io";
 
     // Respeita doNotTrack se presente no navegador
     const isDnt =
       typeof navigator !== "undefined" &&
-      (navigator.doNotTrack === "1" || (navigator as any).msDoNotTrack === "1");
+      (navigator.doNotTrack === "1" ||
+        (navigator as Navigator & { msDoNotTrack?: string }).msDoNotTrack === "1");
 
     this.enabled = Boolean(this.domain) && !isDnt;
   }

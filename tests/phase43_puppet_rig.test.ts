@@ -273,10 +273,10 @@ describe("Fase 43: Articulação Multissegmentar de Cauda e Flukes (Multi-Part P
 
       const rigTransforms = player.getPuppetRigTransforms!();
       expect(rigTransforms).toBeDefined();
-      expect(rigTransforms.bones.length).toBe(4);
-      expect(rigTransforms.cranialThorax).toBeDefined();
-      expect(rigTransforms.flukeBlade).toBeDefined();
-      expect(rigTransforms.flukeAngleOfAttackInDegrees).toBeDefined();
+      expect(rigTransforms!.bones.length).toBe(4);
+      expect(rigTransforms!.cranialThorax).toBeDefined();
+      expect(rigTransforms!.flukeBlade).toBeDefined();
+      expect(rigTransforms!.flukeAngleOfAttackInDegrees).toBeDefined();
     });
   });
 });

@@ -1,4 +1,4 @@
-import type { GameObj, KaboomCtx, Vec2 } from "kaboom";
+import type { Color, GameObj, KaboomCtx, Vec2 } from "kaboom";
 import { GAME_CONFIG, TAGS } from "../config";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
 import { getRandomFloat, getRandomInteger } from "../utils/random";
@@ -9,7 +9,7 @@ interface BoidMember {
   relPos: Vec2;
   phase: number;
   speed: number;
-  baseColor: any;
+  baseColor: Color;
 }
 
 /**

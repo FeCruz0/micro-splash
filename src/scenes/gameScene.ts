@@ -1,4 +1,4 @@
-import type { KaboomCtx } from "kaboom";
+import type { GameObj, KaboomCtx } from "kaboom";
 import { GAME_CONFIG } from "../config";
 import { createPlayer } from "../entities/player";
 import { createRescueBoat } from "../entities/boat";
@@ -131,7 +131,7 @@ export function registerGameScene(k: KaboomCtx): void {
     }
 
     // HUD adicional de modo no topo direito
-    let timerUI: any = null;
+    let timerUI: GameObj | null = null;
     if (options.mode === "quick_challenge") {
       timerUI = k.add([
         k.text("⏱️ 60s", { size: 16.5, font: "Outfit" }),

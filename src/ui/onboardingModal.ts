@@ -1,4 +1,4 @@
-import type { KaboomCtx } from "kaboom";
+import type { GameObj, KaboomCtx } from "kaboom";
 import { audioSystem } from "../systems/audioSystem";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
 import { createFocusGroup, type FocusableItem } from "./keyboardNav";
@@ -98,7 +98,7 @@ export function showOnboardingModal(k: KaboomCtx, onDone: () => void) {
   let currentSlide = 0;
   let isClosed = false;
 
-  const elements: any[] = [];
+  const elements: GameObj[] = [];
   let focusGroup: { destroy: () => void } | null = null;
 
   const screenW = k.width();
@@ -184,9 +184,9 @@ export function showOnboardingModal(k: KaboomCtx, onDone: () => void) {
   const itemGap = 110;
   const startY = cY - cardH / 2 + 116;
 
-  const pointIconTexts: any[] = [];
-  const pointTitleTexts: any[] = [];
-  const pointDescTexts: any[] = [];
+  const pointIconTexts: GameObj[] = [];
+  const pointTitleTexts: GameObj[] = [];
+  const pointDescTexts: GameObj[] = [];
 
   for (let idx = 0; idx < 3; idx++) {
     const itemY = startY + idx * itemGap + boxH / 2;
@@ -268,7 +268,7 @@ export function showOnboardingModal(k: KaboomCtx, onDone: () => void) {
 
   // Indicadores visuais de bolinhas no rodapé
   const dotsY = cY + cardH / 2 - 62;
-  const dotCircles: any[] = [];
+  const dotCircles: GameObj[] = [];
   for (let i = 0; i < ONBOARDING_SLIDES.length; i++) {
     const dotX = cX + (i - 1) * 26;
     const isActive = i === 0;

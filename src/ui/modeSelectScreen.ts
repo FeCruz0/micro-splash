@@ -1,4 +1,4 @@
-import type { KaboomCtx } from "kaboom";
+import type { GameObj, KaboomCtx } from "kaboom";
 import { audioSystem } from "../systems/audioSystem";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
 import type { GameOptions } from "../systems/state";
@@ -15,7 +15,7 @@ export function showModeSelectScreen(
 ) {
   audioSystem.playUiClick();
 
-  const elements: any[] = [];
+  const elements: Array<GameObj | { destroy: () => void }> = [];
   let isClosed = false;
 
   let canInteract = false;
@@ -97,10 +97,10 @@ export function showModeSelectScreen(
     }
     elements.forEach((el) => {
       try {
-        if (typeof el.destroy === "function") {
+        if ("destroy" in el && typeof el.destroy === "function") {
           el.destroy();
-        } else {
-          k.destroy(el);
+        } else if (typeof k.destroy === "function") {
+          k.destroy(el as unknown as GameObj);
         }
       } catch {}
     });
@@ -545,7 +545,7 @@ export function showModeSelectScreen(
     { label: "🏝️ Arraial do Cabo", index: 3 },
   ];
 
-  const biomeBtns: any[] = [];
+  const biomeBtns: Array<{ btn: GameObj; txt: GameObj; index: number }> = [];
   const biomeBtnW = 165;
   const biomeBtnH = 34;
 

@@ -1,4 +1,4 @@
-import type { KaboomCtx } from "kaboom";
+import type { EventController, GameObj, KaboomCtx } from "kaboom";
 import { audioSystem } from "../systems/audioSystem";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
 import { addLeaderboardEntry } from "../systems/leaderboard";
@@ -12,7 +12,7 @@ export function showInitialsInputModal(
   onSubmitted: () => void,
   weekKey?: string
 ) {
-  const elements: any[] = [];
+  const elements: GameObj[] = [];
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".split("");
   const initials = ["A", "A", "A"];
   let activeIndex = 0;
@@ -95,8 +95,8 @@ export function showInitialsInputModal(
   const startX = centerX - slotSpacing;
   const slotY = centerY + 12;
 
-  const slotBoxes: any[] = [];
-  const slotTexts: any[] = [];
+  const slotBoxes: GameObj[] = [];
+  const slotTexts: GameObj[] = [];
 
   const updateSlots = () => {
     for (let i = 0; i < 3; i++) {
@@ -285,7 +285,7 @@ export function showInitialsInputModal(
   btnSubmit.onClick(doSubmit);
 
   // Captura de teclado para totens e desktop
-  const keyHandlers: any[] = [];
+  const keyHandlers: EventController[] = [];
 
   keyHandlers.push(k.onKeyPress("enter", doSubmit));
 

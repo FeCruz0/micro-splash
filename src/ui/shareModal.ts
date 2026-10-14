@@ -1,4 +1,4 @@
-import type { KaboomCtx } from "kaboom";
+import type { EventController, GameObj, KaboomCtx } from "kaboom";
 import { audioSystem } from "../systems/audioSystem";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
 import {
@@ -11,8 +11,8 @@ import {
 export function showShareModal(k: KaboomCtx, data: VictoryCardData, onClose: () => void) {
   audioSystem.playUiClick();
 
-  const elements: any[] = [];
-  const keyListeners: any[] = [];
+  const elements: GameObj[] = [];
+  const keyListeners: EventController[] = [];
   let isClosed = false;
 
   const screenW = k.width();

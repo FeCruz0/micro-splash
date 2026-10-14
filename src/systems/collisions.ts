@@ -1,10 +1,18 @@
-import type { KaboomCtx } from "kaboom";
+import type { GameObj, KaboomCtx } from "kaboom";
 import { TAGS, GAME_CONFIG } from "../config";
 import { audioSystem } from "./audioSystem";
 import { hapticsSystem } from "./hapticsSystem";
 import { accessibilitySystem } from "./accessibilitySystem";
 import type { PlayerController } from "../entities/player";
 import type { GameState } from "./state";
+
+interface AirVentEntity extends GameObj {
+  collectAir?: () => boolean;
+}
+
+interface IceBlockEntity extends GameObj {
+  breakIce?: () => void;
+}
 
 export function setupCollisions(
   k: KaboomCtx,
@@ -36,7 +44,7 @@ export function setupCollisions(
   });
 
   // Interação com Bolsão de Ar Natural (coluna de micro-bolhas de oxigênio)
-  k.onCollide(TAGS.PLAYER, TAGS.AIR_POCKET, (_player, vent: any) => {
+  k.onCollide(TAGS.PLAYER, TAGS.AIR_POCKET, (_player, vent: AirVentEntity) => {
     if (playerController.isFrozen()) return;
 
     if (vent.collectAir && vent.collectAir()) {
@@ -79,7 +87,7 @@ export function setupCollisions(
   });
 
   // Colisão com blocos de gelo: quebra apenas quando atingido por cima ao cair do salto
-  k.onCollide(TAGS.PLAYER, "ice_block", (player, iceBlock: any) => {
+  k.onCollide(TAGS.PLAYER, "ice_block", (player, iceBlock: IceBlockEntity) => {
     if (playerController.isFrozen()) return;
 
     const vel = playerController.getSpeed();

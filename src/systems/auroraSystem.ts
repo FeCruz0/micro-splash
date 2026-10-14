@@ -1,4 +1,4 @@
-import type { GameObj, KaboomCtx } from "kaboom";
+import type { EventController, GameObj, KaboomCtx } from "kaboom";
 
 export interface AuroraSystem {
   ribbons: GameObj[];
@@ -64,7 +64,7 @@ export function setupAuroraSystem(k: KaboomCtx): AuroraSystem {
   }
 
   let time = 0;
-  let cancelUpdate: any = null;
+  let cancelUpdate: EventController | (() => void) | null = null;
 
   if (k.onUpdate) {
     cancelUpdate = k.onUpdate(() => {
@@ -93,8 +93,11 @@ export function setupAuroraSystem(k: KaboomCtx): AuroraSystem {
 
   const destroy = () => {
     if (cancelUpdate) {
-      if (typeof cancelUpdate === "function") cancelUpdate();
-      else if (cancelUpdate.cancel) cancelUpdate.cancel();
+      if ("cancel" in cancelUpdate && typeof cancelUpdate.cancel === "function") {
+        cancelUpdate.cancel();
+      } else if (typeof cancelUpdate === "function") {
+        (cancelUpdate as () => void)();
+      }
     }
     ribbonList.forEach((r) => r.obj.exists && r.obj.exists() && k.destroy(r.obj));
   };

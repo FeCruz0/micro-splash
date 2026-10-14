@@ -1,4 +1,4 @@
-import type { KaboomCtx } from "kaboom";
+import type { EventController, GameObj, KaboomCtx, Key } from "kaboom";
 import { audioSystem } from "../systems/audioSystem";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
 import type { GameState } from "../systems/state";
@@ -98,9 +98,9 @@ export function showQuizModal(
   let currentSelectOption: ((idx: number) => void) | null = null;
   let onAdvanceCallback: (() => void) | null = null;
 
-  const elements: any[] = [];
-  let dynamicElements: any[] = [];
-  const keyListeners: any[] = [];
+  const elements: GameObj[] = [];
+  let dynamicElements: GameObj[] = [];
+  const keyListeners: EventController[] = [];
 
   const screenW = k.width();
   const screenH = k.height();
@@ -238,7 +238,7 @@ export function showQuizModal(
 
   optionKeys.forEach((keys, idx) => {
     keys.forEach((key) => {
-      const handler = k.onKeyPress(key as any, () => {
+      const handler = k.onKeyPress(key as Key, () => {
         if (currentSelectOption && canAnswer && !isAnswered) {
           currentSelectOption(idx);
         }
@@ -327,7 +327,7 @@ export function showQuizModal(
     const btnW = cardW - 64;
     const btnH = 48;
 
-    const optionButtons: any[] = [];
+    const optionButtons: GameObj[] = [];
 
     const selectOption = (optIdx: number) => {
       if (!canAnswer || isAnswered) return;

@@ -1,4 +1,4 @@
-import type { KaboomCtx, Vec2 } from "kaboom";
+import type { GameObj, KaboomCtx, Vec2 } from "kaboom";
 import { GAME_CONFIG, TAGS } from "../config";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
 import { getRandomFloat } from "../utils/random";
@@ -88,7 +88,7 @@ export function createGhostNet(k: KaboomCtx, position: Vec2) {
   const netH = 52;
   const lineColor = k.rgb(palette.mesh[0], palette.mesh[1], palette.mesh[2]);
   const floatColor = k.rgb(palette.floats[0], palette.floats[1], palette.floats[2]);
-  const gridLines: any[] = [];
+  const gridLines: GameObj[] = [];
 
   // 1. Cabo superior de sustentação (floatline)
   const topCable = net.add([

@@ -1,4 +1,4 @@
-import type { KaboomCtx } from "kaboom";
+import type { GameObj, KaboomCtx } from "kaboom";
 import { GAME_CONFIG, TAGS } from "../../config";
 import type { CanyonConfig, CanyonGeometryResult, CanyonFoamParticle } from "./canyonTypes";
 
@@ -387,7 +387,7 @@ export function setupCanyonGeometry(k: KaboomCtx, config: CanyonConfig): CanyonG
   ]);
 
   // E. Reflexo difuso do farol na superfície da água
-  const reflectionSegments: any[] = [];
+  const reflectionSegments: GameObj[] = [];
   for (let r = 0; r < 4; r++) {
     reflectionSegments.push(
       k.add([

@@ -1,4 +1,4 @@
-import type { KaboomCtx } from "kaboom";
+import type { EventController, GameObj, KaboomCtx } from "kaboom";
 import { GAME_CONFIG } from "../config";
 import { audioSystem } from "../systems/audioSystem";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
@@ -47,8 +47,8 @@ function proceedToVictoryContent(k: KaboomCtx, gameState: GameState, onRestart: 
 }
 
 function showQuizInvitationModal(k: KaboomCtx, gameState: GameState, onFinish: () => void) {
-  const elements: any[] = [];
-  const keyListeners: any[] = [];
+  const elements: GameObj[] = [];
+  const keyListeners: EventController[] = [];
   let isClosed = false;
 
   const screenW = k.width();
@@ -459,7 +459,7 @@ function renderVictoryContent(k: KaboomCtx, gameState: GameState, onRestart: () 
 
   // Controle de estado modal para evitar cliques sobrepostos ou disparos indevidos de reinício
   let isModalOpen = false;
-  const keyListeners: any[] = [];
+  const keyListeners: EventController[] = [];
 
   // Botão de ação do Quiz
   let quizCompleted = gameState.getQuizScore() > 0;

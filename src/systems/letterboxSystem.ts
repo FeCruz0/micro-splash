@@ -1,4 +1,4 @@
-import type { KaboomCtx } from "kaboom";
+import type { GameObj, KaboomCtx } from "kaboom";
 import { getSavedDisplayMode, getSavedLetterboxColor, type LetterboxColor } from "../config";
 
 export interface LetterboxHandle {
@@ -33,7 +33,7 @@ export function setupLetterboxBorders(k: KaboomCtx): LetterboxHandle {
     }
   }
 
-  const elements: any[] = [];
+  const elements: GameObj[] = [];
   const borderThickness = 120; // Espessura generosa para cobrir qualquer overflow
 
   // Barra Superior

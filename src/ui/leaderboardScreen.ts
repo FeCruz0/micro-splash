@@ -1,4 +1,4 @@
-import type { KaboomCtx } from "kaboom";
+import type { GameObj, KaboomCtx } from "kaboom";
 import { audioSystem } from "../systems/audioSystem";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
 import { getTop10Entries, type LeaderboardEntry } from "../systems/leaderboard";
@@ -10,8 +10,8 @@ type LeaderboardTab = "global" | "weekly" | "local";
 
 export function showLeaderboardScreen(k: KaboomCtx, onClose: () => void) {
   audioSystem.playUiClick();
-  const elements: any[] = [];
-  let tableElements: any[] = [];
+  const elements: GameObj[] = [];
+  let tableElements: GameObj[] = [];
   let isClosed = false;
 
   let activeTab: LeaderboardTab = "global";
@@ -136,8 +136,12 @@ export function showLeaderboardScreen(k: KaboomCtx, onClose: () => void) {
     { id: "local", label: "💾 Local / Totem" },
   ];
 
-  const tabBtns: any[] = [];
-  const tabEntities: any[] = [];
+  const tabBtns: GameObj[] = [];
+  const tabEntities: Array<{
+    btn: GameObj;
+    txt: GameObj;
+    id: LeaderboardTab;
+  }> = [];
   const tabW = Math.min(280, (cardW - 60) / 3);
   const tabH = 42;
   const tabY = centerY - cardH / 2 + 82;

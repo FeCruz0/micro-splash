@@ -1,4 +1,4 @@
-import type { KaboomCtx } from "kaboom";
+import type { GameObj, KaboomCtx } from "kaboom";
 
 /**
  * Utilitários Universais de UI & Animação (Fase 34: Telas de Jogo — Visual & Polimento)
@@ -15,7 +15,7 @@ export interface ModalEntranceOptions {
  */
 export function animateModalEntrance(
   k: KaboomCtx,
-  cardObj: any,
+  cardObj: GameObj,
   options: ModalEntranceOptions = {}
 ): void {
   const duration = options.duration ?? 0.25;
@@ -64,7 +64,7 @@ export interface ButtonHoverOptions {
   hoverColor?: [number, number, number];
   baseScale?: number;
   hoverScale?: number;
-  textObj?: any;
+  textObj?: GameObj;
   baseTextColor?: [number, number, number];
   hoverTextColor?: [number, number, number];
   canInteract?: () => boolean;
@@ -75,7 +75,7 @@ export interface ButtonHoverOptions {
  */
 export function attachButtonHoverEffect(
   k: KaboomCtx,
-  btnObj: any,
+  btnObj: GameObj,
   options: ButtonHoverOptions
 ): void {
   const baseScale = options.baseScale ?? 1.0;
@@ -138,8 +138,8 @@ export const OCEAN_CONFETTI_PALETTE: [number, number, number][] = [
 /**
  * Cria chuva de confetes temáticos oceânicos para celebração da vitória (Fase 34.4).
  */
-export function createOceanConfetti(k: KaboomCtx, count = 50): any[] {
-  const confettiList: any[] = [];
+export function createOceanConfetti(k: KaboomCtx, count = 50): GameObj[] {
+  const confettiList: GameObj[] = [];
   const screenW = k.width();
   const screenH = k.height();
 

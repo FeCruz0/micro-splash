@@ -1,4 +1,4 @@
-import type { KaboomCtx } from "kaboom";
+import type { GameObj, KaboomCtx } from "kaboom";
 import { audioSystem } from "../systems/audioSystem";
 import { createGameState } from "../systems/state";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
@@ -19,7 +19,7 @@ export { getCodexBiomeInfo };
 export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
   audioSystem.playUiClick();
 
-  const elements: any[] = [];
+  const elements: GameObj[] = [];
   let isClosed = false;
   let isModalOpen = false;
 
@@ -85,7 +85,7 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
     ])
   );
 
-  let contentElements: any[] = [];
+  let contentElements: GameObj[] = [];
   let focusGroup: { destroy: () => void } | null = null;
 
   // Botão fechar [X] no canto superior direito
@@ -186,8 +186,8 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
   const tabH = 42;
   const tabY = cY - cardH / 2 + 94;
   const tabEntities: Array<{
-    btn: any;
-    label: any;
+    btn: GameObj;
+    label: GameObj;
     id: "species" | "route" | "conservation";
   }> = [];
 

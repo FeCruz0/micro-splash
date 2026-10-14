@@ -1,4 +1,4 @@
-import type { KaboomCtx } from "kaboom";
+import type { GameObj, KaboomCtx } from "kaboom";
 import { GAME_CONFIG } from "../config";
 import type { PlayerController } from "../entities/player";
 import { getParticlePool } from "./particlePool";
@@ -68,7 +68,12 @@ export function setupOilSpillSystem(k: KaboomCtx, playerController: PlayerContro
   });
 
   // Gera manchas sequenciais de óleo viscoso com 3 camadas realistas (Fase 30.7)
-  const patches: any[] = [];
+  const patches: Array<{
+    slick: GameObj;
+    film: GameObj;
+    foamDrops: GameObj[];
+    baseX: number;
+  }> = [];
   for (let x = SPILL_START; x < SPILL_END; x += PATCH_WIDTH - 20) {
     // Camada 1: Base densa de petróleo bruto na linha d'água
     const slick = k.add([

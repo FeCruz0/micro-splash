@@ -247,9 +247,9 @@ describe("Fase 42: Nadadeiras Peitorais Independentes e Hidrodinâmica de Diedro
 
       const finTransforms = player.getPectoralFinTransforms!();
       expect(finTransforms).toBeDefined();
-      expect(finTransforms.nearFin).toBeDefined();
-      expect(finTransforms.farFin).toBeDefined();
-      expect(finTransforms.nearFin.baseLocalOffset.x).toBe(16);
+      expect(finTransforms!.nearFin).toBeDefined();
+      expect(finTransforms!.farFin).toBeDefined();
+      expect(finTransforms!.nearFin.baseLocalOffset.x).toBe(16);
 
       if (registeredDestroy) {
         expect(() => (registeredDestroy as () => void)()).not.toThrow();

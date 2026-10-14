@@ -1,4 +1,4 @@
-import type { GameObj, KaboomCtx } from "kaboom";
+import type { EventController, GameObj, KaboomCtx } from "kaboom";
 
 export interface AbyssalFogSystem {
   layers: GameObj[];
@@ -32,7 +32,7 @@ export function setupAbyssalFogSystem(k: KaboomCtx): AbyssalFogSystem {
     ]);
   });
 
-  let cancelUpdate: any = null;
+  let cancelUpdate: EventController | (() => void) | null = null;
   if (k.onUpdate) {
     cancelUpdate = k.onUpdate(() => {
       const camX = k.camPos ? k.camPos().x : 0;
@@ -45,8 +45,11 @@ export function setupAbyssalFogSystem(k: KaboomCtx): AbyssalFogSystem {
 
   const destroy = () => {
     if (cancelUpdate) {
-      if (typeof cancelUpdate === "function") cancelUpdate();
-      else if (cancelUpdate.cancel) cancelUpdate.cancel();
+      if ("cancel" in cancelUpdate && typeof cancelUpdate.cancel === "function") {
+        cancelUpdate.cancel();
+      } else if (typeof cancelUpdate === "function") {
+        (cancelUpdate as () => void)();
+      }
     }
     layers.forEach((l) => l.exists && l.exists() && k.destroy(l));
   };

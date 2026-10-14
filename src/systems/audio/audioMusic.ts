@@ -25,7 +25,7 @@ export class BiomeMusicEngine {
   private currentBar: number = 0;
   private step: number = 0;
   private nextStepTime: number = 0;
-  private timerId: any = null;
+  private timerId: ReturnType<typeof setTimeout> | null = null;
 
   // Andamento exato de David Wise: 75 BPM (0.8s por semínima -> 0.20s por semicolcheia/16th step)
   private readonly stepDuration: number = 60 / 75 / 4;

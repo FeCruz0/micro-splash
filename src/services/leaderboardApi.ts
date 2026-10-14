@@ -103,17 +103,18 @@ export async function fetchOnlineLeaderboard(
       data: list,
       isOffline: false,
     };
-  } catch (err: any) {
+  } catch (err: unknown) {
     if (timeoutId) clearTimeout(timeoutId);
     const cached = getCachedLeaderboard(type, weekKey);
+    const error = err instanceof Error ? err : undefined;
     return {
       success: !!cached,
       data: cached || [],
       isOffline: true,
       error:
-        err?.name === "AbortError"
+        error?.name === "AbortError"
           ? "Tempo limite de conexão excedido"
-          : err?.message || "Falha na conexão",
+          : error?.message || "Falha na conexão",
     };
   }
 }
@@ -166,15 +167,16 @@ export async function submitOnlineScore(
       success: true,
       isOffline: false,
     };
-  } catch (err: any) {
+  } catch (err: unknown) {
     if (timeoutId) clearTimeout(timeoutId);
+    const error = err instanceof Error ? err : undefined;
     return {
       success: false,
       isOffline: true,
       error:
-        err?.name === "AbortError"
+        error?.name === "AbortError"
           ? "Tempo limite de envio excedido"
-          : err?.message || "Falha de rede",
+          : error?.message || "Falha de rede",
     };
   }
 }

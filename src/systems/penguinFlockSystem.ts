@@ -1,4 +1,4 @@
-import type { KaboomCtx } from "kaboom";
+import type { GameObj, KaboomCtx } from "kaboom";
 import { GAME_CONFIG, TAGS } from "../config";
 import { audioSystem } from "./audioSystem";
 import { getParticlePool } from "./particlePool";
@@ -20,7 +20,7 @@ import { getRandomFloat } from "../utils/random";
  */
 export function setupPenguinFlockSystem(k: KaboomCtx) {
   let isSystemActive = true;
-  const allPenguinBodies: any[] = [];
+  const allPenguinBodies: GameObj[] = [];
 
   const COLONIES = [
     {
@@ -66,7 +66,16 @@ export function setupPenguinFlockSystem(k: KaboomCtx) {
   ];
 
   COLONIES.forEach((colony) => {
-    const penguins: any[] = [];
+    const penguins: Array<{
+      obj: GameObj;
+      wing: GameObj;
+      baseOffsetX: number;
+      baseOffsetY: number;
+      swimPhase: number;
+      isLeaping: boolean;
+      leapProgress: number;
+      leapDelay: number;
+    }> = [];
 
     for (let i = 0; i < colony.count; i++) {
       const pOffsetX = -i * 18 - getRandomFloat(0, 5);

@@ -1,4 +1,4 @@
-import type { KaboomCtx } from "kaboom";
+import type { GameObj, KaboomCtx } from "kaboom";
 import { GAME_CONFIG } from "../config";
 import type { PlayerController } from "../entities/player";
 import { audioSystem } from "./audioSystem";
@@ -90,11 +90,11 @@ export class PresentationModeManager {
   private playerController: PlayerController;
   private isPresentationOpen = false;
   private isPaused = false;
-  private container: any = null;
-  private ecoText: any = null;
-  private techText: any = null;
-  private biomeLabel: any = null;
-  private pauseBtnText: any = null;
+  private container: GameObj | null = null;
+  private ecoText: GameObj | null = null;
+  private techText: GameObj | null = null;
+  private biomeLabel: GameObj | null = null;
+  private pauseBtnText: GameObj | null = null;
   private keydownListener: ((e: KeyboardEvent) => void) | null = null;
 
   constructor(k: KaboomCtx, playerController: PlayerController) {

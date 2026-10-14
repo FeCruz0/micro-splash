@@ -1,4 +1,4 @@
-import type { Color, GameObj, KaboomCtx } from "kaboom";
+import type { Color, EventController, GameObj, KaboomCtx, Vec2 } from "kaboom";
 import { GAME_CONFIG, TAGS } from "../config";
 
 export interface WaterSurfaceSystem {
@@ -8,8 +8,8 @@ export interface WaterSurfaceSystem {
   updateColor: (color: Color) => void;
   updatePosition: (camX: number) => void;
   destroy: () => void;
-  pos?: any;
-  color?: any;
+  pos?: Vec2;
+  color?: Color;
 }
 
 /**
@@ -96,9 +96,10 @@ export function createWaterSurfaceSystem(k: KaboomCtx): WaterSurfaceSystem {
   };
 
   // Permite que updateOceanColors atualize as cores diretamente na interface do Kaboom
-  (collider as any).updateSurfaceColor = updateColor;
+  (collider as GameObj & { updateSurfaceColor?: (c: Color) => void }).updateSurfaceColor =
+    updateColor;
 
-  let cancelUpdate: any = null;
+  let cancelUpdate: EventController | (() => void) | null = null;
   if (k.onUpdate) {
     cancelUpdate = k.onUpdate(() => {
       time += k.dt ? k.dt() : 0.016;
@@ -109,8 +110,11 @@ export function createWaterSurfaceSystem(k: KaboomCtx): WaterSurfaceSystem {
 
   const destroy = () => {
     if (cancelUpdate) {
-      if (typeof cancelUpdate === "function") cancelUpdate();
-      else if (cancelUpdate.cancel) cancelUpdate.cancel();
+      if ("cancel" in cancelUpdate && typeof cancelUpdate.cancel === "function") {
+        cancelUpdate.cancel();
+      } else if (typeof cancelUpdate === "function") {
+        (cancelUpdate as () => void)();
+      }
     }
     if (collider.exists && collider.exists()) k.destroy(collider);
     segments.forEach((s) => s.exists && s.exists() && k.destroy(s));

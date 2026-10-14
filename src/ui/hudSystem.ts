@@ -1,5 +1,6 @@
 import type { KaboomCtx } from "kaboom";
 import type { PlayerController } from "../entities/player";
+import type { GameState } from "../systems/state";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
 import { FONT_TITLE, FONT_BODY } from "../config";
 import { formatDualDistance } from "../utils/navigation";
@@ -89,7 +90,7 @@ export function formatHudDistance(meters: number): string {
 export function setupHudSystem(
   k: KaboomCtx,
   playerController: PlayerController,
-  gameState: any
+  gameState: GameState
 ): {
   update: () => void;
   destroy: () => void;

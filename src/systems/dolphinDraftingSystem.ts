@@ -1,4 +1,4 @@
-import type { KaboomCtx } from "kaboom";
+import type { GameObj, KaboomCtx } from "kaboom";
 import { GAME_CONFIG } from "../config";
 import { audioSystem } from "./audioSystem";
 import type { PlayerController } from "../entities/player";
@@ -20,7 +20,7 @@ import { getRandomFloat } from "../utils/random";
  */
 export function setupDolphinDraftingSystem(k: KaboomCtx, playerController: PlayerController) {
   let isSystemActive = true;
-  const allDolphinBodies: any[] = [];
+  const allDolphinBodies: GameObj[] = [];
 
   const POD_ROUTES = [
     {
@@ -55,7 +55,12 @@ export function setupDolphinDraftingSystem(k: KaboomCtx, playerController: Playe
   const podDraftingStatus = [false, false, false];
 
   POD_ROUTES.forEach((route, podIndex) => {
-    const dolphins: any[] = [];
+    const dolphins: Array<{
+      obj: GameObj;
+      tail: GameObj;
+      offset: { x: number; y: number };
+      index: number;
+    }> = [];
     const offsets = [
       { x: 0, y: 0 },
       { x: -36, y: -14 },

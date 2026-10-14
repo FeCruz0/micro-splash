@@ -1,8 +1,12 @@
-import type { KaboomCtx, Vec2 } from "kaboom";
+import type { GameObj, KaboomCtx, Vec2 } from "kaboom";
 import { GAME_CONFIG, TAGS } from "../../config";
 import { audioSystem } from "../../systems/audioSystem";
 import { hapticsSystem } from "../../systems/hapticsSystem";
 import { getParticlePool } from "../../systems/particlePool";
+
+interface RevealableTarget extends GameObj {
+  reveal?: () => void;
+}
 
 export class PlayerSonarManager {
   private k: KaboomCtx;
@@ -82,7 +86,7 @@ export class PlayerSonarManager {
     ];
 
     let echoCount = 0;
-    targets.forEach((targetEntity: any) => {
+    targets.forEach((targetEntity: RevealableTarget) => {
       const distanceToObject = headPos.dist(targetEntity.pos);
       if (distanceToObject <= GAME_CONFIG.SONAR_RANGE) {
         const travelTime = distanceToObject / 520;

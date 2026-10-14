@@ -12,7 +12,7 @@ import { SupportedLocaleSchema } from "../schemas/storageSchemas";
 
 export type SupportedLocale = "pt-BR" | "en-US" | "gn";
 
-export const LOCALES: Record<SupportedLocale, { label: string; dict: Record<string, any> }> = {
+export const LOCALES: Record<SupportedLocale, { label: string; dict: Record<string, unknown> }> = {
   "pt-BR": {
     label: "🇧🇷 Português",
     dict: ptBR,
@@ -116,9 +116,11 @@ class I18nManager {
     return val;
   }
 
-  private resolvePath(obj: any, path: string): any {
-    return path.split(".").reduce((acc, part) => {
-      return acc && typeof acc === "object" ? acc[part] : undefined;
+  private resolvePath(obj: unknown, path: string): unknown {
+    return path.split(".").reduce<unknown>((acc, part) => {
+      return acc && typeof acc === "object" && part in acc
+        ? (acc as Record<string, unknown>)[part]
+        : undefined;
     }, obj);
   }
 }

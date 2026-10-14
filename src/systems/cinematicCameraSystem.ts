@@ -1,4 +1,4 @@
-import type { KaboomCtx } from "kaboom";
+import type { EventController, KaboomCtx } from "kaboom";
 import type { PlayerController } from "../entities/player";
 
 export interface CinematicEvent {
@@ -80,7 +80,7 @@ export function setupCinematicCameraSystem(
 } {
   const triggeredEvents = new Set<string>();
   let isZooming = false;
-  let activeHoldTimer: any = null;
+  let activeHoldTimer: EventController | { cancel: () => void } | null = null;
 
   function executeZoom(event: CinematicEvent): void {
     // Verifica preferência de redução de movimento do usuário
@@ -105,7 +105,7 @@ export function setupCinematicCameraSystem(
         if (typeof k.vec2 === "function") {
           k.camScale(k.vec2(scaleValue, scaleValue));
         } else {
-          (k.camScale as any)(scaleValue);
+          (k.camScale as (s: unknown) => void)(scaleValue);
         }
       }
     };
@@ -172,7 +172,7 @@ export function setupCinematicCameraSystem(
         if (typeof k.vec2 === "function") {
           k.camScale(k.vec2(1.0, 1.0));
         } else {
-          (k.camScale as any)(1.0);
+          (k.camScale as (s: unknown) => void)(1.0);
         }
       }
       isZooming = false;

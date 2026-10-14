@@ -11,19 +11,25 @@ const STORAGE_KEY = "micro_splash_tts";
 
 function getSpeechSynthesis(): SpeechSynthesis | null {
   if (typeof window !== "undefined" && window.speechSynthesis) return window.speechSynthesis;
-  if (typeof globalThis !== "undefined" && (globalThis as any).speechSynthesis) {
-    return (globalThis as any).speechSynthesis;
+  if (
+    typeof globalThis !== "undefined" &&
+    "speechSynthesis" in globalThis &&
+    (globalThis as { speechSynthesis?: SpeechSynthesis }).speechSynthesis
+  ) {
+    return (globalThis as { speechSynthesis: SpeechSynthesis }).speechSynthesis;
   }
   return null;
 }
 
 function getUtteranceClass(): typeof SpeechSynthesisUtterance | null {
   if (typeof SpeechSynthesisUtterance !== "undefined") return SpeechSynthesisUtterance;
-  if (typeof window !== "undefined" && (window as any).SpeechSynthesisUtterance) {
-    return (window as any).SpeechSynthesisUtterance;
-  }
-  if (typeof globalThis !== "undefined" && (globalThis as any).SpeechSynthesisUtterance) {
-    return (globalThis as any).SpeechSynthesisUtterance;
+  const targetScope = (typeof window !== "undefined"
+    ? window
+    : typeof globalThis !== "undefined"
+      ? globalThis
+      : null) as unknown as Record<string, unknown> | null;
+  if (targetScope && typeof targetScope.SpeechSynthesisUtterance === "function") {
+    return targetScope.SpeechSynthesisUtterance as unknown as typeof SpeechSynthesisUtterance;
   }
   return null;
 }

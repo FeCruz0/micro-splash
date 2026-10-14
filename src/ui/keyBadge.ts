@@ -1,4 +1,4 @@
-import type { KaboomCtx, Vec2 } from "kaboom";
+import type { GameObj, KaboomCtx, Vec2 } from "kaboom";
 import { FONT_TITLE, TEXT_SIZE_CAPTION } from "../config";
 
 export interface KeyBadgeOptions {
@@ -11,7 +11,7 @@ export interface KeyBadgeOptions {
 }
 
 export interface KeyBadgeHandle {
-  elements: any[];
+  elements: GameObj[];
   width: number;
   height: number;
   destroy: () => void;
@@ -23,7 +23,7 @@ export interface KeyBadgeHandle {
  * instruções textuais genéricas por identificadores visuais táteis reconhecíveis.
  */
 export function createKeyBadge(k: KaboomCtx, opts: KeyBadgeOptions): KeyBadgeHandle {
-  const elements: any[] = [];
+  const elements: GameObj[] = [];
   const z = opts.z ?? 100;
   const fontSize = opts.fontSize ?? TEXT_SIZE_CAPTION + 1; // ~12px
   const isFixed = opts.fixed !== false;

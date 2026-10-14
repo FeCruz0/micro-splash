@@ -10,7 +10,7 @@ export interface CapturedError {
   timestamp: number;
   message: string;
   stack?: string;
-  context?: Record<string, any>;
+  context?: Record<string, unknown>;
   level: "info" | "warning" | "error";
 }
 
@@ -21,7 +21,9 @@ class ErrorReporter {
 
   constructor() {
     const metaEnv =
-      typeof import.meta !== "undefined" && import.meta.env ? import.meta.env : ({} as any);
+      typeof import.meta !== "undefined" && import.meta.env
+        ? (import.meta.env as Record<string, string | undefined>)
+        : {};
     this.dsn = metaEnv.VITE_SENTRY_DSN || "";
   }
 
@@ -71,7 +73,7 @@ class ErrorReporter {
   /**
    * Captura uma exceção com contexto adicional
    */
-  public captureException(error: unknown, context?: Record<string, any>): void {
+  public captureException(error: unknown, context?: Record<string, unknown>): void {
     const message = error instanceof Error ? error.message : String(error);
     const stack = error instanceof Error ? error.stack : undefined;
 

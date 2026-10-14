@@ -1,4 +1,4 @@
-import type { KaboomCtx } from "kaboom";
+import type { GameObj, KaboomCtx } from "kaboom";
 import { readLocalStorageWithSchema } from "../utils/storage";
 import { TouchControlsModeSchema } from "../schemas/storageSchemas";
 
@@ -90,7 +90,7 @@ export function setupTouchControls(k: KaboomCtx): {
     active: isEnabled,
   };
 
-  const elements: any[] = [];
+  const elements: GameObj[] = [];
   let isDestroyed = false;
 
   function buildControls() {

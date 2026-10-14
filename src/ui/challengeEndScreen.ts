@@ -1,4 +1,4 @@
-import type { KaboomCtx } from "kaboom";
+import type { EventController, GameObj, KaboomCtx } from "kaboom";
 import { audioSystem } from "../systems/audioSystem";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
 import type { GameState } from "../systems/state";
@@ -43,7 +43,7 @@ function renderChallengeEndContent(
 ) {
   audioSystem.playVictoryFanfare();
 
-  const elements: any[] = [];
+  const elements: GameObj[] = [];
   let isModalOpen = false;
 
   // Fundo escuro com partículas douradas
@@ -170,7 +170,7 @@ function renderChallengeEndContent(
 
   // Botão 1: Desafio Ecológico (Quiz)
   let quizCompleted = gameState.getQuizScore() > 0;
-  const keyListeners: any[] = [];
+  const keyListeners: EventController[] = [];
   let canInteract = false;
   k.wait(0.35, () => {
     canInteract = true;

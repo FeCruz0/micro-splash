@@ -1,4 +1,4 @@
-import type { KaboomCtx } from "kaboom";
+import type { GameObj, KaboomCtx } from "kaboom";
 import type { FocusableItem } from "../keyboardNav";
 
 export type CodexTabId = "species" | "route" | "conservation";
@@ -12,6 +12,6 @@ export interface CodexTabContext {
   contentBoxTop: number;
   contentBoxBottom: number;
   contentBoxH: number;
-  contentElements: any[];
+  contentElements: GameObj[];
   dynamicFocusItems: FocusableItem[];
 }

@@ -1,3 +1,4 @@
+import type { GameObj } from "kaboom";
 import kaboom from "kaboom";
 import { audioSystem } from "./audioSystem";
 import { getActivePlayerObject } from "../entities/player";
@@ -55,7 +56,7 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
   ];
 
   const cullingManager = getSpatialCullingManager();
-  const orcaObjects: any[] = [];
+  const orcaObjects: GameObj[] = [];
 
   orcaPods.forEach((pod) => {
     pod.members.forEach((m) => {
@@ -118,7 +119,7 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
     { x: 10800, y: 320 },
   ];
 
-  const passingWhaleObjects: any[] = [];
+  const passingWhaleObjects: GameObj[] = [];
 
   passingWhalePositions.forEach((pos) => {
     const whaleBg = k.add([

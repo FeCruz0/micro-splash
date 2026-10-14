@@ -1,4 +1,4 @@
-import type { KaboomCtx } from "kaboom";
+import type { GameObj, KaboomCtx } from "kaboom";
 import {
   getCumulativeStats,
   formatDistanceKm,
@@ -13,7 +13,7 @@ import { createFocusGroup, type FocusableItem } from "./keyboardNav";
 export function showStatsModal(k: KaboomCtx, onClose: () => void) {
   audioSystem.playUiClick();
 
-  const elements: any[] = [];
+  const elements: GameObj[] = [];
   let isClosed = false;
   let canInteract = false;
 

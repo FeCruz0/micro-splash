@@ -1,4 +1,4 @@
-import type { KaboomCtx, GameObj } from "kaboom";
+import type { EventController, KaboomCtx, GameObj } from "kaboom";
 import type { PlayerController } from "../entities/player";
 
 export interface BiomeMilestone {
@@ -76,7 +76,7 @@ export function setupBiomeVignetteSystem(
   const triggeredDistances = new Set<number>();
   let lastRecordedX = playerController.gameObj?.pos?.x ?? 0;
   let activeVignetteContainer: GameObj | null = null;
-  let activeVignetteTimer: any = null;
+  let activeVignetteTimer: EventController | { cancel: () => void } | null = null;
 
   function displayVignette(milestone: BiomeMilestone): void {
     if (activeVignetteContainer) {

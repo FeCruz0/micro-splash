@@ -1,4 +1,4 @@
-import type { KaboomCtx } from "kaboom";
+import type { GameObj, KaboomCtx } from "kaboom";
 import { audioSystem } from "../systems/audioSystem";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
 import { createFocusGroup, type FocusableItem } from "./keyboardNav";
@@ -25,7 +25,7 @@ import { renderGraphicsOptions, renderKioskActionButtons } from "./options/kiosk
 export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   audioSystem.playUiClick();
 
-  const elements: any[] = [];
+  const elements: GameObj[] = [];
   let isClosed = false;
   let isModalOpen = false;
 

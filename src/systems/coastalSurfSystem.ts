@@ -1,4 +1,4 @@
-import type { GameObj, KaboomCtx } from "kaboom";
+import type { EventController, GameObj, KaboomCtx } from "kaboom";
 import { GAME_CONFIG } from "../config";
 
 export interface CoastalSurfSystem {
@@ -52,7 +52,7 @@ export function setupCoastalSurfSystem(k: KaboomCtx): CoastalSurfSystem {
   }
 
   let time = 0;
-  let cancelUpdate: any = null;
+  let cancelUpdate: EventController | (() => void) | null = null;
 
   if (k.onUpdate) {
     cancelUpdate = k.onUpdate(() => {
@@ -85,8 +85,11 @@ export function setupCoastalSurfSystem(k: KaboomCtx): CoastalSurfSystem {
 
   const destroy = () => {
     if (cancelUpdate) {
-      if (typeof cancelUpdate === "function") cancelUpdate();
-      else if (cancelUpdate.cancel) cancelUpdate.cancel();
+      if ("cancel" in cancelUpdate && typeof cancelUpdate.cancel === "function") {
+        cancelUpdate.cancel();
+      } else if (typeof cancelUpdate === "function") {
+        (cancelUpdate as () => void)();
+      }
     }
     foamList.forEach((f) => f.obj.exists && f.obj.exists() && k.destroy(f.obj));
   };

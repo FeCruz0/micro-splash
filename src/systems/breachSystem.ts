@@ -1,4 +1,4 @@
-import kaboom, { type GameObj } from "kaboom";
+import kaboom, { type GameObj, type Vec2 } from "kaboom";
 import { GAME_CONFIG } from "../config";
 import { audioSystem } from "./audioSystem";
 import { analytics } from "../services/analytics";
@@ -195,7 +195,7 @@ export function setupBreachSystem(config: BreachSystemConfig) {
  */
 export function createWaterSplash(
   k: ReturnType<typeof kaboom>,
-  pos: any,
+  pos: Vec2 | { x: number; y: number },
   particleCount: number = 26
 ) {
   // 1. Gotículas de spray em pixel art 16-bits (quadrados angulares com paleta aquática retrô)
@@ -320,7 +320,7 @@ export function calculateBreachReentryParticleData(
  */
 export function createBreachReentrySplash(
   k: ReturnType<typeof kaboom>,
-  pos: any,
+  pos: Vec2 | { x: number; y: number },
   particleCount: number = 24
 ) {
   // 1. Partículas retangulares brancas de respingo em arco balístico simétrico (Fase 31.1)

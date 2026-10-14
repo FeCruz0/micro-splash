@@ -86,13 +86,16 @@ export function updateOceanColors(
   k.setBackground(bgColor);
 
   if (surfaceObj) {
-    if ("updateColor" in surfaceObj && typeof (surfaceObj as any).updateColor === "function") {
-      (surfaceObj as any).updateColor(surfaceColor);
+    if ("updateColor" in surfaceObj && typeof surfaceObj.updateColor === "function") {
+      surfaceObj.updateColor(surfaceColor);
     } else if (
       "updateSurfaceColor" in surfaceObj &&
-      typeof (surfaceObj as any).updateSurfaceColor === "function"
+      typeof (surfaceObj as unknown as { updateSurfaceColor?: (c: unknown) => void })
+        .updateSurfaceColor === "function"
     ) {
-      (surfaceObj as any).updateSurfaceColor(surfaceColor);
+      (surfaceObj as unknown as { updateSurfaceColor: (c: unknown) => void }).updateSurfaceColor(
+        surfaceColor
+      );
     } else {
       surfaceObj.color = surfaceColor;
     }

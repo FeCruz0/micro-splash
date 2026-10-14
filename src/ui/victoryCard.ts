@@ -68,7 +68,7 @@ export function extractVictoryCardData(
  */
 export function createVictoryCardCanvas(data: VictoryCardData): HTMLCanvasElement | null {
   if (typeof document === "undefined") {
-    return false as any;
+    return null;
   }
 
   const canvas = document.createElement("canvas");
@@ -416,9 +416,9 @@ export async function shareVictoryCard(data: VictoryCardData): Promise<boolean> 
       url: typeof window !== "undefined" ? window.location.href : undefined,
     });
     return true;
-  } catch (error: any) {
+  } catch (error: unknown) {
     // Se o usuário cancelou o compartilhamento, não consideramos como erro grave
-    if (error.name === "AbortError") {
+    if (error instanceof Error && error.name === "AbortError") {
       return false;
     }
     reportWarning("Falha no compartilhamento nativo:", undefined, error);

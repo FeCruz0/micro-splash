@@ -1,4 +1,4 @@
-import type { KaboomCtx } from "kaboom";
+import type { GameObj, KaboomCtx } from "kaboom";
 import type { GameState } from "../systems/state";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
 import { formatDualDistance } from "../utils/navigation";
@@ -10,7 +10,7 @@ export function showRescueScreen(k: KaboomCtx, gameState: GameState, onRestart: 
   const highScore = gameState.getHighScore();
   const distance = gameState.getDistance();
   const dualDistStr = formatDualDistance(distance);
-  const elementsToDestroy: any[] = [];
+  const elementsToDestroy: Array<GameObj | { destroy: () => void }> = [];
 
   // Fundo escuro cinematográfico com transparência suave
   const backdrop = k.add([
@@ -259,10 +259,10 @@ export function showRescueScreen(k: KaboomCtx, gameState: GameState, onRestart: 
     if (cancelSpacePress) cancelSpacePress.cancel();
     elementsToDestroy.forEach((item) => {
       try {
-        if (typeof item.destroy === "function") {
+        if ("destroy" in item && typeof item.destroy === "function") {
           item.destroy();
-        } else {
-          k.destroy(item);
+        } else if (typeof k.destroy === "function") {
+          k.destroy(item as unknown as GameObj);
         }
       } catch {}
     });

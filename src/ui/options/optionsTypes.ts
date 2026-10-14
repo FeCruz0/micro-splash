@@ -1,10 +1,10 @@
-import type { KaboomCtx } from "kaboom";
+import type { GameObj, KaboomCtx } from "kaboom";
 import type { FocusableItem } from "../keyboardNav";
 import type { ResolutionKey, DisplayMode, LetterboxColor } from "../../config";
 
 export interface OptionsScreenContext {
   k: KaboomCtx;
-  elements: any[];
+  elements: GameObj[];
   focusItems: FocusableItem[];
   col0X: number;
   col1X: number;

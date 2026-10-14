@@ -1,4 +1,4 @@
-import type { KaboomCtx, Vec2 } from "kaboom";
+import type { GameObj, KaboomCtx, Vec2 } from "kaboom";
 import { GAME_CONFIG, TAGS } from "../config";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
 import { getRandomFloat, getRandomInteger } from "../utils/random";
@@ -67,7 +67,7 @@ export function createTrash(k: KaboomCtx, position: Vec2) {
 
   // 3 tipos procedurais de lixo plástico intercalados
   const trashType = getRandomInteger(0, 2);
-  let trash: any;
+  let trash: GameObj;
 
   if (trashType === 0) {
     // 1. Garrafa PET — corpo vertical com gargalo estreito e tampa calibrada

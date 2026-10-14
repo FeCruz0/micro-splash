@@ -1,4 +1,8 @@
 import type { GameObj, Vec2 } from "kaboom";
+import type { WhaleSliceData } from "./playerSliceRenderer";
+import type { DualPectoralFinsData } from "./playerPectoralFin";
+import type { PuppetRigTransforms } from "./playerPuppetRig";
+import type { WhaleAnimationState } from "./playerAnimation";
 
 export interface PlayerController {
   gameObj: GameObj;
@@ -46,16 +50,16 @@ export interface PlayerController {
   getCurrentFlowModifier?: () => number;
 
   // Fase 41: Deformação Sagital por Fatiamento Segmentado (Vertical Slice Ribbon)
-  getSliceTransforms?: () => any[];
+  getSliceTransforms?: () => WhaleSliceData[];
   getSpineCurvature?: () => number;
   getPitchFlexion?: () => number;
 
   // Fase 42: Nadadeiras Peitorais Independentes e Hidrodinâmica de Diedro
-  getPectoralFinTransforms?: () => any;
+  getPectoralFinTransforms?: () => DualPectoralFinsData | null;
 
   // Fase 43: Articulação Multissegmentar de Cauda e Flukes (Multi-Part Puppet Rig)
-  getPuppetRigTransforms?: () => any;
+  getPuppetRigTransforms?: () => PuppetRigTransforms | null;
 
   // Fase 44: Spritesheet Expandido de 16 Quadros e Interpolação Harmônica
-  getAnimationState?: () => string;
+  getAnimationState?: () => WhaleAnimationState | string;
 }

@@ -1,4 +1,4 @@
-import type { KaboomCtx } from "kaboom";
+import type { GameObj, KaboomCtx } from "kaboom";
 import { APP_VERSION } from "../config";
 import { audioSystem } from "../systems/audioSystem";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
@@ -29,14 +29,14 @@ export function createMainMenu(
   k.add([k.rect(k.width(), k.height()), k.pos(0, 0), k.color(6, 18, 42), k.fixed(), k.z(0)]);
 
   // Partículas oceânicas temáticas de ambientação (Fase 31.6)
-  const particles: any[] = [];
+  const particles: GameObj[] = [];
   const screenW = typeof k.width === "function" ? k.width() : 640;
   const screenH = typeof k.height === "function" ? k.height() : 360;
 
   // 1. Bolhas translúcidas ascendentes com contorno leve
   for (let i = 0; i < 12; i++) {
     const radius = typeof k.rand === "function" ? k.rand(2, 4.5) : 3;
-    const comps: any[] = [
+    const p = k.add([
       k.circle(radius),
       k.pos(
         typeof k.rand === "function" ? k.rand(0, screenW) : getRandomFloat(0, screenW),
@@ -46,11 +46,8 @@ export function createMainMenu(
       k.opacity(typeof k.rand === "function" ? k.rand(0.25, 0.55) : 0.4),
       k.fixed(),
       k.z(1),
-    ];
-    if (typeof k.outline === "function") {
-      comps.push(k.outline(1, k.rgb(180, 240, 255)));
-    }
-    const p = k.add(comps);
+      ...(typeof k.outline === "function" ? [k.outline(1, k.rgb(180, 240, 255))] : []),
+    ]);
     const speed = typeof k.rand === "function" ? k.rand(14, 28) : 20;
     let time = typeof k.rand === "function" ? k.rand(0, 10) : i;
 
@@ -71,7 +68,7 @@ export function createMainMenu(
   for (let i = 0; i < 12; i++) {
     const pColor = i % 2 === 0 ? k.rgb(80, 250, 220) : k.rgb(170, 255, 230);
     const baseOpacity = typeof k.rand === "function" ? k.rand(0.2, 0.5) : 0.35;
-    const comps: any[] = [
+    const p = k.add([
       k.rect(2, 6, { radius: 1 }),
       k.pos(
         typeof k.rand === "function" ? k.rand(0, screenW) : getRandomFloat(0, screenW),
@@ -81,11 +78,8 @@ export function createMainMenu(
       k.opacity(baseOpacity),
       k.fixed(),
       k.z(1),
-    ];
-    if (typeof k.rotate === "function") {
-      comps.push(k.rotate(45));
-    }
-    const p = k.add(comps);
+      ...(typeof k.rotate === "function" ? [k.rotate(45)] : []),
+    ]);
     const speed = typeof k.rand === "function" ? k.rand(8, 18) : 12;
     let time = typeof k.rand === "function" ? k.rand(0, 10) : i;
 

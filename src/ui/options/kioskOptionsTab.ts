@@ -1,3 +1,4 @@
+import type { GameObj } from "kaboom";
 import { audioSystem } from "../../systems/audioSystem";
 import { accessibilitySystem } from "../../systems/accessibilitySystem";
 import { showOnboardingModal } from "../onboardingModal";
@@ -239,7 +240,7 @@ export function showLgpdConfirmationModal(context: OptionsScreenContext): void {
   if (isClosed() || isModalOpen()) return;
   setIsModalOpen(true);
   audioSystem.playUiClick();
-  const confElements: any[] = [];
+  const confElements: GameObj[] = [];
 
   const confBackdrop = k.add([
     k.rect(k.width(), k.height()),

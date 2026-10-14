@@ -88,10 +88,10 @@ Alvo: v1.14.0
 
 ### Etapa 5: Limpeza Estrita de `any` e Reativação de Linter (Fase 37.6)
 
-- [ ] **5.1 Tipagem Estrita em Entidades e UI**
+- [x] **5.1 Tipagem Estrita em Entidades e UI**
   - **Arquivos**: 49 arquivos contendo `as any` ou `: any`.
   - **Ação**: Substituir por `GameObj`, tipos concretos de eventos e contratos Zod/TypeScript.
-- [ ] **5.2 Reativação de `@typescript-eslint/no-explicit-any`**
+- [x] **5.2 Reativação de `@typescript-eslint/no-explicit-any`**
   - **Arquivos**: `eslint.config.js`.
   - **Ação**: Alterar a regra de `"off"` para `"warn"` (ou `"error"`), validando conformidade estrita no CI.
 
