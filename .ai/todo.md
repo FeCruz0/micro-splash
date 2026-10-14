@@ -68,19 +68,19 @@ Alvo: v1.14.0
 
 ### Etapa 4: Decomposição Modular de Arquivos Extensos (Fase 37.7)
 
-- [ ] **4.1 Decomposição de `src/ui/codexScreen.ts` (~731 linhas)**
+- [x] **4.1 Decomposição de `src/ui/codexScreen.ts` (~731 linhas)**
   - **Arquivos**: `src/ui/codex/` (`codexNavigation.ts`, `codexSpeciesTab.ts`, `codexMigrationTab.ts`, `codexConservationTab.ts`, `codexThreatsTab.ts`).
   - **Ação**: Modularizar abas temáticas isolando a renderização e reduzindo o orquestrador para < 250 linhas.
-- [ ] **4.2 Decomposição de `src/ui/optionsScreen.ts` (~786 linhas)**
+- [x] **4.2 Decomposição de `src/ui/optionsScreen.ts` (~786 linhas)**
   - **Arquivos**: `src/ui/options/` (`audioOptionsTab.ts`, `controlsOptionsTab.ts`, `accessibilityOptionsTab.ts`, `kioskOptionsTab.ts`).
   - **Ação**: Segmentar categorias de configuração em submódulos atômicos.
-- [ ] **4.3 Decomposição de `src/systems/audio/audioSFX.ts` (~652 linhas)**
+- [x] **4.3 Decomposição de `src/systems/audio/audioSFX.ts` (~652 linhas)**
   - **Arquivos**: `src/systems/audio/sfx/` (`sfxWhale.ts`, `sfxEnvironment.ts`, `sfxThreats.ts`, `sfxUI.ts`).
   - **Ação**: Separar geradores de áudio retro por famílias mantendo o barramento e o limiter 8-bit intactos.
-- [ ] **4.4 Decomposição de `src/systems/canyonSystem.ts` (~477 linhas)**
+- [x] **4.4 Decomposição de `src/systems/canyonSystem.ts` (~477 linhas)**
   - **Arquivos**: `src/systems/canyon/` (`canyonGeometry.ts`, `canyonCurrents.ts`, `canyonObstacles.ts`).
   - **Ação**: Isolar geração de malha rochosa e dinâmica de fluxo de fendas profundas.
-- [ ] **4.5 Extração de Cenas de `src/main.ts` para `src/scenes/`**
+- [x] **4.5 Extração de Cenas de `src/main.ts` para `src/scenes/`**
   - **Arquivos**: `src/scenes/startScene.ts`, `src/scenes/gameScene.ts`, `src/scenes/gameoverScene.ts`, `src/scenes/rescueScene.ts`, `src/main.ts`.
   - **Ação**: Deixar `src/main.ts` focado unicamente na inicialização do Kaboom, carregamento de assets e registro de cenas.
 
