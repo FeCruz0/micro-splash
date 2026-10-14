@@ -1,6 +1,6 @@
 # Plano de Implementação — Resíduos Técnicos das Fases Anteriores (Fases 37.5, 37.6, 37.7, 37.9 e 37.10)
 
-Status: Em Planejamento
+Status: Concluído
 Data: 2026-10-13
 Alvo: v1.14.0
 
@@ -99,8 +99,8 @@ Alvo: v1.14.0
 
 ### Etapa 6: Testes Automatizados e Validação Estática
 
-- [ ] **6.1 Teste Estático de Ausência de Resíduos (`tests/phase37_residuals.test.ts`)**
+- [x] **6.1 Teste Estático de Ausência de Resíduos (`tests/phase37_residuals.test.ts`)**
   - **Arquivos**: `tests/phase37_residuals.test.ts`.
   - **Ação**: Validar estaticamente que não existem ocorrências de `Math.random()`, `localStorage.` direto nem `console.*` desprotegido em arquivos de produção fora de seus respectivos utilitários.
-- [ ] **6.2 Validação da Suíte Completa e Build**
+- [x] **6.2 Validação da Suíte Completa e Build**
   - **Ação**: Executar `npm test`, `npm run lint` e `npm run build` garantindo 100% de aprovação e zero regressão.

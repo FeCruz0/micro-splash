@@ -100,3 +100,22 @@ export function removeLocalStorageItem(storageKey: string): boolean {
     return false;
   }
 }
+
+/**
+ * Safely removes all localStorage keys matching a given prefix.
+ */
+export function removeLocalStorageItemsByPrefix(prefix: string): void {
+  try {
+    if (typeof localStorage === "undefined") return;
+    const keysToRemove: string[] = [];
+    for (let index = 0; index < localStorage.length; index++) {
+      const key = localStorage.key(index);
+      if (key && key.startsWith(prefix)) {
+        keysToRemove.push(key);
+      }
+    }
+    keysToRemove.forEach((key) => removeLocalStorageItem(key));
+  } catch (error) {
+    reportWarning(`Failed to remove keys with prefix "${prefix}".`, { prefix }, error);
+  }
+}

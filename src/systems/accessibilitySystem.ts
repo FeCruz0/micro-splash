@@ -1,5 +1,9 @@
 import type { KaboomCtx } from "kaboom";
-import { readLocalStorageWithSchema, writeLocalStorage } from "../utils/storage";
+import {
+  readLocalStorageWithSchema,
+  writeLocalStorage,
+  removeLocalStorageItemsByPrefix,
+} from "../utils/storage";
 import {
   ColorModeSchema,
   ReducedMotionModeSchema,
@@ -248,18 +252,7 @@ export class AccessibilitySystem {
    * Remove todas as chaves do Micro Splash salvas no localStorage e redefine o estado
    */
   public clearAllUserData(): void {
-    try {
-      if (typeof localStorage !== "undefined") {
-        const keysToRemove: string[] = [];
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key && key.startsWith("micro_splash_")) {
-            keysToRemove.push(key);
-          }
-        }
-        keysToRemove.forEach((key) => localStorage.removeItem(key));
-      }
-    } catch {}
+    removeLocalStorageItemsByPrefix("micro_splash_");
 
     currentColorMode = "normal";
     currentReducedMotion = "auto";
