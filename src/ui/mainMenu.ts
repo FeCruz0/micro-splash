@@ -2,7 +2,6 @@ import type { GameObj, KaboomCtx } from "kaboom";
 import { APP_VERSION } from "../config";
 import { audioSystem } from "../systems/audioSystem";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
-import { showStatsModal } from "./statsModal";
 import { createFocusGroup, type FocusableItem } from "./keyboardNav";
 import { hasSeenOnboarding, showOnboardingModal } from "./onboardingModal";
 import { t } from "../i18n/i18n";
@@ -259,7 +258,8 @@ export function createMainMenu(
       bg: [18, 95, 130] as [number, number, number],
       hover: [28, 135, 180] as [number, number, number],
       outline: k.rgb(0, 230, 255),
-      action: (onClose: () => void) => {
+      action: async (onClose: () => void) => {
+        const { showStatsModal } = await import("./statsModal");
         showStatsModal(k, onClose);
       },
     },

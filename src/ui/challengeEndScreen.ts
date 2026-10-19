@@ -4,9 +4,6 @@ import { accessibilitySystem } from "../systems/accessibilitySystem";
 import type { GameState } from "../systems/state";
 import { isTop10Score } from "../systems/leaderboard";
 import { showInitialsInputModal } from "./initialsInputModal";
-import { showQuizModal } from "./quizModal";
-import { showShareModal } from "./shareModal";
-import { extractVictoryCardData } from "./victoryCard";
 import { attachButtonHoverEffect } from "./animationUtils";
 
 export function showChallengeEndScreen(
@@ -212,9 +209,10 @@ function renderChallengeEndContent(
     canInteract: () => !quizCompleted && !isModalOpen,
   });
 
-  const openQuiz = () => {
+  const openQuiz = async () => {
     if (quizCompleted || isModalOpen) return;
     isModalOpen = true;
+    const { showQuizModal } = await import("./quizModal");
     showQuizModal(
       k,
       gameState,
@@ -268,9 +266,13 @@ function renderChallengeEndContent(
     canInteract: () => !isModalOpen,
   });
 
-  btnShare.onClick(() => {
+  btnShare.onClick(async () => {
     if (isModalOpen) return;
     isModalOpen = true;
+    const [{ extractVictoryCardData }, { showShareModal }] = await Promise.all([
+      import("./victoryCard"),
+      import("./shareModal"),
+    ]);
     const cardData = extractVictoryCardData(gameState, "Navegador Rápido");
     showShareModal(k, cardData, () => {
       isModalOpen = false;

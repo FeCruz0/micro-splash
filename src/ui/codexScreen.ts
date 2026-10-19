@@ -2,8 +2,6 @@ import type { GameObj, KaboomCtx } from "kaboom";
 import { audioSystem } from "../systems/audioSystem";
 import { createGameState } from "../systems/state";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
-import { showQuizModal } from "./quizModal";
-import { showOnboardingModal } from "./onboardingModal";
 import { createFocusGroup, type FocusableItem } from "./keyboardNav";
 import { animateModalEntrance, attachButtonHoverEffect } from "./animationUtils";
 import { readLocalStorageWithSchema } from "../utils/storage";
@@ -343,9 +341,10 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
     btnTutorial.scale = k.vec2(1, 1);
   });
 
-  btnTutorial.onClick(() => {
+  btnTutorial.onClick(async () => {
     if (isModalOpen) return;
     isModalOpen = true;
+    const { showOnboardingModal } = await import("./onboardingModal");
     showOnboardingModal(k, () => {
       isModalOpen = false;
     });
@@ -391,10 +390,11 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
     btnQuiz.scale = k.vec2(1, 1);
   });
 
-  btnQuiz.onClick(() => {
+  btnQuiz.onClick(async () => {
     if (isModalOpen) return;
     isModalOpen = true;
     const testState = createGameState();
+    const { showQuizModal } = await import("./quizModal");
     showQuizModal(
       k,
       testState,
@@ -445,9 +445,10 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
         pos: btnTutorialPos,
         width: bottomBtnW,
         height: bottomBtnH,
-        onActivate: () => {
+        onActivate: async () => {
           if (!isModalOpen) {
             isModalOpen = true;
+            const { showOnboardingModal } = await import("./onboardingModal");
             showOnboardingModal(k, () => {
               isModalOpen = false;
             });
@@ -458,10 +459,11 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
         pos: btnQuizPos,
         width: bottomBtnW,
         height: bottomBtnH,
-        onActivate: () => {
+        onActivate: async () => {
           if (!isModalOpen) {
             isModalOpen = true;
             const testState = createGameState();
+            const { showQuizModal } = await import("./quizModal");
             showQuizModal(
               k,
               testState,

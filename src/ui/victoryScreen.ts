@@ -5,9 +5,6 @@ import { accessibilitySystem } from "../systems/accessibilitySystem";
 import type { GameState } from "../systems/state";
 import { isTop10Score } from "../systems/leaderboard";
 import { showInitialsInputModal } from "./initialsInputModal";
-import { extractVictoryCardData, generateAndDownloadVictoryCard } from "./victoryCard";
-import { showQuizModal } from "./quizModal";
-import { showShareModal } from "./shareModal";
 import {
   animateModalEntrance,
   createOceanConfetti,
@@ -186,9 +183,10 @@ function showQuizInvitationModal(k: KaboomCtx, gameState: GameState, onFinish: (
     });
   };
 
-  const startQuiz = () => {
+  const startQuiz = async () => {
     if (!canInteract || isClosed) return;
     destroyAll();
+    const { showQuizModal } = await import("./quizModal");
     showQuizModal(
       k,
       gameState,
@@ -503,9 +501,10 @@ function renderVictoryContent(k: KaboomCtx, gameState: GameState, onRestart: () 
     }
   });
 
-  const openQuiz = () => {
+  const openQuiz = async () => {
     if (quizCompleted || isModalOpen) return;
     isModalOpen = true;
+    const { showQuizModal } = await import("./quizModal");
     showQuizModal(
       k,
       gameState,
@@ -562,8 +561,10 @@ function renderVictoryContent(k: KaboomCtx, gameState: GameState, onRestart: () 
     hoverScale: 1.04,
     canInteract: () => !isModalOpen,
   });
-  downloadButton.onClick(() => {
+  downloadButton.onClick(async () => {
     if (isModalOpen) return;
+    const { extractVictoryCardData, generateAndDownloadVictoryCard } =
+      await import("./victoryCard");
     const cardData = extractVictoryCardData(gameState);
     const success = generateAndDownloadVictoryCard(cardData);
     if (success) {
@@ -606,9 +607,13 @@ function renderVictoryContent(k: KaboomCtx, gameState: GameState, onRestart: () 
     hoverScale: 1.04,
     canInteract: () => !isModalOpen,
   });
-  shareButton.onClick(() => {
+  shareButton.onClick(async () => {
     if (isModalOpen) return;
     isModalOpen = true;
+    const [{ extractVictoryCardData }, { showShareModal }] = await Promise.all([
+      import("./victoryCard"),
+      import("./shareModal"),
+    ]);
     const cardData = extractVictoryCardData(gameState);
     showShareModal(k, cardData, () => {
       isModalOpen = false;

@@ -16,5 +16,17 @@ export default defineConfig({
   build: {
     target: "es2022",
     assetsInlineLimit: 4096,
+    rollupOptions: {
+      output: {
+        manualChunks(id: string) {
+          if (id.includes("node_modules/kaboom")) {
+            return "vendor_kaboom";
+          }
+          if (id.includes("node_modules/zod")) {
+            return "vendor_zod";
+          }
+        },
+      },
+    },
   },
 });
