@@ -5,6 +5,7 @@ import { accessibilitySystem } from "../systems/accessibilitySystem";
 import { FONT_TITLE, FONT_BODY } from "../config";
 import { formatDualDistance } from "../utils/navigation";
 import { getRandomFloat } from "../utils/random";
+import { i18n } from "../i18n/i18n";
 
 export type OxygenUrgencyState = "calm" | "warning" | "critical";
 
@@ -77,11 +78,11 @@ export function getOxygenColor(
 }
 
 /**
- * Formata distância com separador de milhar no padrão pt-BR (ex: 14.238m).
+ * Formata distância com separador de milhar no padrão cultural do idioma ativo (ex: 14.238m ou 14,238m).
  */
 export function formatHudDistance(meters: number): string {
   const rounded = Math.max(0, Math.floor(meters));
-  return `${rounded.toLocaleString("pt-BR")}m`;
+  return `${i18n.formatNumber(rounded)}m`;
 }
 
 /**

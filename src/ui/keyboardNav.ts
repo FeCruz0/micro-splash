@@ -12,12 +12,38 @@ export interface FocusableItem {
   onBlur?: () => void;
 }
 
+export interface FocusSnapshot {
+  groupId?: string;
+  index: number;
+  onRestore?: () => void;
+}
+
+const focusStack: FocusSnapshot[] = [];
+
+export function pushFocusSnapshot(snapshot: FocusSnapshot): void {
+  focusStack.push(snapshot);
+}
+
+export function popFocusSnapshot(): FocusSnapshot | undefined {
+  return focusStack.pop();
+}
+
+export function clearFocusStack(): void {
+  focusStack.length = 0;
+}
+
+export function getFocusStackDepth(): number {
+  return focusStack.length;
+}
+
 export interface FocusGroupOptions {
   items: FocusableItem[];
   onEscape?: () => void;
   initialIndex?: number;
   ringZ?: number;
   isEnabled?: () => boolean;
+  groupId?: string;
+  restoreFocusOnDestroy?: boolean;
 }
 
 export interface FocusGroup {
@@ -165,6 +191,11 @@ export function createFocusGroup(k: KaboomCtx, options: FocusGroupOptions): Focu
       ringUpdate.cancel();
       k.destroy(focusRing);
     } catch {}
+
+    if (options.restoreFocusOnDestroy) {
+      const snapshot = popFocusSnapshot();
+      snapshot?.onRestore?.();
+    }
   };
 
   return {

@@ -38,6 +38,7 @@ export interface WhaleSliceData {
 }
 
 import type { PuppetRigTransforms } from "./playerPuppetRig";
+import { accessibilitySystem } from "../../systems/accessibilitySystem";
 
 export interface WhaleSliceComputationParameters {
   /** Curvatura espinhal elástica instantânea da coluna (headAngle - tailAngle, em graus) */
@@ -60,6 +61,8 @@ export interface WhaleSliceComputationParameters {
   isFacingRight: boolean;
   /** Esqueleto de Puppet Rig opcional para acoplamento dinâmico dos flukes */
   puppetRig?: PuppetRigTransforms | null;
+  /** Preferência opcional de movimento reduzido (fallback para accessibilitySystem.isReducedMotion()) */
+  isReducedMotion?: boolean;
 }
 
 /** Configuração anatômica estática das 4 seções corporais no spritesheet de 128x64 px */
@@ -139,6 +142,9 @@ export function calculateWhaleSliceTransforms(
     isFacingRight,
   } = parameters;
 
+  const isReducedMotion = parameters.isReducedMotion ?? accessibilitySystem.isReducedMotion();
+  const motionReductionMultiplier = isReducedMotion ? 0.25 : 1.0;
+
   // 1. Determinação da amplitude dinâmica da onda viajante
   let waveAmplitudeInPixels = 0;
   let waveFrequencyInRadiansPerSecond = 3.2;
@@ -161,6 +167,9 @@ export function calculateWhaleSliceTransforms(
     waveProgressAngle = timeInSeconds * waveFrequencyInRadiansPerSecond;
   }
 
+  // Atenuação sob movimento reduzido
+  waveAmplitudeInPixels *= motionReductionMultiplier;
+
   // 2. Modulação da curvatura sagital (cambering dorsal/ventral)
   const camberingSagittalFactor = 1.0 + Math.abs(pitchFlexionInDegrees) * 0.008;
 
@@ -180,7 +189,8 @@ export function calculateWhaleSliceTransforms(
 
     // Deflexão angular elástica da coluna (proporcional ao peso anatômico da fatia)
     // Invertida na cauda para simular a curvatura convexa/côncava no dorso
-    const spineDeflectionAngleInDegrees = spineCurvatureInDegrees * sliceConfig.curvatureWeight;
+    const spineDeflectionAngleInDegrees =
+      spineCurvatureInDegrees * sliceConfig.curvatureWeight * motionReductionMultiplier;
 
     // Deslocamento vertical cumulativo devido à curvatura estática da coluna
     const curvatureVerticalDisplacement =

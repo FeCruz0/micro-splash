@@ -734,15 +734,15 @@ _Objetivo: Blindar regressões com cobertura mínima, testes por domínio e veri
 
 _Objetivo: Garantir conformidade WCAG AA e paridade total de traduções._
 
-- [ ] **50.1 Auditoria de Contraste:**
+- [x] **50.1 Auditoria de Contraste:**
   - Validar textos sobre fundos translúcidos (HUD, modais, cartões) em WCAG AA.
-- [ ] **50.2 Gestão de Foco em Modais:**
+- [x] **50.2 Gestão de Foco em Modais:**
   - Focus trap e retorno de foco ao fechar em todos os modais e telas.
-- [ ] **50.3 Teste de Paridade de Chaves i18n (`src/i18n/locales/`):**
+- [x] **50.3 Teste de Paridade de Chaves i18n (`src/i18n/locales/`):**
   - Falhar testes quando qualquer locale não possuir chaves presentes no idioma base.
-- [ ] **50.4 Formatação via `Intl`:**
+- [x] **50.4 Formatação via `Intl`:**
   - Números, distâncias e datas formatados conforme locale ativo.
-- [ ] **50.5 Movimento Reduzido nos Sistemas Recentes:**
+- [x] **50.5 Movimento Reduzido nos Sistemas Recentes:**
   - Respeitar `prefers-reduced-motion`/`prefers-contrast` em `playerPuppetRig`, `playerPectoralFin` e `playerSliceRenderer`.
 
 ### 🎮 FASE 51: Polimento Visual & Áudio Retrô (Chiptune Preservado)

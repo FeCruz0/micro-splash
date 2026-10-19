@@ -116,6 +116,61 @@ class I18nManager {
     return val;
   }
 
+  /**
+   * Retorna a tag BCP-47 compatível para formatação com Intl.
+   */
+  public getIntlLocaleTag(): string {
+    switch (this.currentLocale) {
+      case "en-US":
+        return "en-US";
+      case "gn":
+        return "gn";
+      case "pt-BR":
+      default:
+        return "pt-BR";
+    }
+  }
+
+  /**
+   * Formata um valor numérico de acordo com o padrão cultural do idioma ativo.
+   */
+  public formatNumber(value: number, options?: Intl.NumberFormatOptions): string {
+    try {
+      return new Intl.NumberFormat(this.getIntlLocaleTag(), options).format(value);
+    } catch {
+      return value.toLocaleString();
+    }
+  }
+
+  /**
+   * Formata uma distância em metros ou quilômetros de maneira acessível e internacionalizada.
+   */
+  public formatDistance(meters: number, useKilometersThreshold = 1000): string {
+    const safeMeters = Math.max(0, meters);
+    if (safeMeters >= useKilometersThreshold) {
+      const km = safeMeters / 1000;
+      const formattedKm = this.formatNumber(km, {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+      });
+      return `${formattedKm} km`;
+    }
+    const formattedMeters = this.formatNumber(Math.round(safeMeters));
+    return `${formattedMeters} m`;
+  }
+
+  /**
+   * Formata uma data segundo as regras culturais do idioma ativo.
+   */
+  public formatDate(date: Date | number, options?: Intl.DateTimeFormatOptions): string {
+    const targetDate = typeof date === "number" ? new Date(date) : date;
+    try {
+      return new Intl.DateTimeFormat(this.getIntlLocaleTag(), options).format(targetDate);
+    } catch {
+      return targetDate.toLocaleDateString();
+    }
+  }
+
   private resolvePath(obj: unknown, path: string): unknown {
     return path.split(".").reduce<unknown>((acc, part) => {
       return acc && typeof acc === "object" && part in acc
@@ -127,3 +182,9 @@ class I18nManager {
 
 export const i18n = new I18nManager();
 export const t = (key: string, params?: Record<string, string | number>) => i18n.t(key, params);
+export const formatNumber = (val: number, opts?: Intl.NumberFormatOptions) =>
+  i18n.formatNumber(val, opts);
+export const formatDistance = (meters: number, threshold?: number) =>
+  i18n.formatDistance(meters, threshold);
+export const formatDate = (date: Date | number, opts?: Intl.DateTimeFormatOptions) =>
+  i18n.formatDate(date, opts);

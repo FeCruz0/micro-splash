@@ -5,6 +5,8 @@
  * 1 Milha Náutica internacional (NM / mn) = 1.852 metros.
  */
 
+import { i18n } from "../i18n/i18n";
+
 export const METERS_PER_NAUTICAL_MILE = 1852;
 
 /**
@@ -16,12 +18,12 @@ export function toNauticalMilesValue(meters: number): number {
 }
 
 /**
- * Retorna a distância em milhas náuticas formatada no padrão brasileiro (ex: "7,7 mn").
+ * Retorna a distância em milhas náuticas formatada no padrão do idioma ativo (ex: "7,7 mn" ou "7.7 mn").
  */
 export function toNauticalMiles(meters: number): string {
   const safeMeters = Math.max(0, meters);
   const nm = safeMeters / METERS_PER_NAUTICAL_MILE;
-  return `${nm.toLocaleString("pt-BR", {
+  return `${i18n.formatNumber(nm, {
     minimumFractionDigits: 1,
     maximumFractionDigits: 1,
   })} mn`;
@@ -32,7 +34,7 @@ export function toNauticalMiles(meters: number): string {
  */
 export function formatDualDistance(meters: number): string {
   const safeMeters = Math.max(0, Math.floor(meters));
-  const metersFormatted = `${safeMeters.toLocaleString("pt-BR")}m`;
+  const metersFormatted = `${i18n.formatNumber(safeMeters)}m`;
   const nmFormatted = toNauticalMiles(meters);
   return `${metersFormatted} • ${nmFormatted}`;
 }

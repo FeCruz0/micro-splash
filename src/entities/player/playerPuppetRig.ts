@@ -1,3 +1,5 @@
+import { accessibilitySystem } from "../../systems/accessibilitySystem";
+
 /**
  * Módulo de Articulação Multissegmentar da Cauda e Flukes (Multi-Part Puppet Rig).
  *
@@ -59,6 +61,8 @@ export interface PuppetRigParameters {
   timeInSeconds: number;
   /** Orientação horizontal da baleia (true = direita, false = esquerda) */
   isFacingRight: boolean;
+  /** Preferência opcional de movimento reduzido (fallback para accessibilitySystem.isReducedMotion()) */
+  isReducedMotion?: boolean;
 }
 
 /** Comprimentos anatômicos proporcionais dos 4 segmentos esqueléticos em pixels */
@@ -88,6 +92,9 @@ export function calculateFlukeAngleOfAttackInDegrees(parameters: PuppetRigParame
     timeInSeconds,
   } = parameters;
 
+  const isReducedMotion = parameters.isReducedMotion ?? accessibilitySystem.isReducedMotion();
+  const motionMultiplier = isReducedMotion ? 0.25 : 1.0;
+
   if (isMuscularStroke) {
     // Ciclo muscular: downstroke (0.0 a 0.5) empurra para baixo, upstroke (0.5 a 1.0) puxa para cima
     // No downstroke, a água empurra a lâmina para cima gerando ângulo de ataque positivo (+AoA)
@@ -95,7 +102,7 @@ export function calculateFlukeAngleOfAttackInDegrees(parameters: PuppetRigParame
     const strokePhaseInRadians = strokeProgress * Math.PI * 2;
     const strokeVelocityDerivative = -Math.cos(strokePhaseInRadians);
     const maximumAngleOfAttackInDegrees = 26;
-    return strokeVelocityDerivative * maximumAngleOfAttackInDegrees;
+    return strokeVelocityDerivative * maximumAngleOfAttackInDegrees * motionMultiplier;
   }
 
   if (horizontalSpeed > 35) {
@@ -106,12 +113,12 @@ export function calculateFlukeAngleOfAttackInDegrees(parameters: PuppetRigParame
     );
     const hydrodynamicGlideFlutterInDegrees =
       Math.sin(timeInSeconds * 3.4) * 2.2 * Math.min(1.0, horizontalSpeed / 120);
-    return verticalFlowDeflectionInDegrees + hydrodynamicGlideFlutterInDegrees;
+    return (verticalFlowDeflectionInDegrees + hydrodynamicGlideFlutterInDegrees) * motionMultiplier;
   }
 
   // Repouso na maré: complacência viscosa passiva oscilando suavemente com o swell oceânico
   const tidalCompliantDriftInDegrees = Math.sin(timeInSeconds * 0.85) * 4.5 * idleBlendFactor;
-  return tidalCompliantDriftInDegrees;
+  return tidalCompliantDriftInDegrees * motionMultiplier;
 }
 
 /**
@@ -132,15 +139,19 @@ export function calculateWhalePuppetRig(parameters: PuppetRigParameters): Puppet
     isFacingRight,
   } = parameters;
 
+  const isReducedMotion = parameters.isReducedMotion ?? accessibilitySystem.isReducedMotion();
+  const motionMultiplier = isReducedMotion ? 0.25 : 1.0;
+
   // 1. Ângulo de ataque hidrodinâmico da lâmina caudal
   const flukeAngleOfAttackInDegrees = calculateFlukeAngleOfAttackInDegrees(parameters);
 
   // 2. Oscilação ondulatória transmitida ao longo da espinha
-  const wavePropagationInDegrees = isMuscularStroke
-    ? Math.sin(strokeProgress * Math.PI * 2) * 8.5
-    : horizontalSpeed > 35
-      ? Math.sin(timeInSeconds * 3.2) * 3.0 * Math.min(1.0, horizontalSpeed / 100)
-      : Math.sin(timeInSeconds * 0.85) * 2.5 * idleBlendFactor;
+  const wavePropagationInDegrees =
+    (isMuscularStroke
+      ? Math.sin(strokeProgress * Math.PI * 2) * 8.5
+      : horizontalSpeed > 35
+        ? Math.sin(timeInSeconds * 3.2) * 3.0 * Math.min(1.0, horizontalSpeed / 100)
+        : Math.sin(timeInSeconds * 0.85) * 2.5 * idleBlendFactor) * motionMultiplier;
 
   // 3. Rotações relativas graduais de cada junta articular
   // - CranialThorax: elo rígido de sustentação (ângulo de referência 0 relativo à carcaça)
@@ -148,15 +159,18 @@ export function calculateWhalePuppetRig(parameters: PuppetRigParameters): Puppet
 
   // - AbdominalSpine: absorve curvatura lombar moderada (~30% da curvatura total)
   const relativeAngleAbdominalInDegrees =
-    spineCurvatureInDegrees * 0.32 + wavePropagationInDegrees * 0.35;
+    (spineCurvatureInDegrees * 0.32 + wavePropagationInDegrees * 0.35) * motionMultiplier;
 
   // - CaudalPeduncle: absorve a maior parte da oscilação caudal (~70% da curvatura total)
   const relativeAnglePeduncleInDegrees =
-    spineCurvatureInDegrees * 0.68 + wavePropagationInDegrees * 0.85;
+    (spineCurvatureInDegrees * 0.68 + wavePropagationInDegrees * 0.85) * motionMultiplier;
 
   // - FlukeBlade: junta terminal acoplada com ângulo de ataque dinâmico
   const relativeAngleFlukeInDegrees =
-    spineCurvatureInDegrees * 0.25 + wavePropagationInDegrees * 0.4 + flukeAngleOfAttackInDegrees;
+    (spineCurvatureInDegrees * 0.25 +
+      wavePropagationInDegrees * 0.4 +
+      flukeAngleOfAttackInDegrees) *
+    motionMultiplier;
 
   // 4. Ângulos acumulados no espaço do corpo (cadeia de juntas forward kinematics)
   const accumulatedAngleCranialInDegrees = relativeAngleCranialInDegrees;

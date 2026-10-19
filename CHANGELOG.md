@@ -7,6 +7,27 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [1.15.0] - 2026-10-19 — Acessibilidade & Internacionalização Avançadas (Fase 50)
+
+### Adicionado & Modificado
+
+- **Auditoria de Contraste WCAG 2.1 AA (Fase 50.1)**:
+  - `src/utils/contrast.ts`: Criado módulo de cálculo de luminância relativa conforme W3C WCAG 2.1 e razão de contraste determinística (`calculateContrastRatio`, `isWcagAaCompliant`), validando conformidade para textos regulares (>= 4.5:1) e grandes (>= 3.0:1).
+  - Validação de elementos visuais do HUD, badges e modais sobre fundos translúcidos e oceânicos garantindo taxas superiores a 10:1.
+- **Gestão de Foco em Modais & Focus Trap (Fase 50.2)**:
+  - `src/ui/keyboardNav.ts`: Implementada pilha de foco (`pushFocusSnapshot`, `popFocusSnapshot`, `clearFocusStack`, `getFocusStackDepth`) com suporte à restauração automática de foco ao fechar modais (`restoreFocusOnDestroy: true`).
+- **Paridade Total de Chaves i18n (Fase 50.3)**:
+  - `src/i18n/locales/`: Validada paridade estrita de 100% das chaves entre `pt-BR.json`, `en-US.json` e `gn.json` (Guarani Nhandewa), com zero chaves órfãs ou faltantes.
+- **Formatação Acessível via `Intl` (Fase 50.4)**:
+  - `src/i18n/i18n.ts`: Adicionados formatadores baseados na API padrão ECMAScript `Intl` (`formatNumber`, `formatDistance`, `formatDate`) mapeando as tags BCP-47 (`pt-BR`, `en-US`, `gn`).
+  - `src/utils/navigation.ts` e `src/ui/hudSystem.ts`: Integração da formatação localizada em `formatHudDistance`, `toNauticalMiles` e `formatDualDistance`.
+- **Suporte a Movimento Reduzido nos Subsistemas Recentes (Fase 50.5)**:
+  - `src/entities/player/playerSliceRenderer.ts`: Atenuação de 75% da amplitude da onda viajante e flexão angular sagital quando `accessibilitySystem.isReducedMotion()` for verdadeiro.
+  - `src/entities/player/playerPectoralFin.ts`: Atenuação suave de ângulo diedro, batimento peitoral e rolagem sob movimento reduzido.
+  - `src/entities/player/playerPuppetRig.ts`: Amortecimento do ângulo de ataque hidrodinâmico e rotações angulares da cadeia esquelética caudal.
+- **Suíte de Testes da Fase 50 (Fase 50.6)**:
+  - `tests/ui/phase50_accessibility_i18n.test.ts`: Suíte completa com 16 testes automatizados cobrindo luminância, foco LIFO, paridade i18n, formatação `Intl` e atenuação por movimento reduzido.
+
 ## [1.14.0] - 2026-10-19 — Decomposição Arquitetural, Qualidade & Pipeline de CI (Fases 45 a 49)
 
 ### Adicionado & Modificado

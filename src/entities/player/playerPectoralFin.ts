@@ -1,4 +1,5 @@
 import type { GameObj, KaboomCtx, Vec2 } from "kaboom";
+import { accessibilitySystem } from "../../systems/accessibilitySystem";
 
 /**
  * Módulo Cinemático de Hidroplanos Peitorais Independentes da Jubarte (Megaptera novaeangliae).
@@ -54,6 +55,8 @@ export interface PectoralFinComputationParameters {
   timeInSeconds: number;
   /** Orientação horizontal da baleia (true = virada para a direita, false = esquerda) */
   isFacingRight: boolean;
+  /** Preferência opcional de movimento reduzido (fallback para accessibilitySystem.isReducedMotion()) */
+  isReducedMotion?: boolean;
 }
 
 /** Comprimento físico da nadadeira peitoral da jubarte no jogo (em pixels) */
@@ -102,34 +105,39 @@ export function calculatePectoralFinTransforms(
     isFacingRight,
   } = parameters;
 
+  const isReducedMotion = parameters.isReducedMotion ?? accessibilitySystem.isReducedMotion();
+  const motionMultiplier = isReducedMotion ? 0.25 : 1.0;
+
   // 1. Resposta ao pitch (guinada vertical):
   // Ao subir (-pitchAngularVelocity), as peitorais abrem para cima sustentando o vetor de fluxo.
   // Ao descer (+pitchAngularVelocity), as peitorais fecham para baixo cortando a penetração.
-  const pitchDihedralDeflectionInDegrees = Math.max(
-    -16,
-    Math.min(20, -pitchAngularVelocity * 0.22)
-  );
+  const rawPitchDeflection = Math.max(-16, Math.min(20, -pitchAngularVelocity * 0.22));
+  const pitchDihedralDeflectionInDegrees = rawPitchDeflection * motionMultiplier;
 
   // 2. Resposta à batida muscular de cauda (downstroke flaring):
   let strokeDihedralFlareInDegrees = 0;
   if (isMuscularStroke) {
-    strokeDihedralFlareInDegrees = Math.sin(strokeProgress * Math.PI) * 7.5;
+    strokeDihedralFlareInDegrees = Math.sin(strokeProgress * Math.PI) * 7.5 * motionMultiplier;
   }
 
   // 3. Resposta à velocidade (enflechamento / sweep para trás):
   const normalizedSpeed = Math.min(1.0, horizontalSpeed / 180);
-  const sweepAngleInDegrees = normalizedSpeed * 18.0;
+  const sweepAngleInDegrees = normalizedSpeed * 18.0 * (isReducedMotion ? 0.5 : 1.0);
 
   // 4. Ondulação pendular suave em planeio e repouso na maré:
-  const idleFlutterInDegrees = Math.sin(timeInSeconds * 0.85) * 3.2 * idleBlendFactor;
+  const idleFlutterInDegrees =
+    Math.sin(timeInSeconds * 0.85) * 3.2 * idleBlendFactor * motionMultiplier;
   const glideFlutterInDegrees =
-    Math.sin(timeInSeconds * 3.0) * 1.8 * Math.min(1.0, horizontalSpeed / 100);
+    Math.sin(timeInSeconds * 3.0) * 1.8 * Math.min(1.0, horizontalSpeed / 100) * motionMultiplier;
+
+  const rollInfluenceNear = currentRoll * (isReducedMotion ? 4.0 : 14.0);
+  const rollInfluenceFar = currentRoll * (isReducedMotion ? 3.0 : 12.0);
 
   // 5. Acoplamento de diedro para a nadadeira frontal (Near Fin):
   const nearFinDihedralAngleInDegrees =
     pitchDihedralDeflectionInDegrees +
     strokeDihedralFlareInDegrees +
-    currentRoll * 14.0 +
+    rollInfluenceNear +
     idleFlutterInDegrees +
     glideFlutterInDegrees;
 
@@ -137,7 +145,7 @@ export function calculatePectoralFinTransforms(
   const farFinDihedralAngleInDegrees =
     pitchDihedralDeflectionInDegrees * 0.7 +
     strokeDihedralFlareInDegrees * 0.6 -
-    currentRoll * 12.0 +
+    rollInfluenceFar +
     idleFlutterInDegrees * 0.8;
 
   // Ponto de inserção anatômico no tórax (em coordenadas locais da baleia não espelhada)
