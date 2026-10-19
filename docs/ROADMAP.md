@@ -685,15 +685,15 @@ _Objetivo: Reduzir o chunk principal (~587 kB) e eliminar consultas e alocaçõe
 
 _Objetivo: Tornar o Service Worker determinístico por versão e resiliente em totens sem rede._
 
-- [ ] **47.1 `CACHE_NAME` Derivado da Versão (`public/sw.js`, `vite.config.ts`):**
+- [x] **47.1 `CACHE_NAME` Derivado da Versão (`public/sw.js`, `vite.config.ts`):**
   - Injetar `__APP_VERSION__`/hash de build em vez do manual `micro-splash-v9`.
-- [ ] **47.2 Precache Completo:**
+- [x] **47.2 Precache Completo:**
   - Incluir `data/facts.json`, `about.html` e bundles JS/CSS com hash gerados pelo Vite.
-- [ ] **47.3 Limite de Entradas do Cache Dinâmico:**
+- [x] **47.3 Limite de Entradas do Cache Dinâmico:**
   - Política de expiração (LRU/teto de entradas) para evitar crescimento indefinido.
-- [ ] **47.4 Tela Offline Estilizada:**
+- [x] **47.4 Tela Offline Estilizada:**
   - Fallback visual glassmórfico sem diálogos nativos quando recurso não estiver disponível.
-- [ ] **47.5 Testes da Fase 47 (`tests/phase47_pwa_versioning.test.ts`):**
+- [x] **47.5 Testes da Fase 47 (`tests/phase47_pwa_versioning.test.ts`):**
   - Validar nome de cache, lista de precache e limpeza de versões antigas.
 
 ### 🧩 FASE 48: Decomposição Arquitetural & Organização de Módulos

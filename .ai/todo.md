@@ -1,4 +1,4 @@
-# Plano de Implementação — Fase 46: Bundle, Code-Splitting & Performance de Renderização
+# Plano de Implementação — Fase 47: PWA Versionado & Experiência Offline Refinada
 
 Status: Concluído
 Data: 2026-10-19
@@ -6,125 +6,89 @@ Alvo: v1.14.0
 
 ---
 
-## 🔬 Diagnóstico e Escopo da Fase 46
+## 🔬 Diagnóstico e Escopo da Fase 47
 
-1. **Code-Splitting e Otimização de Chunks (`vite.config.ts`, `src/scenes/`, `src/ui/`)**:
-   - O chunk principal de produção atinge ~588 kB, excedendo o teto padrão do Vite (500 kB).
-   - Extrair `kaboom` e `zod` em chunks vendor dedicados (`vendor_kaboom`, `vendor_zod`) via `rollupOptions.output.manualChunks`.
-   - Implementar carregamento dinâmico (`import()`) para telas e modais pesados (`codexScreen`, `optionsScreen`, `modeSelectScreen`, `victoryCard`, `shareModal`, `statsModal`, `quizModal`).
+1. **`CACHE_NAME` Dinâmico Derivado da Versão (`public/sw.js`, `vite.config.ts`, `scripts/`)**:
+   - Atualmente, o Service Worker usa `const CACHE_NAME = "micro-splash-v9";` de forma estática e manual.
+   - O nome do cache deve ser derivado diretamente de `package.json.version` (ex.: `micro-splash-v1.14.0`) via plugin/script de injeção ou compilação do Service Worker durante o build.
 
-2. **Registro Completo de Subsistemas no Culling e Ciclo de Vida (`src/systems/`, `src/scenes/gameScene.ts`)**:
-   - Integrar `parallaxSkySystem`, `weatherSystem`, `bioluminescenceSystem`, `marineSnowSystem` e `lightRaysSystem` ao `SpatialCullingManager` e `BiomeLifecycleManager`.
-   - Pausar emissões de partículas e simulações quando fora da viewport ou fora da faixa horizontal do bioma.
+2. **Precache Estrutural Completo**:
+   - `PRECACHE_ASSETS` atual omite recursos vitais para funcionamento 100% offline em totens:
+     - `data/facts.json` e `data/quiz.json` (conteúdo pedagógico e desafio ecológico).
+     - `sprites/fauna_manifest.json` (manifesto de atlas criado na Fase 46).
+     - `about.html` e `offline.html` (páginas de apoio e contingência).
 
-3. **Eliminação Universal de Consultas `k.get()` Residuais em Produção**:
-   - Remover varreduras lineares $O(N)$ em hot loops:
-     - `src/systems/penguinFlockSystem.ts`: remover fallback `k.get(TAGS.PLAYER)` em favor de `getActivePlayerObject()`.
-     - `src/systems/iceSurface.ts`: remover fallbacks `k.get(TAGS.PLAYER)` em `segment.onUpdate()` e `breakIce()`.
-     - `src/entities/krill.ts`: remover fallback `k.get(TAGS.PLAYER)` em `krillCluster.onUpdate()`.
-     - `src/entities/player/playerSonar.ts`: substituir 6 chamadas simultâneas `k.get()` por registro acumulado e pooling de alvos acústicos.
-     - `src/scenes/gameScene.ts`: reduzir ou eliminar contagem `k.get("*").length` no HUD de diagnóstico.
+3. **Política de Expiração e Limite de Entradas no Cache Dinâmico (LRU)**:
+   - Em totens públicos e quiosques de longa duração, requisições dinâmicas acumulam entradas indefinidamente.
+   - Implementar função de poda de cache (LRU trim) limitando o cache dinâmico a 60 entradas máximas.
 
-4. **Atlas de Sprites Unificado & Consolidação de Assets (`scripts/`, `public/sprites/`)**:
-   - Consolidar spritesheets de fauna secundária (`orca_bg.png`, `cachalote_bg.png`, `humpback_bg.png`) ou unificar pipelines de carregamento mantendo pixel art, proporções e `sliceX`.
+4. **Tela Offline Estilizada (`public/offline.html`)**:
+   - Criar página de contingência offline com estética visual glassmórfica e paleta oceânica profunda, sem diálogos nativos do navegador (`alert`/`confirm`), permitindo reconexão graciosa com botão tátil "Tentar Novamente".
 
-5. **Cache e Reutilização de Texturas Procedurais & Buffers**:
-   - Evitar recriação de gradientes, buffers de cor e geradores procedurais entre transições de cena e resets de partida.
-
-6. **Orçamento de Bundle e Suíte de Testes Automatizados (`tests/phase46_bundle_performance.test.ts`)**:
-   - Testes unitários para frustum de culling, ausência de `k.get()` em arquivos de simulação e validação do limite de tamanho do chunk principal (< 350 kB).
+5. **Suíte de Testes Automatizados da Fase 47 (`tests/phase47_pwa_versioning.test.ts`)**:
+   - Validar estaticamente sincronia da versão do cache com `package.json`, presença de todos os assets vitais no precache e lógica de poda do cache.
 
 ---
 
 ## 📋 Lista de Tarefas Atômicas
 
-### Etapa 1: Otimização de Bundling & Vendor Code-Splitting (`vite.config.ts`)
+### Etapa 1: Injeção de Versão e Precache Completo no Service Worker
 
-- [x] **1.1 Configurar `manualChunks` no Rollup**
-  - **Arquivo**: `vite.config.ts`
-  - **Ação**: Configurar `build.rollupOptions.output.manualChunks` para segregar `kaboom` em `vendor_kaboom` e `zod` em `vendor_zod`. Ajustar `chunkSizeWarningLimit` para 400 kB.
-  - **Validação**: Executar `npm run build` e verificar geração dos chunks vendor separados.
+- [x] **1.1 Configurar Injeção Dinâmica de Versão no Service Worker**
+  - **Arquivos**: `vite.config.ts`, `public/sw.js`, `scripts/buildSw.cjs` (ou plugin Vite).
+  - **Ação**: Injetar automaticamente `package.json.version` no `CACHE_NAME` (`micro-splash-v${version}`).
+  - **Validação**: Executar build e verificar se `dist/sw.js` ou `public/sw.js` reflete a versão exata do `package.json`.
 
-- [x] **1.2 Lazy-Loading Dinâmico de Modais e Telas em `menuScene.ts` e `mainMenu.ts`**
-  - **Arquivos**: `src/scenes/menuScene.ts`, `src/ui/mainMenu.ts`
-  - **Ação**: Substituir imports estáticos de `showOptionsScreen`, `showCodexScreen`, `showModeSelectScreen` e `showStatsModal` por chamadas assíncronas com `await import(...)`.
-  - **Validação**: Verificar que os módulos só são requisitados sob demanda ao clicar nos respectivos botões.
-
-- [x] **1.3 Lazy-Loading Dinâmico de Modais Pós-Jogo em Telas de Vitória e Desafio**
-  - **Arquivos**: `src/ui/victoryScreen.ts`, `src/ui/challengeEndScreen.ts`, `src/ui/codexScreen.ts`
-  - **Ação**: Carregar `showShareModal`, `showQuizModal` e geradores pesados de `victoryCard` sob demanda via `import()`.
-  - **Validação**: Confirmar transição fluida nas telas finais sem quebra de fluxo.
+- [x] **1.2 Expandir Lista de Precache com Recursos Educativos e Manifestos**
+  - **Arquivo**: `public/sw.js`
+  - **Ação**: Incluir `/data/facts.json`, `/data/quiz.json`, `/sprites/fauna_manifest.json` e `/about.html` em `PRECACHE_ASSETS`.
+  - **Validação**: Confirmar presença de todos os arquivos estáticos na lista de pré-cacheamento.
 
 ---
 
-### Etapa 2: Registro Completo no Culling Espacial e Ciclo de Vida
+### Etapa 2: Política de Limite de Entradas do Cache Dinâmico (LRU)
 
-- [x] **2.1 Integração de Partículas e Atmosfera no `SpatialCullingManager`**
-  - **Arquivos**: `src/systems/spatialCullingSystem.ts`, `src/scenes/gameScene.ts`
-  - **Ação**: Registrar emissores e camadas de `lightRaysSystem`, `marineSnowSystem`, `parallaxSkySystem` e `bioluminescenceSystem` para pausar renderização e atualização quando distantes da câmera.
-  - **Validação**: Validar via `spatialCulling.update(camX)` ocultação de entidades fora do campo de visão.
-
-- [x] **2.2 Integração do `weatherSystem` e `benthicFloorSystem` no `BiomeLifecycleManager`**
-  - **Arquivos**: `src/systems/weatherSystem.ts`, `src/scenes/gameScene.ts`
-  - **Ação**: Atrelar o ciclo de vida de tempestades, nevascas e vegetação bentônica às faixas de coordenadas de cada bioma com margem de histerese.
-  - **Validação**: Confirmar interrupção de loops em biomas onde o sistema não é visível.
+- [x] **2.1 Implementar Função de Poda LRU no Service Worker**
+  - **Arquivo**: `public/sw.js`
+  - **Ação**: Criar função `trimCache(cacheName, maxItems = 60)` que remove as entradas mais antigas quando o limite for excedido após requisições em runtime.
+  - **Validação**: Simular adição de entradas acima do limite e verificar deleção FIFO/LRU.
 
 ---
 
-### Etapa 3: Eliminação Universal de `k.get()` Residual em Simulação
+### Etapa 3: Tela de Contingência Offline Glassmórfica (`public/offline.html`)
 
-- [x] **3.1 Substituição de `k.get(TAGS.PLAYER)` em Entidades e Pinguins**
-  - **Arquivos**: `src/systems/penguinFlockSystem.ts`, `src/systems/iceSurface.ts`, `src/entities/krill.ts`
-  - **Ação**: Substituir acessos diretos e fallbacks `k.get(TAGS.PLAYER)` pelo singleton $O(1)$ `getActivePlayerObject()`.
-  - **Validação**: Garantir zero chamadas `k.get(TAGS.PLAYER)` em loops de atualização.
-
-- [x] **3.2 Otimização do Sonar Acústico sem Varredura Linear Múltipla**
-  - **Arquivo**: `src/entities/player/playerSonar.ts`
-  - **Ação**: Eliminar as 6 chamadas lineares `this.k.get(...)`. Utilizar lista cacheada/registro de alvos acústicos ou consulta agrupada por tag unificada.
-  - **Validação**: Emitir sonar repetidamente sem degradação de frame time.
-
-- [x] **3.3 Otimização da Contagem de Entidades do HUD de Diagnóstico**
-  - **Arquivo**: `src/scenes/gameScene.ts`
-  - **Ação**: Substituir `k.get("*").length` por amostragem throttled (a cada 500ms) ou contador centralizado de entidades ativas.
-  - **Validação**: Verificar estabilidade do HUD de telemetria sem varredura global por frame.
+- [x] **3.1 Criar Página Offline Glassmórfica e Integrar ao Fallback de Navegação**
+  - **Arquivos**: `public/offline.html`, `public/sw.js`
+  - **Ação**:
+    1. Criar `public/offline.html` estilizada com estética marítima do Micro Splash (fundo polar `#06122a`, tipografia Outfit/Inter, card translúcido com gradiente e botão de reload).
+    2. Adicionar `/offline.html` ao precache e ao fallback de requisições de navegação quando sem rede e sem cache da página principal.
+  - **Validação**: Acessar URL inexistente sem conexão e verificar renderização da tela estilizada.
 
 ---
 
-### Etapa 4: Atlas de Sprites Unificado & Cache de Texturas Procedurais
+### Etapa 4: Suíte de Testes da Fase 47 (`tests/phase47_pwa_versioning.test.ts`)
 
-- [x] **4.1 Script de Consolidação / Pipeline Unificado de Fauna Secundária**
-  - **Arquivos**: `scripts/generateFaunaAtlas.cjs` (ou ajuste nos geradores de sprites), `src/systems/backgroundFaunaSystem.ts`
-  - **Ação**: Unificar texturas de fauna de segundo plano ou reutilizar buffer de canvas em atlas único com mapeamento de frames preservando pixel art.
-  - **Validação**: Executar script gerador e validar carregamento no `backgroundFaunaSystem`.
+- [x] **4.1 Testes Automatizados de Versionamento e Integridade PWA**
+  - **Arquivo**: `tests/phase47_pwa_versioning.test.ts`
+  - **Ação**: Validar:
+    1. Correspondência entre a versão do Service Worker e o `package.json`.
+    2. Presença de todos os arquivos de dados, fontes, sprites e contingência no precache.
+    3. Função de poda de cache mantendo teto máximo de entradas.
+    4. Existência e estrutura semântica de `public/offline.html`.
+  - **Validação**: Executar `npm test tests/phase47_pwa_versioning.test.ts`.
 
-- [x] **4.2 Cache de Texturas Procedurais e Gradientes**
-  - **Arquivos**: `src/systems/oceanFloor.ts`, `src/systems/waterSurface.ts`
-  - **Ação**: Armazenar texturas geradas proceduralmente para reutilização entre sessões e reinícios sem nova alocação de canvas.
-  - **Validação**: Reiniciar a migração e verificar ausência de re-geração redundante de texturas.
-
----
-
-### Etapa 5: Suíte de Testes Automatizados da Fase 46 (`tests/phase46_bundle_performance.test.ts`)
-
-- [x] **5.1 Testes Unitários e Estáticos de Performance e Bundle**
-  - **Arquivo**: `tests/phase46_bundle_performance.test.ts`
-  - **Ação**: Implementar testes automatizados:
-    1. Validação estática de ausência de `k.get(TAGS.PLAYER)` em `penguinFlockSystem.ts`, `iceSurface.ts` e `krill.ts`.
-    2. Validação estática de ausência de varreduras lineares múltiplas em `playerSonar.ts`.
-    3. Teste unitário do `SpatialCullingManager` cobrindo registro de subsistemas e cálculo de frustum.
-    4. Teste de orçamento de bundle (chunk principal < 350 kB após build).
-  - **Validação**: Executar `npm test tests/phase46_bundle_performance.test.ts`.
-
-- [x] **5.2 Atualização da Documentação e Roadmap**
+- [x] **4.2 Atualização da Documentação e Roadmap**
   - **Arquivo**: `docs/ROADMAP.md`
-  - **Ação**: Marcar todos os itens 46.1 a 46.6 da Fase 46 como concluídos `[x]`.
+  - **Ação**: Marcar todos os itens 47.1 a 47.5 como concluídos `[x]`.
 
 ---
 
-### Etapa 6: Validação Geral de Qualidade e Build
+### Etapa 5: Validação Geral de Qualidade e Build
 
-- [x] **6.1 Execução de Linter, Tipagem e Testes Globais**
+- [x] **5.1 Execução de Linter, Tipagem e Testes Globais**
   - **Comandos**:
     - `npm run lint` (0 erros, 0 warnings em `src`, `tests`, `scripts`, `server`, `public/sw.js`)
     - `npm test` (100% de aprovação em todas as suítes)
-    - `npm run build` (`tsc && vite build` com chunk principal abaixo de 350 kB e zero warnings)
+    - `npm run build` (`tsc && vite build`)
+    - `npm test` (100% de aprovação em todas as suítes)
+    - `npm run build` (`tsc && vite build`)

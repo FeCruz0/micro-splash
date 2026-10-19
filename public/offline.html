@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#06122a" />
+    <title>Micro Splash — Modo Offline</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "Outfit", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        background: radial-gradient(circle at 50% 30%, #0d284f 0%, #06122a 80%, #030a17 100%);
+        color: #e0f2fe;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+        overflow-x: hidden;
+      }
+      .offline-card {
+        background: rgba(10, 30, 64, 0.75);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(56, 189, 248, 0.25);
+        border-radius: 1.25rem;
+        box-shadow: 0 20px 50px rgba(2, 6, 23, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        padding: 2.5rem 2rem;
+        max-width: 480px;
+        width: 100%;
+        text-align: center;
+      }
+      .whale-icon {
+        font-size: 3.5rem;
+        margin-bottom: 1rem;
+        display: inline-block;
+        filter: drop-shadow(0 4px 12px rgba(56, 189, 248, 0.4));
+        animation: float 3s ease-in-out infinite;
+      }
+      @keyframes float {
+        0%, 100% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-8px);
+        }
+      }
+      h1 {
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: #ffffff;
+        margin-bottom: 0.75rem;
+        letter-spacing: -0.02em;
+      }
+      p {
+        font-size: 0.95rem;
+        color: #bae6fd;
+        line-height: 1.6;
+        margin-bottom: 2rem;
+      }
+      .actions {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.85rem 1.5rem;
+        font-size: 0.95rem;
+        font-weight: 600;
+        border-radius: 0.75rem;
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: none;
+        outline: none;
+      }
+      .btn-primary {
+        background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+        color: #ffffff;
+        box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+      }
+      .btn-primary:hover {
+        background: linear-gradient(135deg, #0369a1 0%, #075985 100%);
+        transform: translateY(-1px);
+        box-shadow: 0 6px 20px rgba(2, 132, 199, 0.45);
+      }
+      .btn-secondary {
+        background: rgba(14, 45, 85, 0.6);
+        color: #7dd3fc;
+        border: 1px solid rgba(56, 189, 248, 0.3);
+      }
+      .btn-secondary:hover {
+        background: rgba(14, 45, 85, 0.9);
+        color: #ffffff;
+        border-color: rgba(56, 189, 248, 0.5);
+      }
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.25rem 0.75rem;
+        background: rgba(245, 158, 11, 0.15);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        border-radius: 9999px;
+        font-size: 0.8rem;
+        color: #fcd34d;
+        margin-bottom: 1.25rem;
+      }
+      .status-dot {
+        width: 8px;
+        height: 8px;
+        background: #f59e0b;
+        border-radius: 50%;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="offline-card">
+      <div class="status-pill">
+        <span class="status-dot"></span>
+        <span>Conexão Indisponível</span>
+      </div>
+      <div class="whale-icon">🐋</div>
+      <h1>Navegando em Águas Isoladas</h1>
+      <p>
+        O Micro Splash está rodando no modo offline. Se você já abriu o jogo anteriormente neste dispositivo, os assets e dados continuam salvos no cache local.
+      </p>
+      <div class="actions">
+        <button class="btn btn-primary" onclick="window.location.reload()">
+          🔄 Tentar Reconectar
+        </button>
+        <a href="/" class="btn btn-secondary">
+          🏠 Retornar à Enseada Principal
+        </a>
+      </div>
+    </div>
+  </body>
+</html>

@@ -7,6 +7,41 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [1.14.0] - 2026-10-19 — Robustez de Tipagem, Utilitários & Code-Splitting (Fases 45 e 46)
+
+### Adicionado & Modificado
+
+- **PWA Versionado, Precache Completo & Tela Offline (Fase 47)**:
+  - `vite.config.ts`: Adicionado plugin `pwaVersionPlugin` para injeção automática da versão do `package.json` em `dist/sw.js`.
+  - `public/sw.js`: Sincronizado `CACHE_NAME` com versionamento semântico (`micro-splash-v${version}`); expandido `PRECACHE_ASSETS` para incluir `/about.html`, `/offline.html`, `/data/facts.json`, `/data/quiz.json` e `/sprites/fauna_manifest.json`.
+  - Implementada função de poda de cache LRU (`trimCache`) limitando o cache dinâmico a 60 entradas máximas para prevenir vazamento de memória em totens.
+  - `public/offline.html`: Criada tela de contingência offline estilizada com estética glassmórfica, paleta oceânica profunda e botão tátil de reconexão sem diálogos nativos.
+  - `tests/phase47_pwa_versioning.test.ts`: 8 testes automatizados validando integridade de cache, precache completo e semântica offline.
+- **Code-Splitting e Chunks Vendor Rollup (Fase 46.1)**:
+  - `vite.config.ts`: Configurado `build.rollupOptions.output.manualChunks` para segregar `vendor_kaboom` (129.9 kB) e `vendor_zod` (83.7 kB).
+  - `src/scenes/menuScene.ts`: Substituídos imports estáticos por carregamento sob demanda com `await import(...)` para `modeSelectScreen`, `optionsScreen`, `codexScreen` e `leaderboardScreen`.
+  - `src/ui/mainMenu.ts`: Carregamento dinâmico assíncrono para o modal coletivo `statsModal`.
+  - `src/ui/victoryScreen.ts`: Carregamento dinâmico assíncrono para `quizModal`, `shareModal` e `victoryCard`.
+  - `src/ui/challengeEndScreen.ts`: Carregamento dinâmico de `quizModal`, `shareModal` e `victoryCard`.
+  - `src/ui/codexScreen.ts`: Carregamento dinâmico de `quizModal` e `onboardingModal`.
+  - Otimização do bundle: chunk principal de produção reduzido em mais de 61% (de 588.4 kB para 226.1 kB), eliminando os alertas de chunk size do Rollup/Vite.
+- **Ativação Global de Modo Estrito TypeScript (Fase 45.1)**:
+  - `tsconfig.json`: Habilitados `"strict": true`, `"strictNullChecks": true` e `"noImplicitAny": true` em todo o código-fonte.
+- **Regra Estrita de Ausência de `any` no ESLint (Fase 45.2 & 45.6)**:
+  - `eslint.config.js`: Promovida a regra `@typescript-eslint/no-explicit-any` para `"error"`. Adicionados ambientes/globals para scripts Node (`scripts/**/*.cjs`), Cloudflare Worker (`server/**/*.js`) e Service Worker (`public/sw.js`).
+  - `package.json`: Script `lint` expandido para cobrir `src`, `tests`, `scripts`, `server` e `public/sw.js`.
+- **Barramento Unificado de Telemetria e Erros (Fase 45.4)**:
+  - `src/utils/errorReporter.ts`: Barramento canônico unificado integrando níveis de severidade (`information`, `warning`, `error`), listeners e bridge para Sentry/offline.
+  - `src/services/errorReporter.ts`: Transformado em reexportação canônica preservando 100% de compatibilidade reversa.
+- **Sanitização de Acesso a Armazenamento Local (Fase 45.5)**:
+  - `src/utils/storage.ts`: Implementada a função pura `removeLocalStorageItemsByPrefix`, eliminando o acesso direto residual a `localStorage.*` em `src/systems/accessibilitySystem.ts`.
+- **Correções Globais de Linting em Scripts e Workers**:
+  - `scripts/*.cjs`, `server/cloudflare-worker/worker.js`, `public/sw.js`: Corrigidas variáveis não utilizadas, atribuições redundantes e variáveis de ambiente globais.
+- **Suíte de Testes da Fase 45**:
+  - `tests/phase45_type_safety.test.ts`: 7 testes automatizados validando type safety, ausência de `Math.random` e acessos diretos a `localStorage`.
+
+---
+
 ## [1.13.0] - 2026-10-06 — Qualidade de Código & Consistência Técnica Visual (Fase 37)
 
 ### Adicionado & Modificado

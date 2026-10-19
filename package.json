@@ -9,7 +9,7 @@
   "homepage": "https://github.com/FeCruz0/micro-splash",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "tsc && vite build && node scripts/buildSw.cjs",
     "preview": "vite preview",
     "test": "vitest run",
     "coverage": "vitest run --coverage",
