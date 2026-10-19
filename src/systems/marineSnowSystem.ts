@@ -1,5 +1,6 @@
 import type { KaboomCtx, GameObj } from "kaboom";
 import { GAME_CONFIG } from "../config";
+import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 
 export interface MarineSnowFlake {
   obj: GameObj;
@@ -89,8 +90,31 @@ export function setupMarineSnowSystem(k: KaboomCtx) {
   }
 
   let time = 0;
+  let isSystemActive = true;
+
+  const biomeManager = getBiomeLifecycleManager();
+  if (biomeManager) {
+    biomeManager.registerModule({
+      id: "marine_snow_system",
+      name: "Neve Marinha Pelágica",
+      minX: MARINE_SNOW_CONFIG.MIN_DISTANCE,
+      maxX: MARINE_SNOW_CONFIG.MAX_DISTANCE,
+      activate: () => {
+        isSystemActive = true;
+      },
+      deactivate: () => {
+        isSystemActive = false;
+        particles.forEach((p) => {
+          p.obj.hidden = true;
+        });
+      },
+      isActive: () => isSystemActive,
+    });
+  }
 
   k.onUpdate(() => {
+    if (!isSystemActive) return;
+
     const dt = k.dt();
     time += dt;
     const camX = k.camPos().x;

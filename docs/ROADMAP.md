@@ -668,17 +668,17 @@ _Objetivo: Fechar resíduos das Fases 37.5, 37.6 e 37.10 e elevar a segurança d
 
 _Objetivo: Reduzir o chunk principal (~587 kB) e eliminar consultas e alocações redundantes por quadro._
 
-- [ ] **46.1 Code-Splitting de Telas Pesadas (`src/ui/`, `vite.config.ts`):**
+- [x] **46.1 Code-Splitting de Telas Pesadas (`src/ui/`, `vite.config.ts`):**
   - `import()` dinâmico para `codexScreen`, `optionsScreen`, `victoryCard`, `shareModal`, `statsModal`; `manualChunks` para `kaboom` e `zod`.
-- [ ] **46.2 Registro Completo no Culling e Lifecycle:**
+- [x] **46.2 Registro Completo no Culling e Lifecycle:**
   - Incluir `parallaxSkySystem`, `weatherSystem`, `bioluminescenceSystem`, `marineSnowSystem` e `lightRaysSystem` no `spatialCullingSystem`/`BiomeLifecycleManager`.
-- [ ] **46.3 Eliminação de `k.get()` Residual:**
+- [x] **46.3 Eliminação de `k.get()` Residual:**
   - Substituir consultas em `penguinFlockSystem`, `iceSurface`, `krill`, `playerSonar` e `main.ts` por registros cacheados.
-- [ ] **46.4 Atlas de Sprites Unificado (`public/sprites/`, `scripts/`):**
+- [x] **46.4 Atlas de Sprites Unificado (`public/sprites/`, `scripts/`):**
   - Consolidar `whale.png` e sprites de fauna em atlas único preservando pixel art e `sliceX`.
-- [ ] **46.5 Cache de Texturas Procedurais:**
+- [x] **46.5 Cache de Texturas Procedurais:**
   - Gerar texturas procedurais uma única vez e reutilizar entre cenas.
-- [ ] **46.6 Orçamento de Bundle no CI:**
+- [x] **46.6 Orçamento de Bundle no CI:**
   - Falhar build se o chunk principal exceder limite definido.
 
 ### 📡 FASE 47: PWA Versionado & Experiência Offline Refinada

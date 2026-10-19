@@ -8,6 +8,16 @@ interface RevealableTarget extends GameObj {
   reveal?: () => void;
 }
 
+export const activeSonarTargets: Set<RevealableTarget> = new Set();
+
+export function registerSonarTarget(target: RevealableTarget): void {
+  activeSonarTargets.add(target);
+}
+
+export function unregisterSonarTarget(target: RevealableTarget): void {
+  activeSonarTargets.delete(target);
+}
+
 export class PlayerSonarManager {
   private k: KaboomCtx;
   private sonarCooldown = GAME_CONFIG.SONAR_COOLDOWN;
@@ -75,18 +85,37 @@ export class PlayerSonarManager {
       });
     });
 
-    // 3. Varredura de 360° de todos os objetos e relevos submersos
-    const targets = [
-      ...this.k.get(TAGS.TRASH),
-      ...this.k.get(TAGS.KRILL),
-      ...this.k.get(TAGS.NET),
-      ...this.k.get("boqueirao_rock"),
-      ...this.k.get("island_cliff_visual"),
-      ...this.k.get("ocean_relief"),
-    ];
+    // 3. Varredura acústica com cache de alvos e filtro espacial prévio
+    const targets: RevealableTarget[] = [];
+    if (activeSonarTargets.size > 0) {
+      for (const target of activeSonarTargets) {
+        if (!target.exists || target.exists()) {
+          targets.push(target);
+        } else {
+          activeSonarTargets.delete(target);
+        }
+      }
+    } else {
+      const sonarTags = [
+        TAGS.TRASH,
+        TAGS.KRILL,
+        TAGS.NET,
+        "boqueirao_rock",
+        "island_cliff_visual",
+        "ocean_relief",
+      ];
+      for (let i = 0; i < sonarTags.length; i++) {
+        const found = this.k.get(sonarTags[i]);
+        for (let j = 0; j < found.length; j++) {
+          targets.push(found[j]);
+        }
+      }
+    }
 
     let echoCount = 0;
     targets.forEach((targetEntity: RevealableTarget) => {
+      if (!targetEntity.pos) return;
+      if (Math.abs(targetEntity.pos.x - headPos.x) > GAME_CONFIG.SONAR_RANGE) return;
       const distanceToObject = headPos.dist(targetEntity.pos);
       if (distanceToObject <= GAME_CONFIG.SONAR_RANGE) {
         const travelTime = distanceToObject / 520;

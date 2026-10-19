@@ -1,0 +1,29 @@
+{
+  "orca_bg": {
+    "file": "orca_bg.png",
+    "sliceX": 4,
+    "frameWidth": 96,
+    "frameHeight": 40,
+    "totalWidth": 384,
+    "totalHeight": 40,
+    "sizeBytes": 942
+  },
+  "humpback_bg": {
+    "file": "humpback_bg.png",
+    "sliceX": 4,
+    "frameWidth": 128,
+    "frameHeight": 54,
+    "totalWidth": 512,
+    "totalHeight": 54,
+    "sizeBytes": 1868
+  },
+  "cachalote_bg": {
+    "file": "cachalote_bg.png",
+    "sliceX": 4,
+    "frameWidth": 160,
+    "frameHeight": 64,
+    "totalWidth": 640,
+    "totalHeight": 64,
+    "sizeBytes": 2329
+  }
+}

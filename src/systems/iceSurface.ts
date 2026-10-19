@@ -1,7 +1,7 @@
 import kaboom from "kaboom";
 import { TAGS, GAME_CONFIG } from "../config";
 import { audioSystem } from "./audioSystem";
-import type { PlayerController } from "../entities/player";
+import { type PlayerController, getActivePlayerObject } from "../entities/player";
 import { getParticlePool } from "./particlePool";
 import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 import { getSpatialCullingManager } from "./spatialCullingSystem";
@@ -171,7 +171,7 @@ export function setupIceSurfaceSystem(
           }
 
           // 2. Efeitos Sonoros e Tremor
-          const player = playerController ? playerController.gameObj : k.get(TAGS.PLAYER)[0];
+          const player = playerController ? playerController.gameObj : getActivePlayerObject();
           const playerX = player ? player.pos.x : undefined;
           audioSystem.playIceCrackSound(x + width * 0.5, playerX);
           audioSystem.playWaterSplash(x + width * 0.5, playerX);
@@ -233,7 +233,7 @@ export function setupIceSurfaceSystem(
     // Quebra APENAS por cima: a baleia deve estar no ar ou caindo sobre o topo do bloco de gelo
     segment.onUpdate(() => {
       if (isBroken || !isSystemActive || segment.hidden) return;
-      const player = playerController ? playerController.gameObj : k.get(TAGS.PLAYER)[0];
+      const player = playerController ? playerController.gameObj : getActivePlayerObject();
       if (player) {
         const withinX = player.pos.x >= x - 10 && player.pos.x <= x + width + 10;
         if (!withinX) return;

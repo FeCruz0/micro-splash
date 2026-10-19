@@ -1,5 +1,5 @@
 import type { GameObj, KaboomCtx } from "kaboom";
-import { GAME_CONFIG, TAGS } from "../config";
+import { GAME_CONFIG } from "../config";
 import { audioSystem } from "./audioSystem";
 import { getParticlePool } from "./particlePool";
 import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
@@ -151,7 +151,7 @@ export function setupPenguinFlockSystem(k: KaboomCtx) {
       if (!isSystemActive) return;
 
       const dt = k.dt();
-      const player = getActivePlayerObject() ?? (k.get ? k.get(TAGS.PLAYER)?.[0] : null);
+      const player = getActivePlayerObject();
 
       // 1. Simulação do Loop Pré-Programado
       if (turnState === "cruise") {

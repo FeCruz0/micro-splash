@@ -1,5 +1,6 @@
 import kaboom, { type GameObj } from "kaboom";
 import { GAME_CONFIG } from "../config";
+import { getSpatialCullingManager } from "./spatialCullingSystem";
 
 /**
  * Calcula a largura volumétrica do feixe solar (Fase 30.4: 8px a 18px).
@@ -61,8 +62,27 @@ export function setupLightRaysSystem(k: ReturnType<typeof kaboom>) {
   }
 
   let time = 0;
+  let isSystemVisible = true;
+
+  const cullingManager = getSpatialCullingManager();
+  if (cullingManager) {
+    cullingManager.registerSubsystem({
+      id: "light_rays_system",
+      getBounds: () => ({ minX: 0, maxX: 30000 }),
+      setVisible: (visible: boolean) => {
+        isSystemVisible = visible;
+        godRays.forEach((r) => {
+          r.hidden = !visible;
+        });
+        caustics.forEach((c) => {
+          c.hidden = !visible;
+        });
+      },
+    });
+  }
 
   k.onUpdate(() => {
+    if (!isSystemVisible) return;
     time += k.dt();
     const camX = k.camPos().x;
     const screenLeft = camX - k.width() / 2;

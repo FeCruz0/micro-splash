@@ -142,7 +142,7 @@ export function createKrill(k: KaboomCtx, position: Vec2): GameObj {
     }
 
     // Detecção de proximidade com a baleia para dispersão reativa
-    const player = getActivePlayerObject() ?? (k.get ? k.get(TAGS.PLAYER)?.[0] : null);
+    const player = getActivePlayerObject();
     let isScattering = false;
     let scatterDir = k.vec2(0, 0);
 

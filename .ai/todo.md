@@ -1,7 +1,7 @@
 # Plano de Implementação — Fase 46: Bundle, Code-Splitting & Performance de Renderização
 
-Status: Em Planejamento
-Data: 2026-10-16
+Status: Concluído
+Data: 2026-10-19
 Alvo: v1.14.0
 
 ---
@@ -59,12 +59,12 @@ Alvo: v1.14.0
 
 ### Etapa 2: Registro Completo no Culling Espacial e Ciclo de Vida
 
-- [ ] **2.1 Integração de Partículas e Atmosfera no `SpatialCullingManager`**
+- [x] **2.1 Integração de Partículas e Atmosfera no `SpatialCullingManager`**
   - **Arquivos**: `src/systems/spatialCullingSystem.ts`, `src/scenes/gameScene.ts`
   - **Ação**: Registrar emissores e camadas de `lightRaysSystem`, `marineSnowSystem`, `parallaxSkySystem` e `bioluminescenceSystem` para pausar renderização e atualização quando distantes da câmera.
   - **Validação**: Validar via `spatialCulling.update(camX)` ocultação de entidades fora do campo de visão.
 
-- [ ] **2.2 Integração do `weatherSystem` e `benthicFloorSystem` no `BiomeLifecycleManager`**
+- [x] **2.2 Integração do `weatherSystem` e `benthicFloorSystem` no `BiomeLifecycleManager`**
   - **Arquivos**: `src/systems/weatherSystem.ts`, `src/scenes/gameScene.ts`
   - **Ação**: Atrelar o ciclo de vida de tempestades, nevascas e vegetação bentônica às faixas de coordenadas de cada bioma com margem de histerese.
   - **Validação**: Confirmar interrupção de loops em biomas onde o sistema não é visível.
@@ -73,17 +73,17 @@ Alvo: v1.14.0
 
 ### Etapa 3: Eliminação Universal de `k.get()` Residual em Simulação
 
-- [ ] **3.1 Substituição de `k.get(TAGS.PLAYER)` em Entidades e Pinguins**
+- [x] **3.1 Substituição de `k.get(TAGS.PLAYER)` em Entidades e Pinguins**
   - **Arquivos**: `src/systems/penguinFlockSystem.ts`, `src/systems/iceSurface.ts`, `src/entities/krill.ts`
   - **Ação**: Substituir acessos diretos e fallbacks `k.get(TAGS.PLAYER)` pelo singleton $O(1)$ `getActivePlayerObject()`.
   - **Validação**: Garantir zero chamadas `k.get(TAGS.PLAYER)` em loops de atualização.
 
-- [ ] **3.2 Otimização do Sonar Acústico sem Varredura Linear Múltipla**
+- [x] **3.2 Otimização do Sonar Acústico sem Varredura Linear Múltipla**
   - **Arquivo**: `src/entities/player/playerSonar.ts`
   - **Ação**: Eliminar as 6 chamadas lineares `this.k.get(...)`. Utilizar lista cacheada/registro de alvos acústicos ou consulta agrupada por tag unificada.
   - **Validação**: Emitir sonar repetidamente sem degradação de frame time.
 
-- [ ] **3.3 Otimização da Contagem de Entidades do HUD de Diagnóstico**
+- [x] **3.3 Otimização da Contagem de Entidades do HUD de Diagnóstico**
   - **Arquivo**: `src/scenes/gameScene.ts`
   - **Ação**: Substituir `k.get("*").length` por amostragem throttled (a cada 500ms) ou contador centralizado de entidades ativas.
   - **Validação**: Verificar estabilidade do HUD de telemetria sem varredura global por frame.
@@ -92,12 +92,12 @@ Alvo: v1.14.0
 
 ### Etapa 4: Atlas de Sprites Unificado & Cache de Texturas Procedurais
 
-- [ ] **4.1 Script de Consolidação / Pipeline Unificado de Fauna Secundária**
+- [x] **4.1 Script de Consolidação / Pipeline Unificado de Fauna Secundária**
   - **Arquivos**: `scripts/generateFaunaAtlas.cjs` (ou ajuste nos geradores de sprites), `src/systems/backgroundFaunaSystem.ts`
   - **Ação**: Unificar texturas de fauna de segundo plano ou reutilizar buffer de canvas em atlas único com mapeamento de frames preservando pixel art.
   - **Validação**: Executar script gerador e validar carregamento no `backgroundFaunaSystem`.
 
-- [ ] **4.2 Cache de Texturas Procedurais e Gradientes**
+- [x] **4.2 Cache de Texturas Procedurais e Gradientes**
   - **Arquivos**: `src/systems/oceanFloor.ts`, `src/systems/waterSurface.ts`
   - **Ação**: Armazenar texturas geradas proceduralmente para reutilização entre sessões e reinícios sem nova alocação de canvas.
   - **Validação**: Reiniciar a migração e verificar ausência de re-geração redundante de texturas.
@@ -106,7 +106,7 @@ Alvo: v1.14.0
 
 ### Etapa 5: Suíte de Testes Automatizados da Fase 46 (`tests/phase46_bundle_performance.test.ts`)
 
-- [ ] **5.1 Testes Unitários e Estáticos de Performance e Bundle**
+- [x] **5.1 Testes Unitários e Estáticos de Performance e Bundle**
   - **Arquivo**: `tests/phase46_bundle_performance.test.ts`
   - **Ação**: Implementar testes automatizados:
     1. Validação estática de ausência de `k.get(TAGS.PLAYER)` em `penguinFlockSystem.ts`, `iceSurface.ts` e `krill.ts`.
@@ -115,7 +115,7 @@ Alvo: v1.14.0
     4. Teste de orçamento de bundle (chunk principal < 350 kB após build).
   - **Validação**: Executar `npm test tests/phase46_bundle_performance.test.ts`.
 
-- [ ] **5.2 Atualização da Documentação e Roadmap**
+- [x] **5.2 Atualização da Documentação e Roadmap**
   - **Arquivo**: `docs/ROADMAP.md`
   - **Ação**: Marcar todos os itens 46.1 a 46.6 da Fase 46 como concluídos `[x]`.
 
@@ -123,7 +123,7 @@ Alvo: v1.14.0
 
 ### Etapa 6: Validação Geral de Qualidade e Build
 
-- [ ] **6.1 Execução de Linter, Tipagem e Testes Globais**
+- [x] **6.1 Execução de Linter, Tipagem e Testes Globais**
   - **Comandos**:
     - `npm run lint` (0 erros, 0 warnings em `src`, `tests`, `scripts`, `server`, `public/sw.js`)
     - `npm test` (100% de aprovação em todas as suítes)

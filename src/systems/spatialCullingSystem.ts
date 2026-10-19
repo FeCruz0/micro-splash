@@ -6,6 +6,13 @@ export interface CullableEntity {
   width?: number;
 }
 
+export interface CullableSubsystem {
+  id: string;
+  setVisible: (visible: boolean) => void;
+  getBounds: () => { minX: number; maxX: number };
+  update?: (cameraXPosition: number, isVisible: boolean) => void;
+}
+
 /**
  * Pure function to check whether an entity is inside the horizontal camera view frustum.
  *
@@ -30,6 +37,7 @@ export function isEntityInFrustum(
 
 export class SpatialCullingManager {
   private cullableEntities: CullableEntity[] = [];
+  private cullableSubsystems: CullableSubsystem[] = [];
   private kaboomContext: KaboomCtx;
   private safetyMargin: number;
   private lastVisibleCount: number = 0;
@@ -38,6 +46,14 @@ export class SpatialCullingManager {
   constructor(kaboomContext: KaboomCtx, safetyMargin: number = 320) {
     this.kaboomContext = kaboomContext;
     this.safetyMargin = safetyMargin;
+  }
+
+  public registerSubsystem(subsystem: CullableSubsystem): void {
+    this.cullableSubsystems.push(subsystem);
+  }
+
+  public getSubsystems(): readonly CullableSubsystem[] {
+    return this.cullableSubsystems;
   }
 
   public registerEntity(targetObject: GameObj, getCustomXPosition?: number | (() => number)): void {
@@ -94,6 +110,20 @@ export class SpatialCullingManager {
       }
     }
 
+    for (let index = 0; index < this.cullableSubsystems.length; index++) {
+      const subsystem = this.cullableSubsystems[index];
+      const bounds = subsystem.getBounds();
+      const halfViewport = viewportWidth / 2;
+      const minVisible = cameraXPosition - halfViewport - this.safetyMargin;
+      const maxVisible = cameraXPosition + halfViewport + this.safetyMargin;
+      const isVisible = bounds.maxX >= minVisible && bounds.minX <= maxVisible;
+
+      subsystem.setVisible(isVisible);
+      if (typeof subsystem.update === "function") {
+        subsystem.update(cameraXPosition, isVisible);
+      }
+    }
+
     this.lastVisibleCount = visibleCount;
     this.lastHiddenCount = hiddenCount;
 
@@ -118,6 +148,7 @@ export class SpatialCullingManager {
 
   public reset(): void {
     this.cullableEntities = [];
+    this.cullableSubsystems = [];
     this.lastVisibleCount = 0;
     this.lastHiddenCount = 0;
   }

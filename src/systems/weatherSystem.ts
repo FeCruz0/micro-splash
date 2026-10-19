@@ -10,6 +10,7 @@ import type { GameObj, KaboomCtx } from "kaboom";
 import { GAME_CONFIG } from "../config";
 import type { PlayerController } from "../entities/player";
 import { getRandomFloat } from "../utils/random";
+import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 
 /**
  * Tipo identificador do micro-clima em execução.
@@ -206,14 +207,48 @@ export function setupWeatherSystem(k: KaboomCtx, playerController: PlayerControl
     });
   }
 
-  // 4. LOOP PRINCIPAL DE ATUALIZAÇÃO CLIMÁTICA
+  // 4. CICLO DE VIDA GEOGRÁFICO E LOOP PRINCIPAL DE ATUALIZAÇÃO CLIMÁTICA
+  let isWeatherActive = true;
+  const biomeManager = getBiomeLifecycleManager();
+  if (biomeManager) {
+    biomeManager.registerModule({
+      id: "weather_system",
+      name: "Sistema Meteorológico Dinâmico",
+      minX: 800,
+      maxX: 30000,
+      activate: () => {
+        isWeatherActive = true;
+      },
+      deactivate: () => {
+        isWeatherActive = false;
+        snowflakes.forEach((p) => {
+          p.obj.opacity = 0;
+        });
+        raindrops.forEach((p) => {
+          p.obj.opacity = 0;
+        });
+        goldenGlints.forEach((p) => {
+          p.obj.opacity = 0;
+        });
+      },
+      isActive: () => isWeatherActive,
+    });
+  }
+
   k.onUpdate(() => {
-    const dt = k.dt();
+    if (!isWeatherActive) return;
+
     const playerPos = playerController.gameObj.pos;
+    const { weather, intensity } = calculateWeatherAtDistance(playerPos.x);
+
+    // Early-return para clima limpo sem transições ativas
+    if (weather === "clear" && intensity === 0) {
+      return;
+    }
+
+    const dt = k.dt();
     const currentCam = k.camPos();
     const camLeft = currentCam.x - screenW / 2;
-
-    const { weather, intensity } = calculateWeatherAtDistance(playerPos.x);
 
     // --- ATUALIZAÇÃO DA NEVASCA ---
     const isBlizzard = weather === "polar_blizzard" && intensity > 0;
