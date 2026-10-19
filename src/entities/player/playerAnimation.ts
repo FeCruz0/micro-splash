@@ -9,6 +9,8 @@
  * - Quadros 14..15: feed (abertura gular e filtração por barbas)
  */
 
+import { PLAYER_ANIMATION_CONFIG } from "../../config";
+
 export type WhaleAnimationState =
   "glide" | "idle_swim" | "stroke_up" | "stroke_down" | "swim" | "feed";
 
@@ -119,7 +121,9 @@ export function determineWhaleAnimationState(
   }
 
   if (isMuscularStroke) {
-    return strokeProgress <= 0.55 ? "stroke_down" : "stroke_up";
+    return strokeProgress <= PLAYER_ANIMATION_CONFIG.STROKE_DOWN_PHASE_THRESHOLD
+      ? "stroke_down"
+      : "stroke_up";
   }
 
   if (horizontalSpeed > 35) {

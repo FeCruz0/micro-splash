@@ -1,5 +1,5 @@
 import type { GameObj, KaboomCtx, Vec2 } from "kaboom";
-import { GAME_CONFIG, TAGS } from "../config";
+import { GAME_CONFIG, TAGS, PLAYER_ANIMATION_CONFIG } from "../config";
 import { getRandomFloat } from "../utils/random";
 import { audioSystem } from "../systems/audioSystem";
 import type { TouchControlsState } from "../ui/touchControls";
@@ -24,7 +24,12 @@ import {
 import { calculateWhalePuppetRig, type PuppetRigTransforms } from "./player/playerPuppetRig";
 import type { WhaleAnimationState } from "./player/playerAnimation";
 
+import { calculateOceanIdleDrift } from "./player/playerDrift";
+import { setupPlayerCaustics } from "./player/playerCaustics";
+import { PlayerTrapManager } from "./player/playerCollision";
+
 export type { PlayerController } from "./player/types";
+export { calculateOceanIdleDrift };
 
 let activePlayerObject: GameObj | null = null;
 
@@ -36,42 +41,6 @@ export function getActivePlayerObject(): GameObj | null {
   return activePlayerObject && (!activePlayerObject.exists || activePlayerObject.exists())
     ? activePlayerObject
     : null;
-}
-
-/**
- * Calcula a velocidade de deriva e oscilação hidrodinâmica em repouso (swell oceânico e correnteza).
- *
- * Reproduz o comportamento natural das criaturas marinhas do jogo (orcas e jubartes passantes),
- * aplicando um movimento orbital elíptico composto por:
- * 1. Surge horizontal (indo e voltando com a correnteza): ~±16px de oscilação em repouso.
- * 2. Heave vertical (subindo e descendo com o swell): ~±9.5px de flutuabilidade.
- *
- * @param timeInSeconds - Tempo de execução atual em segundos.
- * @param idleBlendFactor - Fator de blend de repouso (0.0 a 1.0).
- * @returns Vetor com componentes de velocidade `surgeVelocityX` e `heaveVelocityY` em px/s.
- */
-export function calculateOceanIdleDrift(
-  timeInSeconds: number,
-  idleBlendFactor: number
-): { surgeVelocityX: number; heaveVelocityY: number } {
-  if (idleBlendFactor <= 0) {
-    return { surgeVelocityX: 0, heaveVelocityY: 0 };
-  }
-
-  const swellFrequency = 0.85;
-  const rippleFrequency = 2.1;
-
-  const surgeVelocityX =
-    (Math.cos(timeInSeconds * swellFrequency) * 12.0 +
-      Math.cos(timeInSeconds * rippleFrequency) * 2.5) *
-    idleBlendFactor;
-
-  const heaveVelocityY =
-    (Math.sin(timeInSeconds * swellFrequency) * 5.5 +
-      Math.sin(timeInSeconds * rippleFrequency) * 1.2) *
-    idleBlendFactor;
-
-  return { surgeVelocityX, heaveVelocityY };
 }
 
 export function createPlayer(
@@ -101,11 +70,8 @@ export function createPlayer(
   let animState: WhaleAnimationState = "idle_swim";
   let feedTimer = 0;
 
-  let isTrapped = false;
-  let escapesNeeded = 0;
-  let isBreaching = false;
-  let isDrafting = false;
-  let isFrozen = false;
+  const trapMgr = new PlayerTrapManager(k, physicsMgr);
+  const causticsSystem = setupPlayerCaustics(k, initialX, 200);
 
   // Fase 17: Dinâmica de Roll em Perspectiva e Cáusticos Solares Submarinos
   let currentRoll = 0;
@@ -117,34 +83,12 @@ export function createPlayer(
   let currentPuppetRigTransforms: PuppetRigTransforms | null = null; // Cadeia esquelética multissegmentar (Fase 43)
   const pectoralFinsSystem = setupPectoralFins(k, baleia);
 
-  const whaleCaustics = k.add([
-    typeof k.rect === "function" ? k.rect(48, 10, { radius: 5 }) : {},
-    k.pos(initialX, 200),
-    k.rotate(0),
-    k.color(180, 240, 255),
-    typeof k.opacity === "function" ? k.opacity(0) : { opacity: 0 },
-    k.anchor("center"),
-    typeof k.z === "function" ? k.z(1) : { z: 1 },
-    ...(typeof k.scale === "function" ? [k.scale(1, 1)] : []),
-  ]);
-
-  const whaleVentralFlash = k.add([
-    typeof k.rect === "function" ? k.rect(44, 7, { radius: 3.5 }) : {},
-    k.pos(initialX, 200),
-    k.rotate(0),
-    k.color(240, 248, 255),
-    typeof k.opacity === "function" ? k.opacity(0) : { opacity: 0 },
-    k.anchor("center"),
-    typeof k.z === "function" ? k.z(1) : { z: 1 },
-    ...(typeof k.scale === "function" ? [k.scale(1, 1)] : []),
-  ]);
-
   if (typeof baleia.onDestroy === "function") {
     baleia.onDestroy(() => {
       pectoralFinsSystem.destroy();
       if (typeof k.destroy === "function") {
-        k.destroy(whaleCaustics);
-        k.destroy(whaleVentralFlash);
+        k.destroy(causticsSystem.whaleCaustics);
+        k.destroy(causticsSystem.whaleVentralFlash);
       }
     });
   }
@@ -158,11 +102,11 @@ export function createPlayer(
     const dt = k.dt();
 
     // Se o jogador estiver congelado (fim de jogo, modal ou vitória), bloqueia movimentos e controles
-    if (isFrozen) {
+    if (trapMgr.isFrozen()) {
       physicsMgr.setSpeed(k.vec2(0, 0));
       isStrokeInMotion = false;
-      if (whaleCaustics) whaleCaustics.opacity = 0;
-      if (whaleVentralFlash) whaleVentralFlash.opacity = 0;
+      if (causticsSystem.whaleCaustics) causticsSystem.whaleCaustics.opacity = 0;
+      if (causticsSystem.whaleVentralFlash) causticsSystem.whaleVentralFlash.opacity = 0;
       if (animState !== "glide") {
         animState = "glide";
         baleia.play("glide");
@@ -202,7 +146,7 @@ export function createPlayer(
     }
 
     // 2. Estado de Salto Majestoso (Breach)
-    if (isBreaching) {
+    if (trapMgr.isBreaching()) {
       controlsMgr.setFacingRight(true);
       controlsMgr.setTargetCamOffset(200);
       baleia.flipX = false;
@@ -210,23 +154,20 @@ export function createPlayer(
         const vel = physicsMgr.getSpeed();
         controlsMgr.setAngle(k.clamp(k.rad2deg(Math.atan2(vel.y, vel.x)), -45, 45));
       }
-    } else if (isTrapped) {
+    } else if (trapMgr.isTrapped()) {
       // 3. Presa em rede fantasma
       const isStrokePressedNow =
         k.isKeyPressed("space") || (touchState && touchState.strokePressed);
       if (isStrokePressedNow) {
-        escapesNeeded--;
         k.shake(2);
-        if (escapesNeeded <= 0) {
-          isTrapped = false;
-        }
+        trapMgr.tryEscape();
       }
       controlsMgr.setAngle(k.lerp(controlsMgr.getAngle(), 0, 0.05));
     } else {
       // 4. Livre e controlável
       const inAir = baleia.pos.y < GAME_CONFIG.SEA_LEVEL + 6;
       const inputs = controlsMgr.pollInputs(physicsMgr.getStrokeTimer());
-      controlsMgr.updateOrientation(dt, baleia, inputs, isTrapped, inAir);
+      controlsMgr.updateOrientation(dt, baleia, inputs, trapMgr.isTrapped(), inAir);
 
       // Iniciação de batida de cauda com cooldown estrito de 1 segundo (evita batidas rápidas consecutivas)
       const wantsStroke =
@@ -262,7 +203,7 @@ export function createPlayer(
           dt,
           controlsMgr.isFacingRight(),
           controlsMgr.getAngle(),
-          isDrafting,
+          trapMgr.isDrafting(),
           maxSpeed,
           currentBoost
         );
@@ -304,16 +245,24 @@ export function createPlayer(
         baleia.play("feed");
       }
     } else {
-      if (isStrokeInMotion && !isTrapped && !oxygenMgr.isFaintingState()) {
+      if (isStrokeInMotion && !trapMgr.isTrapped() && !oxygenMgr.isFaintingState()) {
         const strokePhase = physicsMgr.getStrokeTimer() / GAME_CONFIG.MAX_STROKE_TIME;
-        const targetAnim: WhaleAnimationState = strokePhase <= 0.55 ? "stroke_down" : "stroke_up";
+        const targetAnim: WhaleAnimationState =
+          strokePhase <= PLAYER_ANIMATION_CONFIG.STROKE_DOWN_PHASE_THRESHOLD
+            ? "stroke_down"
+            : "stroke_up";
         if (animState !== targetAnim) {
           animState = targetAnim;
           baleia.play(targetAnim);
         }
       } else {
         const inWater = baleia.pos.y >= GAME_CONFIG.SEA_LEVEL;
-        if (inWater && !isTrapped && !isFrozen && !oxygenMgr.isFaintingState()) {
+        if (
+          inWater &&
+          !trapMgr.isTrapped() &&
+          !trapMgr.isFrozen() &&
+          !oxygenMgr.isFaintingState()
+        ) {
           // Fase 40.4: Seleção dinâmica de frames por curvatura vertical / arfagem:
           // Se o jogador estiver fazendo subida ativa (pitchAngle < -14 ou spineCurvature < -5),
           // os frames 1-2 (stroke_up) representam as aletas caudais sustentando o planeio ascendente.
@@ -341,7 +290,10 @@ export function createPlayer(
 
     // 6. Deformação Orgânica (Squash & Stretch), Curvatura Espinhal (Cambering) e Roll em Perspectiva
     const isMuscularStroke =
-      isStrokeInMotion && !isTrapped && !isFrozen && !oxygenMgr.isFaintingState();
+      isStrokeInMotion &&
+      !trapMgr.isTrapped() &&
+      !trapMgr.isFrozen() &&
+      !oxygenMgr.isFaintingState();
 
     const currentSpeed = physicsMgr.getSpeed();
     const horizontalSpeed = Math.abs(currentSpeed.x);
@@ -419,7 +371,7 @@ export function createPlayer(
         const glideBreathing = Math.sin(k.time() * 3) * 0.015;
         targetScaleX = 1.0 + glideBreathing;
         targetScaleY = 1.0 - glideBreathing;
-      } else if (!isTrapped && !isFrozen && !oxygenMgr.isFaintingState()) {
+      } else if (!trapMgr.isTrapped() && !trapMgr.isFrozen() && !oxygenMgr.isFaintingState()) {
         // Animação de repouso (idle): respiração torácica/abdominal rítmica e profunda (~0.22 Hz, ~4.5s/ciclo)
         const idleBreath = Math.sin(k.time() * 1.4) * 0.016 * idleBlend;
         targetScaleX = 1.0 - idleBreath * 0.35;
@@ -441,14 +393,14 @@ export function createPlayer(
 
     // Ondulação da coluna vertebral sincronizada com o ciclo de nado ou com o swell oceânico
     let swimSway = 0;
-    if (!oxygenMgr.isFaintingState() && !isFrozen) {
+    if (!oxygenMgr.isFaintingState() && !trapMgr.isFrozen()) {
       if (isMuscularStroke) {
         const strokeProgress = physicsMgr.getStrokeTimer() / GAME_CONFIG.MAX_STROKE_TIME;
         swimSway = Math.sin(strokeProgress * Math.PI * 2) * 3.2;
       } else if (horizontalSpeed > 35) {
         // Balanço suave e majestoso em planeio hidrodinâmico
         swimSway = Math.sin(k.time() * 3.2) * Math.min(1.2, horizontalSpeed / 100);
-      } else if (!isTrapped && inWater) {
+      } else if (!trapMgr.isTrapped() && inWater) {
         // Balanço do mar quando horizontalmente estática — composto por swell oceânico longo (0.85 rad/s) e ripple de ondas (2.1 rad/s)
         const swell = Math.sin(k.time() * 0.85) * 2.4;
         const ripple = Math.sin(k.time() * 2.1) * 0.6;
@@ -471,7 +423,7 @@ export function createPlayer(
       rollTilt;
 
     // Fase 40.5: Emissão de micro-vórtices nas aletas peitorais durante guinadas bruscas
-    if (inWater && !isTrapped && !isFrozen && Math.abs(pitchVelocity) > 28) {
+    if (inWater && !trapMgr.isTrapped() && !trapMgr.isFrozen() && Math.abs(pitchVelocity) > 28) {
       pectoralVortexTimer -= dt;
       if (pectoralVortexTimer <= 0) {
         pectoralVortexTimer = 0.12; // taxa de 8Hz em rotações ativas
@@ -494,7 +446,7 @@ export function createPlayer(
       baleia,
       controlsMgr.isFacingRight(),
       controlsMgr.getAngle(),
-      isBreaching
+      trapMgr.isBreaching()
     );
     if (movementResult.inAir) {
       controlsMgr.setAngle(movementResult.newAngle);
@@ -506,21 +458,26 @@ export function createPlayer(
       baleia.pos,
       currentSpeed,
       controlsMgr.isFacingRight(),
-      isDrafting,
+      trapMgr.isDrafting(),
       isSereneMode
     );
 
     // 9. Esteira de drafting com golfinhos
-    if (isDrafting && getRandomFloat(0, 1) < 0.35) {
+    if (trapMgr.isDrafting() && getRandomFloat(0, 1) < 0.35) {
       spawnDraftingTrail(k, baleia.pos, controlsMgr.isFacingRight());
     }
 
     // 10. Deslocamento sutil dorsoventral (onda vertical de propulsão ou balanço do mar em repouso)
-    if (isMuscularStroke && !movementResult.inAir && !isTrapped) {
+    if (isMuscularStroke && !movementResult.inAir && !trapMgr.isTrapped()) {
       const strokeProgress = physicsMgr.getStrokeTimer() / GAME_CONFIG.MAX_STROKE_TIME;
       const dorsoventralHeave = Math.sin(strokeProgress * Math.PI * 2) * 0.7;
       baleia.pos.y += dorsoventralHeave;
-    } else if (!movementResult.inAir && !isTrapped && !isFrozen && idleBlend > 0.001) {
+    } else if (
+      !movementResult.inAir &&
+      !trapMgr.isTrapped() &&
+      !trapMgr.isFrozen() &&
+      idleBlend > 0.001
+    ) {
       // Balanço oceânico em repouso (surge horizontal e heave vertical) sincronizado com a correnteza marinha
       const { surgeVelocityX, heaveVelocityY } = calculateOceanIdleDrift(k.time(), idleBlend);
 
@@ -543,75 +500,19 @@ export function createPlayer(
     const g = k.lerp(80, 255, oxygenRatio);
     const b = k.lerp(120, 255, oxygenRatio);
 
-    baleia.color = isTrapped ? k.rgb(190, 90, 230) : k.rgb(r, g, b);
+    baleia.color = trapMgr.isTrapped() ? k.rgb(190, 90, 230) : k.rgb(r, g, b);
 
     // 11. Atualização dos Cáusticos Solares e Brilho Ventral em Perspectiva (Fases 17.2 e 17.3)
-    const inAirNow = baleia.pos.y < GAME_CONFIG.SEA_LEVEL;
-    const rad = k.deg2rad(baleia.angle);
-    const upNormal = k.vec2(Math.sin(rad), -Math.cos(rad));
-    const downNormal = k.vec2(-Math.sin(rad), Math.cos(rad));
-
-    // Cáusticos Solares no Dorso (Fase 17.3)
-    if (!inAirNow && !oxygenMgr.isFaintingState() && !isFrozen) {
-      const depthBelowSurface = baleia.pos.y - GAME_CONFIG.SEA_LEVEL;
-      if (depthBelowSurface < 100) {
-        const depthFactor = Math.max(0, 1 - depthBelowSurface / 100);
-        const tNow = typeof k.time === "function" ? k.time() : 0;
-        const shimmer =
-          (Math.sin(tNow * 4.5 + baleia.pos.x * 0.03) * 0.5 +
-            Math.cos(tNow * 3.2 + baleia.pos.x * 0.05) * 0.5 +
-            1) *
-          0.5;
-        whaleCaustics.opacity = depthFactor * (0.1 + shimmer * 0.25);
-        if (typeof k.rgb === "function") {
-          const sunGlint = Math.sin(tNow * 2.5) * 20;
-          whaleCaustics.color = k.rgb(180 + sunGlint, 240, 255);
-        }
-      } else {
-        whaleCaustics.opacity = 0;
-      }
-    } else {
-      whaleCaustics.opacity = 0;
-    }
-
-    // Brilho Ventral de Roll em Perspectiva (Fase 17.2)
-    if (!oxygenMgr.isFaintingState() && !isFrozen) {
-      const ventralExposure = Math.max(0, currentRoll);
-      whaleVentralFlash.opacity = ventralExposure * 0.42;
-    } else {
-      whaleVentralFlash.opacity = 0;
-    }
-
-    // Alinhamento geométrico com o tórax flexionado da baleia (Fase 41)
-    const thoraxSlice = currentSliceTransforms[1];
-    const thoraxOffset = thoraxSlice
-      ? k.vec2(thoraxSlice.localOffset.x * 0.15, thoraxSlice.localOffset.y)
-      : k.vec2(0, 0);
-    const thoraxAngle = thoraxSlice ? thoraxSlice.relativeAngleInDegrees * 0.35 : 0;
-
-    if (whaleCaustics && whaleCaustics.pos && typeof whaleCaustics.pos.add === "function") {
-      const causticsOffset = upNormal.scale(7).add(thoraxOffset);
-      whaleCaustics.pos = baleia.pos.add(causticsOffset);
-      whaleCaustics.angle = baleia.angle + thoraxAngle;
-      if (whaleCaustics.scale && baleia.scale) {
-        whaleCaustics.scale.x = baleia.scale.x;
-        whaleCaustics.scale.y = baleia.scale.y;
-      }
-    }
-
-    if (
-      whaleVentralFlash &&
-      whaleVentralFlash.pos &&
-      typeof whaleVentralFlash.pos.add === "function"
-    ) {
-      const ventralOffset = downNormal.scale(6 + Math.abs(pitchFlexion) * 2).add(thoraxOffset);
-      whaleVentralFlash.pos = baleia.pos.add(ventralOffset);
-      whaleVentralFlash.angle = baleia.angle + thoraxAngle;
-      if (whaleVentralFlash.scale && baleia.scale) {
-        whaleVentralFlash.scale.x = baleia.scale.x;
-        whaleVentralFlash.scale.y = baleia.scale.y;
-      }
-    }
+    causticsSystem.update({
+      dt,
+      baleia,
+      isFacingRight: controlsMgr.isFacingRight(),
+      currentRoll,
+      pitchFlexion,
+      isFainting: oxygenMgr.isFaintingState(),
+      isFrozen: trapMgr.isFrozen(),
+      slices: currentSliceTransforms,
+    });
 
     // 12. Câmera fluida
     k.camPos(
@@ -636,7 +537,7 @@ export function createPlayer(
     consumeKrill: () => {
       oxygenMgr.consumeKrill();
       physicsMgr.setSpeed(physicsMgr.getSpeed().scale(GAME_CONFIG.KRILL_BOOST));
-      feedTimer = 0.55;
+      feedTimer = PLAYER_ANIMATION_CONFIG.FEED_TIMER_DURATION;
       animState = "feed";
       baleia.play("feed");
       spawnBaleenSuction(k, baleia.pos, controlsMgr.isFacingRight());
@@ -647,29 +548,23 @@ export function createPlayer(
     },
 
     trapInNet: (count: number) => {
-      isTrapped = true;
-      escapesNeeded = Math.max(escapesNeeded, count);
-      physicsMgr.setSpeed(physicsMgr.getSpeed().scale(0.3));
+      trapMgr.trapInNet(count);
     },
 
     addTrapCount: (count: number) => {
-      isTrapped = true;
-      escapesNeeded += count;
-      physicsMgr.setSpeed(physicsMgr.getSpeed().scale(0.5));
+      trapMgr.addTrapCount(count);
     },
 
-    isTrapped: () => isTrapped,
+    isTrapped: () => trapMgr.isTrapped(),
 
     startBreach: () => {
-      isBreaching = true;
-      isTrapped = false;
+      trapMgr.startBreach();
     },
 
-    isBreaching: () => isBreaching,
+    isBreaching: () => trapMgr.isBreaching(),
 
     completeBreach: () => {
-      isBreaching = false;
-      physicsMgr.setSpeed(k.vec2(120, 0));
+      trapMgr.completeBreach();
     },
 
     setOilObstructed: (obstructed: boolean) => {
@@ -678,9 +573,9 @@ export function createPlayer(
     isOilObstructed: () => oxygenMgr.isObstructed(),
 
     setDrafting: (drafting: boolean) => {
-      isDrafting = drafting;
+      trapMgr.setDrafting(drafting);
     },
-    isDrafting: () => isDrafting,
+    isDrafting: () => trapMgr.isDrafting(),
 
     // Auxílios e Efeitos Ambientais
     applySpeedBoost: (duration: number, multiplier: number = 1.5) => {
@@ -695,22 +590,21 @@ export function createPlayer(
 
     // Estado de congelamento (telas de fim de jogo, vitória e pausa)
     freeze: () => {
-      isFrozen = true;
-      physicsMgr.setSpeed(k.vec2(0, 0));
+      trapMgr.freeze();
       if (animState !== "glide") {
         animState = "glide";
         baleia.play("glide");
       }
     },
     unfreeze: () => {
-      isFrozen = false;
+      trapMgr.unfreeze();
     },
-    isFrozen: () => isFrozen,
+    isFrozen: () => trapMgr.isFrozen(),
 
     // Fase 17: Getters para validação e testes
     getRollAngle: () => currentRoll,
-    getCausticOpacity: () => whaleCaustics.opacity,
-    getVentralOpacity: () => whaleVentralFlash.opacity,
+    getCausticOpacity: () => causticsSystem.getCausticOpacity(),
+    getVentralOpacity: () => causticsSystem.getVentralOpacity(),
     getStrokeCooldown: () => strokeCooldownTimer,
 
     // Fase 18: Dinâmica Hidrodinâmica de Correntezas

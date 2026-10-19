@@ -278,3 +278,21 @@ export const TEXT_SIZE_H1 = 24; // Títulos de tela e modais principais
 export const TEXT_SIZE_H2 = 18; // Subtítulos de seções e categorias
 export const TEXT_SIZE_BODY = 14; // Texto corrido, leituras e opções
 export const TEXT_SIZE_CAPTION = 11; // Badges, dicas de teclado e rodapés
+
+// --- Constantes Segmentadas por Domínio (Fase 48.5) ---
+export const PLAYER_ANIMATION_CONFIG = {
+  STROKE_DOWN_PHASE_THRESHOLD: 0.55,
+  FEED_TIMER_DURATION: 0.55,
+} as const;
+
+export const ACCESSIBILITY_VISUAL_CONFIG = {
+  HIGH_CONTRAST_OPACITY: 0.55,
+  STANDARD_TRASH_OPACITY: 0.25,
+  ENHANCED_TRASH_OPACITY: 0.32,
+} as const;
+
+export const ENVIRONMENT_CONFIG = {
+  BUBBLE_VENT_MAX_LIFE: 0.55,
+  ICE_SURFACE_OPACITY: 0.55,
+  CRAG_WIDTH_FACTOR: 0.55,
+} as const;

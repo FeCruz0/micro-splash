@@ -7,9 +7,20 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
-## [1.14.0] - 2026-10-19 — Robustez de Tipagem, Utilitários & Code-Splitting (Fases 45 e 46)
+## [1.14.0] - 2026-10-19 — Decomposição Arquitetural, Módulos & Modernização ESM (Fases 45 a 48)
 
 ### Adicionado & Modificado
+
+- **Decomposição Arquitetural & Organização de Módulos (Fase 48)**:
+  - `src/ui/codexScreen.ts` e `src/ui/optionsScreen.ts`: Decomposição modular reduzindo o tamanho de telas monolíticas para menos de 300 linhas, extraindo navegação e cabeçalhos para submódulos (`src/ui/codex/codexNavigation.ts`, `src/ui/options/optionsNavigation.ts`).
+  - `src/entities/player.ts`: Modularização da física de drift oceânico (`playerDrift.ts`), iluminação e cáusticos ventrais (`playerCaustics.ts`) e gerenciamento de armadilhas/redes e colisão (`playerCollision.ts`).
+  - `src/scenes/assetLoader.ts`: Criação de carregador centralizado de recursos eliminando registros inline de atlas e animações em `src/main.ts`.
+  - `src/systems/audio/index.ts` e `src/systems/audioSystem.ts`: Padronização de responsabilidades unificando o subsistema de áudio como fachada canônica.
+  - `src/types/leaderboard.ts`: Segregação de tipos e contratos de placar, desacoplando o sistema local do serviço de API remota (`leaderboardApi.ts`).
+  - `src/ui/`: Reorganização estrutural em subdiretórios semânticos com index barrels (`screens/`, `modals/`, `hud/`, `shared/` e `src/ui/index.ts`).
+  - `src/config.ts`: Segmentação de domínio com constantes nomeadas para física do jogador, opacidades de acessibilidade e ambiente.
+  - `scripts/shared/pngWriter.mjs`: Utilitário compartilhado de geração de PNG nativo via ESM, migrando scripts de atlas, ícones PWA e service worker para `.mjs`.
+  - `tests/phase48_architecture_decomposition.test.ts`: Suíte com 13 testes automatizados validando contratos estruturais, integridade de barrels e scripts ESM.
 
 - **PWA Versionado, Precache Completo & Tela Offline (Fase 47)**:
   - `vite.config.ts`: Adicionado plugin `pwaVersionPlugin` para injeção automática da versão do `package.json` em `dist/sw.js`.

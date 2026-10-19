@@ -26,3 +26,5 @@ export {
   registerRescueScene,
   registerGameOverScene,
 };
+
+export { loadGameFonts, loadGameSprites, loadAllGameAssets } from "./assetLoader";

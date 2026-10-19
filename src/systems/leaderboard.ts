@@ -1,33 +1,14 @@
-import type { GameMode } from "./state";
 import { submitOnlineScore } from "../services/leaderboardApi";
 import { addWeeklyLeaderboardEntry } from "./weeklyChallenge";
 import { readLocalStorageWithSchema, writeLocalStorage } from "../utils/storage";
 import { LeaderboardEntriesArraySchema } from "../schemas/storageSchemas";
 import { reportWarning } from "../utils/errorReporter";
+import { type LeaderboardEntry, DEFAULT_LEADERBOARD } from "../types/leaderboard";
 
-export interface LeaderboardEntry {
-  initials: string;
-  score: number;
-  distance: number;
-  mode: GameMode;
-  date: string;
-  weekKey?: string;
-}
+export type { LeaderboardEntry };
+export { DEFAULT_LEADERBOARD };
 
 const STORAGE_KEY = "micro_splash_top10";
-
-export const DEFAULT_LEADERBOARD: LeaderboardEntry[] = [
-  { initials: "IBJ", score: 4500, distance: 30000, mode: "standard", date: "18/09" },
-  { initials: "JUB", score: 4100, distance: 30000, mode: "standard", date: "18/09" },
-  { initials: "BIO", score: 3700, distance: 30000, mode: "standard", date: "18/09" },
-  { initials: "ECO", score: 3300, distance: 25000, mode: "standard", date: "18/09" },
-  { initials: "MAR", score: 2900, distance: 22000, mode: "standard", date: "18/09" },
-  { initials: "OCE", score: 2500, distance: 19000, mode: "standard", date: "18/09" },
-  { initials: "ARX", score: 2100, distance: 16000, mode: "standard", date: "18/09" },
-  { initials: "POL", score: 1800, distance: 13000, mode: "standard", date: "18/09" },
-  { initials: "COR", score: 1500, distance: 10000, mode: "standard", date: "18/09" },
-  { initials: "KRL", score: 1200, distance: 7000, mode: "standard", date: "18/09" },
-];
 
 export function getTop10Entries(): LeaderboardEntry[] {
   const entries = readLocalStorageWithSchema(

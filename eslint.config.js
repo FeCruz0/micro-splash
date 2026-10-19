@@ -42,7 +42,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ["scripts/**/*.cjs"],
+    files: ["scripts/**/*.{cjs,mjs}"],
     languageOptions: {
       globals: {
         require: "readonly",

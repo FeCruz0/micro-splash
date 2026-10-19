@@ -700,17 +700,17 @@ _Objetivo: Tornar o Service Worker determinístico por versão e resiliente em t
 
 _Objetivo: Concluir a Fase 37.7 e padronizar a estrutura de diretórios._
 
-- [ ] **48.1 Decomposição de Arquivos Extensos:**
+- [x] **48.1 Decomposição de Arquivos Extensos:**
   - `codexScreen.ts` (abas), `optionsScreen.ts` (seções), `audioSFX.ts` (famílias de SFX), `canyonSystem.ts`, `player.ts` em submódulos.
-- [ ] **48.2 Extração de Cenas para `src/scenes/`:**
+- [x] **48.2 Extração de Cenas para `src/scenes/`:**
   - Remover cenas e definições de clipes de animação de `main.ts`.
-- [ ] **48.3 Padronização de Responsabilidades:**
+- [x] **48.3 Padronização de Responsabilidades:**
   - Resolver duplicidade `systems/audioSystem.ts` × `systems/audio/` e `systems/leaderboard.ts` × `services/leaderboardApi.ts`.
-- [ ] **48.4 Reorganização de `src/ui/`:**
+- [x] **48.4 Reorganização de `src/ui/`:**
   - Subpastas `screens/`, `modals/`, `hud/` e `shared/`.
-- [ ] **48.5 Constantes Nomeadas:**
+- [x] **48.5 Constantes Nomeadas:**
   - Extrair números mágicos (ex.: `0.55` do `strokePhase`) para `config.ts` segmentado por domínio.
-- [ ] **48.6 Scripts Geradores em ESM/TypeScript (`scripts/`):**
+- [x] **48.6 Scripts Geradores em ESM/TypeScript (`scripts/`):**
   - Migrar `generate*.cjs` para `.mjs`/`.ts` com utilitários compartilhados (escritor PNG, paleta).
 
 ### ✅ FASE 49: Qualidade, Testes & Pipeline de CI

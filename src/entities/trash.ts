@@ -1,5 +1,5 @@
 import type { GameObj, KaboomCtx, Vec2 } from "kaboom";
-import { GAME_CONFIG, TAGS } from "../config";
+import { GAME_CONFIG, TAGS, ACCESSIBILITY_VISUAL_CONFIG } from "../config";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
 import { getRandomFloat, getRandomInteger } from "../utils/random";
 
@@ -62,7 +62,9 @@ export function getBiomeTrashPalette(posX: number, isHighContrast = false): Biom
 export function createTrash(k: KaboomCtx, position: Vec2) {
   let revealTimer = 0;
   const isHighContrast = accessibilitySystem.isHighContrast();
-  const baseOpacity = isHighContrast ? 0.55 : 0.25;
+  const baseOpacity = isHighContrast
+    ? ACCESSIBILITY_VISUAL_CONFIG.HIGH_CONTRAST_OPACITY
+    : ACCESSIBILITY_VISUAL_CONFIG.STANDARD_TRASH_OPACITY;
   const palette = getBiomeTrashPalette(position.x, isHighContrast);
 
   // 3 tipos procedurais de lixo plástico intercalados
@@ -117,7 +119,11 @@ export function createTrash(k: KaboomCtx, position: Vec2) {
       ),
       k.area({ shape: new k.Rect(k.vec2(-10, -10), 20, 19) }),
       k.anchor("center"),
-      k.opacity(isHighContrast ? 0.55 : 0.32),
+      k.opacity(
+        isHighContrast
+          ? ACCESSIBILITY_VISUAL_CONFIG.HIGH_CONTRAST_OPACITY
+          : ACCESSIBILITY_VISUAL_CONFIG.ENHANCED_TRASH_OPACITY
+      ),
       TAGS.TRASH,
       {
         reveal() {

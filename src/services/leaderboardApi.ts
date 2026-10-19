@@ -1,6 +1,12 @@
-import type { LeaderboardEntry } from "../systems/leaderboard";
+import type {
+  LeaderboardEntry,
+  FetchLeaderboardResult,
+  SubmitScoreResult,
+} from "../types/leaderboard";
 import { readLocalStorageWithSchema, writeLocalStorage } from "../utils/storage";
 import { LeaderboardEntriesArraySchema } from "../schemas/storageSchemas";
+
+export type { FetchLeaderboardResult, SubmitScoreResult };
 
 const DEFAULT_API_URL = "https://micro-splash-leaderboard.felipe.workers.dev";
 const REQUEST_TIMEOUT_MS = 3500;
@@ -20,19 +26,6 @@ export function getLeaderboardApiUrl(): string {
     }
   } catch {}
   return DEFAULT_API_URL;
-}
-
-export interface FetchLeaderboardResult {
-  success: boolean;
-  data: LeaderboardEntry[];
-  isOffline: boolean;
-  error?: string;
-}
-
-export interface SubmitScoreResult {
-  success: boolean;
-  isOffline: boolean;
-  error?: string;
 }
 
 function getCacheKey(type: "global" | "weekly", weekKey?: string): string {

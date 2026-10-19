@@ -1,0 +1,235 @@
+/**
+ * Fachada Central e Agregador Modular do Sistema de Áudio - Micro Splash
+ *
+ * Consolida e orquestra os submódulos de áudio:
+ * - AudioEngine: Inicialização, ciclo de vida, volume, mudo, ambiência oceânica e acústica subaquática
+ * - AudioSFX: Efeitos sonoros procedurais com panning estéreo 2D
+ * - AudioWhale: Síntese bioacústica avançada dos cantos ancestrais da baleia-jubarte
+ * - BiomeMusicEngine: Trilha musical dinâmica 16-Bit estilo David Wise
+ */
+
+import { AudioEngine, type SoundtrackMode } from "./audioEngine";
+import { AudioSFX } from "./audioSFX";
+import { AudioWhale } from "./audioWhale";
+
+export type { SoundtrackMode };
+export { SOUNDTRACK_MODE_LABELS } from "./audioEngine";
+export { BIOME_INDEX } from "./audioMusic";
+export { AudioEngine } from "./audioEngine";
+export { AudioSFX } from "./audioSFX";
+export { AudioWhale } from "./audioWhale";
+
+export class AudioSystem {
+  public readonly engine: AudioEngine;
+  public readonly sfx: AudioSFX;
+  public readonly whale: AudioWhale;
+
+  constructor() {
+    this.engine = new AudioEngine();
+    this.sfx = new AudioSFX(this.engine);
+    this.whale = new AudioWhale(this.engine);
+  }
+
+  // =========================================================================
+  // CICLO DE VIDA E CONFIGURAÇÕES
+  // =========================================================================
+  public init() {
+    this.engine.init();
+  }
+
+  public startMigrationAudio(initialX: number = 0) {
+    this.engine.startMigrationAudio(initialX, () => {
+      this.whale.playWhaleSong(0.5, 0.95);
+    });
+  }
+
+  public stopMigrationAudio() {
+    this.engine.stopMigrationAudio();
+  }
+
+  public getSoundtrackMode(): SoundtrackMode {
+    return this.engine.getSoundtrackMode();
+  }
+
+  public setSoundtrackMode(mode: SoundtrackMode) {
+    this.engine.setSoundtrackMode(mode, () => {
+      this.whale.playWhaleSong(0.5, 0.95);
+    });
+  }
+
+  public cycleNextSoundtrackMode(): SoundtrackMode {
+    return this.engine.cycleNextSoundtrackMode(() => {
+      this.whale.playWhaleSong(0.5, 0.95);
+    });
+  }
+
+  public getSoundtrackModeLabel(): string {
+    return this.engine.getSoundtrackModeLabel();
+  }
+
+  public updateSoundtrackPlayback() {
+    this.engine.updateSoundtrackPlayback(() => {
+      this.whale.playWhaleSong(0.5, 0.95);
+    });
+  }
+
+  public setVolume(val: number) {
+    this.engine.setVolume(val);
+  }
+
+  public getVolume(): number {
+    return this.engine.getVolume();
+  }
+
+  public setMusicEnabled(enabled: boolean) {
+    this.engine.setMusicEnabled(enabled);
+  }
+
+  public isMusicEnabled(): boolean {
+    return this.engine.isMusicEnabled();
+  }
+
+  public setSfxEnabled(enabled: boolean) {
+    this.engine.setSfxEnabled(enabled);
+  }
+
+  public isSfxEnabled(): boolean {
+    return this.engine.isSfxEnabled();
+  }
+
+  public resumeIfSuspended() {
+    this.engine.resumeIfSuspended();
+  }
+
+  public toggleMute(): boolean {
+    return this.engine.toggleMute();
+  }
+
+  public getMuted(): boolean {
+    return this.engine.getMuted();
+  }
+
+  public updateBiomeTrack(playerX: number) {
+    this.engine.updateBiomeTrack(playerX);
+  }
+
+  public updateDepthAcoustics(playerY: number) {
+    this.engine.updateDepthAcoustics(playerY);
+  }
+
+  public pauseAmbient() {
+    this.engine.pauseAmbient();
+  }
+
+  public resumeAmbient() {
+    this.engine.resumeAmbient();
+  }
+
+  public cleanup() {
+    this.engine.cleanup();
+  }
+
+  public calcStereoPan(sourceX?: number, playerX?: number, halfWidth?: number): number {
+    return this.sfx.calcStereoPan(sourceX, playerX, halfWidth);
+  }
+
+  // =========================================================================
+  // CANTOS DE BALEIA
+  // =========================================================================
+  public playWhaleSong(volumeScale: number = 1.0, pitchShift: number = 1.0) {
+    this.whale.playWhaleSong(volumeScale, pitchShift);
+  }
+
+  public playAbyssalWhaleCall() {
+    this.whale.playAbyssalWhaleCall();
+  }
+
+  // =========================================================================
+  // EFEITOS SONOROS (SFX)
+  // =========================================================================
+  public playUiClick() {
+    this.sfx.playUiClick();
+  }
+
+  public playSonarSound() {
+    this.sfx.playSonarSound();
+  }
+
+  public playSonarEcho(delayMs: number = 60) {
+    this.sfx.playSonarEcho(delayMs);
+  }
+
+  public playBlowholeSpout() {
+    this.sfx.playBlowholeSpout();
+  }
+
+  public playStrokeThrust() {
+    this.sfx.playStrokeThrust();
+  }
+
+  public playKrillGulp(sourceX?: number, playerX?: number) {
+    this.sfx.playKrillGulp(sourceX, playerX);
+  }
+
+  public playKrillChime(sourceX?: number, playerX?: number) {
+    this.sfx.playKrillChime(sourceX, playerX);
+  }
+
+  public playTrashThud(sourceX?: number, playerX?: number) {
+    this.sfx.playTrashThud(sourceX, playerX);
+  }
+
+  public playNetTangle(sourceX?: number, playerX?: number) {
+    this.sfx.playNetTangle(sourceX, playerX);
+  }
+
+  public playBreachLaunch() {
+    this.sfx.playBreachLaunch();
+  }
+
+  public playWaterSplash(sourceX?: number, playerX?: number) {
+    this.sfx.playWaterSplash(sourceX, playerX);
+  }
+
+  public playIceCrackSound(sourceX?: number, playerX?: number) {
+    this.sfx.playIceCrackSound(sourceX, playerX);
+  }
+
+  public playVictoryFanfare() {
+    this.sfx.playVictoryFanfare();
+  }
+
+  public playOilChoke(sourceX?: number, playerX?: number) {
+    this.sfx.playOilChoke(sourceX, playerX);
+  }
+
+  public playPurifyWhoosh(sourceX?: number, playerX?: number) {
+    this.sfx.playPurifyWhoosh(sourceX, playerX);
+  }
+
+  public playDolphinClicks(sourceX?: number, playerX?: number) {
+    this.sfx.playDolphinClicks(sourceX, playerX);
+  }
+
+  public playPenguinChirp(sourceX?: number, playerX?: number) {
+    this.sfx.playPenguinChirp(sourceX, playerX);
+  }
+
+  public playShipHorn(sourceX?: number, playerX?: number) {
+    this.sfx.playShipHorn(sourceX, playerX);
+  }
+
+  public playPowerupCollect(sourceX?: number, playerX?: number) {
+    this.sfx.playPowerupCollect(sourceX, playerX);
+  }
+
+  public playShieldPop(sourceX?: number, playerX?: number) {
+    this.sfx.playShieldPop(sourceX, playerX);
+  }
+
+  public playSpeedBoost() {
+    this.sfx.playSpeedBoost();
+  }
+}
+
+export const audioSystem = new AudioSystem();

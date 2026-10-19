@@ -5,7 +5,7 @@ import { errorReporter } from "./services/errorReporter";
 import { initPwaManager } from "./utils/pwaManager";
 import { reportInformation, reportWarning } from "./utils/errorReporter";
 import { setupLetterboxBorders } from "./systems/letterboxSystem";
-import { registerAllScenes } from "./scenes";
+import { registerAllScenes, loadAllGameAssets } from "./scenes";
 
 // Inicializa observabilidade e proteção contra exceções em totens (Fase 27)
 errorReporter.setupGlobalHandlers();
@@ -28,53 +28,14 @@ const k = kaboom({
 // Barras Protetoras de Letterbox (Fase 33.4)
 setupLetterboxBorders(k);
 
-k.loadFont("Inter", "/fonts/Inter-SemiBold.ttf", { size: 64, filter: "linear" });
-k.loadFont("Outfit", "/fonts/Outfit-Bold.ttf", { size: 64, filter: "linear" });
-k.loadFont("Orbitron", "/fonts/Orbitron-Bold.ttf", { size: 64, filter: "linear" });
+// Carrega tipografia vetorial e sprites modulares (Fase 48.2)
+loadAllGameAssets(k);
 
 accessibilitySystem.init();
 
 // Suporte global para alternar Tela Cheia com F11
 k.onKeyPress("f11", () => {
   k.setFullscreen(!k.isFullscreen());
-});
-
-k.loadSprite("baleia", "/sprites/whale.png", {
-  sliceX: 16,
-  sliceY: 1,
-  anims: {
-    glide: 0,
-    idle_swim: { from: 1, to: 4, loop: true, speed: 4 },
-    stroke_down: { from: 5, to: 9, speed: 14 },
-    stroke_up: { from: 10, to: 13, speed: 12 },
-    swim: { from: 5, to: 13, loop: true, speed: 10 },
-    feed: { from: 14, to: 15, loop: true, speed: 6 },
-  },
-});
-
-// Fauna de Fundo e Cenário (Fase 11 / Polimento Visual)
-k.loadSprite("orca_bg", "/sprites/orca_bg.png", {
-  sliceX: 4,
-  sliceY: 1,
-  anims: {
-    swim: { from: 0, to: 3, loop: true, speed: 5 },
-  },
-});
-
-k.loadSprite("jubarte_bg", "/sprites/humpback_bg.png", {
-  sliceX: 4,
-  sliceY: 1,
-  anims: {
-    swim: { from: 0, to: 3, loop: true, speed: 3.2 },
-  },
-});
-
-k.loadSprite("cachalote_bg", "/sprites/cachalote_bg.png", {
-  sliceX: 4,
-  sliceY: 1,
-  anims: {
-    swim: { from: 0, to: 3, loop: true, speed: 2.4 },
-  },
 });
 
 // Registra todas as cenas modulares do jogo (Fase 37.7)
