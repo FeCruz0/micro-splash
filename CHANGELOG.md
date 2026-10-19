@@ -7,9 +7,18 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
-## [1.14.0] - 2026-10-19 — Decomposição Arquitetural, Módulos & Modernização ESM (Fases 45 a 48)
+## [1.14.0] - 2026-10-19 — Decomposição Arquitetural, Qualidade & Pipeline de CI (Fases 45 a 49)
 
 ### Adicionado & Modificado
+
+- **Qualidade, Testes & Pipeline de CI (Fase 49)**:
+  - `tests/`: Reorganização completa das 62 suítes de testes em subdiretórios semânticos por domínio (`player/`, `audio/`, `ui/`, `systems/`, `core/`), preservando o nome das fases nos blocos `describe` e mantendo a raiz limpa com apenas `setup.ts`.
+  - `vitest.config.ts`: Definição de thresholds mínimos de cobertura de código (`lines: 45`, `functions: 45`, `branches: 38`, `statements: 45`) para blindar contra regressões.
+  - `.github/workflows/ci.yml`: Pipeline de CI fortalecido com verificação estrita de tipagem TypeScript (`npx tsc --noEmit`) e auditoria de vulnerabilidades (`npm audit --audit-level=high`).
+  - `tests/systems/proceduralSnapshots.test.ts`: Suíte de snapshots determinísticos com PRNG baseado em semente fixa (`createDeterministicRandomGenerator`), validando invariância numérica e estrutural de relevo e obstáculos.
+  - `.github/dependabot.yml`: Configuração automatizada para monitoramento semanal de dependências do ecossistema `npm` e `github-actions`.
+  - `package.json`: Criação do comando agregador `"check"`, executando em passo único `format:check`, `lint`, `validate:data`, `tsc --noEmit`, `test` e `build`.
+  - `tests/core/phase49_quality_ci.test.ts`: Suíte de 8 testes automatizados validando a arquitetura de testes, thresholds, integridade do CI e Dependabot.
 
 - **Decomposição Arquitetural & Organização de Módulos (Fase 48)**:
   - `src/ui/codexScreen.ts` e `src/ui/optionsScreen.ts`: Decomposição modular reduzindo o tamanho de telas monolíticas para menos de 300 linhas, extraindo navegação e cabeçalhos para submódulos (`src/ui/codex/codexNavigation.ts`, `src/ui/options/optionsNavigation.ts`).

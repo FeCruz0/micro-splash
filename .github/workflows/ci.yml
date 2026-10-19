@@ -37,6 +37,12 @@ jobs:
       - name: Validar Schemas de Dados Educacionais (Zod)
         run: npm run validate:data
 
+      - name: Validar Tipagem (TypeScript)
+        run: npx tsc --noEmit
+
+      - name: Auditoria de Segurança de Dependências
+        run: npm audit --audit-level=high
+
       - name: Executar Testes com Cobertura (Vitest)
         run: npm run coverage
 

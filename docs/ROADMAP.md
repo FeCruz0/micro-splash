@@ -717,17 +717,17 @@ _Objetivo: Concluir a Fase 37.7 e padronizar a estrutura de diretórios._
 
 _Objetivo: Blindar regressões com cobertura mínima, testes por domínio e verificação única._
 
-- [ ] **49.1 Reorganização de Testes por Domínio (`tests/`):**
+- [x] **49.1 Reorganização de Testes por Domínio (`tests/`):**
   - Agrupar em `player/`, `systems/`, `ui/`, `audio/` mantendo nomes de fase em `describe`.
-- [ ] **49.2 Limiar de Cobertura (`vitest.config.ts`):**
+- [x] **49.2 Limiar de Cobertura (`vitest.config.ts`):**
   - Definir thresholds mínimos de linhas/funções/branches aplicados no CI.
-- [ ] **49.3 Workflow de CI Completo (`.github/workflows/`):**
+- [x] **49.3 Workflow de CI Completo (`.github/workflows/`):**
   - Executar `lint`, `tsc`, `test`, `build` e `format:check` em cada PR.
-- [ ] **49.4 Snapshots Visuais Determinísticos:**
+- [x] **49.4 Snapshots Visuais Determinísticos:**
   - Usar RNG com semente para snapshots reprodutíveis de cenas-chave.
-- [ ] **49.5 Auditoria de Dependências:**
+- [x] **49.5 Auditoria de Dependências:**
   - `npm audit` no CI e atualização automatizada (Dependabot/Renovate).
-- [ ] **49.6 Script Agregador `npm run check`:**
+- [x] **49.6 Script Agregador `npm run check`:**
   - Unificar verificações locais em um único comando.
 
 ### ♿ FASE 50: Acessibilidade & Internacionalização Avançadas
