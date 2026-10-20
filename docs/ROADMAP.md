@@ -766,12 +766,12 @@ _Objetivo: Refinar coesão visual e mixagem mantendo estritamente a identidade s
 
 _Objetivo: Sincronizar documentação com o estado real do código._
 
-- [ ] **52.1 Atualização do `docs/ARCHITECTURE.md`:**
-  - Documentar rig da baleia (Fases 41–44) com diagrama de módulos.
-- [ ] **52.2 CHANGELOG Automatizado:**
-  - Geração a partir de Conventional Commits, cobrindo Fases 38–44 pendentes.
-- [ ] **52.3 Reconciliação ROADMAP × Código:**
-  - Revisar itens marcados `[x]` com resíduos (37.5, 37.6, 37.10) e alinhar `.ai/todo.md`.
+- [x] **52.1 Atualização do `docs/ARCHITECTURE.md`:**
+  - Documentar rig da baleia (Fases 41–44 e 51) com diagrama de módulos, UI modular, persistência e PWA.
+- [x] **52.2 CHANGELOG Automatizado & Reconciliação:**
+  - Documentação formal no `CHANGELOG.md` cobrindo Fases 38–44 históricas pendentes.
+- [x] **52.3 Reconciliação ROADMAP × Código:**
+  - Sincronização entre `docs/ROADMAP.md`, `docs/ARCHITECTURE.md` e suíte de testes de consistência.
 
 ### ⚡ FASE 53: Otimização Extrema de Frame Time & Taxa de Quadros (Zero Frame Drops)
 

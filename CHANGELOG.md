@@ -105,6 +105,96 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [1.13.7] - 2026-10-17 — Spritesheet de Alta Fluidez & Animação Harmônica (Fase 44)
+
+### Adicionado & Modificado
+
+- **Expansão do Spritesheet da Baleia para 16 Quadros (Fase 44.1)**:
+  - `public/sprites/whale.png`: Ampliação do spritesheet anatômico da jubarte de 8 para 16 quadros de alta resolução, incorporando poses detalhadas de subida e descida caudal, distensão gular e arqueamento dorsal.
+- **Interpolador Harmônico de Estados de Nado (Fase 44.2)**:
+  - `src/entities/player/playerAnimation.ts`: Implementação de interpolador que calcula transições harmônicas contínuas entre quadros baseando-se no vetor de velocidade e cadência física.
+- **Suíte de Testes da Fase 44 (Fase 44.3)**:
+  - `tests/player/phase44_high_frame_sprites.test.ts`: Validação de integridade das dimensões, ordenação dos framesets e interpolação harmônica.
+
+---
+
+## [1.13.6] - 2026-10-16 — Articulação Multissegmentar de Cauda & Flukes Puppet Rig (Fase 43)
+
+### Adicionado & Modificado
+
+- **Decomposição Hierárquica em Nós Cinemáticos (Fase 43.1)**:
+  - `src/entities/player/playerPuppetRig.ts`: Estruturação do esqueleto da baleia em 4 juntas cinemáticas (`cranialThorax` ➔ `abdominalSpine` ➔ `caudalPeduncle` ➔ `flukeBlade`), dividindo o corpo entre líder cinemático e seguidor inercial amortecido.
+- **Ângulo de Ataque Dinâmico dos Flukes (Fase 43.2)**:
+  - Cálculo trigonométrico do ângulo ótimo de ataque da lâmina caudal contra o fluxo de fluido para gerar sustentação e empuxo realistas.
+- **Suíte de Testes da Fase 43 (Fase 43.3)**:
+  - `tests/player/phase43_puppet_rig.test.ts`: Cobertura completa de estabilidade cinemática, ausência de jitter e cálculo de forças.
+
+---
+
+## [1.13.5] - 2026-10-15 — Nadadeiras Peitorais Independentes & Hidrodinâmica de Diedro (Fase 42)
+
+### Adicionado & Modificado
+
+- **Camadas Peitorais Independentes com Diedro e Projeção 2.5D (Fase 42.1)**:
+  - `src/entities/player/playerPectoralFin.ts`: Criação de nadadeiras peitorais brancas independentes com diedro adaptativo, oscilação por batimento e ordenação por camadas de profundidade.
+- **Enflechamento Hidrodinâmico e Vórtices Peitorais (Fase 42.2)**:
+  - Variação do ângulo de enflechamento em altas velocidades e emissão de vórtices hidrodinâmicos nas pontas das nadadeiras.
+- **Suíte de Testes da Fase 42 (Fase 42.3)**:
+  - `tests/player/phase42_pectoral_fin.test.ts`: Testes de diedro, projeção em perspectiva e emissão de vórtices.
+
+---
+
+## [1.13.4] - 2026-10-14 — Deformação Sagital por Fatiamento Segmentado (Fase 41)
+
+### Adicionado & Modificado
+
+- **Fatiamento Vertical Ribbon e Onda Viajante (Fase 41.1 & 41.2)**:
+  - `src/entities/player/playerSliceRenderer.ts`: Renderizador que divide o corpo em tiras sagitais verticais acopladas a uma onda senoidal viajante, produzindo ondulação corporal orgânica.
+  - Suporte a atenuação de 75% da amplitude quando o modo de movimento reduzido estiver habilitado.
+- **Suíte de Testes da Fase 41 (Fase 41.3)**:
+  - `tests/player/phase41_whale_slice_deformation.test.ts`: Testes da discretização das fatias e propagação contínua da onda.
+
+---
+
+## [1.13.3] - 2026-10-12 — Biomecânica de Arfagem, Curvatura Espinhal & Deriva de Maré (Fase 40)
+
+### Adicionado & Modificado
+
+- **Biomecânica de Arfagem e Curvatura Espinhal (Fase 40.1)**:
+  - `src/entities/player.ts`: Rotação dinâmica de arfagem baseada na aceleração vertical e curvatura da coluna dorsal.
+- **Balanço Oceânico e Deriva Orbital (Fase 40.2)**:
+  - `src/entities/player/playerDrift.ts`: Simulação de ondas superficiais e maré aplicando suave deriva orbital na jubarte quando em repouso.
+- **Suíte de Testes da Fase 40 (Fase 40.3)**:
+  - `tests/player/phase40_whale_pitch_biomechanics.test.ts`: Cobertura de cálculos de arfagem, inércia e deriva.
+
+---
+
+## [1.13.2] - 2026-10-10 — Culling Espacial de Frustum & Otimização de Renderização (Fase 39)
+
+### Adicionado & Modificado
+
+- **Sistema de Culling Espacial com Margens de Histerese (Fase 39.1)**:
+  - `src/systems/spatialCullingSystem.ts`: Monitoramento de viewport com histerese (margens de 200px) desativando a renderização de entidades fora de tela.
+- **Otimização O(1) do Jogador e Culling de Fauna/Gelo (Fase 39.2)**:
+  - Substituição de `k.get("player")` por singleton ativo; registro de fauna decorativa e blocos de gelo no gerenciador de ciclo de vida.
+- **Suíte de Testes da Fase 39 (Fase 39.3)**:
+  - `tests/systems/phase39_performance_culling.test.ts`: Testes de margens de histerese e culling determinístico.
+
+---
+
+## [1.13.1] - 2026-10-08 — PWA Telemetria Offline, Modo Totem & Diagnóstico FPS (Fase 38)
+
+### Adicionado & Modificado
+
+- **Gerenciador PWA e Instalação (Fase 38.1)**:
+  - `src/utils/pwaManager.ts` & `src/ui/pwaInstallModal.ts`: Suporte completo a instalação PWA e modo standalone.
+- **Overlay de Diagnóstico F3 e Badge de FPS (Fase 38.2)**:
+  - `src/systems/f3Diagnostics.ts`: Painel de telemetria em tempo real com taxa de quadros, tempo de frame e métricas.
+- **Suíte de Testes da Fase 38 (Fase 38.3)**:
+  - `tests/systems/phase38_pwa_telemetry.test.ts`: Testes de registro de telemetria, diagnóstico F3 e ciclo PWA.
+
+---
+
 ## [1.13.0] - 2026-10-06 — Qualidade de Código & Consistência Técnica Visual (Fase 37)
 
 ### Adicionado & Modificado

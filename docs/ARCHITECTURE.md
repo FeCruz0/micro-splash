@@ -9,96 +9,136 @@ O **Micro Splash** foi construído sobre uma arquitetura modular orientada a eve
 ```
 micro-splash/
 ├── data/
-│   └── facts.json              # Acervo pedagógico de curiosidades marinhas indexadas por bioma
+│   ├── facts.json                  # Acervo pedagógico de curiosidades marinhas indexadas por bioma
+│   ├── quiz.json                   # Banco de perguntas e respostas para o desafio educacional
+│   └── level_layout.json           # Definição espacial de biomas, densidades e marcos náuticos
 ├── docs/
-│   ├── ARCHITECTURE.md         # Este documento (visão técnica e estrutural)
-│   ├── GDD.md                  # Game Design Document completo
-│   ├── OCEAN_FACTS.md          # Fundamentação científica e artigos revisados por pares
-│   └── ROADMAP.md              # Roteiro de fases e status de entrega
+│   ├── ARCHITECTURE.md             # Este documento (visão técnica e estrutural)
+│   ├── GDD.md                      # Game Design Document completo
+│   ├── OCEAN_FACTS.md              # Fundamentação científica e artigos revisados por pares
+│   └── ROADMAP.md                  # Roteiro de fases e status de entrega
 ├── public/
-│   └── sprites/
-│       └── whale.png           # Spritesheet anatômico de 8 quadros da Baleia-Jubarte
-├── scripts/
-│   └── generateWhaleSprite.cjs # Script Canvas procedural gerador do spritesheet pixel art
+│   ├── fonts/                      # Fontes locais otimizadas (WOFF2 prioritário com fallback TTF)
+│   ├── sprites/                    # Texturas e spritesheets (incluindo fauna_manifest.json)
+│   ├── offline.html                # Tela de contingência offline PWA estilizada
+│   └── sw.js                       # Service Worker com cache LRU versionado dinamicamente
+├── scripts/                        # Utilitários de build, validação e geradores em Node/ESM
 ├── src/
-│   ├── config.ts               # Parâmetros físicos, biomas, sementes, tags e dimensões
-│   ├── main.ts                 # Ponto de entrada, boot do Kaboom.js e máquina de estados de cenas
-│   ├── entities/               # Fábricas de atores e objetos interativos do jogo
-│   │   ├── boat.ts             # Traineiras de pesca artesanal e barcos da guarda costeira
-│   │   ├── iceberg.ts          # Plataforma de gelo polar com fendas de respiração
-│   │   ├── krill.ts            # Cardumes alimentares com atração magnética e física oscilatória
-│   │   ├── net.ts              # Redes de pesca fantasma com mecânica de enredamento e ruptura
-│   │   ├── player.ts           # Jubarte: nado senoidal, animações, sonar 360°, fôlego e esguicho
-│   │   ├── ship.ts             # Cargueiros industriais móveis com ruído e perigo de colisão
-│   │   └── trash.ts            # Lixo plástico camuflado no fundo com revelação por sonar
-│   ├── systems/                # Sistemas de simulação de mundo e áudio
-│   │   ├── accessibilitySystem.ts # Daltonismo, escala tipográfica, foco por teclado e narração TTS
-│   │   ├── audio/              # Arquitetura modular de áudio e síntese Web Audio API
-│   │   │   ├── audioEngine.ts  # Master bus, limiter, convolver reverb, filtro de profundidade e ciclo de aba
-│   │   │   ├── audioNoise.ts   # Geradores de ruído rosa e marrom com crossfade
-│   │   │   ├── audioSFX.ts     # Efeitos sonoros proceduralmente sintetizados e espacialização estéreo 2D
-│   │   │   ├── audioSoundtrack.ts # Trilha adaptativa "Aquatic Ambiance" com crossfade
-│   │   │   └── audioWhale.ts   # Canto da baleia em 3 canais síntese FM acionado por sonar
-│   │   ├── backgroundFauna.ts  # Fauna decorativa: orcas, jubartes passantes e berçário mãe/filhote
-│   │   ├── benthicFloorSystem.ts # Florestas de Kelp fototrópicas e Recifes de Corais pulsantes
-│   │   ├── biomeSystem.ts      # Gerenciamento de profundidade, cor da água e densidade por bioma
-│   │   ├── canyonSystem.ts     # Geração procedural dos cânions rochosos do Boqueirão
-│   │   ├── collisions.ts       # Detecção e resposta a colisões físicas, dano e salvamento
-│   │   ├── dolphinDraftingSystem.ts # Nado em vácuo hidrodinâmico cooperativo com golfinhos
-│   │   ├── iceSurface.ts       # Banquise de gelo quebrável com física de impacto e espuma
-│   │   ├── letterboxSystem.ts  # Enquadramento e fidelidade 16:9 em resoluções altas
-│   │   ├── oceanCurrentsSystem.ts # Correntes com empuxo físico e linhas vetoriais de fluxo visíveis
-│   │   ├── penguinFlockSystem.ts # Bandos de pinguins saltadores na Antártica
-│   │   └── upwellingSystem.ts  # Jatos de ressurgência em leque com gradiente de opacidade
-│   └── ui/                     # Camada visual de interface, menus e modais
-│       ├── challengeEndScreen.ts # Tela de estatísticas do Desafio Rápido de 60 segundos
-│       ├── codexScreen.ts      # Diário de Bordo da Expedição (espécies, fatos e IBJ)
-│       ├── hud.ts              # Medidores dinâmicos de fôlego, progresso e notificações
-│       ├── modeSelectModal.ts  # Seletor visual de modos (Normal, Serena, Desafio Semanal)
-│       ├── optionsModal.ts     # Painel de controle de volume, resolução, acessibilidade e controles
-│       └── victoryScreen.ts    # Relatório de Migração de 30.000m e celebração com confetes
+│   ├── config.ts                   # Parâmetros físicos, biomas, sementes, tags e dimensões
+│   ├── main.ts                     # Ponto de entrada enxuto e boot do Kaboom.js
+│   ├── scenes/                     # Módulos isolados de cenas Kaboom
+│   │   ├── assetLoader.ts          # Pré-carregamento determinístico de atlas e recursos
+│   │   ├── menuScene.ts            # Cena de menu com code-splitting dinâmico
+│   │   ├── gameScene.ts            # Orquestrador do loop de gameplay de 30.000m
+│   │   ├── gameOverScene.ts        # Cena dramática de resgate ou fim de jogo
+│   │   └── victoryScene.ts         # Cena de celebração com ritual do salto e eco-score
+│   ├── entities/                   # Atores e objetos interativos do jogo
+│   │   ├── player.ts               # Fachada da Jubarte (orquestração e ciclo de vida)
+│   │   ├── player/                 # Módulos especializados de biomecânica e renderização
+│   │   │   ├── playerRenderPipeline.ts # Coordenador puro e determinístico de renderização
+│   │   │   ├── playerPuppetRig.ts      # Cinemática direta de 4 nós e flukes caudais
+│   │   │   ├── playerSliceRenderer.ts  # Fatiamento sagital vertical e onda viajante
+│   │   │   ├── playerPectoralFin.ts    # Hidroplanos peitorais com diedro e perspectiva 2.5D
+│   │   │   ├── playerBreathPalette.ts  # Colorimetria centralizada dos estados de fôlego
+│   │   │   ├── playerAnimation.ts      # Interpolador harmônico de spritesheet de 16 quadros
+│   │   │   ├── playerDrift.ts          # Simulação de balanço de maré e deriva orbital
+│   │   │   ├── playerCaustics.ts       # Iluminação e cáusticos ventrais dinâmicos
+│   │   │   ├── playerCollision.ts      # Gerenciamento de redes, armadilhas e salvamento
+│   │   │   └── playerParticles.ts      # Spawners de vórtices peitorais e bolhas
+│   │   ├── boat.ts                 # Traineiras de pesca artesanal e barcos da guarda costeira
+│   │   ├── iceberg.ts              # Plataforma de gelo polar com fendas de respiração
+│   │   ├── krill.ts                # Cardumes alimentares com atração magnética e física oscilatória
+│   │   ├── net.ts                  # Redes de pesca fantasma com mecânica de enredamento e ruptura
+│   │   ├── ship.ts                 # Cargueiros industriais móveis com ruído e perigo de colisão
+│   │   └── trash.ts                # Lixo plástico camuflado no fundo com revelação por sonar
+│   ├── systems/                    # Sistemas de simulação de mundo, áudio e acessibilidade
+│   │   ├── accessibilitySystem.ts  # Daltonismo, tipografia, foco e movimento reduzido
+│   │   ├── audioSystem.ts          # Fachada canônica para o subsistema de áudio
+│   │   ├── audio/                  # Arquitetura modular de áudio e síntese Web Audio API
+│   │   │   ├── audioEngine.ts      # Master bus, limiter (-6dB), convolver e ciclo de aba
+│   │   │   ├── audioMusic.ts       # Motor musical procedural com crossfade entre biomas
+│   │   │   ├── audioNoise.ts       # Geradores de ruído marrom/rosa para ambiência
+│   │   │   ├── audioWhale.ts       # Canto da baleia em síntese FM acionado por sonar
+│   │   │   └── sfx/                # Efeitos sonoros divididos por famílias temáticas
+│   │   ├── spatialCullingSystem.ts # Culling frustum com histerese e visibilidade O(1)
+│   │   ├── biomeLifecycleManager.ts# Ciclo de vida e desova determinística de entidades
+│   │   └── ...
+│   ├── ui/                         # Interface do usuário decomposta e modular
+│   │   ├── screens/                # Telas completas (optionsScreen, codexScreen, etc.)
+│   │   ├── modals/                 # Diálogos modais (quizModal, shareModal, statsModal)
+│   │   ├── hud/                    # Componentes do HUD de navegação e oxigênio
+│   │   ├── shared/                 # Componentes compartilhados e botões padronizados
+│   │   ├── animationUtils.ts       # Tokens UI_TRANSITIONS e transições com easings
+│   │   └── keyboardNav.ts          # Pilha LIFO de foco com suporte a focus trap
+│   └── utils/                      # Funções puras, persistência e matemática determinística
+│       ├── storage.ts              # Persistência desacoplada validada com schemas Zod
+│       ├── random.ts               # PRNG determinístico Mulberry32 com semente
+│       ├── contrast.ts             # Algoritmo de contraste e luminância WCAG 2.1 AA
+│       └── errorReporter.ts        # Barramento unificado de telemetria e erros
 ```
 
 ---
 
-## 🔄 1. Ciclo de Vida e Máquina de Cenas (`src/main.ts`)
+## 🔄 1. Ciclo de Vida e Máquina de Cenas (`src/scenes/`)
 
-O jogo gerencia a navegação entre estados através de 4 cenas principais do Kaboom.js:
+O jogo gerencia a navegação entre estados através de cenas modulares do Kaboom.js com suporte a **Code-Splitting assíncrono**:
 
 ```mermaid
 graph TD
-    BOOT["Boot (main.ts)"] -->|"Carrega Sprites & JSON"| MENU["Cena: menu"]
-    MENU -->|"Modais UI"| MODALS["Opções / Codex / Seleção de Modo"]
-    MODALS -->|"Iniciar Jogo"| GAME["Cena: game"]
-    GAME -->|"Perda de Fôlego / Colisão Letal"| GAMEOVER["Cena: gameover"]
-    GAME -->|"Linha de Chegada (30.000m)"| VICTORY["Cena: victory"]
+    BOOT["Boot (main.ts)"] -->|"assetLoader.ts"| MENU["Cena: menu (menuScene.ts)"]
+    MENU -->|"Dynamic import()"| SCREENS["Screens: Options / Codex / ModeSelect / Leaderboard"]
+    MENU -->|"Iniciar Jogo"| GAME["Cena: game (gameScene.ts)"]
+    GAME -->|"Perda de Fôlego / Colisão Letal"| GAMEOVER["Cena: gameover (gameOverScene.ts)"]
+    GAME -->|"Linha de Chegada (30.000m)"| VICTORY["Cena: victory (victoryScene.ts)"]
     GAMEOVER -->|"Reiniciar / Voltar"| MENU
     VICTORY -->|"Novo Ciclo / Voltar"| MENU
 ```
 
-- **`menu`**: Tela inicial receptiva com partículas bioluminescentes, recordes persistentes e interface modal bloqueante (`isModalOpen`).
-- **`game`**: Instancia o mundo de 30.000m, o jogador, os sistemas de bioma, áudio, fauna e colisões de acordo com o modo selecionado.
-- **`gameover`**: Sequência dramática com tentativa de resgate pela Guarda Marítima na Costa Urbana.
-- **`victory`**: Clímax do Salto Majestoso (_Breach_), cálculo do Eco-Score e exibição da Sabedoria Ancestral herdada.
+- **`assetLoader`**: Pré-carrega de forma determinística os atlas de sprites, manifesto de fauna e fontes antes da ativação do menu inicial.
+- **`menuScene`**: Tela inicial receptiva com partículas bioluminescentes, recordes persistentes e interface modal bloqueante (`isModalOpen`). Importa telas sob demanda com `await import(...)`.
+- **`gameScene`**: Instancia a rota de 30.000m, o jogador via singleton O(1), os sistemas de bioma, áudio, fauna e colisões de acordo com o modo selecionado.
+- **`gameOverScene`**: Sequência dramática com tentativa de resgate pela Guarda Marítima na Costa Urbana.
+- **`victoryScene`**: Clímax do Salto Majestoso (_Breach_), cálculo do Eco-Score e exibição da Sabedoria Ancestral herdada.
 
 ---
 
-## 🐋 2. Entidade Jogador (`src/entities/player.ts`)
+## 🐋 2. Entidade Jogador & Pipeline Biomecânica (`src/entities/player/`)
 
-A Baleia-Jubarte é uma entidade multifacetada que unifica mecânicas de física hidrodinâmica, animação por spritesheet e sensoriamento ecolocalizador:
+A Baleia-Jubarte utiliza uma arquitetura puramente determinística baseada no coordenador central `playerRenderPipeline.ts`. O loop de física alimenta o coordenador, que calcula a cinemática e devolve um snapshot imutável (`WhaleRenderPipelineSnapshot`):
 
-1. **Hidrodinâmica Senoidal:**
-   - A propulsão via `Espaço` atinge o ápice de aceleração aos `0.3s` e decai a zero se segurada indefinidamente, incentivando o ritmo biológico natural de batida de cauda.
-   - Arrasto hidrodinâmico (_drag_) e inércia contínua de fluido desaceleram suavemente o animal ao cessar o esforço.
-2. **Spritesheet & Animações (`public/sprites/whale.png`):**
-   - **`glide` (quadro 0):** Nado planado hidrodinâmico.
-   - **`stroke_up` (quadro 1) & `stroke_down` (quadro 2):** Batida vigorosa dos flukes da cauda.
-   - **`feed` (quadro 3):** Distensão das pregas ventrais e exposição de cerdas filtradoras (_baleen_) ao engolir krill.
-3. **Esguicho do Espiráculo (_Blowhole Spout_):**
-   - Ao emergir à superfície (`SEA_LEVEL`), dispara um esguicho duplo vertical em "V" com 32 partículas e ruído sibilante (_whoosh_) de descompressão pulmonar.
-4. **Biosonar 360° Omnidirecional:**
-   - Varredura de onda acústica em tela inteira (raio de 650px) ativada por `Shift`, `E` ou `X`.
-   - Ilumina e destaca com contorno fluorescente objetos camuflados nas profundezas (lixo plástico, redes e paredes de cânions).
+```mermaid
+graph TD
+    UPDATE["Loop de Update (player.ts)"] --> PIPELINE["executeWhaleRenderPipeline (playerRenderPipeline.ts)"]
+    PIPELINE --> RIG["1. Cinemática do Puppet Rig (playerPuppetRig.ts)<br/>4 nós esqueléticos: cranialThorax ➔ abdominalSpine ➔ caudalPeduncle ➔ flukeBlade"]
+    PIPELINE --> SLICE["2. Fatiamento Sagital (playerSliceRenderer.ts)<br/>Onda viajante acoplada e deformação de fatias verticais"]
+    PIPELINE --> FINS["3. Hidroplanos Peitorais (playerPectoralFin.ts)<br/>Ângulo diedro, enflechamento e projeção de perspectiva 2.5D"]
+    PIPELINE --> PALETTE["4. Paleta de Fôlego (playerBreathPalette.ts)<br/>Mapeamento de 5 estados: calm, warning, critical, trapped, fainting"]
+    PIPELINE --> SNAPSHOT["Snapshot Imutável (WhaleRenderPipelineSnapshot)"]
+    SNAPSHOT --> APPLY["Aplicação Sincronizada nos Componentes Kaboom (sem jitter)"]
+```
+
+### Detalhamento das Camadas Biomecânicas
+
+1. **Cinemática Direta do Puppet Rig (`playerPuppetRig.ts`):**
+   - Resolve a cadeia de 4 juntas articuladas da jubarte em espaço local.
+   - Calcula o ângulo de ataque ótimo da lâmina caudal contra o fluxo hidrodinâmico, gerando empuxo realista tanto na batida descendente quanto ascendente.
+2. **Deformação Sagital por Fatiamento Segmentado (`playerSliceRenderer.ts`):**
+   - Divide o corpo da baleia em fatias verticais anatômicas interpoladas por uma onda senoidal viajante amortecida.
+   - Atenua automaticamente a amplitude da flexão em 75% quando a preferência de movimento reduzido (`isReducedMotion`) está ativa.
+3. **Hidroplanos Peitorais Independentes (`playerPectoralFin.ts`):**
+   - Simula as longas nadadeiras peitorais brancas da jubarte com variação de ângulo diedro (sustentação/mergulho) e enflechamento hidrodinâmico conforme a velocidade.
+   - Camadas organizadas por profundidade z-index para simular perspectiva tridimensional no plano 2D.
+4. **Colorimetria Centralizada por Estado de Fôlego (`playerBreathPalette.ts`):**
+   - Mapeia as cores de corpo, nadadeiras e pregas em 5 estados biológicos:
+     - **Calm** (oxigênio > 50%): tonalidade natural límpida.
+     - **Warning** (20% a 50%): transição âmbar de alerta com dessaturação.
+     - **Critical** (< 20%): pulso rítmico de urgência e cianose.
+     - **Trapped** (emaranhamento): matiz púrpura característico de aprisionamento em redes de pesca.
+     - **Fainting** (anóxia/desmaio): tonalidade profunda e fosca.
+5. **Spritesheet Harmônico de 16 Quadros (`playerAnimation.ts`):**
+   - Ciclos de animação de alta fluidez desenhados à mão, com interpolação contínua proporcional à velocidade de nado e cadência respiratória.
+6. **Física de Deriva Orbital e Cáusticos (`playerDrift.ts` & `playerCaustics.ts`):**
+   - Aplica balanço oceânico e deriva de maré ao permanecer estática, sincronizada com ondulações de luz cáustica ventral.
 
 ---
 
@@ -109,10 +149,10 @@ O áudio do jogo é gerado **100% em tempo real** via Web Audio API, sem depende
 ```mermaid
 graph TD
     subgraph SINTESE["Fontes Sonoras (Procedural)"]
-        SFX["SFX (audioSFX.ts)"]
+        SFX["Famílias SFX (sfx/)"]
         WHALE["Canto da Baleia (audioWhale.ts)"]
-        MUSIC["Trilha Sonora (audioSoundtrack.ts)"]
-        OCEAN["Ruído Oceânico (audioNoise.ts)"]
+        MUSIC["Trilha Adaptativa Chiptune (audioMusic.ts)"]
+        OCEAN["Ruído Oceânico Rosa/Marrom (audioNoise.ts)"]
     end
 
     subgraph PROCESSAMENTO["Processamento & Espacialização"]
@@ -122,7 +162,7 @@ graph TD
     end
 
     subgraph MASTERING["Barramento Master & Saída"]
-        MASTER["Master Gain (Rampas Suaves setTargetAtTime)"]
+        MASTER["Master Gain (Calibrado a 1.0)"]
         LIMITER["DynamicsCompressorNode (Limiter Anti-Clipping: -6dB, 12:1)"]
         DEST["AudioContext.destination (Alto-falante)"]
     end
@@ -138,15 +178,11 @@ graph TD
     LIMITER --> DEST
 ```
 
-- **Masterização e Limiter Anti-Clipping:** Inserção de `DynamicsCompressorNode` (threshold `-6dB`, ratio `12:1`, attack `3ms`, release `250ms`) na saída master, prevenindo distorção e estalos quando múltiplos SFX disparam ao mesmo tempo.
-- **Rampas de Ganho sem Cliques (De-clicking):** Todos os controles de volume, comutação de mudo e alternância de trilhas utilizam interpolação assintótica `setTargetAtTime(val, now, 0.05)` para garantir transições auditivas aveludadas.
-- **Espacialização Estéreo 2D (`StereoPannerNode`):** SFX de colisões, krill, redes, gelo, cliques de golfinhos e cargueiros calculam o balanço estéreo em `[-1, 1]` baseado na distância horizontal relativa à baleia (`(sourceX - playerX) / 400`).
-- **Acústica Abissal & Reverb Convolutivo:**
-  - Barramento com resposta de impulso sintética simulando reflexões acústicas oceânicas.
-  - Filtro dinâmico passa-baixas modulado pelo eixo Y da jubarte: na superfície o som atinge `8.000 Hz` (límpido e aerado) e nas profundezas escuras decai até `1.200 Hz` (abafado e grave).
-- **Trilha Adaptativa com Crossfade:** Transição gradual de ~0.6s entre os modos _Chiptune Dinâmica_, _Ambiente Contemplativo_ e _Modo Foco_.
-- **Ciclo de Vida da Aba (`document.visibilitychange`):** Suspensão automática do `AudioContext` quando a aba é ocultada e retomada graciosa ao retornar, otimizando processamento.
-- **Loop Oceânico sem Costura:** Ambiência marrom contínua com blend cruzado de 50ms nos extremos do buffer, eliminando emendas rítmicas.
+- **Masterização e Limiter Anti-Clipping:** Inserção de `DynamicsCompressorNode` (threshold `-6dB`, ratio `12:1`, attack `3ms`, release `250ms`) na saída master. Ganho calibrado para evitar distorção ou bombeamento na presença de múltiplos SFX simultâneos.
+- **Rampas de Ganho sem Cliques (De-clicking):** Todos os controles de volume e alternâncias de trilhas utilizam interpolação assintótica `setTargetAtTime` para assegurar transições suaves.
+- **Crossfade Chiptune entre Biomas:** Transição harmônica suave de 1.5s a 2.0s via rampa de ganho entre os temas procedurais dos 4 biomas, preservando o andamento fixo de 75 BPM.
+- **Espacialização Estéreo 2D (`StereoPannerNode`):** SFX de colisões, krill, redes, gelo, cliques de golfinhos e cargueiros calculam balanço estéreo em `[-1, 1]` baseado na distância horizontal relativa `(sourceX - playerX) / 400`.
+- **Acústica Abissal & Reverb Convolutivo:** Resposta de impulso sintética de 1.8s simulando reflexões subaquáticas combinada a filtro passa-baixas modulado pela profundidade (8.000 Hz na lâmina d'água até 1.200 Hz nas fossas).
 
 ---
 
@@ -164,14 +200,50 @@ A rota de 30.000 metros é particionada em zonas geográficas e comportamentais 
 
 ---
 
-## 💾 5. Persistência de Dados
+## 🖥️ 5. Arquitetura de UI, Code-Splitting & Acessibilidade (`src/ui/`)
 
-O jogo utiliza o `localStorage` do navegador para manter o estado persistente entre sessões de forma 100% offline-first:
+A camada de interface gráfica é desacoplada da lógica central de simulação:
 
-- **`micro_splash_options`**: Volumes (Master, Música, SFX), modo de trilha sonora e toggle de mudo.
+1. **Reorganização em Subdomínios Semânticos:**
+   - `src/ui/screens/`: Telas completas (`optionsScreen`, `codexScreen`, `victoryScreen`, `challengeEndScreen`).
+   - `src/ui/modals/`: Caixas de diálogo modais isoladas (`quizModal`, `shareModal`, `statsModal`, `pwaInstallModal`).
+   - `src/ui/hud/`: Instrumentação em tempo real (oxigênio, velocímetro, sonar, alertas e minimapa).
+   - `src/ui/shared/`: Componentes reutilizáveis com efeitos táteis universais (`attachButtonHoverEffect`).
+2. **Code-Splitting Dinâmico:**
+   - As telas e modais pesados são carregados sob demanda através de `await import(...)`, permitindo que o chunk principal inicial do jogo seja enxuto (~232 kB gzipped em produção).
+3. **Tokens e Transições de Animação (`src/ui/animationUtils.ts`):**
+   - Constantes centralizadas `UI_TRANSITIONS` (`MODAL_ENTER_DURATION`, `MODAL_EXIT_DURATION`, `FADE_SCENE_DURATION`, `BUTTON_HOVER_SCALE`, `TOAST_DURATION`).
+   - `animateModalExit` com easing cúbico para saída simétrica antes da destruição dos nós Kaboom.
+4. **Pilha de Foco Acessível (LIFO) & Focus Trap (`src/ui/keyboardNav.ts`):**
+   - Suporte completo a navegação por teclado (Tab, Shift+Tab, setas direcionais, Enter/Espaço para acionamento).
+   - Ao abrir um modal, o elemento ativo anterior é preservado no snapshot da pilha e automaticamente restaurado ao fechar.
+5. **Auditoria de Contraste WCAG 2.1 AA & Formatação Internacionalizada:**
+   - `src/utils/contrast.ts`: Validação de taxa de contraste superior a 4.5:1 para textos regulares e 3.0:1 para badges grandes sobre fundos translúcidos.
+   - `src/i18n/i18n.ts`: Formatação numérica, métrica (milhas náuticas e metros) e datas localizada via `Intl` nativo com suporte total a `pt-BR`, `en-US` e `gn` (Guarani Nhandewa).
+
+---
+
+## 💾 6. Persistência de Dados & Schemas Zod (`src/utils/storage.ts`)
+
+O armazenamento local utiliza exclusivamente a fachada tipada `readLocalStorageWithSchema` e `writeLocalStorage` validada por schemas Zod (`src/types/storageSchemas.ts`), blindando a aplicação contra dados corrompidos ou tipos inconsistentes:
+
+- **`micro_splash_options`**: Volumes (Master, Música, SFX), modo de trilha sonora e mute.
 - **`micro_splash_highscore`**: Maior distância percorrida e pontuação Eco-Score acumulada.
-- **`micro_splash_unlocked_facts`**: Array com os IDs dos fatos ecológicos desbloqueados para consulta no Diário de Bordo.
-- **`micro_splash_stats`**: Estatísticas cumulativas consolidadas (distância percorrida, krill consumido, redes desvencilhadas, saltos executados).
-- **`micro_splash_weekly`**: Semente determinística da semana atual e pontuação obtida no Desafio Semanal.
-- **`micro_splash_accessibility`**: Configurações de daltonismo, movimento reduzido (`prefers-reduced-motion`), escala tipográfica e narração TTS.
-- **`micro_splash_resolution_*`**: Preferência persistente de resolução 16:9 individualizada por tela conectada.
+- **`micro_splash_unlocked_facts`**: Identificadores dos fatos pedagógicos desbloqueados no Codex.
+- **`micro_splash_stats`**: Estatísticas cumulativas (distância total, krill consumido, redes rompidas, saltos executados).
+- **`micro_splash_weekly`**: Semente determinística da semana e pontuação obtida no Desafio Semanal.
+- **`micro_splash_accessibility`**: Configurações de daltonismo, movimento reduzido, alto contraste e escala tipográfica.
+- **`micro_splash_resolution_*`**: Resolução 16:9 individualizada por monitor.
+
+---
+
+## 📱 7. PWA Versionado, Cache Offline & Culling de Performance
+
+1. **Service Worker Versionado Dinamicamente (`pwaVersionPlugin` & `public/sw.js`):**
+   - O Vite injeta dinamicamente o número da versão do `package.json` no Service Worker na compilação.
+   - Poda de cache LRU automática (`trimCache`) mantendo no máximo 60 itens no cache dinâmico para evitar estouro de memória em totens e quiosques.
+   - `public/offline.html`: Página de fallback offline glassmórfica exibida quando a conexão falha em recursos não pré-cacheados.
+2. **Culling Espacial com Margens de Histerese (`src/systems/spatialCullingSystem.ts`):**
+   - Assegura 60 FPS estáveis ao alternar dinamicamente a propriedade `hidden` de obstáculos, fauna e flora que saem da viewport da câmera, evitando chamadas de desenho redundantes no WebGL.
+3. **Singleton O(1) do Jogador:**
+   - As consultas repetidas `k.get("player")` foram substituídas por um ponteiro direto em memória, eliminando a sobrecarga de varreduras lineares por quadro.
