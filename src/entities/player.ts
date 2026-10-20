@@ -15,14 +15,15 @@ import {
   spawnTailStrokeBubbles,
   spawnPectoralTipVortices,
 } from "./player/playerParticles";
-import { calculateWhaleSliceTransforms, type WhaleSliceData } from "./player/playerSliceRenderer";
-import {
-  calculatePectoralFinTransforms,
-  setupPectoralFins,
-  type DualPectoralFinsData,
-} from "./player/playerPectoralFin";
-import { calculateWhalePuppetRig, type PuppetRigTransforms } from "./player/playerPuppetRig";
+import type { WhaleSliceData } from "./player/playerSliceRenderer";
+import { setupPectoralFins, type DualPectoralFinsData } from "./player/playerPectoralFin";
+import type { PuppetRigTransforms } from "./player/playerPuppetRig";
 import type { WhaleAnimationState } from "./player/playerAnimation";
+import {
+  executeWhaleRenderPipeline,
+  type WhaleRenderPipelineSnapshot,
+} from "./player/playerRenderPipeline";
+import { accessibilitySystem } from "../systems/accessibilitySystem";
 
 import { calculateOceanIdleDrift } from "./player/playerDrift";
 import { setupPlayerCaustics } from "./player/playerCaustics";
@@ -81,6 +82,7 @@ export function createPlayer(
   let currentSliceTransforms: WhaleSliceData[] = []; // Fatias corporais sagitais da coluna (Fase 41)
   let currentPectoralFinTransforms: DualPectoralFinsData | null = null; // Hidroplanos peitorais com diedro (Fase 42)
   let currentPuppetRigTransforms: PuppetRigTransforms | null = null; // Cadeia esquelética multissegmentar (Fase 43)
+  let currentRenderPipelineSnapshot: WhaleRenderPipelineSnapshot | null = null; // Snapshot consolidado da pipeline (Fase 51)
   const pectoralFinsSystem = setupPectoralFins(k, baleia);
 
   if (typeof baleia.onDestroy === "function") {
@@ -313,48 +315,33 @@ export function createPlayer(
     const spineCurvature = controlsMgr.getSpineCurvature();
     const pitchFlexion = controlsMgr.getPitchFlexion();
     const pitchVelocity = controlsMgr.getPitchAngularVelocity();
+    const maxOx = oxygenMgr.getMaxOxygen();
+    const oxygenRatio = oxygenMgr.getOxygen() / maxOx;
 
-    // Fase 43: Articulação Multissegmentar de Cauda e Flukes (Multi-Part Puppet Rig)
-    currentPuppetRigTransforms = calculateWhalePuppetRig({
+    // Fase 51.1: Pipeline Unificada de Renderização da Baleia (Rig -> Slices -> Fins -> Palette)
+    currentRenderPipelineSnapshot = executeWhaleRenderPipeline({
       bodyAngleInDegrees: baleia.angle,
       spineCurvatureInDegrees: spineCurvature,
+      pitchFlexionInDegrees: pitchFlexion,
       pitchAngularVelocity: pitchVelocity,
       strokeProgress: physicsMgr.getStrokeTimer() / GAME_CONFIG.MAX_STROKE_TIME,
       isMuscularStroke,
       horizontalSpeed,
       verticalSpeed: physicsMgr.getSpeed().y,
       idleBlendFactor: idleBlend,
-      timeInSeconds: k.time(),
-      isFacingRight: controlsMgr.isFacingRight(),
-    });
-
-    // Fase 41: Deformação Sagital por Fatiamento Segmentado (Vertical Slice Ribbon)
-    currentSliceTransforms = calculateWhaleSliceTransforms({
-      spineCurvatureInDegrees: spineCurvature,
-      pitchFlexionInDegrees: pitchFlexion,
-      pitchAngularVelocity: pitchVelocity,
-      strokeProgress: physicsMgr.getStrokeTimer() / GAME_CONFIG.MAX_STROKE_TIME,
-      isMuscularStroke,
-      timeInSeconds: k.time(),
-      horizontalSpeed,
-      idleBlendFactor: idleBlend,
-      isFacingRight: controlsMgr.isFacingRight(),
-      puppetRig: currentPuppetRigTransforms,
-    });
-
-    // Fase 42: Nadadeiras Peitorais Independentes e Hidrodinâmica de Diedro
-    currentPectoralFinTransforms = calculatePectoralFinTransforms({
-      bodyAngleInDegrees: baleia.angle,
-      pitchAngularVelocity: pitchVelocity,
-      spineCurvatureInDegrees: spineCurvature,
       currentRoll,
-      horizontalSpeed,
-      strokeProgress: physicsMgr.getStrokeTimer() / GAME_CONFIG.MAX_STROKE_TIME,
-      isMuscularStroke,
-      idleBlendFactor: idleBlend,
       timeInSeconds: k.time(),
       isFacingRight: controlsMgr.isFacingRight(),
+      oxygenRatio,
+      isTrapped: trapMgr.isTrapped(),
+      isFainting: oxygenMgr.isFaintingState(),
+      isHighContrast: accessibilitySystem.isHighContrast(),
+      isReducedMotion: accessibilitySystem.isReducedMotion(),
     });
+
+    currentPuppetRigTransforms = currentRenderPipelineSnapshot.puppetRig;
+    currentSliceTransforms = currentRenderPipelineSnapshot.slices;
+    currentPectoralFinTransforms = currentRenderPipelineSnapshot.pectoralFins;
     pectoralFinsSystem.update(currentPectoralFinTransforms, controlsMgr.isFacingRight());
 
     // Squash & Stretch muscular na batida, arqueamento em curva de arfagem e respiração calma em repouso
@@ -493,14 +480,11 @@ export function createPlayer(
       }
     }
 
-    // 10. Cor conforme perda de oxigênio e rede
-    const maxOx = oxygenMgr.getMaxOxygen();
-    const oxygenRatio = oxygenMgr.getOxygen() / maxOx;
-    const r = k.lerp(60, 255, oxygenRatio);
-    const g = k.lerp(80, 255, oxygenRatio);
-    const b = k.lerp(120, 255, oxygenRatio);
-
-    baleia.color = trapMgr.isTrapped() ? k.rgb(190, 90, 230) : k.rgb(r, g, b);
+    // 10. Cor consolidada via Paleta Centralizada de Fôlego (Fase 51.2)
+    if (currentRenderPipelineSnapshot) {
+      const [bodyRed, bodyGreen, bodyBlue] = currentRenderPipelineSnapshot.palette.bodyColor;
+      baleia.color = k.rgb(bodyRed, bodyGreen, bodyBlue);
+    }
 
     // 11. Atualização dos Cáusticos Solares e Brilho Ventral em Perspectiva (Fases 17.2 e 17.3)
     causticsSystem.update({
@@ -627,5 +611,9 @@ export function createPlayer(
 
     // Fase 44: Spritesheet Expandido de 16 Quadros e Interpolação Harmônica
     getAnimationState: () => animState,
+
+    // Fase 51: Pipeline Unificada de Renderização e Paleta de Fôlego
+    getRenderPipelineSnapshot: () => currentRenderPipelineSnapshot,
+    getBreathPalette: () => currentRenderPipelineSnapshot?.palette || null,
   };
 }

@@ -749,17 +749,17 @@ _Objetivo: Garantir conformidade WCAG AA e paridade total de traduções._
 
 _Objetivo: Refinar coesão visual e mixagem mantendo estritamente a identidade sonora retrô (osciladores 8-bit, ondas quadrada/triangular/ruído, sem samples realistas)._
 
-- [ ] **51.1 Pipeline Unificada de Renderização da Baleia:**
+- [x] **51.1 Pipeline Unificada de Renderização da Baleia:**
   - Ordem de atualização explícita entre `playerSliceRenderer`, `playerPuppetRig` e `playerPectoralFin`, eliminando jitter entre camadas.
-- [ ] **51.2 Paleta Centralizada por Estado de Fôlego:**
+- [x] **51.2 Paleta Centralizada por Estado de Fôlego:**
   - Módulo único de cores (normal → fôlego baixo) consumido por corpo e nadadeiras.
-- [ ] **51.3 Padronização de Transições:**
+- [x] **51.3 Padronização de Transições:**
   - Durações e easings unificados em `animationUtils.ts` para cenas e modais.
-- [ ] **51.4 Normalização de Volume Retrô (`src/systems/audio/`):**
+- [x] **51.4 Normalização de Volume Retrô (`src/systems/audio/`):**
   - Equalizar ganho entre SFX chiptune e trilha sem alterar timbres; manter síntese por osciladores e limiter existente.
-- [ ] **51.5 Crossfade Chiptune entre Biomas:**
+- [x] **51.5 Crossfade Chiptune entre Biomas:**
   - Transição suave entre temas 8-bit por rampas de ganho, preservando arranjos e formas de onda retrô.
-- [ ] **51.6 Otimização de Fontes:**
+- [x] **51.6 Otimização de Fontes:**
   - `font-display: swap` e subsetting das TTFs para reduzir precache.
 
 ### 📚 FASE 52: Documentação & Experiência do Desenvolvedor

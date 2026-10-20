@@ -3,6 +3,8 @@ import type { WhaleSliceData } from "./playerSliceRenderer";
 import type { DualPectoralFinsData } from "./playerPectoralFin";
 import type { PuppetRigTransforms } from "./playerPuppetRig";
 import type { WhaleAnimationState } from "./playerAnimation";
+import type { WhaleRenderPipelineSnapshot } from "./playerRenderPipeline";
+import type { WhaleColorPalette } from "./playerBreathPalette";
 
 export interface PlayerController {
   gameObj: GameObj;
@@ -62,4 +64,8 @@ export interface PlayerController {
 
   // Fase 44: Spritesheet Expandido de 16 Quadros e Interpolação Harmônica
   getAnimationState?: () => WhaleAnimationState | string;
+
+  // Fase 51: Pipeline Unificada de Renderização e Paleta de Fôlego
+  getRenderPipelineSnapshot?: () => WhaleRenderPipelineSnapshot | null;
+  getBreathPalette?: () => WhaleColorPalette | null;
 }

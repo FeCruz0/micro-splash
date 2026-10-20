@@ -1,129 +1,111 @@
-# Plano de Implementação — Fase 50: Acessibilidade & Internacionalização Avançadas
+# Plano de Implementação — Fase 52: Documentação & Experiência do Desenvolvedor
 
-Status: Concluído ✅  
-Data: 2026-10-19  
-Alvo: v1.15.0
+Status: Pronto para Execução  
+Data: 2026-10-20  
+Alvo: v1.17.0
 
 ---
 
-## 🔬 Diagnóstico e Escopo da Fase 50
+## 🔬 Diagnóstico e Escopo da Fase 52
 
-1. **Auditoria de Contraste WCAG AA**:
-   - Implementar utilitários puros de cálculo de luminância relativa e contraste de cores em `src/utils/contrast.ts`:
-     - Fórmula matemática oficial WCAG 2.1: $L = 0.2126 \times R + 0.7152 \times G + 0.0722 \times B$.
-     - Razão de contraste: $(L_1 + 0.05) / (L_2 + 0.05)$.
-     - Validação de conformidade: taxa mínima 4.5:1 para texto padrão e 3:1 para texto grande ($\ge$ 18pt ou $\ge$ 14pt em negrito).
-   - Auditar combinações de cores essenciais da interface (textos do HUD sobre água/superfície, fundos translúcidos de modais, banners de bioma e badges de teclas).
+1. **Atualização Arquitetural em `docs/ARCHITECTURE.md` (Fase 52.1)**:
+   - O documento atual de arquitetura parou na Fase 36/37 e não reflete os avanços recentes do projeto:
+     - **Biomecânica da Jubarte (Fases 40 a 44 e Fase 51)**:
+       - Diagrama Mermaid de arquitetura do jogador ilustrando o fluxo determinístico:
+         `player.ts` ➔ `playerRenderPipeline.ts` ➔ (`playerPuppetRig.ts`, `playerSliceRenderer.ts`, `playerPectoralFin.ts`, `playerBreathPalette.ts`).
+       - Detalhamento de cada camada do rig:
+         1. Cinemática do Puppet Rig (cadeia esquelética de 4 nós e ângulo de ataque dos flukes).
+         2. Fatiamento Sagital e propagação da onda viajante.
+         3. Hidroplanos Peitorais independentes com diedro e perspectiva 2.5D.
+         4. Colorimetria centralizada e mapeamento dos 5 estados de fôlego.
+     - **Desacoplamento e Estrutura Modular da UI (Fases 46 e 48)**:
+       - Reorganização em `src/ui/screens/`, `src/ui/modals/`, `src/ui/hud/`, `src/ui/shared/`.
+       - Padrão de Code-Splitting dinâmico via `await import(...)` para modais pesados (`quizModal`, `codexScreen`, `optionsScreen`, etc.).
+       - Gestão de foco LIFO acessível (`keyboardNav.ts`) e tokens padronizados de transição (`animationUtils.ts`).
+     - **Subsistema de Persistência com Schemas Zod (Fases 45 e 48)**:
+       - `src/utils/storage.ts` com validação de runtime via schemas Zod (`src/types/storageSchemas.ts`), eliminando acessos diretos desprotegidos ao `localStorage`.
+     - **Subsistema PWA Offline-First & Cache Versionado (Fase 47)**:
+       - Plugin `pwaVersionPlugin` injetando a versão do `package.json` no Service Worker.
+       - Estratégia de precache com fallback para `offline.html` e poda LRU de cache dinâmico (`trimCache`).
 
-2. **Gestão de Foco em Modais (Focus Trap & Focus Restore)**:
-   - Em `src/ui/keyboardNav.ts`, adicionar gerenciador de pilha de foco (`focusStack`):
-     - Ao abrir um modal, memorizar o índice/elemento ativo na tela anterior via `pushFocusSnapshot()`.
-     - Ao fechar o modal (seja por tecla Escape ou botão Voltar/Fechar), restaurar o foco para o elemento chamador via `popFocusSnapshot()`.
-     - Reforçar o focus trap impedindo que o cursor visual saia do modal enquanto ele estiver visível.
+2. **Reconciliação e Preenchimento do `CHANGELOG.md` para as Fases 38 a 44 (Fase 52.2)**:
+   - Identificada uma lacuna documental no `CHANGELOG.md` entre as versões `1.13.0` (Fase 37) e `1.14.0` (Fases 45 a 49): as Fases 38 a 44 foram integralmente implementadas e commitadas no git, mas suas notas de versão não foram inseridas no arquivo.
+   - Reconciliar e documentar formalmente cada fase histórica com base nos commits e testes do repositório:
+     - **Fase 38**: PWA Telemetria Offline, Modo Totem/Kiosk e Badge de FPS em tempo real.
+     - **Fase 39**: Culling Espacial de Frustum com Margens de Histerese e Cache O(1) do Jogador.
+     - **Fase 40**: Biomecânica de Arfagem, Curvatura Espinhal e Deriva Orbital de Maré.
+     - **Fase 41**: Deformação Sagital por Fatiamento Segmentado (Vertical Slice Ribbon) e Onda Viajante.
+     - **Fase 42**: Nadadeiras Peitorais Independentes com Diedro e Enflechamento Hidrodinâmico.
+     - **Fase 43**: Articulação Multissegmentar de Cauda e Flukes (Multi-Part Puppet Rig) com Ângulo de Ataque Dinâmico.
+     - **Fase 44**: Spritesheet de Alta Fluidez de 16 Quadros e Interpolação Harmônica de Estados de Nado.
 
-3. **Teste de Paridade de Chaves i18n (`src/i18n/locales/`)**:
-   - Validar de forma recursiva se todas as chaves presentes em `pt-BR.json` também existem em `en-US.json` e `gn.json`.
-   - Garantir que não existam chaves órfãs ou traduções pendentes entre os locales suportados.
+3. **Reconciliação ROADMAP × Código e Sincronização Geral (Fase 52.3)**:
+   - Auditar todos os módulos ativos para certificar que os itens marcados com `[x]` no `docs/ROADMAP.md` correspondem com precisão à realidade do código.
+   - Alinhar `.ai/todo.md`, `docs/ROADMAP.md` e referências cruzadas de documentação.
 
-4. **Formatação Acessível via `Intl`**:
-   - Expandir `src/i18n/i18n.ts` com métodos baseados na API ECMAScript `Intl`:
-     - `formatNumber(value: number, options?: Intl.NumberFormatOptions): string`: formatação numérica respeitando pontuação decimal e separador de milhar por locale.
-     - `formatDistance(meters: number): string`: exibição acessível e internacionalizada de distâncias (m e km).
-     - `formatDate(date: Date | number, options?: Intl.DateTimeFormatOptions): string`: formatação de datas.
-   - Integrar `formatDistance` com `src/utils/navigation.ts` para consistência em HUD e telas de vitória/placar.
-
-5. **Movimento Reduzido nos Sistemas Recentes**:
-   - Integrar `accessibilitySystem.isReducedMotion()` nos componentes de renderização adicionados nas fases recentes:
-     - `src/entities/player/playerSliceRenderer.ts`: atenuar amplitude da onda viajante e flexão angular sagital (reduzir em 75% quando movimento reduzido estiver ativo).
-     - `src/entities/player/playerPectoralFin.ts`: limitar diedro dinâmico e amplitude de batimento peitoral.
-     - `src/entities/player/playerPuppetRig.ts`: restringir ângulos de arqueamento da coluna vertebral e flukes para evitar vertigem e desconforto visual.
-
-6. **Suíte de Testes da Fase 50 (`tests/ui/phase50_accessibility_i18n.test.ts`)**:
-   - Criar suíte completa testando conformidade WCAG AA, focus stack, paridade i18n, formatação `Intl` e atenuação por `prefers-reduced-motion`.
+4. **Suíte de Testes de Consistência Documental e Arquitetural (Fase 52.4)**:
+   - Criar `tests/core/phase52_documentation_consistency.test.ts`:
+     - Validar que `docs/ARCHITECTURE.md` contém diagramas Mermaid válidos e cita explicitamente os subsistemas essenciais (`playerRenderPipeline`, `playerPuppetRig`, `playerSliceRenderer`, `playerPectoralFin`, `playerBreathPalette`, `storage.ts`, `trimCache`).
+     - Validar que `CHANGELOG.md` contém seções para todas as fases até a Fase 51 sem lacunas.
+     - Validar que caminhos de arquivos citados na documentação de arquitetura realmente existem no disco.
 
 ---
 
 ## 📋 Lista de Tarefas Atômicas
 
-### Etapa 1: Utilitários e Auditoria de Contraste WCAG AA
+### Etapa 1: Atualização Abrangente de `docs/ARCHITECTURE.md`
 
-- [x] **1.1 Implementar Módulo de Contraste `src/utils/contrast.ts`**
-  - **Arquivo**: `src/utils/contrast.ts`.
-  - **Ação**: Implementar funções puras `calculateRelativeLuminance`, `calculateContrastRatio` e `isWcagAaCompliant`.
-  - **Validação**: Testes unitários com pares conhecidos (preto/branco = 21:1, amarelo sobre cinza escuro, etc.).
+- [ ] **1.1 Documentar Nova Árvore de Diretórios e Módulos**
+  - **Arquivo**: `docs/ARCHITECTURE.md`.
+  - **Ação**: Atualizar a árvore ASCII do projeto refletindo a organização modular de `src/entities/player/`, `src/scenes/`, `src/systems/audio/sfx/`, `src/ui/screens/`, `src/ui/modals/`, `src/ui/hud/` e `src/ui/shared/`.
+  - **Validação**: Verificação visual e validação por teste automatizado.
 
-- [x] **1.2 Auditar e Ajustar Contraste de Componentes UI**
-  - **Arquivos**: `src/ui/hudSystem.ts`, `src/config.ts`.
-  - **Ação**: Garantir que as cores de texto e badges atendam ao threshold de 4.5:1 sobre fundos padrão e translúcidos.
-  - **Validação**: Validação via testes automatizados de contraste.
+- [ ] **1.2 Documentar Arquitetura Biomecânica da Jubarte e Diagrama Mermaid**
+  - **Arquivo**: `docs/ARCHITECTURE.md`.
+  - **Ação**: Inserir seção detalhada sobre o rig da baleia (Fases 40-44 e 51) com diagrama Mermaid de fluxo de renderização (`playerRenderPipeline`), cinemática direta do puppet rig, onda viajante sagital, hidroplanos diedrais e colorimetria de fôlego.
+  - **Validação**: Validação da sintaxe Mermaid e conferência com os tipos em `src/entities/player/types.ts`.
 
----
+- [ ] **1.3 Documentar Arquitetura de UI Desacoplada e Code-Splitting**
+  - **Arquivo**: `docs/ARCHITECTURE.md`.
+  - **Ação**: Adicionar seção explicando o carregamento dinâmico assíncrono via `await import(...)`, o sistema de transições com `animationUtils.ts` e a gestão de foco LIFO com `keyboardNav.ts`.
+  - **Validação**: Coerência com `src/scenes/menuScene.ts` e `src/ui/`.
 
-### Etapa 2: Gestão de Foco e Focus Trap em Modais
-
-- [x] **2.1 Implementar Pilha de Foco em `src/ui/keyboardNav.ts`**
-  - **Arquivo**: `src/ui/keyboardNav.ts`.
-  - **Ação**: Adicionar suporte a `pushFocusSnapshot` e `popFocusSnapshot` restaurando o foco anterior no fechamento de modais.
-  - **Validação**: Testar transição de foco entre Menu Principal e Modais/Opções.
-
----
-
-### Etapa 3: Paridade de Chaves i18n
-
-- [x] **3.1 Criar Validador de Paridade de Locales**
-  - **Arquivos**: `src/i18n/locales/*.json`.
-  - **Ação**: Validar recursivamente a presença de todas as chaves em `en-US.json` e `gn.json` correspondentes a `pt-BR.json`.
-  - **Validação**: Execução do teste de paridade garantindo 0 chaves faltantes.
+- [ ] **1.4 Documentar Persistência com Zod e PWA Versionado**
+  - **Arquivo**: `docs/ARCHITECTURE.md`.
+  - **Ação**: Documentar a camada de persistência em `src/utils/storage.ts` com schemas Zod e o ciclo de vida offline do Service Worker com poda de cache LRU (`trimCache`).
+  - **Validação**: Coerência com `src/types/storageSchemas.ts` e `public/sw.js`.
 
 ---
 
-### Etapa 4: Formatação Acessível via `Intl`
+### Etapa 2: Reconciliação do `CHANGELOG.md` (Fases 38 a 44)
 
-- [x] **4.1 Adicionar Formatadores `Intl` em `src/i18n/i18n.ts`**
-  - **Arquivo**: `src/i18n/i18n.ts`.
-  - **Ação**: Implementar `formatNumber`, `formatDistance` e `formatDate` com mapeamento adequado de locales (`pt-BR`, `en-US`, `gn`).
-  - **Validação**: Testar saídas formatadas para cada idioma (ex.: `1.500 m` vs `1,500 m`).
-
-- [x] **4.2 Integrar Formatação em `src/utils/navigation.ts`**
-  - **Arquivo**: `src/utils/navigation.ts`.
-  - **Ação**: Utilizar `i18n.formatDistance` ou `i18n.formatNumber` na renderização de distâncias náuticas e métricas.
-  - **Validação**: `npm test tests/ui/`.
+- [ ] **2.1 Adicionar Notas de Versão das Fases 38 a 44 no `CHANGELOG.md`**
+  - **Arquivo**: `CHANGELOG.md`.
+  - **Ação**: Inserir seções padronizadas Keep a Changelog documentando detalhadamente as Fases 38, 39, 40, 41, 42, 43 e 44 com seus respectivos arquivos e impactos técnicos.
+  - **Validação**: Conferência de commit hashes e arquivos alterados.
 
 ---
 
-### Etapa 5: Suporte a Movimento Reduzido nos Subsistemas Recentes
+### Etapa 3: Reconciliação ROADMAP × Código
 
-- [x] **5.1 Atenuar Fatiamento Sagital em `playerSliceRenderer.ts`**
-  - **Arquivo**: `src/entities/player/playerSliceRenderer.ts`.
-  - **Ação**: Atenuar em 75% o deslocamento e curvatura senoidal quando `accessibilitySystem.isReducedMotion()` for verdadeiro.
-  - **Validação**: Verificar matriz de fatias com e sem movimento reduzido.
-
-- [x] **5.2 Atenuar Diedro de Nadadeira em `playerPectoralFin.ts`**
-  - **Arquivo**: `src/entities/player/playerPectoralFin.ts`.
-  - **Ação**: Fixar ângulo diedro e amplitude de batimento peitoral em valores suaves sob movimento reduzido.
-  - **Validação**: `npm test tests/player/`.
-
-- [x] **5.3 Atenuar Deformação Angular do Rig em `playerPuppetRig.ts`**
-  - **Arquivo**: `src/entities/player/playerPuppetRig.ts`.
-  - **Ação**: Amortecer rotações angulares da cauda e flukes quando movimento reduzido estiver ativado.
-  - **Validação**: `npm test tests/player/`.
+- [ ] **3.1 Auditar e Sincronizar `docs/ROADMAP.md`**
+  - **Arquivo**: `docs/ROADMAP.md`.
+  - **Ação**: Conferir descrições e checkboxes de todas as fases, confirmando que a Fase 52 está devidamente estruturada e sem discrepâncias em relação ao código real.
+  - **Validação**: Inspeção minuciosa de links e referências.
 
 ---
 
-### Etapa 6: Suíte de Testes da Fase 50 e Documentação
+### Etapa 4: Suíte de Testes da Fase 52
 
-- [x] **6.1 Implementar Suíte Automatizada da Fase 50**
-  - **Arquivo**: `tests/ui/phase50_accessibility_i18n.test.ts`.
-  - **Ação**: Criar testes para contraste WCAG AA, pilha de foco, paridade i18n, formatação `Intl` e atenuação por movimento reduzido.
-  - **Validação**: `npx vitest run tests/ui/phase50_accessibility_i18n.test.ts`.
-
-- [x] **6.2 Atualizar `docs/ROADMAP.md` e `CHANGELOG.md`**
-  - **Arquivos**: `docs/ROADMAP.md`, `CHANGELOG.md`.
-  - **Ação**: Registrar tarefas como concluídas e documentar novas funcionalidades acessíveis.
+- [ ] **4.1 Implementar `tests/core/phase52_documentation_consistency.test.ts`**
+  - **Arquivo**: `tests/core/phase52_documentation_consistency.test.ts`.
+  - **Ação**: Criar testes automatizados para validar que `docs/ARCHITECTURE.md` cita os módulos de renderização e storage, que `CHANGELOG.md` cobre todas as fases planejadas e que arquivos referenciados existem.
+  - **Validação**: `npx vitest run tests/core/phase52_documentation_consistency.test.ts`.
 
 ---
 
-### Etapa 7: Validação Geral de Qualidade e Build
+### Etapa 5: Validação Integrada do Projeto
 
-- [x] **7.1 Execução do Script Agregador `npm run check`**
-  - **Comando**: `npm run check` (formatação, lint, validação de dados, tipagem, testes e build).
+- [ ] **5.1 Executar Script Agregador `npm run check`**
+  - **Comando**: `npm run check` (formatação, lint, validação de schemas Zod, checagem de tipos TypeScript, testes unitários e build Vite).
+  - **Validação**: Retorno com código 0 e todos os testes verdes.

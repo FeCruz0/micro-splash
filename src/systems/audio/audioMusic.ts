@@ -154,6 +154,43 @@ export class BiomeMusicEngine {
     this.start();
   }
 
+  public getCurrentBiome(): number {
+    return this.currentBiome;
+  }
+
+  public setBiomeWithCrossfade(targetBiome: number, crossfadeDuration = 1.6): void {
+    if (this.currentBiome === targetBiome) return;
+
+    if (
+      !this.ctx ||
+      !this.musicGain ||
+      typeof this.musicGain.gain.linearRampToValueAtTime !== "function"
+    ) {
+      this.currentBiome = targetBiome;
+      return;
+    }
+
+    try {
+      const now = this.ctx.currentTime;
+      const halfDuration = crossfadeDuration / 2;
+      const baseGain = 0.35;
+
+      this.musicGain.gain.setValueAtTime(this.musicGain.gain.value, now);
+      this.musicGain.gain.linearRampToValueAtTime(0.12, now + halfDuration);
+
+      setTimeout(() => {
+        this.currentBiome = targetBiome;
+        if (this.ctx && this.musicGain) {
+          const resumeTime = this.ctx.currentTime;
+          this.musicGain.gain.setValueAtTime(this.musicGain.gain.value, resumeTime);
+          this.musicGain.gain.linearRampToValueAtTime(baseGain, resumeTime + halfDuration);
+        }
+      }, halfDuration * 1000);
+    } catch {
+      this.currentBiome = targetBiome;
+    }
+  }
+
   public updatePosition(playerX: number) {
     let targetBiome: number;
     if (playerX >= 19000) {
@@ -167,7 +204,7 @@ export class BiomeMusicEngine {
     }
 
     if (this.currentBiome !== targetBiome) {
-      this.currentBiome = targetBiome;
+      this.setBiomeWithCrossfade(targetBiome);
     }
   }
 

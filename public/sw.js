@@ -26,6 +26,7 @@ const PRECACHE_ASSETS = [
   "/icons/icon-192.png",
   "/icons/icon-512.png",
   "/fonts/Inter-SemiBold.ttf",
+  "/fonts/Inter-Bold.woff2",
   "/fonts/Outfit-Bold.ttf",
   "/fonts/Orbitron-Bold.ttf",
 ];

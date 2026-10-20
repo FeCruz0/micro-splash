@@ -1,8 +1,16 @@
 import type { GameObj, KaboomCtx } from "kaboom";
 
 /**
- * Utilitários Universais de UI & Animação (Fase 34: Telas de Jogo — Visual & Polimento)
+ * Utilitários Universais de UI & Animação (Fase 34 e Fase 51: Polimento Visual & Transições Padronizadas)
  */
+
+export const UI_TRANSITIONS = {
+  MODAL_ENTER_DURATION: 0.25,
+  MODAL_EXIT_DURATION: 0.18,
+  FADE_SCENE_DURATION: 0.35,
+  BUTTON_HOVER_SCALE: 1.04,
+  TOAST_DURATION: 2.5,
+} as const;
 
 export interface ModalEntranceOptions {
   duration?: number;
@@ -10,15 +18,21 @@ export interface ModalEntranceOptions {
   onComplete?: () => void;
 }
 
+export interface ModalExitOptions {
+  duration?: number;
+  endScale?: number;
+  onComplete?: () => void;
+}
+
 /**
- * Anima a abertura de um card modal com escala (0.85 → 1.0) e opacidade progressiva via easeOutBack (Fase 34.1).
+ * Anima a abertura de um card modal com escala (0.85 → 1.0) e opacidade progressiva via easeOutBack (Fase 34.1 e 51.3).
  */
 export function animateModalEntrance(
   k: KaboomCtx,
   cardObj: GameObj,
   options: ModalEntranceOptions = {}
 ): void {
-  const duration = options.duration ?? 0.25;
+  const duration = options.duration ?? UI_TRANSITIONS.MODAL_ENTER_DURATION;
   const startScale = options.startScale ?? 0.85;
 
   if (!cardObj) return;
@@ -59,6 +73,45 @@ export function animateModalEntrance(
   }
 }
 
+/**
+ * Anima o fechamento de um card modal com escala (1.0 → 0.85) e redução de opacidade via easeInQuad (Fase 51.3).
+ */
+export function animateModalExit(
+  k: KaboomCtx,
+  cardObj: GameObj,
+  options: ModalExitOptions = {}
+): void {
+  const duration = options.duration ?? UI_TRANSITIONS.MODAL_EXIT_DURATION;
+  const endScale = options.endScale ?? 0.85;
+
+  if (!cardObj) {
+    options.onComplete?.();
+    return;
+  }
+
+  if (typeof k.tween === "function" && k.easings?.easeInQuad) {
+    k.tween(
+      1.0,
+      endScale,
+      duration,
+      (val) => {
+        try {
+          cardObj.scale = k.vec2 ? k.vec2(val, val) : { x: val, y: val };
+          if ("opacity" in cardObj) {
+            const progress = (val - endScale) / Math.max(0.001, 1.0 - endScale);
+            cardObj.opacity = Math.min(1, Math.max(0, progress));
+          }
+        } catch {}
+      },
+      k.easings.easeInQuad
+    ).then(() => {
+      options.onComplete?.();
+    });
+  } else {
+    options.onComplete?.();
+  }
+}
+
 export interface ButtonHoverOptions {
   baseColor: [number, number, number];
   hoverColor?: [number, number, number];
@@ -79,7 +132,7 @@ export function attachButtonHoverEffect(
   options: ButtonHoverOptions
 ): void {
   const baseScale = options.baseScale ?? 1.0;
-  const hoverScale = options.hoverScale ?? 1.04;
+  const hoverScale = options.hoverScale ?? UI_TRANSITIONS.BUTTON_HOVER_SCALE;
 
   const defaultHoverColor: [number, number, number] = options.hoverColor ?? [
     Math.min(255, Math.round(options.baseColor[0] * 1.25 + 18)),

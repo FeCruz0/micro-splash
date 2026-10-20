@@ -7,6 +7,28 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [1.16.0] - 2026-10-20 — Polimento Visual & Áudio Retrô (Chiptune Preservado) (Fase 51)
+
+### Adicionado & Modificado
+
+- **Pipeline Unificada de Renderização da Baleia (Fase 51.1)**:
+  - `src/entities/player/playerRenderPipeline.ts`: Criado coordenador determinístico `executeWhaleRenderPipeline` integrando em sequência de execução estrita e auditável: 1. Cinemática do Puppet Rig (cadeia esquelética de 4 nós) -> 2. Fatiamento Sagital acoplado à onda viajante -> 3. Hidroplanos Peitorais (diedro e perspectiva) -> 4. Paleta de Fôlego.
+  - `src/entities/player.ts`: Substituição de chamadas sequenciais dispersas no loop de update pelo snapshot imutável `WhaleRenderPipelineSnapshot`, eliminando jitter entre camadas e sincronizando nadadeiras peitorais e fatias sagitais.
+- **Paleta Centralizada por Estado de Fôlego (Fase 51.2)**:
+  - `src/entities/player/playerBreathPalette.ts`: Centralização da colorimetria (`getWhaleBreathColor`) mapeando deterministicamente os estados da jubarte (calm/normal, warning/âmbar, critical/alerta pulsante, trapped/púrpura mecânico e fainting/anóxia fosca) com suporte nativo a alto contraste (`prefers-contrast`).
+  - Aplicação unificada da paleta no corpo principal e nas nadadeiras ventrais.
+- **Padronização de Transições de UI (Fase 51.3)**:
+  - `src/ui/animationUtils.ts`: Criação do conjunto de tokens `UI_TRANSITIONS` (`MODAL_ENTER_DURATION: 0.25`, `MODAL_EXIT_DURATION: 0.18`, `FADE_SCENE_DURATION: 0.35`, `BUTTON_HOVER_SCALE: 1.04`, `TOAST_DURATION: 3.0`) e função de saída simétrica com easing `animateModalExit`.
+- **Calibração de Ganho e Dinâmica Retrô (Fase 51.4)**:
+  - `src/systems/audio/audioEngine.ts`: Calibrado ganho master para 1.0 (eliminando boost saturador de 1.35x contra o limiter de -6dB), preservando headroom transparente para SFX e trilhas sintetizadas sem distorção ou bombeamento do compressor.
+- **Crossfade Chiptune entre Biomas (Fase 51.5)**:
+  - `src/systems/audio/audioMusic.ts`: Implementados `setBiomeWithCrossfade(targetBiome, crossfadeDuration)` e `getCurrentBiome()`, aplicando curvas de ganho suaves e interpolação harmônica durante a transição entre biomas com andamento fixo de 75 BPM.
+- **Otimização de Fontes e Precache PWA (Fase 51.6)**:
+  - `index.html`: Priorização do formato moderno WOFF2 (`Inter-Bold.woff2`) com fallback TTF e política `font-display: swap`.
+  - `public/sw.js`: Inclusão do asset WOFF2 no array `PRECACHE_ASSETS` para carregamento instantâneo offline em totens.
+- **Suíte de Testes da Fase 51 (Fase 51.7)**:
+  - `tests/player/phase51_player_render_pipeline.test.ts`, `tests/audio/phase51_audio_mix.test.ts`, `tests/ui/phase51_ui_transitions.test.ts`: 18 novos testes unitários garantindo estabilidade, pureza e ausência de regressões.
+
 ## [1.15.0] - 2026-10-19 — Acessibilidade & Internacionalização Avançadas (Fase 50)
 
 ### Adicionado & Modificado

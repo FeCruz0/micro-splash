@@ -42,14 +42,16 @@ export class AudioEngine {
 
     this.loadSettings();
 
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" && !this.ctx) return;
 
     try {
-      const windowWithWebkit = window as Window & { webkitAudioContext?: typeof AudioContext };
-      const AudioCtxClass = window.AudioContext || windowWithWebkit.webkitAudioContext;
-      if (!AudioCtxClass) return;
+      if (!this.ctx) {
+        const windowWithWebkit = window as Window & { webkitAudioContext?: typeof AudioContext };
+        const AudioCtxClass = window.AudioContext || windowWithWebkit.webkitAudioContext;
+        if (!AudioCtxClass) return;
 
-      this.ctx = new AudioCtxClass();
+        this.ctx = new AudioCtxClass();
+      }
 
       // 36.1 Limiter no Barramento Master (Threshold -6dB, ratio 12, attack 3ms, release 250ms)
       this.masterLimiter = this.ctx.createDynamicsCompressor();
@@ -60,7 +62,7 @@ export class AudioEngine {
       this.masterLimiter.release.setValueAtTime(0.25, this.ctx.currentTime);
 
       this.masterGain = this.ctx.createGain();
-      this.masterGain.gain.setValueAtTime(this.volume * 1.35, this.ctx.currentTime);
+      this.masterGain.gain.setValueAtTime(this.volume * 1.0, this.ctx.currentTime);
 
       // Conexão do grafo master: masterGain -> masterLimiter -> destination
       this.masterGain.connect(this.masterLimiter);
@@ -326,7 +328,7 @@ export class AudioEngine {
   public setVolume(val: number) {
     this.volume = Math.max(0, Math.min(1, val));
     if (this.masterGain && this.ctx && this.ctx.state !== "closed" && !this.isMuted) {
-      this.masterGain.gain.setTargetAtTime(this.volume * 1.35, this.ctx.currentTime, 0.05);
+      this.masterGain.gain.setTargetAtTime(this.volume * 1.0, this.ctx.currentTime, 0.05);
     }
     this.saveSettings();
   }
