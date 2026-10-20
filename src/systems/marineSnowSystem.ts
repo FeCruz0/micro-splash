@@ -22,9 +22,11 @@ export const MARINE_SNOW_CONFIG = {
   BASE_OPACITY: 0.32,
 };
 
+const reusableSnowResult = { y: 0, driftOffset: 0 };
+
 /**
  * Função pura que calcula o deslocamento vertical e oscilação horizontal
- * de uma partícula de Neve Marinha (Marine Snow).
+ * de uma partícula de Neve Marinha (Marine Snow) reaproveitando buffer de retorno (Fase 53).
  */
 export function updateSnowParticlePosition(
   currentY: number,
@@ -40,12 +42,13 @@ export function updateSnowParticlePosition(
   if (nextY > maxY) {
     nextY = minY + (nextY - maxY);
   }
-  const driftOffset = Math.sin(time * driftSpeed + driftPhase) * 6;
-  return { y: nextY, driftOffset };
+  reusableSnowResult.y = nextY;
+  reusableSnowResult.driftOffset = Math.sin(time * driftSpeed + driftPhase) * 6;
+  return reusableSnowResult;
 }
 
 /**
- * Sistema de Neve Marinha Abissal (Fase 30.3):
+ * Sistema de Neve Marinha Abissal (Fase 30.3 & 53):
  * Gera micro-sedimentos orgânicos (Marine Snow) que precipitam lentamente
  * pelas profundezas da Travessia Pelágica (5.000m a 12.000m).
  */
@@ -117,7 +120,7 @@ export function setupMarineSnowSystem(k: KaboomCtx) {
 
     const dt = k.dt();
     time += dt;
-    const camX = k.camPos().x;
+    const camX = typeof k.camPos === "function" ? k.camPos().x : 0;
     const screenLeft = camX - screenW / 2;
 
     // Ativo apenas na Travessia Pelágica (5.000m a 12.000m) com transição suave nas bordas
@@ -126,9 +129,9 @@ export function setupMarineSnowSystem(k: KaboomCtx) {
       camX <= MARINE_SNOW_CONFIG.MAX_DISTANCE + 400;
 
     if (!isInPelagic) {
-      particles.forEach((p) => {
-        p.obj.hidden = true;
-      });
+      for (let i = 0; i < particles.length; i++) {
+        particles[i].obj.hidden = true;
+      }
       return;
     }
 
@@ -140,9 +143,11 @@ export function setupMarineSnowSystem(k: KaboomCtx) {
       fadeFactor = Math.max(0, (MARINE_SNOW_CONFIG.MAX_DISTANCE + 400 - camX) / 400);
     }
 
-    particles.forEach((p) => {
+    const count = particles.length;
+    for (let i = 0; i < count; i++) {
+      const p = particles[i];
       p.obj.hidden = false;
-      const { y, driftOffset } = updateSnowParticlePosition(
+      const res = updateSnowParticlePosition(
         p.y,
         p.fallSpeed,
         dt,
@@ -152,10 +157,10 @@ export function setupMarineSnowSystem(k: KaboomCtx) {
         minY,
         maxY
       );
-      p.y = y;
-      p.obj.pos.x = screenLeft + p.relX + driftOffset;
+      p.y = res.y;
+      p.obj.pos.x = screenLeft + p.relX + res.driftOffset;
       p.obj.pos.y = p.y;
       p.obj.opacity = p.baseOpacity * fadeFactor;
-    });
+    }
   });
 }

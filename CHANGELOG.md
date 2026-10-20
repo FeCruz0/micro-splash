@@ -7,6 +7,30 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [1.18.0] - 2026-10-20 — Otimização Extrema de Frame Time & Taxa de Quadros (Fase 53)
+
+### Adicionado & Modificado
+
+- **Throttling & Caching de Atualizações Globais (Fase 53.1)**:
+  - `src/scenes/gameScene.ts`: Extração e cache de `camPos()`, `width()` e `height()` da câmera uma única vez por quadro no início do loop principal, eliminando chamadas redundantes de viewport.
+  - `src/systems/oceanEnvironment.ts`: Dirty-checking com limiar de 5 metros (`isOceanColorDirty`, `resetOceanColorsCache`) na atualização de cores oceânicas, eliminando 12 lerps e 4 instanciações de `k.rgb()` na maioria dos frames.
+- **Culling Espacial Acelerado & Pausa Fora de Tela (Fase 53.2)**:
+  - `src/systems/spatialCullingSystem.ts`: Remoção de entidades destruídas via swap-and-pop O(1) em substituição a `splice(index, 1)`. Pausa de execução (`paused = !isVisible`) propagada para atores fora do frustum horizontal da câmera.
+- **Reutilização de Buffers e Redução de Pressão no GC (Fase 53.3)**:
+  - `src/entities/player/playerSliceRenderer.ts`: Suporte a `targetBuffer` mutado in-place em `calculateWhaleSliceTransforms`, eliminando alocações anônimas de objetos e arrays a cada frame.
+  - `src/entities/player.ts`: Pré-alocação e reutilização contínua de buffer estático no pipeline de renderização da baleia.
+  - `src/entities/krill.ts`: Refatoração da cinemática e atração dos boids de cardumes para matemática escalar pura (`relX`, `relY`), poupando centenas de vetores Kaboom por segundo.
+  - `src/systems/marineSnowSystem.ts`: Mutação in-place em loop indexado reaproveitando resultado estático sem alocar novos pares de coordenadas.
+- **Short-Circuit de Clima e Lista Ativa Densa no ParticlePool (Fase 53.4)**:
+  - `src/systems/particlePool.ts`: Implementação de listas ativas densas `activeCircleIndices` e `activeRectIndices` gerenciadas via swap-and-pop bidirecional O(1); loops de atualização agora iteram estritamente partículas vivas; cálculo de estatísticas tornado O(1).
+  - `src/systems/weatherSystem.ts`: Flags de controle de estado (`wasBlizzardActive`, `wasGaleActive`, `wasSolarCalmActive`) para short-circuit imediato de emissores atmosféricos quando o clima for inativo ou limpo.
+- **Roteamento de Emissões Residuais para ParticlePool (Fase 53.5)**:
+  - `src/systems/breachSystem.ts` e `src/systems/weatherSystem.ts`: Redirecionamento de sparkles do salto, micro-bolhas subaquáticas, gotas de reentrada e respingos de chuva para `getParticlePool()?.spawnCircle` / `spawnRect`.
+- **Métricas de Frame Time p95/p99 no Overlay de Telemetria F3/F8 (Fase 53.6)**:
+  - `src/ui/debugDistance.ts`: Buffer circular de 120 amostras de frame time e função pura `calculateFrameTimeMetrics` computando média, mediana, p95, p99 e tempo máximo em milissegundos. Exibição da contagem de entidades visíveis vs ocultadas (culled).
+- **Suíte de Testes da Fase 53 (Fase 53.7)**:
+  - `tests/systems/phase53_frame_time_optimization.test.ts`: Suíte de testes automatizados com 8 cenários cobrindo reutilização de buffers, lista ativa do pool, dirty checking oceânico, estatísticas de latência e swap-and-pop do culling.
+
 ## [1.16.0] - 2026-10-20 — Polimento Visual & Áudio Retrô (Chiptune Preservado) (Fase 51)
 
 ### Adicionado & Modificado

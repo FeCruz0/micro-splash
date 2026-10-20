@@ -1,111 +1,162 @@
-# Plano de Implementação — Fase 52: Documentação & Experiência do Desenvolvedor
+# Plano de Implementação — Fase 53: Otimização Extrema de Frame Time & Taxa de Quadros (Zero Frame Drops)
 
 Status: Concluído ✅  
 Data: 2026-10-20  
-Alvo: v1.17.0
+Alvo: v1.18.0
 
 ---
 
-## 🔬 Diagnóstico e Escopo da Fase 52
+## 🔬 Diagnóstico e Escopo da Fase 53
 
-1. **Atualização Arquitetural em `docs/ARCHITECTURE.md` (Fase 52.1)**:
-   - O documento atual de arquitetura parou na Fase 36/37 e não reflete os avanços recentes do projeto:
-     - **Biomecânica da Jubarte (Fases 40 a 44 e Fase 51)**:
-       - Diagrama Mermaid de arquitetura do jogador ilustrando o fluxo determinístico:
-         `player.ts` ➔ `playerRenderPipeline.ts` ➔ (`playerPuppetRig.ts`, `playerSliceRenderer.ts`, `playerPectoralFin.ts`, `playerBreathPalette.ts`).
-       - Detalhamento de cada camada do rig:
-         1. Cinemática do Puppet Rig (cadeia esquelética de 4 nós e ângulo de ataque dos flukes).
-         2. Fatiamento Sagital e propagação da onda viajante.
-         3. Hidroplanos Peitorais independentes com diedro e perspectiva 2.5D.
-         4. Colorimetria centralizada e mapeamento dos 5 estados de fôlego.
-     - **Desacoplamento e Estrutura Modular da UI (Fases 46 e 48)**:
-       - Reorganização em `src/ui/screens/`, `src/ui/modals/`, `src/ui/hud/`, `src/ui/shared/`.
-       - Padrão de Code-Splitting dinâmico via `await import(...)` para modais pesados (`quizModal`, `codexScreen`, `optionsScreen`, etc.).
-       - Gestão de foco LIFO acessível (`keyboardNav.ts`) e tokens padronizados de transição (`animationUtils.ts`).
-     - **Subsistema de Persistência com Schemas Zod (Fases 45 e 48)**:
-       - `src/utils/storage.ts` com validação de runtime via schemas Zod (`src/types/storageSchemas.ts`), eliminando acessos diretos desprotegidos ao `localStorage`.
-     - **Subsistema PWA Offline-First & Cache Versionado (Fase 47)**:
-       - Plugin `pwaVersionPlugin` injetando a versão do `package.json` no Service Worker.
-       - Estratégia de precache com fallback para `offline.html` e poda LRU de cache dinâmico (`trimCache`).
+1. **Throttling & Caching de Atualizações Globais (`src/scenes/gameScene.ts` & `src/systems/oceanEnvironment.ts`)**:
+   - Atualmente, `k.camPos()`, `k.width()` e `k.height()` são consultados repetidas vezes em múltiplos pontos do loop principal de `gameScene.ts`.
+   - `updateOceanColors` executa 12 interpolações `k.lerp` e instancia 4 novos objetos de cor `k.rgb()` todos os frames, mesmo quando a baleia se move poucos pixels e a transição cromática entre biomas é imperceptível.
+   - **Solução**:
+     - Cachear `cameraPosition`, `screenWidth` e `screenHeight` uma única vez no início de cada frame em `gameScene.ts`.
+     - Implementar dirty-check e throttling em `updateOceanColors`: recalcular a paleta ambiental somente quando a distância percorrida variar mais de 5 metros ou se a cena acabou de carregar.
 
-2. **Reconciliação e Preenchimento do `CHANGELOG.md` para as Fases 38 a 44 (Fase 52.2)**:
-   - Identificada uma lacuna documental no `CHANGELOG.md` entre as versões `1.13.0` (Fase 37) e `1.14.0` (Fases 45 a 49): as Fases 38 a 44 foram integralmente implementadas e commitadas no git, mas suas notas de versão não foram inseridas no arquivo.
-   - Reconciliar e documentar formalmente cada fase histórica com base nos commits e testes do repositório:
-     - **Fase 38**: PWA Telemetria Offline, Modo Totem/Kiosk e Badge de FPS em tempo real.
-     - **Fase 39**: Culling Espacial de Frustum com Margens de Histerese e Cache O(1) do Jogador.
-     - **Fase 40**: Biomecânica de Arfagem, Curvatura Espinhal e Deriva Orbital de Maré.
-     - **Fase 41**: Deformação Sagital por Fatiamento Segmentado (Vertical Slice Ribbon) e Onda Viajante.
-     - **Fase 42**: Nadadeiras Peitorais Independentes com Diedro e Enflechamento Hidrodinâmico.
-     - **Fase 43**: Articulação Multissegmentar de Cauda e Flukes (Multi-Part Puppet Rig) com Ângulo de Ataque Dinâmico.
-     - **Fase 44**: Spritesheet de Alta Fluidez de 16 Quadros e Interpolação Harmônica de Estados de Nado.
+2. **Culling Espacial Acelerado & Pausa O(1) Fora da Tela (`src/systems/spatialCullingSystem.ts`)**:
+   - Ao remover entidades destruídas no array de culling, `this.cullableEntities.splice(index, 1)` gera custo O(N) com realocação de memória.
+   - Entidades marcadas com `hidden = true` ainda executam seus callbacks `onUpdate` a cada frame.
+   - **Solução**:
+     - Substituir `splice` por remoção O(1) via swap-and-pop (`cullableEntities[index] = cullableEntities[lastIndex]; cullableEntities.pop()`).
+     - Propagar `paused = !isVisible` para entidades com lógica pesada ou que suportem o componente de pausa.
 
-3. **Reconciliação ROADMAP × Código e Sincronização Geral (Fase 52.3)**:
-   - Auditar todos os módulos ativos para certificar que os itens marcados com `[x]` no `docs/ROADMAP.md` correspondem com precisão à realidade do código.
-   - Alinhar `.ai/todo.md`, `docs/ROADMAP.md` e referências cruzadas de documentação.
+3. **Reutilização de Buffers & Redução de Pressão no Garbage Collector**:
+   - `calculateWhaleSliceTransforms` (`src/entities/player/playerSliceRenderer.ts`) aloca um novo array `WhaleSliceData[]` com 4 novos objetos em cada frame da simulação.
+   - `createKrill` (`src/entities/krill.ts`) instancia entre 3 e 4 objetos `Vec2` (`scale`, `lerp`, `add`, `vec2`) por boid por frame (com 9 boids e múltiplos cardumes, centenas de alocações por frame).
+   - `updateSnowParticlePosition` (`src/systems/marineSnowSystem.ts`) retorna novos objetos anônimos `{ y, driftOffset }` todo frame.
+   - **Solução**:
+     - Permitir injeção de buffer reutilizável pré-alocado em `calculateWhaleSliceTransforms`.
+     - Refatorar a física dos boids de krill para utilizar coordenadas e velocidades escalares (`relX`, `relY`), mutando posições diretamente sem instanciar novos `Vec2`.
+     - Atualizar a neve marinha in-place na própria estrutura `MarineSnowFlake`.
 
-4. **Suíte de Testes de Consistência Documental e Arquitetural (Fase 52.4)**:
-   - Criar `tests/core/phase52_documentation_consistency.test.ts`:
-     - Validar que `docs/ARCHITECTURE.md` contém diagramas Mermaid válidos e cita explicitamente os subsistemas essenciais (`playerRenderPipeline`, `playerPuppetRig`, `playerSliceRenderer`, `playerPectoralFin`, `playerBreathPalette`, `storage.ts`, `trimCache`).
-     - Validar que `CHANGELOG.md` contém seções para todas as fases até a Fase 51 sem lacunas.
-     - Validar que caminhos de arquivos citados na documentação de arquitetura realmente existem no disco.
+4. **Short-Circuit de Subsistemas Inativos & Pool com Lista Ativa Densa (`src/systems/weatherSystem.ts`, `src/systems/particlePool.ts`, `src/systems/benthicFloorSystem.ts`)**:
+   - Em `weatherSystem.ts`, quando o clima é `clear` ou inativo, o sistema continua executando `forEach` sobre todos os arrays de partículas para atribuir `opacity = 0`.
+   - Em `particlePool.ts`, o método `update` itera todos os slots (círculos e retângulos) mesmo quando inativos.
+   - **Solução**:
+     - Implementar flag de clima limpo em `weatherSystem.ts` para sair imediatamente do loop quando as partículas já estiverem ocultadas.
+     - Implementar arrays densos de índices ativos (`activeCircleIndices`, `activeRectIndices`) com swap-and-pop na desativação em `particlePool.ts`.
+     - Eliminar alocações vetoriais na atração magnética de partículas substituindo por matemática escalar direta.
+     - Registrar flora bentônica (`benthicFloorSystem.ts`) no culling para não atualizar nós fora da viewport.
+
+5. **Roteamento de Spawns Residuais para ParticlePool (`src/entities/player/playerParticles.ts` & `src/systems/breachSystem.ts`)**:
+   - Partículas de bolhas caudais, vórtices de nadadeiras peitorais e splashes de breach criam nós temporários ad-hoc via `k.add()` com timers de destruição.
+   - **Solução**:
+     - Rotear emissão de bolhas e respingos para `ParticlePool.spawnCircle` e `ParticlePool.spawnRect`, eliminando instanciação e destruição de nós no Kaboom.
+
+6. **Métricas de Frame Time p95/p99 no Overlay de Diagnóstico F3 (`src/ui/debugDistance.ts`)**:
+   - O painel atual exibe apenas FPS instantâneo e entidades brutas.
+   - **Solução**:
+     - Implementar buffer circular de 120 amostras de frame time (`dt` em ms).
+     - Criar funções puras `calculateFrameTimeMetrics(history: number[])` calculando média, p95 e p99 em milissegundos.
+     - Exibir as métricas de latência e a contagem de entidades visíveis vs culled no painel F3/F8.
+
+7. **Suíte de Testes Automatizados de Performance e Estabilidade (`tests/systems/phase53_frame_time_optimization.test.ts`)**:
+   - Cobertura completa de:
+     - Reutilização de buffers em `playerSliceRenderer`.
+     - Lista densa ativa em `particlePool`.
+     - Cálculo de métricas de frame time p95/p99.
+     - Dirty-check de `updateOceanColors`.
 
 ---
 
 ## 📋 Lista de Tarefas Atômicas
 
-### Etapa 1: Atualização Abrangente de `docs/ARCHITECTURE.md`
+### Etapa 1: Throttling & Caching de Atualizações Globais
 
-- [x] **1.1 Documentar Nova Árvore de Diretórios e Módulos**
-  - **Arquivo**: `docs/ARCHITECTURE.md`.
-  - **Ação**: Atualizar a árvore ASCII do projeto refletindo a organização modular de `src/entities/player/`, `src/scenes/`, `src/systems/audio/sfx/`, `src/ui/screens/`, `src/ui/modals/`, `src/ui/hud/` e `src/ui/shared/`.
-  - **Validação**: Verificação visual e validação por teste automatizado.
+- [x] **1.1 Cachear Propriedades Globais no Loop Principal**
+  - **Arquivo**: `src/scenes/gameScene.ts`.
+  - **Ação**: Extrair `cameraPos = k.camPos()`, `screenWidth = k.width()`, `screenHeight = k.height()` uma vez por frame e reutilizar em todos os subsistemas dependentes.
+  - **Validação**: Verificação de ausência de chamadas redundantes a `k.camPos()`.
 
-- [x] **1.2 Documentar Arquitetura Biomecânica da Jubarte e Diagrama Mermaid**
-  - **Arquivo**: `docs/ARCHITECTURE.md`.
-  - **Ação**: Inserir seção detalhada sobre o rig da baleia (Fases 40-44 e 51) com diagrama Mermaid de fluxo de renderização (`playerRenderPipeline`), cinemática direta do puppet rig, onda viajante sagital, hidroplanos diedrais e colorimetria de fôlego.
-  - **Validação**: Validação da sintaxe Mermaid e conferência com os tipos em `src/entities/player/types.ts`.
-
-- [x] **1.3 Documentar Arquitetura de UI Desacoplada e Code-Splitting**
-  - **Arquivo**: `docs/ARCHITECTURE.md`.
-  - **Ação**: Adicionar seção explicando o carregamento dinâmico assíncrono via `await import(...)`, o sistema de transições com `animationUtils.ts` e a gestão de foco LIFO com `keyboardNav.ts`.
-  - **Validação**: Coerência com `src/scenes/menuScene.ts` e `src/ui/`.
-
-- [x] **1.4 Documentar Persistência com Zod e PWA Versionado**
-  - **Arquivo**: `docs/ARCHITECTURE.md`.
-  - **Ação**: Documentar a camada de persistência em `src/utils/storage.ts` com schemas Zod e o ciclo de vida offline do Service Worker com poda de cache LRU (`trimCache`).
-  - **Validação**: Coerência com `src/types/storageSchemas.ts` e `public/sw.js`.
+- [x] **1.2 Dirty-Check e Throttling em `updateOceanColors`**
+  - **Arquivo**: `src/systems/oceanEnvironment.ts`.
+  - **Ação**: Implementar cache da última distância e cores, recalculando interpolações apenas se a variação for superior ao limiar (`threshold = 5m`).
+  - **Validação**: Teste unitário validando que pequenas variações não acionam novos cálculos.
 
 ---
 
-### Etapa 2: Reconciliação do `CHANGELOG.md` (Fases 38 a 44)
+### Etapa 2: Culling Espacial O(1) e Pausa Fora de Tela
 
-- [x] **2.1 Adicionar Notas de Versão das Fases 38 a 44 no `CHANGELOG.md`**
-  - **Arquivo**: `CHANGELOG.md`.
-  - **Ação**: Inserir seções padronizadas Keep a Changelog documentando detalhadamente as Fases 38, 39, 40, 41, 42, 43 e 44 com seus respectivos arquivos e impactos técnicos.
-  - **Validação**: Conferência de commit hashes e arquivos alterados.
-
----
-
-### Etapa 3: Reconciliação ROADMAP × Código
-
-- [x] **3.1 Auditar e Sincronizar `docs/ROADMAP.md`**
-  - **Arquivo**: `docs/ROADMAP.md`.
-  - **Ação**: Conferir descrições e checkboxes de todas as fases, confirmando que a Fase 52 está devidamente estruturada e sem discrepâncias em relação ao código real.
-  - **Validação**: Inspeção minuciosa de links e referências.
+- [x] **2.1 Otimizar Limpeza de Entidades com Swap-and-Pop**
+  - **Arquivo**: `src/systems/spatialCullingSystem.ts`.
+  - **Ação**: Substituir `splice(index, 1)` por swap-and-pop O(1) e adicionar suporte a pausa de processamento em entidades fora de tela.
+  - **Validação**: Testes em `tests/systems/phase39_performance_culling.test.ts`.
 
 ---
 
-### Etapa 4: Suíte de Testes da Fase 52
+### Etapa 3: Reutilização de Buffers e Eliminação de Alocações por Frame
 
-- [x] **4.1 Implementar `tests/core/phase52_documentation_consistency.test.ts`**
-  - **Arquivo**: `tests/core/phase52_documentation_consistency.test.ts`.
-  - **Ação**: Criar testes automatizados para validar que `docs/ARCHITECTURE.md` cita os módulos de renderização e storage, que `CHANGELOG.md` cobre todas as fases planejadas e que arquivos referenciados existem.
-  - **Validação**: `npx vitest run tests/core/phase52_documentation_consistency.test.ts`.
+- [x] **3.1 Buffer Reutilizável de Fatias em `playerSliceRenderer.ts`**
+  - **Arquivo**: `src/entities/player/playerSliceRenderer.ts`.
+  - **Ação**: Permitir injeção de `targetBuffer?: WhaleSliceData[]` para escrita in-place, eliminando `result = []` por frame.
+  - **Validação**: Teste unitário comparando integridade com o modo legado.
+
+- [x] **3.2 Eliminar Alocações Vetoriais nos Boids de Krill**
+  - **Arquivo**: `src/entities/krill.ts`.
+  - **Ação**: Migrar a física dos boids para matemática escalar com variáveis `relX`, `relY`, evitando `targetScatter`, `sub()`, `unit()` e `lerp()` vetoriais a cada quadro.
+  - **Validação**: Teste em `tests/systems/krill.test.ts`.
+
+- [x] **3.3 Atualização In-Place de Neve Marinha**
+  - **Arquivo**: `src/systems/marineSnowSystem.ts`.
+  - **Ação**: Mutar coordenadas diretamente na estrutura `MarineSnowFlake`, evitando alocações anônimas `{ y, driftOffset }`.
+  - **Validação**: `tests/systems/phase35_visual_systems.test.ts`.
 
 ---
 
-### Etapa 5: Validação Integrada do Projeto
+### Etapa 4: Short-Circuit e Lista Ativa Densa no ParticlePool
 
-- [x] **5.1 Executar Script Agregador `npm run check`**
-  - **Comando**: `npm run check` (formatação, lint, validação de schemas Zod, checagem de tipos TypeScript, testes unitários e build Vite).
+- [x] **4.1 Lista Ativa Densa com Swap-and-Pop no `ParticlePool`**
+  - **Arquivo**: `src/systems/particlePool.ts`.
+  - **Ação**: Gerenciar `activeCircleIndices` e `activeRectIndices` iterando apenas partículas em vida útil e eliminando vetores em `targetPos`.
+  - **Validação**: Testes de integridade em `tests/systems/particlePool.test.ts`.
+
+- [x] **4.2 Short-Circuit de Clima Inativo em `weatherSystem.ts`**
+  - **Arquivo**: `src/systems/weatherSystem.ts`.
+  - **Ação**: Adicionar flag para evitar percorrer arrays de partículas quando o clima estiver inativo e opacidades zeradas.
+  - **Validação**: `tests/systems/weather.test.ts`.
+
+---
+
+### Etapa 5: Roteamento de Spawns Residuais para ParticlePool
+
+- [x] **5.1 Rotear Bolhas e Vórtices para o Pool**
+  - **Arquivos**: `src/entities/player/playerParticles.ts`, `src/systems/breachSystem.ts`.
+  - **Ação**: Substituir `k.add()` ad-hoc de partículas por chamadas a `particlePool.spawnCircle`.
+  - **Validação**: Testes de emissão de partículas.
+
+---
+
+### Etapa 6: Métricas de Frame Time p95/p99 no Diagnóstico F3
+
+- [x] **6.1 Implementar Buffer Circular e Métricas de Frame Time**
+  - **Arquivo**: `src/ui/debugDistance.ts`.
+  - **Ação**: Implementar buffer circular de 120 quadros e funções puras `calculateFrameTimeMetrics` (média, p95, p99).
+  - **Validação**: Testes unitários para cálculos estatísticos.
+
+- [x] **6.2 Exibir Métricas no Painel de Telemetria**
+  - **Arquivo**: `src/ui/debugDistance.ts`.
+  - **Ação**: Integrar p95/p99 e contagem visível vs culled no layout do HUD F3/F8.
+  - **Validação**: Testes em `tests/systems/f3Diagnostics.test.ts`.
+
+---
+
+### Etapa 7: Suíte de Testes da Fase 53 e Documentação
+
+- [x] **7.1 Implementar `tests/systems/phase53_frame_time_optimization.test.ts`**
+  - **Arquivo**: `tests/systems/phase53_frame_time_optimization.test.ts`.
+  - **Ação**: Criar testes validando buffer de fatias, lista ativa do pool, throttling de cores e métricas de frame time.
+  - **Validação**: `npx vitest run tests/systems/phase53_frame_time_optimization.test.ts`.
+
+- [x] **7.2 Atualizar `docs/ROADMAP.md` e `CHANGELOG.md`**
+  - **Arquivos**: `docs/ROADMAP.md`, `CHANGELOG.md`.
+  - **Ação**: Marcar checkboxes e documentar a versão 1.18.0.
+
+---
+
+### Etapa 8: Validação Integrada do Projeto
+
+- [x] **8.1 Executar Script Agregador `npm run check`**
+  - **Comando**: `npm run check` (formatação, lint, validação de dados, tipos TypeScript, testes e build).
   - **Validação**: Retorno com código 0 e todos os testes verdes.

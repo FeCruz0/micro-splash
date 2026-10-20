@@ -4,6 +4,7 @@ import { audioSystem } from "./audioSystem";
 import { analytics } from "../services/analytics";
 import { safeShake } from "../utils/camera";
 import { getRandomFloat, getRandomChoice } from "../utils/random";
+import { getParticlePool } from "./particlePool";
 import type { PlayerController } from "../entities/player";
 import type { GameState } from "./state";
 
@@ -101,18 +102,34 @@ export function setupBreachSystem(config: BreachSystemConfig) {
 
         // Partículas douradas e de vapor reluzente na trilha aérea da baleia
         if (getRandomFloat(0, 1) < 0.6) {
-          const sparkle = k.add([
-            k.circle(k.rand(2, 4)),
-            k.pos(playerPos.x - k.rand(10, 25), playerPos.y + k.rand(-10, 10)),
-            k.color(255, 235, 140),
-            k.opacity(0.85),
-            k.z(15),
-          ]);
-          sparkle.onUpdate(() => {
-            sparkle.opacity -= k.dt() * 1.8;
-            sparkle.pos.y += k.dt() * 15;
-            if (sparkle.opacity <= 0) k.destroy(sparkle);
-          });
+          const pool = getParticlePool();
+          const pPos = k.vec2(playerPos.x - k.rand(10, 25), playerPos.y + k.rand(-10, 10));
+          const pRadius = k.rand(2, 4);
+          if (pool) {
+            pool.spawnCircle({
+              pos: pPos,
+              radius: pRadius,
+              color: k.rgb(255, 235, 140),
+              opacity: 0.85,
+              z: 15,
+              vel: k.vec2(0, 15),
+              fadeRate: 1.8,
+              maxLife: 0.55,
+            });
+          } else {
+            const sparkle = k.add([
+              k.circle(pRadius),
+              k.pos(pPos),
+              k.color(255, 235, 140),
+              k.opacity(0.85),
+              k.z(15),
+            ]);
+            sparkle.onUpdate(() => {
+              sparkle.opacity -= k.dt() * 1.8;
+              sparkle.pos.y += k.dt() * 15;
+              if (sparkle.opacity <= 0) k.destroy(sparkle);
+            });
+          }
         }
       }
 
@@ -254,21 +271,37 @@ export function createWaterSplash(
   });
 
   // 3. Coluna de micro-bolhas submersas afundando e emergindo
+  const pool = getParticlePool();
   for (let b = 0; b < 8; b++) {
-    const bubble = k.add([
-      k.rect(2, 2),
-      k.pos(pos.x + k.rand(-16, 16), pos.y + k.rand(4, 22)),
-      k.color(210, 245, 255),
-      k.opacity(0.85),
-      k.z(18),
-    ]);
+    const bPos = k.vec2(pos.x + k.rand(-16, 16), pos.y + k.rand(4, 22));
+    const bVelY = k.rand(20, 60) - 25;
+    if (pool) {
+      pool.spawnRect({
+        pos: bPos,
+        width: 2,
+        height: 2,
+        color: k.rgb(210, 245, 255),
+        opacity: 0.85,
+        z: 18,
+        vel: k.vec2(0, bVelY),
+        fadeRate: 1.8,
+        maxLife: 0.5,
+      });
+    } else {
+      const bubble = k.add([
+        k.rect(2, 2),
+        k.pos(bPos),
+        k.color(210, 245, 255),
+        k.opacity(0.85),
+        k.z(18),
+      ]);
 
-    const bVelY = k.rand(20, 60);
-    bubble.onUpdate(() => {
-      bubble.pos.y += bVelY * k.dt() - 25 * k.dt(); // Afunda pelo choque e sobe de volta
-      bubble.opacity -= k.dt() * 1.8;
-      if (bubble.opacity <= 0) k.destroy(bubble);
-    });
+      bubble.onUpdate(() => {
+        bubble.pos.y += bVelY * k.dt();
+        bubble.opacity -= k.dt() * 1.8;
+        if (bubble.opacity <= 0) k.destroy(bubble);
+      });
+    }
   }
 }
 
@@ -378,26 +411,47 @@ export function createBreachReentrySplash(
   });
 
   // 3. Spray de micro-gotas circulares no epicentro do impacto
+  const reentryPool = getParticlePool();
   for (let g = 0; g < 12; g++) {
-    const drop = k.add([
-      k.circle(k.rand(2, 4.5)),
-      k.pos(pos.x + k.rand(-25, 25), pos.y - k.rand(2, 10)),
-      k.color(220, 245, 255),
-      k.opacity(0.85),
-      k.z(20),
-    ]);
+    const dPos = k.vec2(pos.x + k.rand(-25, 25), pos.y - k.rand(2, 10));
     const dVelX = k.rand(-120, 120);
-    let dVelY = k.rand(-180, -90);
+    const dVelY = k.rand(-180, -90);
+    const dRadius = k.rand(2, 4.5);
 
-    drop.onUpdate(() => {
-      const dt = k.dt();
-      dVelY += 520 * dt;
-      drop.pos.x += dVelX * dt;
-      drop.pos.y += dVelY * dt;
-      drop.opacity -= dt * 1.6;
-      if (drop.opacity <= 0 || drop.pos.y > pos.y + 25) {
-        k.destroy(drop);
-      }
-    });
+    if (reentryPool) {
+      reentryPool.spawnCircle({
+        pos: dPos,
+        radius: dRadius,
+        color: k.rgb(220, 245, 255),
+        opacity: 0.85,
+        z: 20,
+        vel: k.vec2(dVelX, dVelY),
+        gravityY: 520,
+        fadeRate: 1.6,
+        maxLife: 0.65,
+        boundaryY: pos.y + 25,
+        boundaryYMode: "greater",
+      });
+    } else {
+      const drop = k.add([
+        k.circle(dRadius),
+        k.pos(dPos),
+        k.color(220, 245, 255),
+        k.opacity(0.85),
+        k.z(20),
+      ]);
+      let curDVelY = dVelY;
+
+      drop.onUpdate(() => {
+        const dt = k.dt();
+        curDVelY += 520 * dt;
+        drop.pos.x += dVelX * dt;
+        drop.pos.y += curDVelY * dt;
+        drop.opacity -= dt * 1.6;
+        if (drop.opacity <= 0 || drop.pos.y > pos.y + 25) {
+          k.destroy(drop);
+        }
+      });
+    }
   }
 }

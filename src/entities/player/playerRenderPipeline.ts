@@ -84,7 +84,8 @@ export interface WhaleRenderPipelineSnapshot {
  * Executa de forma síncrona e sem efeitos colaterais a pipeline unificada de renderização.
  */
 export function executeWhaleRenderPipeline(
-  parameters: WhaleRenderPipelineParameters
+  parameters: WhaleRenderPipelineParameters,
+  reusableSliceBuffer?: WhaleSliceData[]
 ): WhaleRenderPipelineSnapshot {
   const {
     bodyAngleInDegrees,
@@ -136,7 +137,7 @@ export function executeWhaleRenderPipeline(
     puppetRig,
     isReducedMotion,
   };
-  const slices = calculateWhaleSliceTransforms(sliceParameters);
+  const slices = calculateWhaleSliceTransforms(sliceParameters, reusableSliceBuffer);
 
   // 3. Passo 3: Cinemática dos hidroplanos peitorais ancorados ao tórax
   const pectoralFinParameters: PectoralFinComputationParameters = {

@@ -66,6 +66,8 @@ export interface SpawnRectOptions {
 interface PooledCircle {
   obj: GameObj;
   active: boolean;
+  poolIndex: number;
+  activeListIndex: number;
   life: number;
   maxLife: number;
   initialOpacity: number;
@@ -85,6 +87,8 @@ interface PooledCircle {
 interface PooledRect {
   obj: GameObj;
   active: boolean;
+  poolIndex: number;
+  activeListIndex: number;
   life: number;
   maxLife: number;
   initialOpacity: number;
@@ -98,13 +102,15 @@ interface PooledRect {
  * Elimina completamente a alocação e destruição contínua de entidades no garbage collector:
  * - Pré-aloca buffers fixos de partículas circulares e retangulares fora da tela.
  * - Utiliza estratégia híbrida de busca livre e fila circular (Ring Buffer / LRU).
- * - Suporta física hidrodinâmica avançada: empuxo, gravidade, oscilação senoidal (sway) e atração magnética.
- * - Atualiza todas as partículas ativas em uma única varredura linear de alta eficiência.
+ * - Lista ativa densa indexada por swap-and-pop para atualização O(ativas) em vez de O(total) (Fase 53).
+ * - Suporta física hidrodinâmica com matemática escalar sem alocações no loop.
  */
 export class ParticlePool {
   private k: KaboomCtx;
   private circlePool: PooledCircle[] = [];
   private rectPool: PooledRect[] = [];
+  private activeCircleIndices: number[] = [];
+  private activeRectIndices: number[] = [];
   private circleIndex = 0;
   private rectIndex = 0;
 
@@ -136,6 +142,8 @@ export class ParticlePool {
       this.circlePool.push({
         obj,
         active: false,
+        poolIndex: i,
+        activeListIndex: -1,
         life: 0,
         maxLife: 1,
         initialOpacity: 1,
@@ -168,6 +176,8 @@ export class ParticlePool {
       this.rectPool.push({
         obj,
         active: false,
+        poolIndex: i,
+        activeListIndex: -1,
         life: 0,
         maxLife: 1,
         initialOpacity: 1,
@@ -202,7 +212,12 @@ export class ParticlePool {
     const maxLife = opts.maxLife ?? 1.0;
     const initialOpacity = opts.opacity ?? 0.85;
 
-    candidate.active = true;
+    if (!candidate.active) {
+      candidate.active = true;
+      candidate.activeListIndex = this.activeCircleIndices.length;
+      this.activeCircleIndices.push(candidate.poolIndex);
+    }
+
     candidate.life = maxLife;
     candidate.maxLife = maxLife;
     candidate.initialOpacity = initialOpacity;
@@ -254,7 +269,12 @@ export class ParticlePool {
     const maxLife = opts.maxLife ?? 1.0;
     const initialOpacity = opts.opacity ?? 0.75;
 
-    candidate.active = true;
+    if (!candidate.active) {
+      candidate.active = true;
+      candidate.activeListIndex = this.activeRectIndices.length;
+      this.activeRectIndices.push(candidate.poolIndex);
+    }
+
     candidate.life = maxLife;
     candidate.maxLife = maxLife;
     candidate.initialOpacity = initialOpacity;
@@ -275,10 +295,11 @@ export class ParticlePool {
   }
 
   public update(dt: number): void {
-    // 1. Atualização do pool de círculos
-    for (let i = 0; i < this.circlePool.length; i++) {
-      const p = this.circlePool[i];
-      if (!p.active) continue;
+    // 1. Atualização com lista ativa densa de círculos
+    for (let i = this.activeCircleIndices.length - 1; i >= 0; i--) {
+      const poolIdx = this.activeCircleIndices[i];
+      const p = this.circlePool[poolIdx];
+      if (!p || !p.active) continue;
 
       p.life -= dt;
 
@@ -287,15 +308,18 @@ export class ParticlePool {
         p.vel.y += p.gravityY * dt;
       }
 
-      // Atração em direção a um alvo (ex: boca da baleia na sucção de krill)
+      // Atração em direção a um alvo com matemática escalar pura (zero alocações)
       if (p.targetPos) {
-        const toTarget = p.targetPos.sub(p.obj.pos);
-        if (toTarget.len() < 6) {
-          this.deactivateCircle(p);
+        const dx = p.targetPos.x - p.obj.pos.x;
+        const dy = p.targetPos.y - p.obj.pos.y;
+        const distSq = dx * dx + dy * dy;
+        if (distSq < 36) {
+          this.deactivateCircle(p, i);
           continue;
         }
-        const dir = toTarget.unit();
-        p.obj.pos = p.obj.pos.add(dir.scale(p.targetSpeed * dt));
+        const dist = Math.sqrt(distSq);
+        p.obj.pos.x += (dx / dist) * (p.targetSpeed * dt);
+        p.obj.pos.y += (dy / dist) * (p.targetSpeed * dt);
       } else {
         p.obj.pos.x += p.vel.x * dt;
         p.obj.pos.y += p.vel.y * dt;
@@ -307,7 +331,7 @@ export class ParticlePool {
         p.obj.pos.x += Math.sin(p.swayTimer) * p.swayAmp * dt;
       }
 
-      // Expansão do raio (ex: gotículas de vapor se dispersando)
+      // Expansão do raio
       if (p.growthRate !== 0) {
         p.obj.radius += p.growthRate * dt;
       }
@@ -328,14 +352,15 @@ export class ParticlePool {
       }
 
       if (isDead || hitBoundary) {
-        this.deactivateCircle(p);
+        this.deactivateCircle(p, i);
       }
     }
 
-    // 2. Atualização do pool de retângulos
-    for (let i = 0; i < this.rectPool.length; i++) {
-      const r = this.rectPool[i];
-      if (!r.active) continue;
+    // 2. Atualização com lista ativa densa de retângulos
+    for (let i = this.activeRectIndices.length - 1; i >= 0; i--) {
+      const poolIdx = this.activeRectIndices[i];
+      const r = this.rectPool[poolIdx];
+      if (!r || !r.active) continue;
 
       r.life -= dt;
       r.obj.pos.x += r.vel.x * dt;
@@ -348,25 +373,57 @@ export class ParticlePool {
       }
 
       if (r.life <= 0 || r.obj.opacity <= 0) {
-        this.deactivateRect(r);
+        this.deactivateRect(r, i);
       }
     }
   }
 
-  private deactivateCircle(p: PooledCircle): void {
+  private deactivateCircle(p: PooledCircle, activeIdx?: number): void {
+    if (!p.active) return;
     p.active = false;
     p.obj.hidden = true;
     p.obj.pos.x = -9999;
     p.obj.pos.y = -9999;
     p.obj.opacity = 0;
+
+    const listIdx = activeIdx !== undefined ? activeIdx : p.activeListIndex;
+    const lastListIdx = this.activeCircleIndices.length - 1;
+    if (listIdx >= 0 && listIdx <= lastListIdx) {
+      const lastPoolIdx = this.activeCircleIndices[lastListIdx];
+      this.circlePool[lastPoolIdx].activeListIndex = listIdx;
+      this.activeCircleIndices[listIdx] = lastPoolIdx;
+      this.activeCircleIndices.pop();
+    }
+    p.activeListIndex = -1;
   }
 
-  private deactivateRect(r: PooledRect): void {
+  private deactivateRect(r: PooledRect, activeIdx?: number): void {
+    if (!r.active) return;
     r.active = false;
     r.obj.hidden = true;
     r.obj.pos.x = -9999;
     r.obj.pos.y = -9999;
     r.obj.opacity = 0;
+
+    const listIdx = activeIdx !== undefined ? activeIdx : r.activeListIndex;
+    const lastListIdx = this.activeRectIndices.length - 1;
+    if (listIdx >= 0 && listIdx <= lastListIdx) {
+      const lastPoolIdx = this.activeRectIndices[lastListIdx];
+      this.rectPool[lastPoolIdx].activeListIndex = listIdx;
+      this.activeRectIndices[listIdx] = lastPoolIdx;
+      this.activeRectIndices.pop();
+    }
+    r.activeListIndex = -1;
+  }
+
+  public getActiveIndices(): {
+    circleIndices: readonly number[];
+    rectIndices: readonly number[];
+  } {
+    return {
+      circleIndices: this.activeCircleIndices,
+      rectIndices: this.activeRectIndices,
+    };
   }
 
   public getStats(): {
@@ -375,20 +432,10 @@ export class ParticlePool {
     activeRects: number;
     totalRects: number;
   } {
-    let activeCircles = 0;
-    for (let i = 0; i < this.circlePool.length; i++) {
-      if (this.circlePool[i].active) activeCircles++;
-    }
-
-    let activeRects = 0;
-    for (let i = 0; i < this.rectPool.length; i++) {
-      if (this.rectPool[i].active) activeRects++;
-    }
-
     return {
-      activeCircles,
+      activeCircles: this.activeCircleIndices.length,
       totalCircles: this.circlePool.length,
-      activeRects,
+      activeRects: this.activeRectIndices.length,
       totalRects: this.rectPool.length,
     };
   }

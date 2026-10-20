@@ -80,6 +80,7 @@ export function createPlayer(
   let isStrokeInMotion = false; // Indica se o ciclo muscular da batida está ativo (0 a 0.5s)
   let pectoralVortexTimer = 0; // Temporizador para emissão de vórtices peitorais em rotação (Fase 40.5)
   let currentSliceTransforms: WhaleSliceData[] = []; // Fatias corporais sagitais da coluna (Fase 41)
+  const reusableSliceBuffer: WhaleSliceData[] = []; // Buffer pré-alocado reutilizável para zero GC por frame (Fase 53)
   let currentPectoralFinTransforms: DualPectoralFinsData | null = null; // Hidroplanos peitorais com diedro (Fase 42)
   let currentPuppetRigTransforms: PuppetRigTransforms | null = null; // Cadeia esquelética multissegmentar (Fase 43)
   let currentRenderPipelineSnapshot: WhaleRenderPipelineSnapshot | null = null; // Snapshot consolidado da pipeline (Fase 51)
@@ -319,25 +320,28 @@ export function createPlayer(
     const oxygenRatio = oxygenMgr.getOxygen() / maxOx;
 
     // Fase 51.1: Pipeline Unificada de Renderização da Baleia (Rig -> Slices -> Fins -> Palette)
-    currentRenderPipelineSnapshot = executeWhaleRenderPipeline({
-      bodyAngleInDegrees: baleia.angle,
-      spineCurvatureInDegrees: spineCurvature,
-      pitchFlexionInDegrees: pitchFlexion,
-      pitchAngularVelocity: pitchVelocity,
-      strokeProgress: physicsMgr.getStrokeTimer() / GAME_CONFIG.MAX_STROKE_TIME,
-      isMuscularStroke,
-      horizontalSpeed,
-      verticalSpeed: physicsMgr.getSpeed().y,
-      idleBlendFactor: idleBlend,
-      currentRoll,
-      timeInSeconds: k.time(),
-      isFacingRight: controlsMgr.isFacingRight(),
-      oxygenRatio,
-      isTrapped: trapMgr.isTrapped(),
-      isFainting: oxygenMgr.isFaintingState(),
-      isHighContrast: accessibilitySystem.isHighContrast(),
-      isReducedMotion: accessibilitySystem.isReducedMotion(),
-    });
+    currentRenderPipelineSnapshot = executeWhaleRenderPipeline(
+      {
+        bodyAngleInDegrees: baleia.angle,
+        spineCurvatureInDegrees: spineCurvature,
+        pitchFlexionInDegrees: pitchFlexion,
+        pitchAngularVelocity: pitchVelocity,
+        strokeProgress: physicsMgr.getStrokeTimer() / GAME_CONFIG.MAX_STROKE_TIME,
+        isMuscularStroke,
+        horizontalSpeed,
+        verticalSpeed: physicsMgr.getSpeed().y,
+        idleBlendFactor: idleBlend,
+        currentRoll,
+        timeInSeconds: k.time(),
+        isFacingRight: controlsMgr.isFacingRight(),
+        oxygenRatio,
+        isTrapped: trapMgr.isTrapped(),
+        isFainting: oxygenMgr.isFaintingState(),
+        isHighContrast: accessibilitySystem.isHighContrast(),
+        isReducedMotion: accessibilitySystem.isReducedMotion(),
+      },
+      reusableSliceBuffer
+    );
 
     currentPuppetRigTransforms = currentRenderPipelineSnapshot.puppetRig;
     currentSliceTransforms = currentRenderPipelineSnapshot.slices;

@@ -71,41 +71,68 @@ export function getColorsAtDistance(k: ReturnType<typeof kaboom>, distance: numb
   };
 }
 
+let lastEvaluatedDistance = -999999;
+let cachedOceanColors: ReturnType<typeof getColorsAtDistance> | null = null;
+
 /**
- * Atualiza o ambiente marítimo e o céu sem realizar consultas custosas na árvore do Kaboom.
+ * Reseta o cache de cores do oceano (útil entre transições de cena e em testes).
+ */
+export function resetOceanColorsCache(): void {
+  lastEvaluatedDistance = -999999;
+  cachedOceanColors = null;
+}
+
+/**
+ * Verifica se a distância atual ultrapassou o limiar de dirty-check para recalcular cores.
+ */
+export function isOceanColorDirty(distance: number, thresholdInMeters: number = 5): boolean {
+  return (
+    Math.abs(distance - lastEvaluatedDistance) >= thresholdInMeters || cachedOceanColors === null
+  );
+}
+
+/**
+ * Atualiza o ambiente marítimo e o céu aplicando dirty-checking para evitar
+ * interpolações e alocações repetidas de cores a cada quadro.
  */
 export function updateOceanColors(
   k: ReturnType<typeof kaboom>,
   distance: number,
   surfaceObj?: GameObj | WaterSurfaceSystem,
   floorObj?: GameObj,
-  skyObj?: GameObj
+  skyObj?: GameObj,
+  forceUpdate: boolean = false
 ) {
-  const { bgColor, surfaceColor, floorColor, skyColor } = getColorsAtDistance(k, distance);
+  const isDirty = forceUpdate || isOceanColorDirty(distance, 5);
 
-  k.setBackground(bgColor);
+  if (isDirty || !cachedOceanColors) {
+    cachedOceanColors = getColorsAtDistance(k, distance);
+    lastEvaluatedDistance = distance;
 
-  if (surfaceObj) {
-    if ("updateColor" in surfaceObj && typeof surfaceObj.updateColor === "function") {
-      surfaceObj.updateColor(surfaceColor);
-    } else if (
-      "updateSurfaceColor" in surfaceObj &&
-      typeof (surfaceObj as unknown as { updateSurfaceColor?: (c: unknown) => void })
-        .updateSurfaceColor === "function"
-    ) {
-      (surfaceObj as unknown as { updateSurfaceColor: (c: unknown) => void }).updateSurfaceColor(
-        surfaceColor
-      );
-    } else {
-      surfaceObj.color = surfaceColor;
+    k.setBackground(cachedOceanColors.bgColor);
+
+    if (surfaceObj) {
+      if ("updateColor" in surfaceObj && typeof surfaceObj.updateColor === "function") {
+        surfaceObj.updateColor(cachedOceanColors.surfaceColor);
+      } else if (
+        "updateSurfaceColor" in surfaceObj &&
+        typeof (surfaceObj as unknown as { updateSurfaceColor?: (c: unknown) => void })
+          .updateSurfaceColor === "function"
+      ) {
+        (surfaceObj as unknown as { updateSurfaceColor: (c: unknown) => void }).updateSurfaceColor(
+          cachedOceanColors.surfaceColor
+        );
+      } else {
+        surfaceObj.color = cachedOceanColors.surfaceColor;
+      }
     }
-  }
 
-  if (floorObj) {
-    floorObj.color = floorColor;
-  }
+    if (floorObj) {
+      floorObj.color = cachedOceanColors.floorColor;
+    }
 
-  if (skyObj) {
-    skyObj.color = skyColor;
+    if (skyObj) {
+      skyObj.color = cachedOceanColors.skyColor;
+    }
   }
 }

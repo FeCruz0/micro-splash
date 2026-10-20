@@ -311,12 +311,15 @@ export function registerGameScene(k: KaboomCtx): void {
       presentationMode.update();
 
       const dt = k.dt();
+      const currentCameraPosition = typeof k.camPos === "function" ? k.camPos() : k.vec2(0, 0);
+      const currentScreenWidth = typeof k.width === "function" ? k.width() : 1280;
+      const currentScreenHeight = typeof k.height === "function" ? k.height() : 720;
       const playerXPosition = playerController.gameObj.pos.x;
 
-      // Atualização dos Sistemas de Performance de Baixo Nível (Fase 15 & 39)
+      // Atualização dos Sistemas de Performance de Baixo Nível (Fase 15, 39 & 53)
       particlePool.update(dt);
       biomeManager.update(playerXPosition);
-      spatialCulling.update(k.camPos ? k.camPos().x : playerXPosition);
+      spatialCulling.update(currentCameraPosition.x);
 
       if (debugDistanceUI.isVisible()) {
         entityCountThrottleTimer += dt;
@@ -329,6 +332,7 @@ export function registerGameScene(k: KaboomCtx): void {
         const instantFps = Math.round(1 / Math.max(0.001, dt));
         const activeMods = biomeManager.getActiveModules();
         const modsText = activeMods.length > 0 ? activeMods.join(", ") : "Transição";
+        const cullingStats = spatialCulling.getStats();
 
         debugDistanceUI.update(playerXPosition, {
           fps: instantFps,
@@ -336,6 +340,9 @@ export function registerGameScene(k: KaboomCtx): void {
           activeParticles: stats.activeCircles + stats.activeRects,
           totalParticles: stats.totalCircles + stats.totalRects,
           activeModules: modsText,
+          frameTimeMs: dt * 1000,
+          visibleEntities: cullingStats.visibleEntities,
+          culledEntities: cullingStats.culledEntities,
         });
       }
 
@@ -425,12 +432,12 @@ export function registerGameScene(k: KaboomCtx): void {
         });
       }
 
-      oceanFloor.pos.x = k.camPos().x - k.width();
-      oceanFloor.pos.y = k.height() - 40;
-      waterSurface.updatePosition(k.camPos().x);
-      skyBand.pos.x = k.camPos().x - k.width();
+      oceanFloor.pos.x = currentCameraPosition.x - currentScreenWidth;
+      oceanFloor.pos.y = currentScreenHeight - 40;
+      waterSurface.updatePosition(currentCameraPosition.x);
+      skyBand.pos.x = currentCameraPosition.x - currentScreenWidth;
 
-      // Atualiza cores do oceano
+      // Atualiza cores do oceano (com dirty-check interno)
       updateOceanColors(k, playerXPosition, waterSurface, oceanFloor, skyBand);
     });
   });

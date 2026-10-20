@@ -88,7 +88,11 @@ export class SpatialCullingManager {
       const targetObject = entity.targetObject;
 
       if (targetObject.exists && !targetObject.exists()) {
-        this.cullableEntities.splice(index, 1);
+        const lastIndex = this.cullableEntities.length - 1;
+        if (index < lastIndex) {
+          this.cullableEntities[index] = this.cullableEntities[lastIndex];
+        }
+        this.cullableEntities.pop();
         index--;
         continue;
       }
@@ -102,6 +106,9 @@ export class SpatialCullingManager {
       );
 
       targetObject.hidden = !isVisible;
+      if ("paused" in targetObject) {
+        (targetObject as unknown as { paused?: boolean }).paused = !isVisible;
+      }
 
       if (isVisible) {
         visibleCount++;

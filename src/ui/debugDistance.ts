@@ -9,6 +9,36 @@ export interface PerformanceStats {
   activeParticles?: number;
   totalParticles?: number;
   activeModules?: string;
+  frameTimeMs?: number;
+  visibleEntities?: number;
+  culledEntities?: number;
+}
+
+export interface FrameTimeMetrics {
+  avg: number;
+  median: number;
+  p95: number;
+  p99: number;
+  max: number;
+}
+
+/**
+ * Função pura que calcula métricas estatísticas determinísticas de tempo de quadro (Frame Time em ms).
+ */
+export function calculateFrameTimeMetrics(history: number[]): FrameTimeMetrics {
+  if (!history || history.length === 0) {
+    return { avg: 0, median: 0, p95: 0, p99: 0, max: 0 };
+  }
+  const sorted = [...history].sort((a, b) => a - b);
+  const len = sorted.length;
+  const sum = sorted.reduce((acc, val) => acc + val, 0);
+  const avg = Number((sum / len).toFixed(1));
+  const median = Number(sorted[Math.floor(len * 0.5)].toFixed(1));
+  const p95 = Number(sorted[Math.min(len - 1, Math.floor(len * 0.95))].toFixed(1));
+  const p99 = Number(sorted[Math.min(len - 1, Math.floor(len * 0.99))].toFixed(1));
+  const max = Number(sorted[len - 1].toFixed(1));
+
+  return { avg, median, p95, p99, max };
 }
 
 /**
@@ -55,7 +85,7 @@ export function createDebugDistanceUI(k: KaboomCtx, playerController?: PlayerCon
   const isSerene = playerController?.isSereneMode?.() ?? false;
 
   const containerWidth = Math.round(350 * scale);
-  const containerHeight = isSerene ? Math.round(154 * scale) : Math.round(218 * scale);
+  const containerHeight = isSerene ? Math.round(154 * scale) : Math.round(236 * scale);
   const padding = Math.round(12 * scale);
 
   const fontSizeTitle = Math.round(13.5 * scale);
@@ -64,6 +94,7 @@ export function createDebugDistanceUI(k: KaboomCtx, playerController?: PlayerCon
   const fontSizeTech = Math.round(11 * scale);
 
   const fpsHistory: number[] = [];
+  const frameTimeHistory: number[] = [];
   const barWidth = containerWidth - Math.round(24 * scale);
 
   // 1. Container Principal com Glassmorphism Oceânico
@@ -266,13 +297,24 @@ export function createDebugDistanceUI(k: KaboomCtx, playerController?: PlayerCon
   ]);
   sparklineText.hidden = isSerene;
 
-  // Linha 8: Indicador de Resolução & Modo de Tela Ativo (Fase 33.8)
+  // Linha 8: Métricas de Frame Time (p95 / p99) em milissegundos
+  const frameTimeText = container.add([
+    k.text("Latência: -- ms (p95: -- | p99: --)", {
+      size: fontSizeTech,
+      font: "Inter",
+    }),
+    k.pos(Math.round(14 * scale), Math.round(195 * scale)),
+    k.color(165, 215, 255),
+  ]);
+  frameTimeText.hidden = isSerene;
+
+  // Linha 9: Indicador de Resolução & Modo de Tela Ativo (Fase 33.8)
   const resInfoText = container.add([
     k.text(`Tela: ${formatResolutionInfo(k)}`, {
       size: fontSizeTech,
       font: "Inter",
     }),
-    k.pos(Math.round(14 * scale), Math.round(195 * scale)),
+    k.pos(Math.round(14 * scale), Math.round(213 * scale)),
     k.color(140, 210, 255),
   ]);
   resInfoText.hidden = isSerene;
@@ -281,6 +323,8 @@ export function createDebugDistanceUI(k: KaboomCtx, playerController?: PlayerCon
     getContainer: (): GameObj => container,
     isVisible: (): boolean => !container.hidden,
     getFpsHistory: (): number[] => [...fpsHistory],
+    getFrameTimeHistory: (): number[] => [...frameTimeHistory],
+    getFrameTimeMetrics: (): FrameTimeMetrics => calculateFrameTimeMetrics(frameTimeHistory),
     getFpsText: (): string => fpsBadgeText.text,
     setVisible: (visible: boolean): void => {
       container.hidden = !visible;
@@ -333,12 +377,33 @@ export function createDebugDistanceUI(k: KaboomCtx, playerController?: PlayerCon
           fpsHistory.shift();
         }
 
+        const sampleFrameTime =
+          perfStats.frameTimeMs !== undefined
+            ? perfStats.frameTimeMs
+            : curFps > 0
+              ? 1000 / curFps
+              : 16.6;
+
+        frameTimeHistory.push(sampleFrameTime);
+        if (frameTimeHistory.length > 120) {
+          frameTimeHistory.shift();
+        }
+
+        const metrics = calculateFrameTimeMetrics(frameTimeHistory);
+
         const minFps = Math.min(...fpsHistory);
         const maxFps = Math.max(...fpsHistory);
         const avgFps = Math.round(fpsHistory.reduce((a, b) => a + b, 0) / fpsHistory.length);
 
         const fpsStr = perfStats.fps !== undefined ? `${perfStats.fps} FPS` : "--";
-        const entStr = perfStats.entities !== undefined ? `${perfStats.entities} obj` : "--";
+        const culledCount = perfStats.culledEntities ?? 0;
+        const visibleCount = perfStats.visibleEntities ?? perfStats.entities;
+        const entStr =
+          visibleCount !== undefined
+            ? culledCount > 0
+              ? `${visibleCount} (${culledCount} ocultos)`
+              : `${visibleCount} obj`
+            : "--";
         const poolStr =
           perfStats.activeParticles !== undefined && perfStats.totalParticles !== undefined
             ? `${perfStats.activeParticles}/${perfStats.totalParticles} part`
@@ -346,9 +411,10 @@ export function createDebugDistanceUI(k: KaboomCtx, playerController?: PlayerCon
 
         // Sem concatenar strings longas de activeModules para não estourar horizontalmente a tela
         perfText.text = `Taxa: ${fpsStr}   •   Objetos: ${entStr}   •   Pool: ${poolStr}`;
+        frameTimeText.text = `Latência: Méd ${metrics.avg}ms • p95 ${metrics.p95}ms • p99 ${metrics.p99}ms`;
 
-        // Alerta de taxa crítica (< 45 FPS) em texto legível sem caracteres quebrados
-        const isCritical = curFps < 45 || avgFps < 45;
+        // Alerta de taxa crítica (< 45 FPS ou p95 alto) em texto legível sem caracteres quebrados
+        const isCritical = curFps < 45 || avgFps < 45 || metrics.p95 > 22.0;
 
         if (isCritical) {
           sparklineText.text = `⚠️ Alerta de Queda: ${curFps} FPS (Mín: ${minFps} | Méd: ${avgFps})`;

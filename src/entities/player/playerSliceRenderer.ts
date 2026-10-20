@@ -129,7 +129,8 @@ const SLICE_CONFIGURATIONS: ReadonlyArray<{
  * @returns Array contendo os dados de transformação das 4 fatias corporais ordenadas da cabeça à cauda.
  */
 export function calculateWhaleSliceTransforms(
-  parameters: WhaleSliceComputationParameters
+  parameters: WhaleSliceComputationParameters,
+  targetBuffer?: WhaleSliceData[]
 ): WhaleSliceData[] {
   const {
     spineCurvatureInDegrees,
@@ -173,7 +174,7 @@ export function calculateWhaleSliceTransforms(
   // 2. Modulação da curvatura sagital (cambering dorsal/ventral)
   const camberingSagittalFactor = 1.0 + Math.abs(pitchFlexionInDegrees) * 0.008;
 
-  const result: WhaleSliceData[] = [];
+  const result: WhaleSliceData[] = targetBuffer || [];
   const totalFrameWidth = 128;
 
   let previousSliceVerticalOffset = 0;
@@ -224,25 +225,43 @@ export function calculateWhaleSliceTransforms(
       1.0 + Math.abs(spineDeflectionAngleInDegrees) * 0.006 * camberingSagittalFactor;
     const sliceScaleX = 1.0 - Math.abs(spineDeflectionAngleInDegrees) * 0.003;
 
-    result.push({
-      index: sliceIndex,
-      name: sliceConfig.name,
-      sourceNormalizedRect: {
-        x: sliceConfig.pixelStartX / totalFrameWidth,
-        y: 0,
-        width: sliceConfig.pixelWidth / totalFrameWidth,
-        height: 1.0,
-      },
-      localOffset: {
-        x: directionalLocalCenterX,
-        y: totalVerticalOffset,
-      },
-      relativeAngleInDegrees,
-      scaleFactor: {
-        x: sliceScaleX,
-        y: sliceScaleY,
-      },
-    });
+    const normalizedX = sliceConfig.pixelStartX / totalFrameWidth;
+    const normalizedW = sliceConfig.pixelWidth / totalFrameWidth;
+
+    if (result[sliceIndex]) {
+      const slice = result[sliceIndex];
+      slice.index = sliceIndex;
+      slice.name = sliceConfig.name;
+      slice.sourceNormalizedRect.x = normalizedX;
+      slice.sourceNormalizedRect.y = 0;
+      slice.sourceNormalizedRect.width = normalizedW;
+      slice.sourceNormalizedRect.height = 1.0;
+      slice.localOffset.x = directionalLocalCenterX;
+      slice.localOffset.y = totalVerticalOffset;
+      slice.relativeAngleInDegrees = relativeAngleInDegrees;
+      slice.scaleFactor.x = sliceScaleX;
+      slice.scaleFactor.y = sliceScaleY;
+    } else {
+      result[sliceIndex] = {
+        index: sliceIndex,
+        name: sliceConfig.name,
+        sourceNormalizedRect: {
+          x: normalizedX,
+          y: 0,
+          width: normalizedW,
+          height: 1.0,
+        },
+        localOffset: {
+          x: directionalLocalCenterX,
+          y: totalVerticalOffset,
+        },
+        relativeAngleInDegrees,
+        scaleFactor: {
+          x: sliceScaleX,
+          y: sliceScaleY,
+        },
+      };
+    }
   }
 
   return result;

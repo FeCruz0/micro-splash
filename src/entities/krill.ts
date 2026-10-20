@@ -6,7 +6,8 @@ import { getActivePlayerObject } from "./player";
 
 interface BoidMember {
   obj: GameObj;
-  relPos: Vec2;
+  relX: number;
+  relY: number;
   phase: number;
   speed: number;
   baseColor: Color;
@@ -73,7 +74,8 @@ export function createKrill(k: KaboomCtx, position: Vec2): GameObj {
 
     boids.push({
       obj: boidObj,
-      relPos: k.vec2(relX, relY),
+      relX,
+      relY,
       phase: getRandomFloat(0, Math.PI * 2),
       speed: getRandomFloat(1.8, 3.4),
       baseColor,
@@ -141,16 +143,21 @@ export function createKrill(k: KaboomCtx, position: Vec2): GameObj {
       return;
     }
 
-    // Detecção de proximidade com a baleia para dispersão reativa
+    // Detecção de proximidade com a baleia para dispersão reativa com matemática escalar (Fase 53)
     const player = getActivePlayerObject();
     let isScattering = false;
-    let scatterDir = k.vec2(0, 0);
+    let scatterDirX = 0;
+    let scatterDirY = 0;
 
     if (player && (!player.exists || player.exists())) {
-      const dist = player.pos.dist(krillCluster.pos);
-      if (dist < 110 && dist > 0.001) {
+      const dx = krillCluster.pos.x - player.pos.x;
+      const dy = krillCluster.pos.y - player.pos.y;
+      const distSq = dx * dx + dy * dy;
+      if (distSq < 12100 && distSq > 0.0001) {
+        const dist = Math.sqrt(distSq);
         isScattering = true;
-        scatterDir = krillCluster.pos.sub(player.pos).unit();
+        scatterDirX = dx / dist;
+        scatterDirY = dy / dist;
       }
     }
 
@@ -185,24 +192,33 @@ export function createKrill(k: KaboomCtx, position: Vec2): GameObj {
       if (!b.obj.exists()) continue;
 
       if (isScattering) {
-        // Dispersão em leque para longe da baleia
-        const targetScatter = scatterDir.scale(22 + Math.sin(b.phase + time * 3) * 8);
-        b.relPos = b.relPos.lerp(targetScatter, dt * 5.5);
+        // Dispersão em leque para longe da baleia (escalar)
+        const scatterMag = 22 + Math.sin(b.phase + time * 3) * 8;
+        const targetScatterX = scatterDirX * scatterMag;
+        const targetScatterY = scatterDirY * scatterMag;
+        const lerpFactor = Math.min(1, dt * 5.5);
+        b.relX += (targetScatterX - b.relX) * lerpFactor;
+        b.relY += (targetScatterY - b.relY) * lerpFactor;
       } else {
-        // Órbita suave e coesão em torno do centro do cardume
+        // Órbita suave e coesão em torno do centro do cardume (escalar)
         const orbitAngle = time * b.speed + b.phase;
-        const targetRel = k.vec2(Math.cos(orbitAngle) * 11, Math.sin(orbitAngle * 1.2) * 7);
-        b.relPos = b.relPos.lerp(targetRel, dt * 3);
+        const targetRelX = Math.cos(orbitAngle) * 11;
+        const targetRelY = Math.sin(orbitAngle * 1.2) * 7;
+        const lerpFactor = Math.min(1, dt * 3);
+        b.relX += (targetRelX - b.relX) * lerpFactor;
+        b.relY += (targetRelY - b.relY) * lerpFactor;
       }
 
-      b.obj.pos = krillCluster.pos.add(b.relPos);
+      b.obj.pos.x = krillCluster.pos.x + b.relX;
+      b.obj.pos.y = krillCluster.pos.y + b.relY;
       b.obj.angle = Math.sin(time * 3.5 + b.phase) * 14;
 
       if (revealTimer > 0) {
         // Iluminação de alta intensidade, dourado-esmeralda com brilho cintilante
         const revealFactor = Math.min(1, revealTimer / 1.2);
         b.obj.color = b.baseColor.lerp(k.rgb(255, 240, 130), revealFactor);
-        b.obj.scale = k.vec2(1.35, 1.35);
+        b.obj.scale.x = 1.35;
+        b.obj.scale.y = 1.35;
         b.obj.opacity = 0.95;
 
         // Micro-cintilação biológica

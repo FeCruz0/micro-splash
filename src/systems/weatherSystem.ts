@@ -11,6 +11,7 @@ import { GAME_CONFIG } from "../config";
 import type { PlayerController } from "../entities/player";
 import { getRandomFloat } from "../utils/random";
 import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
+import { getParticlePool } from "./particlePool";
 
 /**
  * Tipo identificador do micro-clima em execução.
@@ -209,6 +210,10 @@ export function setupWeatherSystem(k: KaboomCtx, playerController: PlayerControl
 
   // 4. CICLO DE VIDA GEOGRÁFICO E LOOP PRINCIPAL DE ATUALIZAÇÃO CLIMÁTICA
   let isWeatherActive = true;
+  let wasBlizzardActive = false;
+  let wasGaleActive = false;
+  let wasSolarCalmActive = false;
+
   const biomeManager = getBiomeLifecycleManager();
   if (biomeManager) {
     biomeManager.registerModule({
@@ -221,6 +226,9 @@ export function setupWeatherSystem(k: KaboomCtx, playerController: PlayerControl
       },
       deactivate: () => {
         isWeatherActive = false;
+        wasBlizzardActive = false;
+        wasGaleActive = false;
+        wasSolarCalmActive = false;
         snowflakes.forEach((p) => {
           p.obj.opacity = 0;
         });
@@ -243,6 +251,24 @@ export function setupWeatherSystem(k: KaboomCtx, playerController: PlayerControl
 
     // Early-return para clima limpo sem transições ativas
     if (weather === "clear" && intensity === 0) {
+      if (wasBlizzardActive) {
+        snowflakes.forEach((p) => {
+          p.obj.opacity = 0;
+        });
+        wasBlizzardActive = false;
+      }
+      if (wasGaleActive) {
+        raindrops.forEach((p) => {
+          p.obj.opacity = 0;
+        });
+        wasGaleActive = false;
+      }
+      if (wasSolarCalmActive) {
+        goldenGlints.forEach((p) => {
+          p.obj.opacity = 0;
+        });
+        wasSolarCalmActive = false;
+      }
       return;
     }
 
@@ -252,8 +278,9 @@ export function setupWeatherSystem(k: KaboomCtx, playerController: PlayerControl
 
     // --- ATUALIZAÇÃO DA NEVASCA ---
     const isBlizzard = weather === "polar_blizzard" && intensity > 0;
-    snowflakes.forEach((p) => {
-      if (isBlizzard) {
+    if (isBlizzard) {
+      wasBlizzardActive = true;
+      snowflakes.forEach((p) => {
         p.phase += dt * p.swaySpeed;
         p.relX += p.speedX * dt;
         p.relY += p.speedY * dt;
@@ -265,32 +292,51 @@ export function setupWeatherSystem(k: KaboomCtx, playerController: PlayerControl
         const sway = Math.sin(p.phase) * p.swayAmp;
         p.obj.pos = k.vec2(camLeft + p.relX + sway, p.relY);
         p.obj.opacity = p.baseOpacity * intensity;
-      } else {
+      });
+    } else if (wasBlizzardActive) {
+      snowflakes.forEach((p) => {
         p.obj.opacity = 0;
-      }
-    });
+      });
+      wasBlizzardActive = false;
+    }
 
     // --- ATUALIZAÇÃO DO VENDAVAL E CHUVA ---
     const isGale = weather === "open_sea_gale" && intensity > 0;
-    raindrops.forEach((p) => {
-      if (isGale) {
+    if (isGale) {
+      wasGaleActive = true;
+      const pool = getParticlePool();
+      raindrops.forEach((p) => {
         p.relX += p.speedX * dt;
         p.relY += p.speedY * dt;
 
         // Respingo na água quando a gota atinge o nível do mar (SEA_LEVEL ~ 80px)
         if (p.relY >= GAME_CONFIG.SEA_LEVEL && p.relY - p.speedY * dt < GAME_CONFIG.SEA_LEVEL) {
           if (getRandomFloat(0, 1) < 0.18 * intensity) {
-            const splash = k.add([
-              k.circle(k.rand(1.2, 2.2)),
-              k.pos(camLeft + p.relX, GAME_CONFIG.SEA_LEVEL + k.rand(-1, 2)),
-              k.color(220, 240, 255),
-              k.opacity(0.65 * intensity),
-              k.z(27),
-            ]);
-            splash.onUpdate(() => {
-              splash.opacity -= k.dt() * 3.5;
-              if (splash.opacity <= 0) k.destroy(splash);
-            });
+            const splashPos = k.vec2(camLeft + p.relX, GAME_CONFIG.SEA_LEVEL + k.rand(-1, 2));
+            const splashRadius = k.rand(1.2, 2.2);
+            if (pool) {
+              pool.spawnCircle({
+                pos: splashPos,
+                radius: splashRadius,
+                color: k.rgb(220, 240, 255),
+                opacity: 0.65 * intensity,
+                fadeRate: 3.5,
+                maxLife: 0.25,
+                z: 27,
+              });
+            } else {
+              const splash = k.add([
+                k.circle(splashRadius),
+                k.pos(splashPos),
+                k.color(220, 240, 255),
+                k.opacity(0.65 * intensity),
+                k.z(27),
+              ]);
+              splash.onUpdate(() => {
+                splash.opacity -= k.dt() * 3.5;
+                if (splash.opacity <= 0) k.destroy(splash);
+              });
+            }
           }
         }
 
@@ -302,15 +348,19 @@ export function setupWeatherSystem(k: KaboomCtx, playerController: PlayerControl
 
         p.obj.pos = k.vec2(camLeft + p.relX, p.relY);
         p.obj.opacity = p.baseOpacity * intensity;
-      } else {
+      });
+    } else if (wasGaleActive) {
+      raindrops.forEach((p) => {
         p.obj.opacity = 0;
-      }
-    });
+      });
+      wasGaleActive = false;
+    }
 
     // --- ATUALIZAÇÃO DA CALMARIA SOLAR ---
     const isSolarCalm = weather === "arraial_solar_calm" && intensity > 0;
-    goldenGlints.forEach((p) => {
-      if (isSolarCalm) {
+    if (isSolarCalm) {
+      wasSolarCalmActive = true;
+      goldenGlints.forEach((p) => {
         p.phase += dt * p.swaySpeed;
         p.relX += p.speedX * dt;
         p.relY += p.speedY * dt;
@@ -322,9 +372,12 @@ export function setupWeatherSystem(k: KaboomCtx, playerController: PlayerControl
         const glintPulse = Math.sin(p.phase) * 0.35 + 0.65;
         p.obj.pos = k.vec2(camLeft + p.relX, p.relY);
         p.obj.opacity = p.baseOpacity * intensity * glintPulse;
-      } else {
+      });
+    } else if (wasSolarCalmActive) {
+      goldenGlints.forEach((p) => {
         p.obj.opacity = 0;
-      }
-    });
+      });
+      wasSolarCalmActive = false;
+    }
   });
 }

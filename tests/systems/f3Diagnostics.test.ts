@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import {
   fpsToSparklineChar,
   generateFpsSparkline,
+  calculateFrameTimeMetrics,
   createDebugDistanceUI,
 } from "../../src/ui/debugDistance";
 
@@ -145,6 +146,50 @@ describe("F3 Diagnostics & Sparkline HUD", () => {
       hud.update(100, { fps: 60 });
 
       expect(hud.getFpsText()).toBe("60 FPS");
+    });
+
+    it("records frame time history up to 120 samples and computes latency metrics", () => {
+      const mockK = createMockKaboom();
+      const hud = createDebugDistanceUI(mockK);
+      hud.setVisible(true);
+
+      for (let i = 1; i <= 150; i++) {
+        hud.update(100, { fps: 60, frameTimeMs: 16.0 + (i % 5) });
+      }
+
+      const ftHistory = hud.getFrameTimeHistory();
+      expect(ftHistory.length).toBe(120);
+
+      const metrics = hud.getFrameTimeMetrics();
+      expect(metrics.avg).toBeGreaterThanOrEqual(16.0);
+      expect(metrics.median).toBeGreaterThanOrEqual(16.0);
+      expect(metrics.p95).toBeLessThanOrEqual(20.0);
+      expect(metrics.p99).toBeLessThanOrEqual(20.0);
+      expect(metrics.max).toBeLessThanOrEqual(20.0);
+    });
+  });
+
+  describe("calculateFrameTimeMetrics", () => {
+    it("returns zeroed metrics for empty array", () => {
+      expect(calculateFrameTimeMetrics([])).toEqual({
+        avg: 0,
+        median: 0,
+        p95: 0,
+        p99: 0,
+        max: 0,
+      });
+    });
+
+    it("accurately calculates avg, median, p95, p99, and max", () => {
+      // 100 amostras com valores de 1 a 100
+      const samples = Array.from({ length: 100 }, (_, i) => i + 1);
+      const metrics = calculateFrameTimeMetrics(samples);
+
+      expect(metrics.avg).toBe(50.5);
+      expect(metrics.median).toBe(51);
+      expect(metrics.p95).toBe(96);
+      expect(metrics.p99).toBe(100);
+      expect(metrics.max).toBe(100);
     });
   });
 });
