@@ -1,162 +1,94 @@
-# Plano de Implementação — Fase 53: Otimização Extrema de Frame Time & Taxa de Quadros (Zero Frame Drops)
+# Plano de Implementação — Fase 54: Especial Feira de Ciências — Mulheres na Ciência & Educação Ambiental
 
 Status: Concluído ✅  
-Data: 2026-10-20  
-Alvo: v1.18.0
+Data: 2026-10-21  
+Alvo: v1.19.0 (Edição Feira de Ciências)
 
 ---
 
-## 🔬 Diagnóstico e Escopo da Fase 53
+## 🔬 Diagnóstico e Motivação
 
-1. **Throttling & Caching de Atualizações Globais (`src/scenes/gameScene.ts` & `src/systems/oceanEnvironment.ts`)**:
-   - Atualmente, `k.camPos()`, `k.width()` e `k.height()` são consultados repetidas vezes em múltiplos pontos do loop principal de `gameScene.ts`.
-   - `updateOceanColors` executa 12 interpolações `k.lerp` e instancia 4 novos objetos de cor `k.rgb()` todos os frames, mesmo quando a baleia se move poucos pixels e a transição cromática entre biomas é imperceptível.
-   - **Solução**:
-     - Cachear `cameraPosition`, `screenWidth` e `screenHeight` uma única vez no início de cada frame em `gameScene.ts`.
-     - Implementar dirty-check e throttling em `updateOceanColors`: recalcular a paleta ambiental somente quando a distância percorrida variar mais de 5 metros ou se a cena acabou de carregar.
+1. **Tema Central da Feira de Ciências**:
+   - O tema deste ano na feira é **"Mulheres na Ciência"**.
+   - O jogo já possui um sistema rico de Quiz pós-corrida e um Códex educativo, porém focado prioritariamente em ecologia geral dos biomas.
+   - Para que o jogo seja uma atração de destaque na feira, o quiz incorpora perguntas sobre mulheres cientistas, organizadas pela seguinte hierarquia de relevância:
+     1. **Prioridade 1 (Máxima)**: Mulheres cientistas envolvidas em pesquisas com baleias, cetáceos e oceanografia marinha (com destaque para pesquisadoras brasileiras).
+     2. **Prioridade 2 (Intermediária)**: Grandes cientistas brasileiras em qualquer área da ciência e tecnologia.
+     3. **Prioridade 3 (Complementar)**: Cientistas mulheres internacionais em outras áreas do conhecimento.
 
-2. **Culling Espacial Acelerado & Pausa O(1) Fora da Tela (`src/systems/spatialCullingSystem.ts`)**:
-   - Ao remover entidades destruídas no array de culling, `this.cullableEntities.splice(index, 1)` gera custo O(N) com realocação de memória.
-   - Entidades marcadas com `hidden = true` ainda executam seus callbacks `onUpdate` a cada frame.
-   - **Solução**:
-     - Substituir `splice` por remoção O(1) via swap-and-pop (`cullableEntities[index] = cullableEntities[lastIndex]; cullableEntities.pop()`).
-     - Propagar `paused = !isVisible` para entidades com lógica pesada ou que suportem o componente de pausa.
+2. **Garantia de Exibição na Feira (`src/ui/quizModal.ts`)**:
+   - Cada sessão de quiz sorteia 3 perguntas.
+   - O algoritmo atualizado em `selectQuizQuestions` garante que **pelo menos 1 pergunta das 3 seja obrigatoriamente do tema "Mulheres na Ciência"** em toda partida, mantendo a aleatoriedade e integrando-se organicamente à rota.
 
-3. **Reutilização de Buffers & Redução de Pressão no Garbage Collector**:
-   - `calculateWhaleSliceTransforms` (`src/entities/player/playerSliceRenderer.ts`) aloca um novo array `WhaleSliceData[]` com 4 novos objetos em cada frame da simulação.
-   - `createKrill` (`src/entities/krill.ts`) instancia entre 3 e 4 objetos `Vec2` (`scale`, `lerp`, `add`, `vec2`) por boid por frame (com 9 boids e múltiplos cardumes, centenas de alocações por frame).
-   - `updateSnowParticlePosition` (`src/systems/marineSnowSystem.ts`) retorna novos objetos anônimos `{ y, driftOffset }` todo frame.
-   - **Solução**:
-     - Permitir injeção de buffer reutilizável pré-alocado em `calculateWhaleSliceTransforms`.
-     - Refatorar a física dos boids de krill para utilizar coordenadas e velocidades escalares (`relX`, `relY`), mutando posições diretamente sem instanciar novos `Vec2`.
-     - Atualizar a neve marinha in-place na própria estrutura `MarineSnowFlake`.
-
-4. **Short-Circuit de Subsistemas Inativos & Pool com Lista Ativa Densa (`src/systems/weatherSystem.ts`, `src/systems/particlePool.ts`, `src/systems/benthicFloorSystem.ts`)**:
-   - Em `weatherSystem.ts`, quando o clima é `clear` ou inativo, o sistema continua executando `forEach` sobre todos os arrays de partículas para atribuir `opacity = 0`.
-   - Em `particlePool.ts`, o método `update` itera todos os slots (círculos e retângulos) mesmo quando inativos.
-   - **Solução**:
-     - Implementar flag de clima limpo em `weatherSystem.ts` para sair imediatamente do loop quando as partículas já estiverem ocultadas.
-     - Implementar arrays densos de índices ativos (`activeCircleIndices`, `activeRectIndices`) com swap-and-pop na desativação em `particlePool.ts`.
-     - Eliminar alocações vetoriais na atração magnética de partículas substituindo por matemática escalar direta.
-     - Registrar flora bentônica (`benthicFloorSystem.ts`) no culling para não atualizar nós fora da viewport.
-
-5. **Roteamento de Spawns Residuais para ParticlePool (`src/entities/player/playerParticles.ts` & `src/systems/breachSystem.ts`)**:
-   - Partículas de bolhas caudais, vórtices de nadadeiras peitorais e splashes de breach criam nós temporários ad-hoc via `k.add()` com timers de destruição.
-   - **Solução**:
-     - Rotear emissão de bolhas e respingos para `ParticlePool.spawnCircle` e `ParticlePool.spawnRect`, eliminando instanciação e destruição de nós no Kaboom.
-
-6. **Métricas de Frame Time p95/p99 no Overlay de Diagnóstico F3 (`src/ui/debugDistance.ts`)**:
-   - O painel atual exibe apenas FPS instantâneo e entidades brutas.
-   - **Solução**:
-     - Implementar buffer circular de 120 amostras de frame time (`dt` em ms).
-     - Criar funções puras `calculateFrameTimeMetrics(history: number[])` calculando média, p95 e p99 em milissegundos.
-     - Exibir as métricas de latência e a contagem de entidades visíveis vs culled no painel F3/F8.
-
-7. **Suíte de Testes Automatizados de Performance e Estabilidade (`tests/systems/phase53_frame_time_optimization.test.ts`)**:
-   - Cobertura completa de:
-     - Reutilização de buffers em `playerSliceRenderer`.
-     - Lista densa ativa em `particlePool`.
-     - Cálculo de métricas de frame time p95/p99.
-     - Dirty-check de `updateOceanColors`.
+3. **Consistência de Dados e Schemas (`src/schemas/dataSchemas.ts`, `data/facts.json`, `data/quiz.json`)**:
+   - Todas as 11 novas questões satisfazem estritamente o `QuizQuestionSchema` (Zod), com `id` único (`q_mulheres_*`), `factId` canônico dos biomas, `biome` válido, 4 opções, gabarito e explicação pedagógica detalhada.
+   - Preservados os 13 marcos migratórios canônicos ordenados em `data/facts.json` para o Códex e eventos de rota.
 
 ---
 
 ## 📋 Lista de Tarefas Atômicas
 
-### Etapa 1: Throttling & Caching de Atualizações Globais
+### Etapa 1: Fatos Pedagógicos de Referência (`data/facts.json`)
 
-- [x] **1.1 Cachear Propriedades Globais no Loop Principal**
-  - **Arquivo**: `src/scenes/gameScene.ts`.
-  - **Ação**: Extrair `cameraPos = k.camPos()`, `screenWidth = k.width()`, `screenHeight = k.height()` uma vez por frame e reutilizar em todos os subsistemas dependentes.
-  - **Validação**: Verificação de ausência de chamadas redundantes a `k.camPos()`.
-
-- [x] **1.2 Dirty-Check e Throttling em `updateOceanColors`**
-  - **Arquivo**: `src/systems/oceanEnvironment.ts`.
-  - **Ação**: Implementar cache da última distância e cores, recalculando interpolações apenas se a variação for superior ao limiar (`threshold = 5m`).
-  - **Validação**: Teste unitário validando que pequenas variações não acionam novos cálculos.
+- [x] **1.1 Preservação dos 13 Fatos Canônicos Ordenados em `data/facts.json`**
+  - **Arquivo**: `data/facts.json`.
+  - **Ação**: Validação dos 13 marcos migratórios da rota canônica com `triggerX` estritamente crescente.
+  - **Validação**: Testado com `FactsArraySchema.parse()` e `tests/core/quiz.test.ts`.
 
 ---
 
-### Etapa 2: Culling Espacial O(1) e Pausa Fora de Tela
+### Etapa 2: Banco de Questões do Quiz (`data/quiz.json`)
 
-- [x] **2.1 Otimizar Limpeza de Entidades com Swap-and-Pop**
-  - **Arquivo**: `src/systems/spatialCullingSystem.ts`.
-  - **Ação**: Substituir `splice(index, 1)` por swap-and-pop O(1) e adicionar suporte a pausa de processamento em entidades fora de tela.
-  - **Validação**: Testes em `tests/systems/phase39_performance_culling.test.ts`.
+- [x] **2.1 Inserir Perguntas de Prioridade 1 (Baleias & Oceanografia)**
+  - **Arquivo**: `data/quiz.json`.
+  - **Ação**: Adicionadas 5 questões focadas em cetáceos e ambiente marinho:
+    1. `q_mulheres_marcia_engel`: Dra. Márcia Engel e o Instituto Baleia Jubarte.
+    2. `q_mulheres_sylvia_earle`: Dra. Sylvia Earle e os Hope Spots oceânicos.
+    3. `q_mulheres_mariana_groch`: Dra. Mariana Groch e a Baleia-Franca no Brasil.
+    4. `q_mulheres_proantar`: Cientistas brasileiras na Antártica e ecologia do krill.
+    5. `q_mulheres_rachel_carson`: Rachel Carson e a conservação marinha.
+  - **Validação**: Validação sintática e de schema Zod.
 
----
+- [x] **2.2 Inserir Perguntas de Prioridade 2 (Cientistas Brasileiras)**
+  - **Arquivo**: `data/quiz.json`.
+  - **Ação**: Adicionadas 4 questões celebrando pioneiras brasileiras: 6. `q_mulheres_johanna_dobereiner`: Johanna Döbereiner e a biotecnologia na agricultura. 7. `q_mulheres_bertha_lutz`: Bertha Lutz e a zoologia no Museu Nacional. 8. `q_mulheres_jaqueline_goes`: Dra. Jaqueline Goes de Jesus e o genoma viral. 9. `q_mulheres_enedina_marques`: Enedina Alves Marques, pioneira da engenharia nacional.
+  - **Validação**: Validação sintática e de schema Zod.
 
-### Etapa 3: Reutilização de Buffers e Eliminação de Alocações por Frame
-
-- [x] **3.1 Buffer Reutilizável de Fatias em `playerSliceRenderer.ts`**
-  - **Arquivo**: `src/entities/player/playerSliceRenderer.ts`.
-  - **Ação**: Permitir injeção de `targetBuffer?: WhaleSliceData[]` para escrita in-place, eliminando `result = []` por frame.
-  - **Validação**: Teste unitário comparando integridade com o modo legado.
-
-- [x] **3.2 Eliminar Alocações Vetoriais nos Boids de Krill**
-  - **Arquivo**: `src/entities/krill.ts`.
-  - **Ação**: Migrar a física dos boids para matemática escalar com variáveis `relX`, `relY`, evitando `targetScatter`, `sub()`, `unit()` e `lerp()` vetoriais a cada quadro.
-  - **Validação**: Teste em `tests/systems/krill.test.ts`.
-
-- [x] **3.3 Atualização In-Place de Neve Marinha**
-  - **Arquivo**: `src/systems/marineSnowSystem.ts`.
-  - **Ação**: Mutar coordenadas diretamente na estrutura `MarineSnowFlake`, evitando alocações anônimas `{ y, driftOffset }`.
-  - **Validação**: `tests/systems/phase35_visual_systems.test.ts`.
+- [x] **2.3 Inserir Perguntas de Prioridade 3 (Cientistas Internacionais)**
+  - **Arquivo**: `data/quiz.json`.
+  - **Ação**: Adicionadas 2 questões de vanguarda internacional: 10. `q_mulheres_marie_curie`: Marie Curie, radioatividade e os 2 Nobels. 11. `q_mulheres_rosalind_franklin`: Rosalind Franklin e a Foto 51 do DNA.
+  - **Validação**: Validação sintática e de schema Zod.
 
 ---
 
-### Etapa 4: Short-Circuit e Lista Ativa Densa no ParticlePool
+### Etapa 3: Algoritmo de Seleção para a Feira de Ciências (`src/ui/quizModal.ts`)
 
-- [x] **4.1 Lista Ativa Densa com Swap-and-Pop no `ParticlePool`**
-  - **Arquivo**: `src/systems/particlePool.ts`.
-  - **Ação**: Gerenciar `activeCircleIndices` e `activeRectIndices` iterando apenas partículas em vida útil e eliminando vetores em `targetPos`.
-  - **Validação**: Testes de integridade em `tests/systems/particlePool.test.ts`.
-
-- [x] **4.2 Short-Circuit de Clima Inativo em `weatherSystem.ts`**
-  - **Arquivo**: `src/systems/weatherSystem.ts`.
-  - **Ação**: Adicionar flag para evitar percorrer arrays de partículas quando o clima estiver inativo e opacidades zeradas.
-  - **Validação**: `tests/systems/weather.test.ts`.
+- [x] **3.1 Atualizar `selectQuizQuestions` com Cota Especial da Feira**
+  - **Arquivo**: `src/ui/quizModal.ts`.
+  - **Ação**:
+    - Criada e exportada a função `isWomenInScienceQuestion`.
+    - Garantido que a primeira vaga das 3 perguntas seja preenchida obrigatoriamente por uma questão de Mulheres na Ciência.
+    - As 2 vagas subsequentes seguem o fluxo pedagógico normal de rota e dificuldade.
+  - **Validação**: Testes unitários com simulação de 50 sorteios consecutivos garantindo 100% de presença do tema.
 
 ---
 
-### Etapa 5: Roteamento de Spawns Residuais para ParticlePool
+### Etapa 4: Suíte de Testes Automatizados TDD (`tests/ui/phase54_women_in_science.test.ts`)
 
-- [x] **5.1 Rotear Bolhas e Vórtices para o Pool**
-  - **Arquivos**: `src/entities/player/playerParticles.ts`, `src/systems/breachSystem.ts`.
-  - **Ação**: Substituir `k.add()` ad-hoc de partículas por chamadas a `particlePool.spawnCircle`.
-  - **Validação**: Testes de emissão de partículas.
-
----
-
-### Etapa 6: Métricas de Frame Time p95/p99 no Diagnóstico F3
-
-- [x] **6.1 Implementar Buffer Circular e Métricas de Frame Time**
-  - **Arquivo**: `src/ui/debugDistance.ts`.
-  - **Ação**: Implementar buffer circular de 120 quadros e funções puras `calculateFrameTimeMetrics` (média, p95, p99).
-  - **Validação**: Testes unitários para cálculos estatísticos.
-
-- [x] **6.2 Exibir Métricas no Painel de Telemetria**
-  - **Arquivo**: `src/ui/debugDistance.ts`.
-  - **Ação**: Integrar p95/p99 e contagem visível vs culled no layout do HUD F3/F8.
-  - **Validação**: Testes em `tests/systems/f3Diagnostics.test.ts`.
+- [x] **4.1 Criar Testes Unitários de Dados e Seleção**
+  - **Arquivo**: `tests/ui/phase54_women_in_science.test.ts`.
+  - **Ação**: Implementada cobertura completa para:
+    - Conformidade do arquivo `data/quiz.json` com `QuizArraySchema`.
+    - Conformidade do arquivo `data/facts.json` com `FactsArraySchema`.
+    - Presença das 11 questões e verificação de gabaritos (`correctIndex` bate com a opção correta).
+    - Teste de `selectQuizQuestions` confirmando presença mandatória do tema da feira em 100% dos sorteios.
+  - **Validação**: Execução via Vitest (`tests/ui/phase54_women_in_science.test.ts` e suíte completa de 71 arquivos).
 
 ---
 
-### Etapa 7: Suíte de Testes da Fase 53 e Documentação
+### Etapa 5: Atualização da Documentação & Roadmap
 
-- [x] **7.1 Implementar `tests/systems/phase53_frame_time_optimization.test.ts`**
-  - **Arquivo**: `tests/systems/phase53_frame_time_optimization.test.ts`.
-  - **Ação**: Criar testes validando buffer de fatias, lista ativa do pool, throttling de cores e métricas de frame time.
-  - **Validação**: `npx vitest run tests/systems/phase53_frame_time_optimization.test.ts`.
-
-- [x] **7.2 Atualizar `docs/ROADMAP.md` e `CHANGELOG.md`**
-  - **Arquivos**: `docs/ROADMAP.md`, `CHANGELOG.md`.
-  - **Ação**: Marcar checkboxes e documentar a versão 1.18.0.
-
----
-
-### Etapa 8: Validação Integrada do Projeto
-
-- [x] **8.1 Executar Script Agregador `npm run check`**
-  - **Comando**: `npm run check` (formatação, lint, validação de dados, tipos TypeScript, testes e build).
-  - **Validação**: Retorno com código 0 e todos os testes verdes.
+- [x] **5.1 Registrar Fase 54 em `docs/ROADMAP.md`**
+  - **Arquivo**: `docs/ROADMAP.md`.
+  - **Ação**: Documentação formal da Fase 54 com objetivos e itens concluídos.
+  - **Validação**: Suíte de consistência de documentação (`tests/core/phase52_documentation_consistency.test.ts`) 100% verde.

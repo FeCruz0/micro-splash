@@ -28,7 +28,11 @@ function shuffleArray<T>(array: T[]): T[] {
   return arr;
 }
 
-function selectQuizQuestions(
+export function isWomenInScienceQuestion(question: QuizQuestion): boolean {
+  return question.id.startsWith("q_mulheres_") || question.factId.startsWith("mulheres_");
+}
+
+export function selectQuizQuestions(
   allQuestions: QuizQuestion[],
   unlockedFactIds?: string[]
 ): QuizQuestion[] {
@@ -37,14 +41,24 @@ function selectQuizQuestions(
   const selected: QuizQuestion[] = [];
   const selectedIds = new Set<string>();
 
-  // Se houver fatos desbloqueados na rota, prioriza até 2 questões relacionadas
-  if (unlockedSet.size > 0) {
-    const matched = shuffleArray(allQuestions.filter((q) => unlockedSet.has(q.factId)));
-    for (const q of matched) {
-      if (selected.length < 2) {
-        selected.push(q);
-        selectedIds.add(q.id);
-      }
+  // Cota Especial Feira de Ciências: pelo menos 1 pergunta obrigatória sobre Mulheres na Ciência
+  const womenQuestions = allQuestions.filter(isWomenInScienceQuestion);
+  if (womenQuestions.length > 0) {
+    const unlockedWomen = womenQuestions.filter((q) => unlockedSet.has(q.factId));
+    const candidatePool = unlockedWomen.length > 0 ? unlockedWomen : womenQuestions;
+    const chosenWomenQuestion = shuffleArray(candidatePool)[0];
+    selected.push(chosenWomenQuestion);
+    selectedIds.add(chosenWomenQuestion.id);
+  }
+
+  // Se houver outros fatos desbloqueados na rota, prioriza até 1 questão adicional relacionada
+  if (unlockedSet.size > 0 && selected.length < 2) {
+    const matched = shuffleArray(
+      allQuestions.filter((q) => unlockedSet.has(q.factId) && !selectedIds.has(q.id))
+    );
+    if (matched.length > 0) {
+      selected.push(matched[0]);
+      selectedIds.add(matched[0].id);
     }
   }
 
@@ -65,10 +79,9 @@ function selectQuizQuestions(
   if (selected.length < 3) {
     const remaining = shuffleArray(allQuestions.filter((q) => !selectedIds.has(q.id)));
     for (const q of remaining) {
-      if (selected.length < 3) {
-        selected.push(q);
-        selectedIds.add(q.id);
-      }
+      if (selected.length >= 3) break;
+      selected.push(q);
+      selectedIds.add(q.id);
     }
   }
 

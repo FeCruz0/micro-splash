@@ -778,5 +778,135 @@
     ],
     "correctIndex": 3,
     "explanation": "A Coronula diadema fixa-se na pele grossa da jubarte e depende dos saltos e da velocidade da água para filtrar partículas sem penetrar na carne da baleia."
+  },
+  {
+    "id": "q_mulheres_marcia_engel",
+    "factId": "reserva_arraial",
+    "biome": "arraial",
+    "difficulty": "facil",
+    "question": "Qual cientista brasileira foi pioneira na pesquisa e fundadora do Instituto Baleia Jubarte, liderando a recuperação da espécie no Brasil desde 1988?",
+    "options": [
+      "Dra. Márcia Engel",
+      "Dra. Bertha Lutz",
+      "Dra. Johanna Döbereiner",
+      "Dra. Nise da Silveira"
+    ],
+    "correctIndex": 0,
+    "explanation": "A bióloga marinha Márcia Engel fundou o Projeto Baleia Jubarte em Abrolhos (BA), transformando a proteção aos cetáceos em política pública e tirando a espécie do risco crítico de extinção no litoral brasileiro."
+  },
+  {
+    "id": "q_mulheres_sylvia_earle",
+    "factId": "cachalote_abissal",
+    "biome": "pelagico",
+    "difficulty": "facil",
+    "question": "Qual renomada oceanógrafa e bióloga marinha, conhecida como 'Her Deepness', liderou expedições em grandes profundidades e criou os 'Hope Spots' para proteger rotas de baleias?",
+    "options": ["Marie Curie", "Sylvia Earle", "Jane Goodall", "Rosalind Franklin"],
+    "correctIndex": 1,
+    "explanation": "Dra. Sylvia Earle foi a primeira mulher cientista-chefe da NOAA, dedicando décadas ao mergulho de saturação e à criação de áreas marinhas protegidas essenciais para baleias e ecossistemas oceânicos."
+  },
+  {
+    "id": "q_mulheres_mariana_groch",
+    "factId": "salto_breach",
+    "biome": "arraial",
+    "difficulty": "medio",
+    "question": "A pesquisadora brasileira Dra. Mariana Groch é uma das principais lideranças científicas na conservação de qual cetáceo ameaçado no litoral sul do Brasil?",
+    "options": ["Baleia-franca-austral", "Golfinho-rotador", "Narval", "Beluga"],
+    "correctIndex": 0,
+    "explanation": "À frente do Instituto Australis / Projeto Baleia Franca em Santa Catarina, Mariana Groch conduz estudos de longo prazo com fotoidentificação de calosidades para monitorar fêmeas e filhotes."
+  },
+  {
+    "id": "q_mulheres_proantar",
+    "factId": "antartica",
+    "biome": "antartica",
+    "difficulty": "medio",
+    "question": "Pesquisadoras brasileiras do Programa Antártico Brasileiro (PROANTAR) realizam coletas vitais no Oceano Austral para investigar:",
+    "options": [
+      "A ecologia do krill e os impactos das mudanças climáticas na alimentação das jubartes",
+      "Apenas a espessura da neve continental",
+      "A mineração submarina de combustíveis fósseis",
+      "A rota de navegação exclusiva de navios petroleiros"
+    ],
+    "correctIndex": 0,
+    "explanation": "Cientistas marinhas brasileiras na Estação Antártica Comandante Ferraz estudam como a perda de gelo polar afeta as populações de krill, base alimentar das baleias migratórias."
+  },
+  {
+    "id": "q_mulheres_rachel_carson",
+    "factId": "poluicao_plastica",
+    "biome": "costa_urbana",
+    "difficulty": "medio",
+    "question": "Antes de alertar o mundo sobre os pesticidas em 'Primavera Silenciosa', qual bióloga marinha publicou clássicos científicos detalhando a ecologia dos oceanos e costas?",
+    "options": ["Ada Lovelace", "Rachel Carson", "Katherine Johnson", "Barbara McClintock"],
+    "correctIndex": 1,
+    "explanation": "Rachel Carson era bióloga marinha do Serviço de Pesca e Vida Selvagem dos EUA e usou sua pesquisa oceânica para fundar as bases da conscientização ambiental moderna."
+  },
+  {
+    "id": "q_mulheres_johanna_dobereiner",
+    "factId": "derramamento_oleo",
+    "biome": "costa_urbana",
+    "difficulty": "medio",
+    "question": "Qual cientista brasileira foi indicada ao Prêmio Nobel por descobrir bactérias fixadoras de nitrogênio, poupando bilhões em fertilizantes químicos poluentes?",
+    "options": ["Johanna Döbereiner", "Bertha Lutz", "Enedina Alves Marques", "Celina Turchi"],
+    "correctIndex": 0,
+    "explanation": "As pesquisas pioneiras de Johanna Döbereiner na Embrapa revolucionaram a agricultura tropical sustentável, reduzindo a contaminação química de rios e oceanos por fertilizantes sintéticos."
+  },
+  {
+    "id": "q_mulheres_bertha_lutz",
+    "factId": "canyon_ressurgencia",
+    "biome": "canyons",
+    "difficulty": "facil",
+    "question": "Pioneira na zoologia do Museu Nacional do Rio de Janeiro e líder do movimento pelo voto feminino no Brasil, quem foi essa cientista?",
+    "options": ["Bertha Lutz", "Chiquinha Gonzaga", "Tarsila do Amaral", "Maria da Penha"],
+    "correctIndex": 0,
+    "explanation": "Bertha Lutz foi uma notável naturalista e herpetologista brasileira, além de delegada do Brasil na fundação da ONU em 1945, defendendo a igualdade de gênero nas ciências."
+  },
+  {
+    "id": "q_mulheres_jaqueline_goes",
+    "factId": "redes_fantasmas",
+    "biome": "costa_urbana",
+    "difficulty": "facil",
+    "question": "Qual biomédica e cientista brasileira liderou o sequenciamento do genoma do coronavírus (SARS-CoV-2) em apenas 48 horas após o primeiro caso confirmado no Brasil?",
+    "options": [
+      "Dra. Jaqueline Goes de Jesus",
+      "Dra. Zilda Arns",
+      "Dra. Mayana Zatz",
+      "Dra. Margareth Dalcolmo"
+    ],
+    "correctIndex": 0,
+    "explanation": "Doutora em Patologia Humana, Jaqueline Goes liderou a equipe do Instituto Adolfo Lutz e USP, sendo exemplo de excelência e representatividade das mulheres negras na ciência."
+  },
+  {
+    "id": "q_mulheres_enedina_marques",
+    "factId": "canyon_ressurgencia",
+    "biome": "canyons",
+    "difficulty": "dificil",
+    "question": "Formada em 1945 pela Universidade Federal do Paraná, quem foi a primeira mulher negra a se formar engenheira no Brasil, projetando a Usina Hidrelétrica Capivari-Cachoeira?",
+    "options": [
+      "Enedina Alves Marques",
+      "Antonieta de Barros",
+      "Carolina Maria de Jesus",
+      "Esperança Garcia"
+    ],
+    "correctIndex": 0,
+    "explanation": "Enedina superou imensas barreiras de gênero e raça para se tornar ícone da engenharia nacional, atuando em projetos hídricos e de infraestrutura subterrânea no Paraná."
+  },
+  {
+    "id": "q_mulheres_marie_curie",
+    "factId": "canal_sofar",
+    "biome": "pelagico",
+    "difficulty": "facil",
+    "question": "Quem foi a primeira mulher a ganhar um Prêmio Nobel e a única pessoa na história a ser laureada em duas áreas científicas distintas (Física e Química)?",
+    "options": ["Marie Curie", "Lise Meitner", "Dorothy Hodgkin", "Irène Joliot-Curie"],
+    "correctIndex": 0,
+    "explanation": "Marie Curie descobriu os elementos polônio e rádio, estabelecendo os fundamentos da radioatividade e abrindo portas para gerações de mulheres na pesquisa nuclear e médica."
+  },
+  {
+    "id": "q_mulheres_rosalind_franklin",
+    "factId": "canal_sofar",
+    "biome": "pelagico",
+    "difficulty": "medio",
+    "question": "A famosa 'Foto 51', imagem de difração de raio-X que revelou a estrutura de dupla hélice do DNA, foi produzida por qual química britânica?",
+    "options": ["Rosalind Franklin", "Ada Lovelace", "Emmy Noether", "Jocelyn Bell"],
+    "correctIndex": 0,
+    "explanation": "O trabalho experimental e meticuloso de Rosalind Franklin com cristalografia de raios-X foi a peça-chave para a compreensão molecular do código genético de todos os seres vivos."
   }
 ]

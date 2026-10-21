@@ -798,3 +798,17 @@ _Objetivo: Eliminar micro-stutters, alocações por frame no garbage collector e
   - Implementar buffer circular de frame time (últimos 120 quadros) no overlay de debug (F3/F8), exibindo média, p95, p99 e contagem de entidades ativas vs culled.
 - [x] **53.7 Testes Automatizados de Performance e Estabilidade:**
   - Criar testes em `tests/systems/phase53_frame_time_optimization.test.ts` validando que mutações in-place, lista ativa do pool e dirty checking de cores mantêm alocações e tempo de processamento dentro dos limites estipulados por frame.
+
+### 👩‍🔬 FASE 54: Especial Feira de Ciências — Mulheres na Ciência & Educação Ambiental
+
+_Objetivo: Celebrar as mulheres cientistas no jogo com foco em pesquisadoras de baleias e biologia marinha, cientistas brasileiras em diversas áreas e ícones internacionais, assegurando cota obrigatória do tema no Quiz pós-partida._
+
+- [x] **54.1 Curadoria de Questões Temáticas (`data/quiz.json`):**
+  - Inclusão de 11 novas questões validadas com schema Zod rigoroso, organizadas pelas 3 prioridades da feira:
+    - _Prioridade 1 (Baleias & Oceanografia)_: Dra. Márcia Engel (Instituto Baleia Jubarte), Dra. Sylvia Earle (Hope Spots), Dra. Mariana Groch (Projeto Baleia Franca), Pesquisadoras Brasileiras no PROANTAR (Ecologia Polar) e Rachel Carson (Bióloga Marinha e pioneira ambiental).
+    - _Prioridade 2 (Pioneiras Brasileiras)_: Dra. Johanna Döbereiner (Biotecnologia e Agricultura Sustentável), Bertha Lutz (Zoologia e Direitos Femininos), Dra. Jaqueline Goes de Jesus (Genômica do SARS-CoV-2) e Enedina Alves Marques (Engenharia e Recursos Hídricos).
+    - _Prioridade 3 (Vanguarda Internacional)_: Marie Curie (Física, Química e 2 Nobels) e Rosalind Franklin (Estrutura do DNA por Foto 51).
+- [x] **54.2 Cota Mandatória na Seleção do Quiz para a Feira (`src/ui/quizModal.ts`):**
+  - Atualização do algoritmo `selectQuizQuestions` garantindo que toda partida sorteie pelo menos 1 pergunta obrigatória sobre Mulheres na Ciência, integrando-se organicamente à progressão e aos fatos desbloqueados da rota.
+- [x] **54.3 Suíte de Testes Automatizados TDD (`tests/ui/phase54_women_in_science.test.ts`):**
+  - Testes unitários cobrindo conformidade de schemas Zod, consistência dos 13 marcos migratórios canônicos, gabaritos científicos e presença de 100% do tema em rodadas consecutivas de partidas.
