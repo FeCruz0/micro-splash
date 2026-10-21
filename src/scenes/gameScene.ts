@@ -45,6 +45,7 @@ import { initPresentationMode } from "../systems/presentationMode";
 import { gamepadSystem } from "../systems/gamepadSystem";
 import { analytics } from "../services/analytics";
 import { showChallengeEndScreen } from "../ui/challengeEndScreen";
+import { setupSereneInsightsSystem } from "../systems/sereneMigrationInsights";
 
 export function registerGameScene(k: KaboomCtx): void {
   k.scene("game", (options: GameOptions = { mode: "standard" }) => {
@@ -222,6 +223,7 @@ export function registerGameScene(k: KaboomCtx): void {
     if (options.mode === "serene") {
       setupBiomeVignetteSystem(k, playerController);
     }
+    const sereneInsights = setupSereneInsightsSystem(k, options.mode === "serene");
     setupCinematicCameraSystem(k, playerController);
 
     // Fase 29: Superfície, Céu & Atmosfera
@@ -242,6 +244,13 @@ export function registerGameScene(k: KaboomCtx): void {
 
     k.onKeyPress(resumeAudioOnInteraction);
     k.onMousePress(resumeAudioOnInteraction);
+
+    // Tecla 'E': Sonar acústico (aciona insight pedagógico no modo sereno)
+    k.onKeyPress("e", () => {
+      if (options.mode === "serene") {
+        sereneInsights?.trigger("sonar_communication");
+      }
+    });
 
     // Tecla 'M': Silenciar / Ativar Som
     k.onKeyPress("m", () => {
@@ -274,6 +283,7 @@ export function registerGameScene(k: KaboomCtx): void {
           isGameFinished = true;
           recordEndOnce(true);
           presentationMode.destroy();
+          sereneInsights?.destroy();
           playerController.freeze();
           audioSystem.pauseAmbient();
           showVictoryScreen(k, gameState, () => {
@@ -351,6 +361,7 @@ export function registerGameScene(k: KaboomCtx): void {
         isGameFinished = true;
         recordEndOnce(true);
         presentationMode.destroy();
+        sereneInsights?.destroy();
         playerController.freeze();
         audioSystem.pauseAmbient();
         showVictoryScreen(k, gameState, () => {
@@ -394,9 +405,31 @@ export function registerGameScene(k: KaboomCtx): void {
       if (!isGameFinished && !playerController.isFainting()) {
         gameState.update(k.dt(), playerXPosition);
         if (options.mode === "serene") {
+          sereneInsights?.update(k.dt());
+
           gameState.checkFacts(playerXPosition, (fact) => {
             showFactPopup(k, fact);
           });
+
+          // Gatilhos pedagógicos dinâmicos da Migração Serena
+          if (playerController.gameObj.pos.y <= GAME_CONFIG.SEA_LEVEL + 6) {
+            sereneInsights?.trigger("surface_breathing");
+          }
+          if (playerController.getSpeed().len() > 80) {
+            sereneInsights?.trigger("tail_propulsion");
+          }
+          if (playerXPosition >= 180 && playerXPosition <= 500) {
+            sereneInsights?.trigger("ice_gap_breathing");
+          }
+          if (playerXPosition >= 7000 && playerXPosition <= 11000) {
+            sereneInsights?.trigger("dolphin_drafting");
+          }
+          if (playerXPosition >= 19500 && playerXPosition <= 24000) {
+            sereneInsights?.trigger("upwelling_currents");
+          }
+          if (playerXPosition >= 26500) {
+            sereneInsights?.trigger("nursery_sanctuary");
+          }
         }
         // Sincroniza a trilha sonora adaptativa 16-bit com o bioma atual
         audioSystem.updateBiomeTrack(playerXPosition);
@@ -424,6 +457,7 @@ export function registerGameScene(k: KaboomCtx): void {
         k.wait(3.5, () => {
           recordEndOnce(false);
           presentationMode.destroy();
+          sereneInsights?.destroy();
           playerController.freeze();
           showRescueScreen(k, gameState, () => {
             audioSystem.stopMigrationAudio();

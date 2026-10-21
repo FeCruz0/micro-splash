@@ -220,6 +220,9 @@ A camada de interface gráfica é desacoplada da lógica central de simulação:
 5. **Auditoria de Contraste WCAG 2.1 AA & Formatação Internacionalizada:**
    - `src/utils/contrast.ts`: Validação de taxa de contraste superior a 4.5:1 para textos regulares e 3.0:1 para badges grandes sobre fundos translúcidos.
    - `src/i18n/i18n.ts`: Formatação numérica, métrica (milhas náuticas e metros) e datas localizada via `Intl` nativo com suporte total a `pt-BR`, `en-US` e `gn` (Guarani Nhandewa).
+6. **Diário de Bordo da Migração Serena (`src/systems/sereneMigrationInsights.ts`):**
+   - Módulo educativo interativo com catálogo de 10 momentos da ecologia da jubarte (filtração de krill, respiração, hidrodinâmica, polínias, canal SOFAR, drafting, ameaça de plásticos, redes, ressurgência e berçário).
+   - Gerenciador com fila anti-sobreposição, temporização pedagógica (5.5s), transições acessíveis e integração com narração por voz (TTS).
 
 ---
 

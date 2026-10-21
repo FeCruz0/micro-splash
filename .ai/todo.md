@@ -1,94 +1,108 @@
-# Plano de Implementação — Fase 54: Especial Feira de Ciências — Mulheres na Ciência & Educação Ambiental
+# Plano de Implementação — Fase 55: Diário de Bordo da Migração Serena (Educação Ambiental & Narrativa Interativa)
 
 Status: Concluído ✅  
 Data: 2026-10-21  
-Alvo: v1.19.0 (Edição Feira de Ciências)
+Alvo: v1.20.0 (Modo Educativo Contemplativo)
 
 ---
 
-## 🔬 Diagnóstico e Motivação
+## 🔬 Diagnóstico e Escopo da Fase 55
 
-1. **Tema Central da Feira de Ciências**:
-   - O tema deste ano na feira é **"Mulheres na Ciência"**.
-   - O jogo já possui um sistema rico de Quiz pós-corrida e um Códex educativo, porém focado prioritariamente em ecologia geral dos biomas.
-   - Para que o jogo seja uma atração de destaque na feira, o quiz incorpora perguntas sobre mulheres cientistas, organizadas pela seguinte hierarquia de relevância:
-     1. **Prioridade 1 (Máxima)**: Mulheres cientistas envolvidas em pesquisas com baleias, cetáceos e oceanografia marinha (com destaque para pesquisadoras brasileiras).
-     2. **Prioridade 2 (Intermediária)**: Grandes cientistas brasileiras em qualquer área da ciência e tecnologia.
-     3. **Prioridade 3 (Complementar)**: Cientistas mulheres internacionais em outras áreas do conhecimento.
+1. **Objetivo Pedagógico**:
+   - A **Migração Serena** (`mode === "serene"`) foi concebida como uma experiência contemplativa, acessível e sem penalidades de morte por oxigênio.
+   - Atualmente, ela exibe apenas vinhetas geográficas a cada bioma e fatos estáticos a cada ~2.000m.
+   - O objetivo desta fase é transformar o percurso da Migração Serena em uma **verdadeira aula viva sobre a biologia e a ecologia da migração das baleias-jubarte**, disparando caixas informativas e educativas exatamente no momento em que o jogador interage com os elementos do ecossistema marinho.
 
-2. **Garantia de Exibição na Feira (`src/ui/quizModal.ts`)**:
-   - Cada sessão de quiz sorteia 3 perguntas.
-   - O algoritmo atualizado em `selectQuizQuestions` garante que **pelo menos 1 pergunta das 3 seja obrigatoriamente do tema "Mulheres na Ciência"** em toda partida, mantendo a aleatoriedade e integrando-se organicamente à rota.
+2. **Gatilhos Educativos Interativos**:
+   1. **`krill_feeding` (Alimentação por Filtração)**:
+      - _Gatilho_: Primeira deglutição de krill na Antártida.
+      - _Conteúdo_: Explica o que é o krill antártico (_Euphausia superba_), como as cerdas de baleen (barbas de queratina) filtram a água e por que as jubartes ingerem até 2 toneladas diárias no verão polar para estocar energia (blubber) para a viagem de 30.000m em jejum.
+   2. **`surface_breathing` (Respiração Pulmonar & Espiráculo)**:
+      - _Gatilho_: Primeira subida à superfície / recarga de oxigênio.
+      - _Conteúdo_: Explica que as baleias são mamíferos pulmonares, respiram ar atmosférico por dois orifícios no topo da cabeça (espiráculos) e renovam até 90% do ar em um único sopro, não bebendo água salgada.
+   3. **`tail_propulsion` (Propulsão Hidrodinâmica & Flukes)**:
+      - _Gatilho_: Primeira batida de cauda / aceleração ativa no início da migração.
+      - _Conteúdo_: Explica a biomecânica da nadadeira caudal (flukes), que se move de cima para baixo com força muscular dorsal para impulsionar 40 toneladas através das correntes com máxima eficiência hidrodinâmica.
+   4. **`ice_gap_breathing` (Banquisa & Fendas Polares)**:
+      - _Gatilho_: Passagem sob o teto de gelo antártico e encontro de fendas.
+      - _Conteúdo_: Explica como as polínias naturais (aberturas na banquisa de gelo) são corredores de sobrevivência vitais para que os cetáceos não fiquem presos sob o mar congelado antes do inverno polar.
+   5. **`sonar_communication` (Vocalizações & Canal SOFAR)**:
+      - _Gatilho_: Primeiro acionamento do sonar (tecla E / toque).
+      - _Conteúdo_: Explica os cantos complexos das baleias-jubarte, que viajam centenas de quilômetros pelas camadas térmicas profundas do oceano (canal SOFAR) para navegação, mapeamento do relevo submarino e comunicação nupcial.
+   6. **`dolphin_drafting` (Nado em Esteira / Cooperação Pelágica)**:
+      - _Gatilho_: Entrada na esteira hidrodinâmica de golfinhos.
+      - _Conteúdo_: Explica o fenômeno físico de _drafting_, onde cetáceos aproveitam o vácuo de pressão criado pelo líder para economizar até 40% de energia em travessias oceânicas de milhares de quilômetros.
+   7. **`ocean_trash_threat` (Ameaça dos Plásticos & Microplásticos)**:
+      - _Gatilho_: Primeiro contato com lixo plástico na Costa Urbana.
+      - _Conteúdo_: Explica o impacto do descarte de resíduos humanos nos oceanos, onde sacolas e embalagens se fragmentam em microplásticos ou causam asfixia e bloqueio gástrico na fauna marinha.
+   8. **`ghost_net_entanglement` (Perigo das Redes Fantasmas)**:
+      - _Gatilho_: Primeiro contato com rede de pesca abandonada.
+      - _Conteúdo_: Explica o problema do emalhe acidental e da pesca fantasma, alertando que redes sintéticas perdidas continuam aprisionando animais marinhos por décadas sem decomposição.
+   9. **`upwelling_currents` (Ressurgência de Cabo Frio & ACAS)**:
+      - _Gatilho_: Entrada no jato de ressurgência nos cânions.
+      - _Conteúdo_: Explica como os ventos empurram as águas superficiais quentes, permitindo que a Corrente Central do Atlântico Sul (ACAS), rica em nutrientes minerais e fitoplâncton, suba pelos cânions submarinos como um motor ecológico fértil.
+   10. **`nursery_sanctuary` (O Berçário de Arraial do Cabo & Reprodução)**:
+       - _Gatilho_: Aproximação dos últimos 3.000m (Santuário de Arraial).
+       - _Conteúdo_: Explica a razão da migração: as jubartes deixam a Antártida gélida para encontrar águas rasas, calmas e mornas no Brasil, perfeitas para o parto, amamentação do filhote (que consome até 100 litros de leite com 50% de gordura por dia) e rituais de cortejo.
 
-3. **Consistência de Dados e Schemas (`src/schemas/dataSchemas.ts`, `data/facts.json`, `data/quiz.json`)**:
-   - Todas as 11 novas questões satisfazem estritamente o `QuizQuestionSchema` (Zod), com `id` único (`q_mulheres_*`), `factId` canônico dos biomas, `biome` válido, 4 opções, gabarito e explicação pedagógica detalhada.
-   - Preservados os 13 marcos migratórios canônicos ordenados em `data/facts.json` para o Códex e eventos de rota.
+3. **Arquitetura & Engenharia de UX**:
+   - **Módulo Dedicado**: `src/systems/sereneMigrationInsights.ts`.
+   - **Fila Anti-Sobreposição (Non-Overlapping Queue)**: Se um insight for disparado enquanto outro estiver na tela, ele aguarda ou respeita um intervalo mínimo de respiração (~2s entre mensagens).
+   - **Disparo Único (Single-Fire)**: Cada insight é acionado no máximo 1 vez por partida através de um `Set<string>`.
+   - **Componente Visual**:
+     - Posicionamento no canto superior ou inferior da tela, sem colidir com o HUD principal de distância e fôlego.
+     - Painel glassmorphism náutico com cantos arredondados, borda luminescente suave, ícone temático, título destacado e texto claro em PT-BR.
+     - Suporte à síntese de voz (TTS via `ttsSystem`) e acessibilidade de movimento reduzido (`accessibilitySystem`).
+   - **Isolamento de Modo**: Ativado **exclusivamente quando `mode === "serene"`**.
 
 ---
 
 ## 📋 Lista de Tarefas Atômicas
 
-### Etapa 1: Fatos Pedagógicos de Referência (`data/facts.json`)
+### Etapa 1: Estrutura de Dados & Conteúdo Pedagógico (`src/systems/sereneMigrationInsights.ts`)
 
-- [x] **1.1 Preservação dos 13 Fatos Canônicos Ordenados em `data/facts.json`**
-  - **Arquivo**: `data/facts.json`.
-  - **Ação**: Validação dos 13 marcos migratórios da rota canônica com `triggerX` estritamente crescente.
-  - **Validação**: Testado com `FactsArraySchema.parse()` e `tests/core/quiz.test.ts`.
+- [x] **1.1 Definir Tipos, Interfaces e Banco de Dados de Insights**
+  - **Arquivo**: `src/systems/sereneMigrationInsights.ts`.
+  - **Ação**: Criar interface `SereneInsight` e o array imutável de insights contendo os 10 eventos pedagógicos (krill, respiração, cauda, fendas, sonar, drafting, lixo, redes, ressurgência e berçário).
+  - **Validação**: Verificação de tipos estritos TypeScript e consistência textual pedagógica.
 
----
-
-### Etapa 2: Banco de Questões do Quiz (`data/quiz.json`)
-
-- [x] **2.1 Inserir Perguntas de Prioridade 1 (Baleias & Oceanografia)**
-  - **Arquivo**: `data/quiz.json`.
-  - **Ação**: Adicionadas 5 questões focadas em cetáceos e ambiente marinho:
-    1. `q_mulheres_marcia_engel`: Dra. Márcia Engel e o Instituto Baleia Jubarte.
-    2. `q_mulheres_sylvia_earle`: Dra. Sylvia Earle e os Hope Spots oceânicos.
-    3. `q_mulheres_mariana_groch`: Dra. Mariana Groch e a Baleia-Franca no Brasil.
-    4. `q_mulheres_proantar`: Cientistas brasileiras na Antártica e ecologia do krill.
-    5. `q_mulheres_rachel_carson`: Rachel Carson e a conservação marinha.
-  - **Validação**: Validação sintática e de schema Zod.
-
-- [x] **2.2 Inserir Perguntas de Prioridade 2 (Cientistas Brasileiras)**
-  - **Arquivo**: `data/quiz.json`.
-  - **Ação**: Adicionadas 4 questões celebrando pioneiras brasileiras: 6. `q_mulheres_johanna_dobereiner`: Johanna Döbereiner e a biotecnologia na agricultura. 7. `q_mulheres_bertha_lutz`: Bertha Lutz e a zoologia no Museu Nacional. 8. `q_mulheres_jaqueline_goes`: Dra. Jaqueline Goes de Jesus e o genoma viral. 9. `q_mulheres_enedina_marques`: Enedina Alves Marques, pioneira da engenharia nacional.
-  - **Validação**: Validação sintática e de schema Zod.
-
-- [x] **2.3 Inserir Perguntas de Prioridade 3 (Cientistas Internacionais)**
-  - **Arquivo**: `data/quiz.json`.
-  - **Ação**: Adicionadas 2 questões de vanguarda internacional: 10. `q_mulheres_marie_curie`: Marie Curie, radioatividade e os 2 Nobels. 11. `q_mulheres_rosalind_franklin`: Rosalind Franklin e a Foto 51 do DNA.
-  - **Validação**: Validação sintática e de schema Zod.
+- [x] **1.2 Implementar o Gerenciador de Fila e Apresentação Visual**
+  - **Arquivo**: `src/systems/sereneMigrationInsights.ts`.
+  - **Ação**: Implementar classe `SereneInsightsManager` com controle de fila, temporização de permanência (5.5s), transições suaves de fade/slide e integração com TTS.
+  - **Validação**: Testes unitários de transição de estado da fila e descarte de nós no Kaboom.
 
 ---
 
-### Etapa 3: Algoritmo de Seleção para a Feira de Ciências (`src/ui/quizModal.ts`)
+### Etapa 2: Integração com Gatilhos de Gameplay (`src/scenes/gameScene.ts` & `src/systems/collisions.ts`)
 
-- [x] **3.1 Atualizar `selectQuizQuestions` com Cota Especial da Feira**
-  - **Arquivo**: `src/ui/quizModal.ts`.
-  - **Ação**:
-    - Criada e exportada a função `isWomenInScienceQuestion`.
-    - Garantido que a primeira vaga das 3 perguntas seja preenchida obrigatoriamente por uma questão de Mulheres na Ciência.
-    - As 2 vagas subsequentes seguem o fluxo pedagógico normal de rota e dificuldade.
-  - **Validação**: Testes unitários com simulação de 50 sorteios consecutivos garantindo 100% de presença do tema.
+- [x] **2.1 Conectar Gatilhos de Colisão no Modo Sereno**
+  - **Arquivo**: `src/systems/collisions.ts`.
+  - **Ação**: No callback de colisão de krill (`TAGS.KRILL`), lixo (`TAGS.TRASH`) e redes (`TAGS.NET`), notificar o despachante de insights caso o modo sereno esteja ativo.
+  - **Validação**: Teste unitário de disparo sob colisão.
 
----
-
-### Etapa 4: Suíte de Testes Automatizados TDD (`tests/ui/phase54_women_in_science.test.ts`)
-
-- [x] **4.1 Criar Testes Unitários de Dados e Seleção**
-  - **Arquivo**: `tests/ui/phase54_women_in_science.test.ts`.
-  - **Ação**: Implementada cobertura completa para:
-    - Conformidade do arquivo `data/quiz.json` com `QuizArraySchema`.
-    - Conformidade do arquivo `data/facts.json` com `FactsArraySchema`.
-    - Presença das 11 questões e verificação de gabaritos (`correctIndex` bate com a opção correta).
-    - Teste de `selectQuizQuestions` confirmando presença mandatória do tema da feira em 100% dos sorteios.
-  - **Validação**: Execução via Vitest (`tests/ui/phase54_women_in_science.test.ts` e suíte completa de 71 arquivos).
+- [x] **2.2 Conectar Gatilhos de Respiração, Sonar, Esteira e Ressurgência**
+  - **Arquivo**: `src/scenes/gameScene.ts`.
+  - **Ação**: Inicializar `setupSereneInsightsSystem` exclusivamente quando `options.mode === "serene"` e interligar os listeners de respiração (`playerOxygen`), esteira de golfinhos, fendas de gelo e aproximação do berçário.
+  - **Validação**: Verificação de que em modos `standard` e `quick_challenge` nenhuma instância visual é alocada.
 
 ---
 
-### Etapa 5: Atualização da Documentação & Roadmap
+### Etapa 3: Suíte de Testes Automatizados TDD (`tests/systems/sereneMigrationInsights.test.ts`)
 
-- [x] **5.1 Registrar Fase 54 em `docs/ROADMAP.md`**
-  - **Arquivo**: `docs/ROADMAP.md`.
-  - **Ação**: Documentação formal da Fase 54 com objetivos e itens concluídos.
-  - **Validação**: Suíte de consistência de documentação (`tests/core/phase52_documentation_consistency.test.ts`) 100% verde.
+- [x] **3.1 Criar Testes Unitários de Gatilhos e Fila**
+  - **Arquivo**: `tests/systems/sereneMigrationInsights.test.ts`.
+  - **Ação**: Cobertura completa para:
+    - Integridade dos 10 insights pedagógicos (título, texto explicativo substantivo, categoria).
+    - Disparo único por ID (mesmo evento chamado 10 vezes só exibe 1 vez).
+    - Não-sobreposição na fila (dois eventos simultâneos são sequenciados respeitando o delay).
+    - Respeito ao modo de jogo (inativo quando não for `serene`).
+  - **Validação**: Execução via Vitest (`tests/systems/sereneMigrationInsights.test.ts`).
+
+---
+
+### Etapa 4: Documentação e Roadmap
+
+- [x] **4.1 Registrar Fase 55 em `docs/ROADMAP.md` e Atualizar `.ai/todo.md`**
+  - **Arquivo**: `docs/ROADMAP.md` e `.ai/todo.md`.
+  - **Ação**: Adicionar documentação formal da Fase 55 e sincronizar com a suíte de consistência documental (`tests/core/phase52_documentation_consistency.test.ts`).
+  - **Validação**: Execução da suíte completa de 72 arquivos de teste com 100% de sucesso.

@@ -5,6 +5,7 @@ import { hapticsSystem } from "./hapticsSystem";
 import { accessibilitySystem } from "./accessibilitySystem";
 import type { PlayerController } from "../entities/player";
 import type { GameState } from "./state";
+import { getSereneInsightsManager } from "./sereneMigrationInsights";
 
 interface AirVentEntity extends GameObj {
   collectAir?: () => boolean;
@@ -27,6 +28,7 @@ export function setupCollisions(
     k.destroy(trash);
 
     gameState.addTrash();
+    getSereneInsightsManager()?.trigger("ocean_trash_threat");
 
     // Som de impacto no plástico e vibração tátil
     audioSystem.playTrashThud(trash.pos?.x, _player.pos?.x);
@@ -60,6 +62,7 @@ export function setupCollisions(
 
     k.destroy(krill);
     gameState.addKrill();
+    getSereneInsightsManager()?.trigger("krill_feeding");
 
     // Som biológico de sucção e deglutição de krill com espacialização estéreo (Fase 5/34)
     audioSystem.playKrillGulp(krill.pos?.x, _player.pos?.x);
@@ -73,6 +76,7 @@ export function setupCollisions(
     if (playerController.isFrozen()) return;
 
     k.destroy(net); // remove rede do mapa
+    getSereneInsightsManager()?.trigger("ghost_net_entanglement");
     audioSystem.playNetTangle(net.pos?.x, _player.pos?.x);
     hapticsSystem.triggerCollision();
 

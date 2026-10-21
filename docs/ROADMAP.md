@@ -812,3 +812,16 @@ _Objetivo: Celebrar as mulheres cientistas no jogo com foco em pesquisadoras de 
   - Atualização do algoritmo `selectQuizQuestions` garantindo que toda partida sorteie pelo menos 1 pergunta obrigatória sobre Mulheres na Ciência, integrando-se organicamente à progressão e aos fatos desbloqueados da rota.
 - [x] **54.3 Suíte de Testes Automatizados TDD (`tests/ui/phase54_women_in_science.test.ts`):**
   - Testes unitários cobrindo conformidade de schemas Zod, consistência dos 13 marcos migratórios canônicos, gabaritos científicos e presença de 100% do tema em rodadas consecutivas de partidas.
+
+### 🌸 FASE 55: Diário de Bordo da Migração Serena (Educação Ambiental & Narrativa Interativa)
+
+_Objetivo: Transformar o percurso da Migração Serena em uma aula viva sobre a ecologia e a biologia da baleia-jubarte, com caixas informativas e educativas disparadas organicamente sob interações no mapa._
+
+- [x] **55.1 Catálogo dos 10 Momentos Educativos (`src/systems/sereneMigrationInsights.ts`):**
+  - Definição do banco pedagógico cobrindo: alimentação por filtração de krill, respiração pulmonar e espiráculos, hidrodinâmica dos flukes, fendas polares na banquisa, canal SOFAR e acústica marinha, nado em esteira com golfinhos (drafting), impacto do lixo e microplásticos, perigo da pesca fantasma, ressurgência da ACAS e berçário de reprodução em Arraial.
+- [x] **55.2 Gerenciador com Fila Anti-Sobreposição e Acessibilidade (`src/systems/sereneMigrationInsights.ts`):**
+  - Sistema de apresentação visual glassmorphism, suporte à narração por voz (TTS), respeito a movimento reduzido, temporização de leitura e fila sequencial sem sobreposições.
+- [x] **55.3 Integração com Gatilhos de Gameplay (`src/systems/collisions.ts`, `src/scenes/gameScene.ts`):**
+  - Conexão exclusiva no modo sereno disparando insights ao engolir o 1º krill, romper a superfície, acelerar a cauda, usar sonar e navegar pelos biomas.
+- [x] **55.4 Suíte de Testes Automatizados TDD (`tests/systems/sereneMigrationInsights.test.ts`):**
+  - Testes unitários cobrindo catálogo, disparo único (single-fire), fila sequencial e inatividade em modos competitivos.
