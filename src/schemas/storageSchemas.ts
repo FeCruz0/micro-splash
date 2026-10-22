@@ -71,3 +71,10 @@ export const DisplayModeSchema = z.enum(["stretch", "letterbox", "pixel_perfect"
 export const LetterboxColorSchema = z.enum(["black", "ocean", "ocean_deep", "navy"]);
 export const TouchControlsModeSchema = z.enum(["auto", "on", "off", "always_on", "disabled"]);
 export const SupportedLocaleSchema = z.enum(["pt-BR", "en-US", "gn", "es-ES"]);
+
+// 9. Companion Whale Tutorial Schemas (Fase 56)
+export const CompanionTutorialSeenSchema = z.boolean();
+export type StoredCompanionTutorialSeen = z.infer<typeof CompanionTutorialSeenSchema>;
+
+export const CompanionTutorialEnabledSchema = z.boolean();
+export type StoredCompanionTutorialEnabled = z.infer<typeof CompanionTutorialEnabledSchema>;

@@ -825,3 +825,24 @@ _Objetivo: Transformar o percurso da Migração Serena em uma aula viva sobre a 
   - Conexão exclusiva no modo sereno disparando insights ao engolir o 1º krill, romper a superfície, acelerar a cauda, usar sonar e navegar pelos biomas.
 - [x] **55.4 Suíte de Testes Automatizados TDD (`tests/systems/sereneMigrationInsights.test.ts`):**
   - Testes unitários cobrindo catálogo, disparo único (single-fire), fila sequencial e inatividade em modos competitivos.
+
+### 🐋 FASE 56: Tutorial Intuitivo & Mimético — Baleia-Guia NPC (Mãe-Guia Antártica)
+
+_Objetivo: Substituir tutoriais textuais por aprendizado mimético e orgânico inspirado na etologia real das baleias-jubarte (cultural transmission), acompanhando o filhote nos primeiros 3.200m com uma Mãe-Guia cinemática que demonstra mecânicas vitais._
+
+- [x] **56.1 Configuração, Schemas Zod e Persistência (`src/schemas/storageSchemas.ts`, `src/config.ts`, `src/systems/companionTutorialSettings.ts`):**
+  - Definição dos schemas Zod `CompanionTutorialSeenSchema` e `CompanionTutorialEnabledSchema`, constantes de trajetória `COMPANION_CONFIG` e módulo utilitário com regras de ativação por modo de jogo (ativa na Migração Serena e na primeira partida do Modo Padrão; inativa em modos competitivos).
+- [x] **56.2 Entidade de IA Autônoma & Mecânicas Espelho (`src/entities/companionWhale.ts`, `src/systems/collisions.ts`, `src/entities/player/playerSonar.ts`, `src/systems/iceSurface.ts`, `src/systems/proceduralObstacles.ts`):**
+  - Implementação da fábrica `createCompanionWhale` com sprite oficial `baleia` em escala calibrada (`scale(0.85)`), tom azul-ardósia escurecido (`color(140, 165, 195)`), colisor ativo `k.area` (`91.8 × 35.7` px) e corpo físico `k.body()` com mecânicas ecológicas espelhadas do jogador:
+    - _Movimentação Hidrodinâmica Fiel_: Giro vertical gradual limitando a taxa angular de manobra, empuxo de cauda aplicado estritamente na direção do vetor apontado `vec2(cos θ, sin θ)` e nado por física via `companion.move(...)` sob arrasto aquático (`WATER_DRAG`) e afundamento (`SINK_RATE`), eliminando qualquer deslize lateral.
+    - _Colisão Física Sólida com Gelo_: Integração com `k.body()`, bloqueando avanço contra blocos estáticos de gelo polar (`ice_block`), anulando velocidade vertical ascendente e nivelando a rotação na horizontal.
+    - _Alimentação Real por Filtração_: Detecção sensorial de `TAGS.KRILL` à frente e colisão real consumindo krill com animação `feed`, som biológico `playKrillGulp` e recarga de fôlego. Quantidade de cardumes de krill na Antártica aumentada de 12-15 para 20-24 cardumes para suprir ambas as baleias.
+    - _Ciclo Biológico de Oxigênio & Fendas Polares_: Depleção contínua de oxigênio pulmonar; ao atingir nível crítico (< 38%), busca dinamicamente fendas polares, ascende para a superfície, emite borrifo duplo com som e restaura 100% do fôlego.
+    - _Biosonar Funcional Revelador de Itens_: Varredura acústica em 360° com ondas sonoras que efetivamente iluminam e revelam krill, redes, lixo e relevo no escuro via `revealEntitiesInSonarRadius`.
+    - _Repouso Estacionário Permanente (`RESTING`)_: Ao concluir o trecho pedagógico antártico (~3.150m), a baleia desacelera suavemente até repouso e permanece contemplativa nas águas da enseada animando `idle_swim`, sem sumir abruptamente da cena.
+- [x] **56.3 Pacing Adaptativo e Comportamento Não-Repetitivo:**
+  - Sistema de compensação dinâmica de cadência de cauda (rubber-banding entre 120px e 240px à frente do jogador) integrado a variações estocásticas de planeio (1.2s a 2.4s) e ondulações oceânicas multifrequência para uma experiência viva e orgânica.
+- [x] **56.4 Integração na Cena Principal e Alternador de Opções (`src/scenes/gameScene.ts`, `src/ui/options/controlsOptionsTab.ts`):**
+  - Spawn condicional da baleia-guia na Antártica com teardown via `onSceneLeave` e botão de alternância acessível com suporte a navegação por teclado na aba de controles das Opções.
+- [x] **56.5 Suíte de Testes Automatizados TDD (`tests/entities/companionWhale.test.ts`):**
+  - 18 testes unitários cobrindo persistência, colisor `k.area`, corpo `k.body()`, consumo real de krill, depleção e recarga de oxigênio em fendas, emissão de sonar com revelação ativa, reações de colisão com gelo/obstáculos, giro vertical gradual, impulso direcional na orientação corporal e estado de repouso permanente sem destruição.

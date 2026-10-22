@@ -74,7 +74,7 @@ export function generateProceduralLayout(
   // =========================================================================
   // 1. BIOMA 1: ANTÁRTICA (0m - 5.000m)
   // =========================================================================
-  const antarcticKrillCount = 12 + Math.floor(rand() * 4); // 12 a 15
+  const antarcticKrillCount = 20 + Math.floor(rand() * 5); // 20 a 24 cardumes
   const krillStep = 4600 / antarcticKrillCount;
   for (let i = 0; i < antarcticKrillCount; i++) {
     const x = Math.round(350 + i * krillStep + (rand() - 0.5) * 120);
@@ -106,8 +106,11 @@ export function generateProceduralLayout(
     netPositions.push({ x, y });
   }
 
+  // Cardumes pelágicos suplementares na travessia
   krillPositions.push({ x: 6800 + Math.round(rand() * 200), y: midNetY2 });
+  krillPositions.push({ x: 8100 + Math.round(rand() * 200), y: shallowNetY + 20 });
   krillPositions.push({ x: 9200 + Math.round(rand() * 200), y: midNetY1 });
+  krillPositions.push({ x: 10600 + Math.round(rand() * 200), y: midNetY2 });
 
   // Correntes procedurais na travessia (alternando contrárias e favoráveis)
   currentZones.push({
@@ -205,6 +208,10 @@ export function generateProceduralLayout(
     force: 180,
     type: "opposing",
   });
+
+  // Cardumes nas correntes ricas de nutrientes dos Cânions
+  krillPositions.push({ x: Math.round(20800 + rand() * 200), y: midNetY2 });
+  krillPositions.push({ x: Math.round(23200 + rand() * 200), y: shallowNetY + 15 });
 
   // =========================================================================
   // 5. BIOMA 5: SANTUÁRIO DE ARRAIAL DO CABO (25.000m - 29.500m)

@@ -1,108 +1,95 @@
-# Plano de Implementação — Fase 55: Diário de Bordo da Migração Serena (Educação Ambiental & Narrativa Interativa)
+# Plano de Implementação — Fase 56: Tutorial Intuitivo & Mimético — Baleia-Guia NPC (Mãe-Guia Antártica)
 
 Status: Concluído ✅  
-Data: 2026-10-21  
-Alvo: v1.20.0 (Modo Educativo Contemplativo)
+Data: 2026-10-22  
+Alvo: v1.21.0 (Tutorial Intuitivo & Naturalista)
 
 ---
 
-## 🔬 Diagnóstico e Escopo da Fase 55
+## 🔬 Diagnóstico e Escopo da Fase 56
 
-1. **Objetivo Pedagógico**:
-   - A **Migração Serena** (`mode === "serene"`) foi concebida como uma experiência contemplativa, acessível e sem penalidades de morte por oxigênio.
-   - Atualmente, ela exibe apenas vinhetas geográficas a cada bioma e fatos estáticos a cada ~2.000m.
-   - O objetivo desta fase é transformar o percurso da Migração Serena em uma **verdadeira aula viva sobre a biologia e a ecologia da migração das baleias-jubarte**, disparando caixas informativas e educativas exatamente no momento em que o jogador interage com os elementos do ecossistema marinho.
+1. **Objetivo Pedagógico & Game Design**:
+   - Substituir tutoriais textuais estáticos por aprendizado mimético (_cultural transmission_ na etologia de cetáceos).
+   - Nos primeiros 3.200 metros da rota antártica (0m – 3.200m), o jogador é acompanhado por uma **Baleia-Guia (Mãe-Guia / Matriarca NPC)** que nada à sua frente com ritmo adaptativo (_rubber-banding_).
+   - A Baleia-Guia demonstra ativamente as quatro mecânicas vitais do jogo:
+     1. **Propulsão e Ritmo da Cauda (0m – 500m)**: Ritmo de planeio e cadência de batidas.
+     2. **Alimentação por Filtração & Krill (500m – 1.200m)**: Consumo visual de krill com animação de boca aberta.
+     3. **Identificação de Fendas e Respiração Pulmonar (1.200m – 1.900m)**: Rota até a fenda polar e duplo borrifo de vapor.
+     4. **Biosonar Acústico & Evasão de Obstáculos (1.900m – 2.700m)**: Emissão de onda de sonar iluminando o relevo.
+     5. **Salto de Despedida & Transição Rumo ao Mar Aberto (2.700m – 3.200m)**: Salto acrobático (_breach_) e mergulho pelágico.
 
-2. **Gatilhos Educativos Interativos**:
-   1. **`krill_feeding` (Alimentação por Filtração)**:
-      - _Gatilho_: Primeira deglutição de krill na Antártida.
-      - _Conteúdo_: Explica o que é o krill antártico (_Euphausia superba_), como as cerdas de baleen (barbas de queratina) filtram a água e por que as jubartes ingerem até 2 toneladas diárias no verão polar para estocar energia (blubber) para a viagem de 30.000m em jejum.
-   2. **`surface_breathing` (Respiração Pulmonar & Espiráculo)**:
-      - _Gatilho_: Primeira subida à superfície / recarga de oxigênio.
-      - _Conteúdo_: Explica que as baleias são mamíferos pulmonares, respiram ar atmosférico por dois orifícios no topo da cabeça (espiráculos) e renovam até 90% do ar em um único sopro, não bebendo água salgada.
-   3. **`tail_propulsion` (Propulsão Hidrodinâmica & Flukes)**:
-      - _Gatilho_: Primeira batida de cauda / aceleração ativa no início da migração.
-      - _Conteúdo_: Explica a biomecânica da nadadeira caudal (flukes), que se move de cima para baixo com força muscular dorsal para impulsionar 40 toneladas através das correntes com máxima eficiência hidrodinâmica.
-   4. **`ice_gap_breathing` (Banquisa & Fendas Polares)**:
-      - _Gatilho_: Passagem sob o teto de gelo antártico e encontro de fendas.
-      - _Conteúdo_: Explica como as polínias naturais (aberturas na banquisa de gelo) são corredores de sobrevivência vitais para que os cetáceos não fiquem presos sob o mar congelado antes do inverno polar.
-   5. **`sonar_communication` (Vocalizações & Canal SOFAR)**:
-      - _Gatilho_: Primeiro acionamento do sonar (tecla E / toque).
-      - _Conteúdo_: Explica os cantos complexos das baleias-jubarte, que viajam centenas de quilômetros pelas camadas térmicas profundas do oceano (canal SOFAR) para navegação, mapeamento do relevo submarino e comunicação nupcial.
-   6. **`dolphin_drafting` (Nado em Esteira / Cooperação Pelágica)**:
-      - _Gatilho_: Entrada na esteira hidrodinâmica de golfinhos.
-      - _Conteúdo_: Explica o fenômeno físico de _drafting_, onde cetáceos aproveitam o vácuo de pressão criado pelo líder para economizar até 40% de energia em travessias oceânicas de milhares de quilômetros.
-   7. **`ocean_trash_threat` (Ameaça dos Plásticos & Microplásticos)**:
-      - _Gatilho_: Primeiro contato com lixo plástico na Costa Urbana.
-      - _Conteúdo_: Explica o impacto do descarte de resíduos humanos nos oceanos, onde sacolas e embalagens se fragmentam em microplásticos ou causam asfixia e bloqueio gástrico na fauna marinha.
-   8. **`ghost_net_entanglement` (Perigo das Redes Fantasmas)**:
-      - _Gatilho_: Primeiro contato com rede de pesca abandonada.
-      - _Conteúdo_: Explica o problema do emalhe acidental e da pesca fantasma, alertando que redes sintéticas perdidas continuam aprisionando animais marinhos por décadas sem decomposição.
-   9. **`upwelling_currents` (Ressurgência de Cabo Frio & ACAS)**:
-      - _Gatilho_: Entrada no jato de ressurgência nos cânions.
-      - _Conteúdo_: Explica como os ventos empurram as águas superficiais quentes, permitindo que a Corrente Central do Atlântico Sul (ACAS), rica em nutrientes minerais e fitoplâncton, suba pelos cânions submarinos como um motor ecológico fértil.
-   10. **`nursery_sanctuary` (O Berçário de Arraial do Cabo & Reprodução)**:
-       - _Gatilho_: Aproximação dos últimos 3.000m (Santuário de Arraial).
-       - _Conteúdo_: Explica a razão da migração: as jubartes deixam a Antártida gélida para encontrar águas rasas, calmas e mornas no Brasil, perfeitas para o parto, amamentação do filhote (que consome até 100 litros de leite com 50% de gordura por dia) e rituais de cortejo.
+2. **Decisões Alinhadas com o Usuário**:
+   - **Identidade Visual**: Sprite `baleia` oficial em escala reduzida (`scale(0.85)`), com tom azul-ardósia escurecido (`color(140, 165, 195)`) para diferenciação nítida em relação ao jogador.
+   - **Abordagem Pedagógica**: 100% diegética e naturalista (sem botões ou ícones artificiais flutuantes na tela).
+   - **Modos de Ativação**:
+     - _Migração Serena_: Ativa por padrão (pode ser desativada nas Opções).
+     - _Modo Padrão_: Ativa na primeira partida ou caso ativada nas Opções.
+     - _Desafio Semanal / Quick Challenge_: Inativa por padrão.
 
-3. **Arquitetura & Engenharia de UX**:
-   - **Módulo Dedicado**: `src/systems/sereneMigrationInsights.ts`.
-   - **Fila Anti-Sobreposição (Non-Overlapping Queue)**: Se um insight for disparado enquanto outro estiver na tela, ele aguarda ou respeita um intervalo mínimo de respiração (~2s entre mensagens).
-   - **Disparo Único (Single-Fire)**: Cada insight é acionado no máximo 1 vez por partida através de um `Set<string>`.
-   - **Componente Visual**:
-     - Posicionamento no canto superior ou inferior da tela, sem colidir com o HUD principal de distância e fôlego.
-     - Painel glassmorphism náutico com cantos arredondados, borda luminescente suave, ícone temático, título destacado e texto claro em PT-BR.
-     - Suporte à síntese de voz (TTS via `ttsSystem`) e acessibilidade de movimento reduzido (`accessibilitySystem`).
-   - **Isolamento de Modo**: Ativado **exclusivamente quando `mode === "serene"`**.
+3. **Arquitetura & Restrições Técnicas**:
+   - Zero alocações (`vec2`) por frame no loop cinemático.
+   - Entidade cinemática sem colisão sólida de bloqueio (não empurra nem trava o jogador).
+   - Partículas via `ParticlePool` consolidado.
 
 ---
 
 ## 📋 Lista de Tarefas Atômicas
 
-### Etapa 1: Estrutura de Dados & Conteúdo Pedagógico (`src/systems/sereneMigrationInsights.ts`)
+### Etapa 1: Schemas, Configuração e Persistência
 
-- [x] **1.1 Definir Tipos, Interfaces e Banco de Dados de Insights**
-  - **Arquivo**: `src/systems/sereneMigrationInsights.ts`.
-  - **Ação**: Criar interface `SereneInsight` e o array imutável de insights contendo os 10 eventos pedagógicos (krill, respiração, cauda, fendas, sonar, drafting, lixo, redes, ressurgência e berçário).
-  - **Validação**: Verificação de tipos estritos TypeScript e consistência textual pedagógica.
-
-- [x] **1.2 Implementar o Gerenciador de Fila e Apresentação Visual**
-  - **Arquivo**: `src/systems/sereneMigrationInsights.ts`.
-  - **Ação**: Implementar classe `SereneInsightsManager` com controle de fila, temporização de permanência (5.5s), transições suaves de fade/slide e integração com TTS.
-  - **Validação**: Testes unitários de transição de estado da fila e descarte de nós no Kaboom.
+- [x] **1.1 Adicionar Schemas de Armazenamento para a Baleia-Guia**
+  - **Arquivo**: `src/schemas/storageSchemas.ts`.
+  - **Ação**: Criar schemas Zod para persistência do tutorial (`CompanionTutorialSeenSchema` e `CompanionTutorialEnabledSchema`).
+- [x] **1.2 Configurações de Trajetória da Baleia-Guia**
+  - **Arquivo**: `src/config.ts`.
+  - **Ação**: Exportar `COMPANION_CONFIG` com limites de distância, targets de demonstração e velocidade base.
+- [x] **1.3 Módulo de Configurações de Tutorial do Companheiro**
+  - **Arquivo**: `src/systems/companionTutorialSettings.ts`.
+  - **Ação**: Implementar getters/setters seguros com tipagem estrita para habilitar/desabilitar e marcar como visualizado.
 
 ---
 
-### Etapa 2: Integração com Gatilhos de Gameplay (`src/scenes/gameScene.ts` & `src/systems/collisions.ts`)
+### Etapa 2: Entidade de IA Autônoma & Mecânicas Espelho (`src/entities/companionWhale.ts`)
 
-- [x] **2.1 Conectar Gatilhos de Colisão no Modo Sereno**
-  - **Arquivo**: `src/systems/collisions.ts`.
-  - **Ação**: No callback de colisão de krill (`TAGS.KRILL`), lixo (`TAGS.TRASH`) e redes (`TAGS.NET`), notificar o despachante de insights caso o modo sereno esteja ativo.
-  - **Validação**: Teste unitário de disparo sob colisão.
+- [x] **2.1 Criação da Entidade de IA Autônoma, Colisão e Mecânicas Espelho**
+  - **Arquivo**: `src/entities/companionWhale.ts`, `src/systems/collisions.ts`, `src/entities/player/playerSonar.ts`, `src/systems/iceSurface.ts`.
+  - **Ação**: Implementar colisor ativo `k.area` proporcional (0.85x), consumo de krill real com recarga de fôlego, sonar 360° revelador de itens, ciclo de oxigênio pulmonar com busca de fendas polares, resolução de colisão de gelo e IA reativa não-repetitiva.
+- [x] **2.2 Física Hidrodinâmica Direcional, Colisão Real com Gelo e Repouso Estacionário**
+  - **Arquivo**: `src/entities/companionWhale.ts`, `src/systems/proceduralObstacles.ts`.
+  - **Ação**: Adicionar `k.body()` para resolução sólida contra blocos de gelo estáticos; implementar giro vertical lento limitando taxa angular; aplicar impulso muscular unicamente na direção virada (sem deslizar de lado); expandir quantidade de cardumes de krill na Antártica (de 12-15 para 20-24) e demais biomas; implementar estado de repouso contemplativo (`RESTING`) no fim do percurso sem destruição da entidade.
 
-- [x] **2.2 Conectar Gatilhos de Respiração, Sonar, Esteira e Ressurgência**
+---
+
+### Etapa 3: Integração na Cena do Jogo (`src/scenes/gameScene.ts`)
+
+- [x] **3.1 Spawn Condicional e Ciclo de Vida na Cena**
   - **Arquivo**: `src/scenes/gameScene.ts`.
-  - **Ação**: Inicializar `setupSereneInsightsSystem` exclusivamente quando `options.mode === "serene"` e interligar os listeners de respiração (`playerOxygen`), esteira de golfinhos, fendas de gelo e aproximação do berçário.
-  - **Validação**: Verificação de que em modos `standard` e `quick_challenge` nenhuma instância visual é alocada.
+  - **Ação**: Instanciar `createCompanionWhale` na inicialização do bioma Antártico quando aplicável, conectar com culling e registrar teardown limpo.
 
 ---
 
-### Etapa 3: Suíte de Testes Automatizados TDD (`tests/systems/sereneMigrationInsights.test.ts`)
+### Etapa 4: Configurações de UI e Acessibilidade (`src/ui/options/controlsOptionsTab.ts`)
 
-- [x] **3.1 Criar Testes Unitários de Gatilhos e Fila**
-  - **Arquivo**: `tests/systems/sereneMigrationInsights.test.ts`.
-  - **Ação**: Cobertura completa para:
-    - Integridade dos 10 insights pedagógicos (título, texto explicativo substantivo, categoria).
-    - Disparo único por ID (mesmo evento chamado 10 vezes só exibe 1 vez).
-    - Não-sobreposição na fila (dois eventos simultâneos são sequenciados respeitando o delay).
-    - Respeito ao modo de jogo (inativo quando não for `serene`).
-  - **Validação**: Execução via Vitest (`tests/systems/sereneMigrationInsights.test.ts`).
+- [x] **4.1 Alternador da Baleia-Guia no Menu de Opções**
+  - **Arquivo**: `src/ui/options/controlsOptionsTab.ts`.
+  - **Ação**: Adicionar botão e controle acessível na linha 6 da coluna de controles/sistema para alternar a Baleia-Guia (Ativa / Desativada).
 
 ---
 
-### Etapa 4: Documentação e Roadmap
+### Etapa 5: Suíte de Testes Automatizados TDD
 
-- [x] **4.1 Registrar Fase 55 em `docs/ROADMAP.md` e Atualizar `.ai/todo.md`**
+- [x] **5.1 Testes Unitários da Baleia-Guia e Mecânicas Espelho**
+  - **Arquivo**: `tests/entities/companionWhale.test.ts`.
+  - **Ação**: Cobrir colisor `k.area`, consumo real de krill, depleção/recarga de oxigênio em fendas polares, varredura acústica com revelação de itens, rubber-banding e teardown.
+- [x] **5.2 Testes de Física Hidrodinâmica, Colisão com Gelo e Repouso Estacionário**
+  - **Arquivo**: `tests/entities/companionWhale.test.ts`.
+  - **Ação**: Validar componente `k.body()`, colisão e amortecimento em gelo, taxa de giro vertical lento, impulso vetorial direcional e permanência em estado `RESTING` sem sumir da cena (18/18 testes aprovados).
+  - **Validação**: Executar suíte completa de testes (`npm test -- --run`).
+
+---
+
+### Etapa 6: Documentação e Roadmap
+
+- [x] **6.1 Atualizar `docs/ROADMAP.md` e `.ai/todo.md`**
   - **Arquivo**: `docs/ROADMAP.md` e `.ai/todo.md`.
-  - **Ação**: Adicionar documentação formal da Fase 55 e sincronizar com a suíte de consistência documental (`tests/core/phase52_documentation_consistency.test.ts`).
-  - **Validação**: Execução da suíte completa de 72 arquivos de teste com 100% de sucesso.
+  - **Ação**: Registrar Fase 56 em status Concluído e validar consistência de documentação.

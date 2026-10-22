@@ -296,3 +296,16 @@ export const ENVIRONMENT_CONFIG = {
   ICE_SURFACE_OPACITY: 0.55,
   CRAG_WIDTH_FACTOR: 0.55,
 } as const;
+
+// --- Configurações da Baleia-Guia (Fase 56: Tutorial Mimético) ---
+export const COMPANION_CONFIG = {
+  LEAD_DISTANCE_MIN: 120,
+  LEAD_DISTANCE_MAX: 240,
+  END_DISTANCE: 3200,
+  FEED_TARGET_X: 750,
+  BREATHE_TARGET_X: 1460,
+  SONAR_TARGET_X: 2150,
+  FAREWELL_TARGET_X: 3150,
+  BASE_SPEED: 180,
+  SCALE: 0.85,
+} as const;

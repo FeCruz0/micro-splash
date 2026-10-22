@@ -46,6 +46,8 @@ import { gamepadSystem } from "../systems/gamepadSystem";
 import { analytics } from "../services/analytics";
 import { showChallengeEndScreen } from "../ui/challengeEndScreen";
 import { setupSereneInsightsSystem } from "../systems/sereneMigrationInsights";
+import { createCompanionWhale } from "../entities/companionWhale";
+import { shouldSpawnCompanionWhale } from "../systems/companionTutorialSettings";
 
 export function registerGameScene(k: KaboomCtx): void {
   k.scene("game", (options: GameOptions = { mode: "standard" }) => {
@@ -224,6 +226,15 @@ export function registerGameScene(k: KaboomCtx): void {
       setupBiomeVignetteSystem(k, playerController);
     }
     const sereneInsights = setupSereneInsightsSystem(k, options.mode === "serene");
+
+    // Fase 56: Baleia-Guia (Mãe-Guia Antártica) - Tutorial Mimético e Intuitivo
+    if (initialX < 3200 && shouldSpawnCompanionWhale(options.mode)) {
+      const companionWhale = createCompanionWhale(k, playerController);
+      k.onSceneLeave(() => {
+        companionWhale.destroy();
+      });
+    }
+
     setupCinematicCameraSystem(k, playerController);
 
     // Fase 29: Superfície, Céu & Atmosfera

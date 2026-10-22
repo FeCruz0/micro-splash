@@ -47,6 +47,25 @@ export function isPositionInIceGap(x: number): boolean {
 }
 
 /**
+ * Retorna a fenda de gelo antártica mais próxima da coordenada X para respiração de emergência.
+ */
+export function getNearestIceGap(x: number): IceGap | null {
+  const gapsToCheck = activeIceGaps.length > 0 ? activeIceGaps : DEFAULT_ICE_GAPS;
+  let nearestGap: IceGap | null = null;
+  let minDistance = Infinity;
+  for (let i = 0; i < gapsToCheck.length; i++) {
+    const gap = gapsToCheck[i];
+    const center = (gap.start + gap.end) / 2;
+    const distance = Math.abs(center - x);
+    if (distance < minDistance) {
+      minDistance = distance;
+      nearestGap = gap;
+    }
+  }
+  return nearestGap;
+}
+
+/**
  * Cria e orquestra a banquisa polar, paredões de icebergs e fendas de respiração na Antártica (0m a 5.000m).
  *
  * Características do sistema:
@@ -68,6 +87,7 @@ export function setupIceSurfaceSystem(
 
   const iceHeight = 40;
   const icePosY = GAME_CONFIG.SEA_LEVEL - 20; // Flutua sobre a linha do mar (80px)
+  const iceCollisionHeight = 24; // Colisor sólido ajustado (60px a 84px) para nado orgânico rente ao gelo
   const totalDistance = 5000;
   let currentX = 0;
 
@@ -79,7 +99,9 @@ export function setupIceSurfaceSystem(
     const segment = k.add([
       k.rect(width + 0.5, iceHeight),
       k.pos(x, icePosY),
-      k.area(),
+      ...(typeof k.Rect === "function"
+        ? [k.area({ shape: new k.Rect(k.vec2(0, 0), width + 0.5, iceCollisionHeight) })]
+        : [k.area()]),
       k.body({ isStatic: true }),
       k.color(210, 235, 255),
       k.opacity(0.96),

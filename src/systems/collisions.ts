@@ -115,4 +115,45 @@ export function setupCollisions(
       accessibilitySystem.triggerShake(k, 2.0);
     }
   });
+
+  // =========================================================================
+  // COLISÕES DA BALEIA-GUIA NPC (Fase 56: Ecologia e Mecânicas Espelho)
+  // =========================================================================
+
+  // Alimentação por filtração autônoma: consome krill real do mapa
+  k.onCollide("companion_whale", TAGS.KRILL, (companion: GameObj, krill: GameObj) => {
+    if (
+      typeof (companion as unknown as { consumeKrill?: (k: GameObj) => void }).consumeKrill ===
+      "function"
+    ) {
+      (companion as unknown as { consumeKrill: (k: GameObj) => void }).consumeKrill(krill);
+    } else {
+      k.destroy(krill);
+      audioSystem.playKrillGulp(krill.pos?.x, companion.pos?.x);
+    }
+  });
+
+  // Reação a blocos de gelo: impede travessia sólida da banquisa polar por baixo
+  k.onCollide("companion_whale", "ice_block", (companion: GameObj, iceBlock: GameObj) => {
+    if (
+      typeof (companion as unknown as { handleIceCollision?: (b: GameObj) => void })
+        .handleIceCollision === "function"
+    ) {
+      (companion as unknown as { handleIceCollision: (b: GameObj) => void }).handleIceCollision(
+        iceBlock
+      );
+    }
+  });
+
+  // Reação a obstáculos rochosos
+  k.onCollide("companion_whale", TAGS.OBSTACLE, (companion: GameObj, obstacle: GameObj) => {
+    if (
+      typeof (companion as unknown as { handleObstacleCollision?: (o: GameObj) => void })
+        .handleObstacleCollision === "function"
+    ) {
+      (
+        companion as unknown as { handleObstacleCollision: (o: GameObj) => void }
+      ).handleObstacleCollision(obstacle);
+    }
+  });
 }
