@@ -6,6 +6,7 @@ import { accessibilitySystem } from "./accessibilitySystem";
 import type { PlayerController } from "../entities/player";
 import type { GameState } from "./state";
 import { getSereneInsightsManager } from "./sereneMigrationInsights";
+import { isCompanionCollidable } from "../entities/companion/types";
 
 interface AirVentEntity extends GameObj {
   collectAir?: () => boolean;
@@ -122,11 +123,8 @@ export function setupCollisions(
 
   // Alimentação por filtração autônoma: consome krill real do mapa
   k.onCollide("companion_whale", TAGS.KRILL, (companion: GameObj, krill: GameObj) => {
-    if (
-      typeof (companion as unknown as { consumeKrill?: (k: GameObj) => void }).consumeKrill ===
-      "function"
-    ) {
-      (companion as unknown as { consumeKrill: (k: GameObj) => void }).consumeKrill(krill);
+    if (isCompanionCollidable(companion) && typeof companion.consumeKrill === "function") {
+      companion.consumeKrill(krill);
     } else {
       k.destroy(krill);
       audioSystem.playKrillGulp(krill.pos?.x, companion.pos?.x);
@@ -135,25 +133,18 @@ export function setupCollisions(
 
   // Reação a blocos de gelo: impede travessia sólida da banquisa polar por baixo
   k.onCollide("companion_whale", "ice_block", (companion: GameObj, iceBlock: GameObj) => {
-    if (
-      typeof (companion as unknown as { handleIceCollision?: (b: GameObj) => void })
-        .handleIceCollision === "function"
-    ) {
-      (companion as unknown as { handleIceCollision: (b: GameObj) => void }).handleIceCollision(
-        iceBlock
-      );
+    if (isCompanionCollidable(companion) && typeof companion.handleIceCollision === "function") {
+      companion.handleIceCollision(iceBlock);
     }
   });
 
   // Reação a obstáculos rochosos
   k.onCollide("companion_whale", TAGS.OBSTACLE, (companion: GameObj, obstacle: GameObj) => {
     if (
-      typeof (companion as unknown as { handleObstacleCollision?: (o: GameObj) => void })
-        .handleObstacleCollision === "function"
+      isCompanionCollidable(companion) &&
+      typeof companion.handleObstacleCollision === "function"
     ) {
-      (
-        companion as unknown as { handleObstacleCollision: (o: GameObj) => void }
-      ).handleObstacleCollision(obstacle);
+      companion.handleObstacleCollision(obstacle);
     }
   });
 }

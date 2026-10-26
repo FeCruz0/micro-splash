@@ -862,15 +862,15 @@ _Objetivo: Desacoplar a física do frame rate para garantir gameplay idêntico e
 
 _Objetivo: Elevar o rigor arquitetural do projeto eliminando type casts em colisões, decompondo entidades complexas em submódulos atômicos, tornando a IA determinística e organizando a prioridade dos sistemas no loop da cena._
 
-- [ ] **58.1 PRNG Determinístico na IA Acompanhante (`src/entities/companionWhale.ts`):**
+- [x] **58.1 PRNG Determinístico na IA Acompanhante (`src/entities/companionWhale.ts`):**
   - Substituir ocorrências de `Math.random()` por gerador determinístico Mulberry32 com semente injetada, assegurando que o comportamento da baleia-guia seja 100% reproduzível nos Desafios Semanais.
-- [ ] **58.2 Centralização de Constantes e Números Mágicos em `COMPANION_CONFIG` (`src/config.ts`):**
+- [x] **58.2 Centralização de Constantes e Números Mágicos em `COMPANION_CONFIG` (`src/config.ts`):**
   - Mover parâmetros heurísticos da IA (profundidades de segurança, limites de oxigênio crítico, taxas angulares e intervalos de radar) para o objeto de configuração tipado `COMPANION_CONFIG`.
-- [ ] **58.3 Type Safety Estrita em Handlers de Colisão (`src/systems/collisions.ts`):**
+- [x] **58.3 Type Safety Estrita em Handlers de Colisão (`src/systems/collisions.ts`):**
   - Substituir casts soltos `(companion as unknown as { ... })` por contratos de interface estritos (`CompanionEntity`, `CustomCollidable`), garantindo validação em tempo de compilação sem burlar o sistema de tipos.
-- [ ] **58.4 Decomposição Modular da Baleia-Guia (`src/entities/companionWhale.ts`):**
+- [x] **58.4 Decomposição Modular da Baleia-Guia (`src/entities/companionWhale.ts`):**
   - Fracionar o módulo monolítico (>500 linhas) em submódulos focados sob `src/entities/companion/`: `companionSenses.ts` (radar e visão), `companionLocomotion.ts` (propulsão e hidrodinâmica) e `companionStates.ts` (fábulas e transições da FSM), seguindo a decomposição já consolidada na entidade do jogador.
-- [ ] **58.5 Orquestrador Central com Prioridades Determinísticas de Execução (`src/systems/systemRunner.ts`):**
+- [x] **58.5 Orquestrador Central com Prioridades Determinísticas de Execução (`src/systems/systemRunner.ts`):**
   - Implementar um despachante de sistemas que registre e ordene explicitamente as fases de execução por frame (Input -> Física -> IA -> Colisão -> Culling -> Render/Áudio), eliminando dependências implícitas da ordem de chamada de `onUpdate`.
 
 ### 🔬 FASE 59: Otimizações Estruturais Avançadas & Profiling (Prioridade Baixa)

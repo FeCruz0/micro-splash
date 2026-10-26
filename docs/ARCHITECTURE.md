@@ -202,21 +202,27 @@ A rota de 30.000 metros é particionada em zonas geográficas e comportamentais 
 
 ---
 
-## 🐋 5. Tutorial Mimético & Baleia-Guia Autônoma (`src/entities/companionWhale.ts`)
+## 🐋 5. Tutorial Mimético & Baleia-Guia Autônoma Modular (`src/entities/companion/`)
 
-A Baleia-Guia (Mãe-Guia Antártica) introduz um modelo de aprendizado mimético (_cultural transmission_ na etologia de cetáceos) nos primeiros 3.200 metros da rota. Ela espelha com precisão a física e as mecânicas vitais do jogador:
+A Baleia-Guia (Mãe-Guia Antártica) introduz um modelo de aprendizado mimético (_cultural transmission_ na etologia de cetáceos) nos primeiros 3.200 metros da rota. Ela espelha com precisão a física e as mecânicas vitais do jogador através de uma arquitetura modular decomposta em submódulos focados sob `src/entities/companion/`:
+
+- **`types.ts`**: Contratos canônicos de estado (`CompanionState`), opções com suporte a semente (`CompanionOptions`), controlador (`CompanionWhaleController`) e interface de colisão tipada `CompanionCollidable` com o type guard `isCompanionCollidable`.
+- **`companionSenses.ts`**: Radar sensorial (varredura a cada 0.35s), detecção de cardumes de krill e emissão de biosonar 360° com dispersão acústica determinística.
+- **`companionLocomotion.ts`**: Física hidrodinâmica, arfagem vertical gradual (máx ~90°/s), propulsão vetorial direcional com rubber-banding e colisão sólida `k.body()` contra calotas de gelo.
+- **`companionStates.ts`**: Máquina de estados (FSM: `INTRO`, `CRUISE`, `FEEDING`, `SEEK_BREATH`, `SURFACE_BREATHE`, `RESTING`, `DEPARTED`), ciclo pulmonar de oxigênio e borrifo de vapor determinístico com PRNG Mulberry32.
+- **`index.ts` e `companionWhale.ts`**: Fachada unificada retrocompatível e orquestração.
 
 ```mermaid
 graph TD
-    subgraph IA["IA Autônoma & Tomada de Decisão"]
+    subgraph IA["IA Autônoma & Tomada de Decisão (companionSenses.ts / companionStates.ts)"]
         RADAR["Radar Sensorial (0.35s)"] --> KRILL_DET["Detecção de Krill Acessível"]
-        RADAR --> SONAR_TRIG["Gatilho Acústico de Biosonar"]
+        RADAR --> SONAR_TRIG["Gatilho Acústico de Biosonar (Mulberry32)"]
         O2_CHECK["Monitor de Fôlego"] --> O2_LOW{"Oxigênio < 38%?"}
         O2_LOW -->|"Sim"| SEEK["SEEK_BREATH: Rota para Fenda Polar"]
         O2_LOW -->|"Não"| CRUISE_AIM["CRUISE: Profundidade Senoidal / Krill"]
     end
 
-    subgraph FISICA["Física Hidrodinâmica Fiel"]
+    subgraph FISICA["Física Hidrodinâmica Fiel (companionLocomotion.ts)"]
         STEER["Giro Vertical Lento (máx ~90°/s)"] --> ANGLE["Orientação Corporal (angle)"]
         STROKE["Ciclo Muscular da Cauda (down / up / glide)"] --> THRUST["Empuxo no Vetor Apontado: vec2(cos θ, sin θ)"]
         THRUST --> MOVE["companion.move(currentSpeed.x, currentSpeed.y)"]
@@ -224,10 +230,10 @@ graph TD
         MOVE --> ICE_COL["Colisão Sólida k.body() com ice_block"]
     end
 
-    subgraph CICLO["Máquina de Estados Finita"]
+    subgraph CICLO["Máquina de Estados Finita (companionStates.ts)"]
         INTRO["INTRO"] --> CRUISE["CRUISE"]
         CRUISE --> SEEK
-        SEEK --> SURFACE["SURFACE_BREATHE (Borrifo duplo)"]
+        SEEK --> SURFACE["SURFACE_BREATHE (Borrifo duplo com PRNG)"]
         SURFACE --> CRUISE
         CRUISE -->|"Fim do Percurso (3.150m)"| REST["RESTING (Repouso Permanente no Cenário)"]
     end
@@ -240,13 +246,14 @@ graph TD
    - Aplica manobra de arfagem lenta (`GAME_CONFIG.ROTATION_SPEED * 0.75 * dt`), girando o corpo suavemente em direção à profundidade desejada.
    - O empuxo das batidas de cauda (`stroke_down` e `stroke_up`) é direcionado exclusivamente no vetor polar $\begin{pmatrix} \cos\theta \\ \sin\theta \end{pmatrix}$.
    - No planeio (`glide`), a baleia avança por inércia e arrasto aquático sem empuxo adicional.
-2. **Colisão Física Sólida com Gelo**:
+2. **Colisão Física Sólida com Gelo & Type Safety**:
    - Provida do componente Kaboom `k.body()`, colidindo fisicamente contra blocos estáticos de gelo polar (`ice_block`).
+   - Callbacks no sistema de colisões operam sobre o type guard estrito `isCompanionCollidable`, sem type casting forçado.
    - O contato anula o componente de velocidade ascendente e estabiliza a angulação na horizontal.
-3. **Mecânicas Ecológicas Espelhadas**:
+3. **Mecânicas Ecológicas Espelhadas & Determinismo**:
    - **Consumo Real de Krill**: Detecção por varredura, atração em ângulo de perseguição e destruição da entidade com incremento de fôlego e animação `feed`.
-   - **Respiração em Fendas Polares**: Identificação dinâmica de aberturas na banquisa (`isPositionInIceGap`), subida à superfície, emissão de borrifo duplo com som e renovação a 100% do oxigênio.
-   - **Biosonar 360° Funcional**: Pulso acústico que ilumina itens, perigos e recursos via `revealEntitiesInSonarRadius`.
+   - **Respiração em Fendas Polares**: Identificação dinâmica de aberturas na banquisa (`isPositionInIceGap`), subida à superfície, emissão de borrifo duplo com som e renovação a 100% do oxigênio. Partículas emitidas através de PRNG determinístico Mulberry32.
+   - **Biosonar 360° Funcional**: Pulso acústico que ilumina itens, perigos e recursos via `revealEntitiesInSonarRadius` com intervalos estocásticos reprodutíveis por semente.
 4. **Repouso Estacionário Permanente (`RESTING`)**:
    - Ao concluir a travessia antártica (~3.150m), a baleia emite sua canção e transiciona para `RESTING`.
    - Ela desacelera suavemente até parar (`currentSpeed -> 0`), assume a animação `idle_swim` e permanece serena flutuando no cenário polar, garantindo que nunca desapareça abruptamente da visão do jogador (`k.destroy` removido).
@@ -305,3 +312,24 @@ O armazenamento local utiliza exclusivamente a fachada tipada `readLocalStorageW
    - Assegura 60 FPS estáveis ao alternar dinamicamente a propriedade `hidden` de obstáculos, fauna e flora que saem da viewport da câmera, evitando chamadas de desenho redundantes no WebGL.
 3. **Singleton O(1) do Jogador:**
    - As consultas repetidas `k.get("player")` foram substituídas por um ponteiro direto em memória, eliminando a sobrecarga de varreduras lineares por quadro.
+
+---
+
+## ⚙️ 9. Orquestrador Central com Fases Determinísticas (`src/systems/systemRunner.ts`)
+
+Para eliminar dependências implícitas da ordem de registro de callbacks no motor de jogos, o loop da cena (`gameScene.ts`) utiliza o despachante tipado `SystemRunner`. Ele organiza a atualização a cada quadro em **6 fases canônicas e estritamente ordenadas**:
+
+```mermaid
+graph LR
+    P1["1. INPUT<br/>Gamepad, touch, pausa"] --> P2["2. PHYSICS<br/>Partículas, empuxo, gravidade"]
+    P2 --> P3["3. AI<br/>Sentidos, fôlego, pedagogia"]
+    P3 --> P4["4. COLLISION<br/>Condições de fim, resgate"]
+    P4 --> P5["5. CULLING<br/>Biomas, spatial culling"]
+    P5 --> P6["6. RENDER<br/>UI, telemetria, áudio, cores"]
+```
+
+### Características do `SystemRunner`:
+
+1. **Prioridade Numérica Intra-Fase**: Permite ordenação fina (`priority: number`), executando tarefas prioritárias antes (ex: prioridade -10 antes de 0, e 0 antes de 10).
+2. **Isolamento e Resiliência a Exceções**: Cada subsistema é protegido individualmente por bloco `try-catch` com manipulador opcional `onError`, impedindo que uma falha em um componente visual ou telemetria paralise o loop de física ou controle do jogador.
+3. **Desregistro Dinâmico em O(1)**: O método `register(...)` devolve uma função de desregistro para limpeza imediata durante transições de cena (`onSceneLeave`), evitando vazamentos de memória e referências mortas.

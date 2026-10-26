@@ -345,7 +345,7 @@ export const ENVIRONMENT_CONFIG = {
   CRAG_WIDTH_FACTOR: 0.55,
 } as const;
 
-// --- Configurações da Baleia-Guia (Fase 56: Tutorial Mimético) ---
+// --- Configurações da Baleia-Guia (Fase 56: Tutorial Mimético & Fase 58: Determinismo) ---
 export const COMPANION_CONFIG = {
   LEAD_DISTANCE_MIN: 120,
   LEAD_DISTANCE_MAX: 240,
@@ -355,5 +355,17 @@ export const COMPANION_CONFIG = {
   SONAR_TARGET_X: 2150,
   FAREWELL_TARGET_X: 3150,
   BASE_SPEED: 180,
+  MAX_SPEED: 280,
   SCALE: 0.85,
+  COLLIDER_WIDTH: 91.8,
+  COLLIDER_HEIGHT: 35.7,
+  CRITICAL_OXYGEN: 38,
+  SURFACE_BREATHE_DURATION: 1.2,
+  RADAR_INTERVAL: 0.35,
+  RADAR_AHEAD_RANGE: 400,
+  RADAR_VERTICAL_RANGE: 160,
+  ROTATION_SPEED_FACTOR: 0.75,
+  SEABED_OFFSET: 55,
+  STEAM_PARTICLES_COUNT: 28,
+  BASE_GLIDE_DURATION: 1.2,
 } as const;

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { createCompanionWhale } from "../../src/entities/companionWhale";
+import { createCompanionWhale, isCompanionCollidable } from "../../src/entities/companionWhale";
 import {
   isCompanionTutorialEnabled,
   setCompanionTutorialEnabled,
@@ -437,6 +437,78 @@ describe("Fase 56: Tutorial Intuitivo & Mimético — Baleia-Guia NPC (Mãe-Guia
 
       // O impulso em ângulo negativo deve induzir velocidade vertical para cima (y < 0)
       expect(companionController.getSpeed().y).toBeLessThan(0);
+    });
+  });
+
+  describe("Fase 58: Determinismo, PRNG Mulberry32 & Type Safety", () => {
+    it("deve reproduzir trajetórias e velocidades idênticas para sementes idênticas", () => {
+      const seed = 98765;
+      const k1 = createMockKaboom();
+      const p1 = createMockPlayerController(100, 200);
+      const whale1 = createCompanionWhale(k1, p1, { seed });
+      whale1.forceState("CRUISE");
+
+      const k2 = createMockKaboom();
+      const p2 = createMockPlayerController(100, 200);
+      const whale2 = createCompanionWhale(k2, p2, { seed });
+      whale2.forceState("CRUISE");
+
+      // Executa 20 passos de simulação
+      for (let i = 0; i < 20; i++) {
+        const dt = 0.05;
+        k1.setDeltaTime(dt);
+        k2.setDeltaTime(dt);
+        whale1.gameObj._triggerUpdate();
+        whale2.gameObj._triggerUpdate();
+
+        expect(whale1.gameObj.pos.x).toBeCloseTo(whale2.gameObj.pos.x, 5);
+        expect(whale1.gameObj.pos.y).toBeCloseTo(whale2.gameObj.pos.y, 5);
+        expect(whale1.gameObj.angle).toBeCloseTo(whale2.gameObj.angle, 5);
+        expect(whale1.getSpeed().x).toBeCloseTo(whale2.getSpeed().x, 5);
+        expect(whale1.getSpeed().y).toBeCloseTo(whale2.getSpeed().y, 5);
+      }
+    });
+
+    it("deve aceitar injeção de PRNG customizado", () => {
+      let callCount = 0;
+      const mockPrng = () => {
+        callCount++;
+        return 0.5;
+      };
+
+      const k = createMockKaboom();
+      const p = createMockPlayerController(100, 200);
+      const whale = createCompanionWhale(k, p, { prng: mockPrng });
+
+      // Emite uma respiração com borrifo
+      whale.forceState("SEEK_BREATH");
+      whale.gameObj.pos.x = 120; // posição sob fenda de gelo conhecida
+      whale.gameObj.pos.y = 74;
+
+      k.setDeltaTime(0.05);
+      whale.gameObj._triggerUpdate();
+
+      // PRNG deve ter sido consumido pelas partículas de vapor
+      expect(callCount).toBeGreaterThan(0);
+    });
+
+    it("deve validar corretamente o type guard isCompanionCollidable", () => {
+      const validCandidate = {
+        consumeKrill: () => {},
+        handleIceCollision: () => {},
+        handleObstacleCollision: () => {},
+      };
+      expect(isCompanionCollidable(validCandidate)).toBe(true);
+
+      const partialCandidate = {
+        consumeKrill: () => {},
+      };
+      expect(isCompanionCollidable(partialCandidate)).toBe(true);
+
+      expect(isCompanionCollidable(null)).toBe(false);
+      expect(isCompanionCollidable(undefined)).toBe(false);
+      expect(isCompanionCollidable({})).toBe(false);
+      expect(isCompanionCollidable("string")).toBe(false);
     });
   });
 });

@@ -7,6 +7,35 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [1.23.0] - 2026-10-26 — Arquitetura Modular, Determinismo & Type Safety (Fase 58)
+
+### Adicionado & Modificado
+
+- **PRNG Determinístico Mulberry32 na IA Acompanhante (`src/entities/companion/`, `src/utils/random.ts`)**:
+  - Injeção de semente determinística `seed` e gerador `RandomNumberGenerator` em `CompanionOptions`, substituindo todas as chamadas de `Math.random()` na Baleia-Guia (intervalos de sonar, partículas de vapor e duração estocástica de planeio).
+  - Comportamento 100% reproduzível e auditável em Desafios Semanais (`weeklyChallenge`).
+- **Centralização Tipada em `COMPANION_CONFIG` (`src/config.ts`)**:
+  - Centralização de constantes físicas e heurísticas da IA (`MAX_SPEED: 280`, `SCALE: 0.85`, `COLLIDER_WIDTH: 91.8`, `COLLIDER_HEIGHT: 35.7`, `CRITICAL_OXYGEN: 38`, `SURFACE_BREATHE_DURATION: 1.2`, `RADAR_INTERVAL: 0.35`, `RADAR_AHEAD_RANGE: 400`, `RADAR_VERTICAL_RANGE: 160`, `ROTATION_SPEED_FACTOR: 0.75`, `SEABED_OFFSET: 55`, `STEAM_PARTICLES_COUNT: 28`, `BASE_GLIDE_DURATION: 1.2`).
+- **Type Safety Estrita em Handlers de Colisão (`src/entities/companion/types.ts`, `src/systems/collisions.ts`)**:
+  - Criação da interface `CompanionCollidable` e do type guard `isCompanionCollidable(entity: unknown): entity is GameObj & CompanionCollidable`.
+  - Eliminação de type casts `(companion as unknown as { ... })` nos callbacks de colisão de krill, blocos de gelo e rochas.
+- **Decomposição Modular da Baleia-Guia (`src/entities/companion/`)**:
+  - Fracionamento do módulo monolítico anterior em submódulos atômicos coesos:
+    - `types.ts`: contratos de estado, controlador e colisão.
+    - `companionSenses.ts`: varredura de radar de krill à frente, cooldowns determinísticos e disparo de biosonar.
+    - `companionLocomotion.ts`: cinemática hidrodinâmica, arfagem vertical suave, propulsão vetorial, arrasto e colisão com gelo.
+    - `companionStates.ts`: máquina de estados (FSM), ciclo pulmonar de oxigênio, borrifo de vapor determinístico e repouso.
+    - `index.ts` e `companionWhale.ts`: orquestração consolidada e fachada retrocompatível.
+- **Orquestrador Central de Fases do Game Loop (`src/systems/systemRunner.ts`, `src/scenes/gameScene.ts`)**:
+  - Implementação da classe pura `SystemRunner` com despacho estrito por fases canônicas: `input` -> `physics` -> `ai` -> `collision` -> `culling` -> `render`.
+  - Suporte a prioridades numéricas dentro da mesma fase, isolamento resiliente de erros e desregistro dinâmico.
+  - Integração no loop principal da cena em `src/scenes/gameScene.ts`.
+- **Suíte de Testes Automatizados da Fase 58 (`tests/entities/companionWhale.test.ts`, `tests/systems/systemRunner.test.ts`)**:
+  - 9 novos testes unitários para o `SystemRunner` (ordem de fases, prioridade numérica, estabilidade, cancelamento e resiliência a exceções).
+  - 3 novos testes unitários para a Baleia-Guia (reprodutibilidade estrita de trajetória com sementes idênticas, injeção de PRNG e type guard de colisão), alcançando 74 arquivos de teste e 570 testes 100% verdes.
+
+---
+
 ## [1.22.0] - 2026-10-26 — Refinamento Físico, Timestep & Consistência de Dados (Fase 57)
 
 ### Adicionado & Modificado

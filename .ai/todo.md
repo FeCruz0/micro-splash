@@ -1,94 +1,104 @@
-# Plano de Implementação — Fase 57: Refinamento Físico, Timestep & Consistência de Dados
+# Plano de Implementação — Fase 58: Arquitetura, Determinismo & Type Safety
 
 Status: Concluído ✅  
 Data: 2026-10-26  
-Alvo: v1.22.0 (Física Invariante a FPS & Integridade de Biomas)
+Alvo: v1.23.0 (Arquitetura Modular, Determinismo & Type Safety Estrita)
 
 ---
 
-## 🔬 Diagnóstico e Escopo da Fase 57
+## 🔬 Diagnóstico e Escopo da Fase 58
 
 1. **Problemas Identificados**:
-   - **Arrasto Dependente de Framerate**: Em `playerPhysics.ts` e `companionWhale.ts`, a desaceleração era calculada a cada quadro via `currentSpeed.scale(WATER_DRAG)` e o arrasto do ar por `currentSpeed.x * 0.998`. Em 60Hz, $0.955^{60} \approx 0.063$ de velocidade retida por segundo; em 144Hz, $0.955^{144} \approx 0.0013$, tornando a baleia excessivamente travada e pesada em monitores com alta taxa de atualização.
-   - **Interpolações Angulares sem Delta Time**: `lerp(angle, 0, 0.05)` interpolava 5% a cada quadro fixo, fazendo a rotação e o alinhamento corporal ocorrerem 2,4x mais rápido a 144 FPS do que a 60 FPS.
-   - **Vulnerabilidade a Picos de Delta Time (Tunneling & Leaps)**: Em `gameScene.ts`, `dt = k.dt()` não possuía limitação superior (clamp). Quando o usuário alternava abas ou ocorriam engasgos por coleta de lixo (GC) ou carregamento, `dt` podia atingir valores de 0.5s a 2.0s, disparando cálculos de física que arremessavam a baleia através de colisores sólidos de gelo polar ou do leito marinho.
-   - **Redundância e Duplicação na Delimitação de Biomas**: Os limites de distância dos biomas (0m, 5.000m, 12.000m, 19.000m, 25.000m, 30.000m) estavam espalhados com números mágicos literais em `state.ts` (`getCurrentBiome`), `config.ts` (`BIOME_COLOR_STOPS`), `biomeLifecycleManager.ts` e outros módulos, carecendo de uma fonte única da verdade e helper puro canônico.
+   - **Aleatoriedade Não-Determinística na IA Acompanhante**: `src/entities/companionWhale.ts` emprega `Math.random()` diretamente em 5 locais (raio e velocidade de partículas de vapor na respiração polar, intervalo de cooldown do biosonar e duração estocástica da fase de planeio hidrodinâmico). Isso impede reprodução idêntica de corridas em Desafios Semanais (`weeklyChallenge`).
+   - **Dispersão de Parâmetros e Números Mágicos**: Constantes de comportamento e IA (taxa de oxigênio crítico 38%, tempo de respiração 1.2s, intervalo de varredura sensorial 0.35s, alcance de radar 400px/160px, dimensões do colisor 91.8x35.7px, amortecimento do leito marinho 55px) estão codificadas diretamente no corpo da função `createCompanionWhale`, sem centralização tipada em `COMPANION_CONFIG`.
+   - **Type Casting Inseguro em Colisões**: `src/systems/collisions.ts` utiliza `(companion as unknown as { ... })` para chamar `consumeKrill`, `handleIceCollision` e `handleObstacleCollision`, ignorando checagem estrita de tipos em tempo de compilação.
+   - **Monolito de Código na Entidade da Baleia-Guia**: `src/entities/companionWhale.ts` ultrapassa 550 linhas, acumulando responsabilidades díspares (sensores/radar, cinemática de propulsão e máquina de estados), diferentemente da entidade do jogador que já foi elegantemente decomposta em submódulos especializados.
+   - **Ordem de Execução Implícita no Loop da Cena**: Em `src/scenes/gameScene.ts`, os subsistemas rodam misturados e dependem da ordem cronológica de registro em `onUpdate`, sem garantia explícita das fases vitais do game loop (Input -> Física -> IA -> Colisão -> Culling -> Render/Áudio).
 
 2. **Decisões Técnicas**:
-   - **Arrasto Exponencial Invariante**: Usar formulação contínua baseada no tempo decorrido `deltaTime`:
-     - Água: `Math.pow(GAME_CONFIG.WATER_DRAG, deltaTime * 60)`
-     - Ar: `Math.pow(0.998, deltaTime * 60)`
-     - Interpolação angular suave: `1 - Math.pow(1 - alpha, deltaTime * 60)`
-   - **Clamp de Delta Time Seguro**: Definir `GAME_CONFIG.MAX_DELTA_TIME = 0.0333` (~30 FPS mínimo) em `config.ts` e aplicar clamp `Math.min(Math.max(0, rawDeltaTime), GAME_CONFIG.MAX_DELTA_TIME)` na entrada do loop em `gameScene.ts`.
-   - **Fonte Canônica de Biomas**:
-     - Definir `BiomeType` canônico: `"antartica" | "pelagico" | "costa_urbana" | "canyons" | "arraial"`.
-     - Definir `BIOME_BOUNDARIES` em `src/config.ts`.
-     - Implementar helper puro `getBiomeAtDistance(distanceInMeters: number): BiomeType`.
-     - Refatorar `src/systems/state.ts` para consumir `getBiomeAtDistance`.
+   - **PRNG Determinístico Mulberry32**: Injetar gerador determinístico `createDeterministicRandomGenerator(seed)` de `src/utils/random.ts` em `CompanionOptions`, garantindo repetibilidade determinística.
+   - **Centralização Tipada em `COMPANION_CONFIG`**: Expandir `COMPANION_CONFIG` em `src/config.ts` com todos os parâmetros heurísticos e físicos da IA.
+   - **Contrato de Interface Estrito para Colisores**: Criar interface `CompanionCollidable` e type guard `isCompanionCollidable(entity: GameObj): entity is GameObj & CompanionCollidable` em `src/entities/companion/types.ts`, consumido em `src/systems/collisions.ts`.
+   - **Decomposição Modular da Baleia-Guia**: Fracionar `companionWhale.ts` em submódulos atômicos sob `src/entities/companion/`:
+     - `types.ts`: interfaces de estado, opções, controlador e contrato de colisão.
+     - `companionSenses.ts`: radar sensorial, escaneamento de krill e obstáculos à frente, disparo de biosonar.
+     - `companionLocomotion.ts`: física hidrodinâmica, arfagem vertical lenta, impulso direcional da cauda e colisão sólida.
+     - `companionStates.ts`: máquina de estados finita (INTRO, CRUISE, FEEDING, SEEK_BREATH, SURFACE_BREATHE, FAREWELL_BREACH, RESTING, DEPARTED).
+     - `index.ts`: fachada pública `createCompanionWhale` mantendo compatibilidade 100% transparente com o resto do jogo.
+   - **Orquestrador Determinístico de Sistemas (`SystemRunner`)**:
+     - Criar `src/systems/systemRunner.ts` com fila de execução prioritária por fases canônicas: `input`, `physics`, `ai`, `collision`, `culling`, `render`.
+     - Integrar `SystemRunner` em `src/scenes/gameScene.ts` para coordenar atualizações com ordem declarativa e determinística.
 
 3. **Arquitetura & Restrições**:
-   - Respeito integral a `ai.rules` (Matt Pocock pure functions, Clean Code, TypeScript estrito, zero alocações por quadro no loop de física).
-   - Suíte de testes TDD com cobertura unitária para invariância de framerate (comparando simulações a 60 FPS vs 120 FPS vs 144 FPS com tolerância < 1%) e validação de fronteiras de biomas.
+   - Respeito integral a `ai.rules` (Matt Pocock pure functions, TypeScript estrito, Clean Code, zero regressão em testes).
+   - Cobertura com testes unitários em `tests/entities/companion/` e `tests/systems/systemRunner.test.ts`.
 
 ---
 
 ## 📋 Lista de Tarefas Atômicas
 
-### Etapa 1: Constantes, Tipos e Helper Canônico de Biomas (`src/config.ts`)
+### Etapa 1: Constantes e Configuração Centralizada (`src/config.ts`)
 
-- [x] **1.1 Definir `MAX_DELTA_TIME`, `BiomeType`, `BIOME_BOUNDARIES` e `getBiomeAtDistance`**
+- [x] **1.1 Expandir `COMPANION_CONFIG` com Parâmetros Heurísticos da IA**
   - **Arquivo**: `src/config.ts`.
-  - **Ação**: Adicionar `MAX_DELTA_TIME: 0.0333` em `GAME_CONFIG`, declarar `BiomeType`, exportar constante `BIOME_BOUNDARIES` e função utilitária pura `getBiomeAtDistance(distanceInMeters: number): BiomeType`.
+  - **Ação**: Adicionar constantes heurísticas (oxigênio crítico, dimensões de colisor, intervalos de radar e tempos de superfície) em `COMPANION_CONFIG`.
 
 ---
 
-### Etapa 2: Refatoração de Estado com Fonte Canônica (`src/systems/state.ts`)
+### Etapa 2: Interfaces e Type Safety em Colisões (`src/entities/companion/types.ts`, `src/systems/collisions.ts`)
 
-- [x] **2.1 Migrar `getCurrentBiome()` para `getBiomeAtDistance`**
-  - **Arquivo**: `src/systems/state.ts`.
-  - **Ação**: Substituir condicionais literais mágicos (`< 5000`, `< 12000`, etc.) pelo consumo direto do helper puro `getBiomeAtDistance`.
-
----
-
-### Etapa 3: Física & Arrasto Hidrodinâmico Invariantes ao Framerate
-
-- [x] **3.1 Arrasto Exponencial e Alinhamento Angular Invariantes no Jogador**
-  - **Arquivo**: `src/entities/player/playerPhysics.ts`, `src/entities/player/playerControls.ts`.
-  - **Ação**:
-    - Em `playerPhysics.ts`: aplicar atenuação d'água via `Math.pow(GAME_CONFIG.WATER_DRAG, dt * 60)`, arrasto aéreo via `Math.pow(0.998, dt * 60)` e `lerp` angular com fator temporal `1 - Math.pow(0.9, dt * 60)`.
-    - Em `playerControls.ts`: substituir `lerp(angle, 0, 0.05)` por decaimento exponencial `1 - Math.pow(0.95, dt * 60)`.
-- [x] **3.2 Arrasto Exponencial e Alinhamento Angular na Baleia-Guia (NPC)**
-  - **Arquivo**: `src/entities/companionWhale.ts`.
-  - **Ação**: Atualizar arrasto aquático para `Math.pow(GAME_CONFIG.WATER_DRAG, deltaTime * 60)` e retorno angular de repouso para `1 - Math.pow(0.95, deltaTime * 60)`.
+- [x] **2.1 Criar Interfaces Canônicas e Type Guard de Colisão**
+  - **Arquivo**: `src/entities/companion/types.ts`.
+  - **Ação**: Definir `CompanionState`, `CompanionOptions`, `CompanionWhaleController`, `CompanionCollidable` e type guard `isCompanionCollidable`.
+- [x] **2.2 Refatorar Handlers de Colisão para Type Safety Estrita**
+  - **Arquivo**: `src/systems/collisions.ts`.
+  - **Ação**: Substituir `(companion as unknown as { ... })` pelo type guard `isCompanionCollidable`, validando chamadas estritamente em tempo de compilação.
 
 ---
 
-### Etapa 4: Timestep Seguro com Limitação de Delta Time (`src/scenes/gameScene.ts`)
+### Etapa 3: PRNG Determinístico & Decomposição Modular da Baleia-Guia (`src/entities/companion/`)
 
-- [x] **4.1 Clamping de Delta Time na Cena Principal**
+- [x] **3.1 Módulo Sensorial da IA (`src/entities/companion/companionSenses.ts`)**
+  - **Arquivo**: `src/entities/companion/companionSenses.ts`.
+  - **Ação**: Implementar `CompanionSensesManager` encapsulando radar de krill, evasão de obstáculos e disparo de biosonar com PRNG determinístico.
+- [x] **3.2 Módulo de Locomoção & Hidrodinâmica (`src/entities/companion/companionLocomotion.ts`)**
+  - **Arquivo**: `src/entities/companion/companionLocomotion.ts`.
+  - **Ação**: Implementar `CompanionLocomotionManager` encapsulando arfagem lenta, impulso polar direcional, arrasto exponencial e colisão sólida de gelo.
+- [x] **3.3 Módulo de Estados & FSM (`src/entities/companion/companionStates.ts`)**
+  - **Arquivo**: `src/entities/companion/companionStates.ts`.
+  - **Ação**: Implementar `CompanionStateManager` com ciclo biológico de oxigênio, borrifo de vapor determinístico e transições de estado pedagógicas.
+- [x] **3.4 Fachada Consolidada e Orquestração (`src/entities/companion/index.ts`, `src/entities/companionWhale.ts`)**
+  - **Arquivo**: `src/entities/companion/index.ts`, `src/entities/companionWhale.ts`.
+  - **Ação**: Reexportar `createCompanionWhale` integrando os submódulos decompostos com suporte a injeção de semente determinística.
+
+---
+
+### Etapa 4: Orquestrador Central com Fases Prioritárias (`src/systems/systemRunner.ts`)
+
+- [x] **4.1 Criar Despachante `SystemRunner` com Fases Determinísticas**
+  - **Arquivo**: `src/systems/systemRunner.ts`.
+  - **Ação**: Implementar classe pura `SystemRunner` com fases canônicas ordenadas (`input` -> `physics` -> `ai` -> `collision` -> `culling` -> `render`) e despacho prioritário.
+- [x] **4.2 Integrar `SystemRunner` na Cena Principal**
   - **Arquivo**: `src/scenes/gameScene.ts`.
-  - **Ação**: Aplicar clamp no delta time retornado pelo motor: `const dt = Math.min(Math.max(0, k.dt()), GAME_CONFIG.MAX_DELTA_TIME)` antes de distribuir aos subsistemas de física, entidades e culling.
+  - **Ação**: Registrar subsistemas da cena no `SystemRunner`, garantindo ordem determinística de execução a cada frame.
 
 ---
 
 ### Etapa 5: Suíte de Testes Automatizados TDD
 
-- [x] **5.1 Testes de Invariância de Framerate na Física**
-  - **Arquivo**: `tests/player/physics.test.ts`.
-  - **Ação**: Implementar testes comparando desaceleração após 1.0s simulado a 60 FPS, 120 FPS e 144 FPS com tolerância < 1%.
-- [x] **5.2 Testes Unitários de `getBiomeAtDistance` e Fronteiras Geográficas**
-  - **Arquivo**: `tests/core/config.test.ts`.
-  - **Ação**: Cobrir pontos de corte (0m, 4999m, 5000m, 11999m, 12000m, 18999m, 19000m, 24999m, 25000m, 30000m e extremos).
-- [x] **5.3 Testes de Timestep Clamping**
-  - **Arquivo**: `tests/player/physics.test.ts`.
-  - **Ação**: Testar estabilidade da física sob picos artificiais de delta time (ex: 1.5s).
+- [x] **5.1 Testes Unitários de Determinismo e Decomposição da IA**
+  - **Arquivo**: `tests/entities/companionWhale.test.ts` e novos testes em `tests/entities/companion/`.
+  - **Ação**: Validar que sementes idênticas produzem trajetórias, intervalos de sonar e tempos de planeio 100% idênticos.
+- [x] **5.2 Testes Unitários do Orquestrador `SystemRunner`**
+  - **Arquivo**: `tests/systems/systemRunner.test.ts`.
+  - **Ação**: Testar despacho estrito de fases, prioridades numéricas dentro da mesma fase, registro/cancelamento e resiliência a erros.
 
 ---
 
-### Etapa 6: Validação e Atualização Documental
+### Etapa 6: Validação, Verificação de Tipos e Documentação
 
-- [x] **6.1 Executar Verificação de Tipos e Suíte de Testes**
-  - **Ação**: Executados `npx tsc --noEmit` e `npm test -- --run` (73 arquivos, 558 testes aprovados).
-- [x] **6.2 Sincronizar ROADMAP.md e CHANGELOG.md**
-  - **Arquivo**: `docs/ROADMAP.md`, `CHANGELOG.md`.
-  - **Ação**: Atualizar checkboxes e registrar notas de versão para a Fase 57.
+- [x] **6.1 Executar Checagem de Tipos e Suíte Completa de Testes**
+  - **Ação**: Rodar `npx tsc --noEmit` e `npm test -- --run`.
+- [x] **6.2 Sincronizar ROADMAP.md, CHANGELOG.md e ARCHITECTURE.md**
+  - **Arquivo**: `docs/ROADMAP.md`, `CHANGELOG.md`, `docs/ARCHITECTURE.md`.
+  - **Ação**: Registrar os novos módulos arquiteturais e marcar a Fase 58.

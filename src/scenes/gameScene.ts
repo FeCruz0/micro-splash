@@ -48,6 +48,7 @@ import { showChallengeEndScreen } from "../ui/challengeEndScreen";
 import { setupSereneInsightsSystem } from "../systems/sereneMigrationInsights";
 import { createCompanionWhale } from "../entities/companionWhale";
 import { shouldSpawnCompanionWhale } from "../systems/companionTutorialSettings";
+import { SystemRunner } from "../systems/systemRunner";
 
 export function registerGameScene(k: KaboomCtx): void {
   k.scene("game", (options: GameOptions = { mode: "standard" }) => {
@@ -309,115 +310,43 @@ export function registerGameScene(k: KaboomCtx): void {
     let cachedEntityCount = 0;
     let entityCountThrottleTimer = 0;
 
-    // 6. Loop Principal
-    k.onUpdate(() => {
-      if (k.debug && k.debug.paused) {
-        k.debug.paused = false;
-      }
+    // 6. Orquestrador Central de Fases (Fase 58: Arquitetura Determinística)
+    const systemRunner = new SystemRunner();
+    k.onSceneLeave(() => {
+      systemRunner.clear();
+    });
 
-      if (isGameFinished) {
-        return;
-      }
-
-      const pad = gamepadSystem.pollGamepadState();
-      if (pad.pausePressed) {
-        presentationMode.togglePause();
-      }
-
-      // Se estiver em Pausa Didática (Modo Apresentação F16), congela física e atualiza o painel
-      if (presentationMode.isDidacticPaused()) {
-        presentationMode.update();
-        return;
-      }
-      presentationMode.update();
-
-      const rawDeltaTime = typeof k.dt === "function" ? k.dt() : 0.0166;
-      const dt = Math.min(Math.max(0, rawDeltaTime), GAME_CONFIG.MAX_DELTA_TIME);
-      const currentCameraPosition = typeof k.camPos === "function" ? k.camPos() : k.vec2(0, 0);
-      const currentScreenWidth = typeof k.width === "function" ? k.width() : 1280;
-      const currentScreenHeight = typeof k.height === "function" ? k.height() : 720;
-      const playerXPosition = playerController.gameObj.pos.x;
-
-      // Atualização dos Sistemas de Performance de Baixo Nível (Fase 15, 39 & 53)
-      particlePool.update(dt);
-      biomeManager.update(playerXPosition);
-      spatialCulling.update(currentCameraPosition.x);
-
-      if (debugDistanceUI.isVisible()) {
-        entityCountThrottleTimer += dt;
-        if (entityCountThrottleTimer >= 0.5 || cachedEntityCount === 0) {
-          entityCountThrottleTimer = 0;
-          cachedEntityCount = k.get("*").length;
+    // Fase 1: INPUT
+    systemRunner.register(
+      "input",
+      () => {
+        const pad = gamepadSystem.pollGamepadState();
+        if (pad.pausePressed) {
+          presentationMode.togglePause();
         }
+      },
+      { id: "gamepad_input" }
+    );
 
-        const stats = particlePool.getStats();
-        const instantFps = Math.round(1 / Math.max(0.001, dt));
-        const activeMods = biomeManager.getActiveModules();
-        const modsText = activeMods.length > 0 ? activeMods.join(", ") : "Transição";
-        const cullingStats = spatialCulling.getStats();
+    // Fase 2: PHYSICS
+    systemRunner.register(
+      "physics",
+      (dt) => {
+        particlePool.update(dt);
+      },
+      { id: "particle_simulation" }
+    );
 
-        debugDistanceUI.update(playerXPosition, {
-          fps: instantFps,
-          entities: cachedEntityCount,
-          activeParticles: stats.activeCircles + stats.activeRects,
-          totalParticles: stats.totalCircles + stats.totalRects,
-          activeModules: modsText,
-          frameTimeMs: dt * 1000,
-          visibleEntities: cullingStats.visibleEntities,
-          culledEntities: cullingStats.culledEntities,
-        });
-      }
+    // Fase 3: AI & Pedagogy
+    systemRunner.register(
+      "ai",
+      (dt) => {
+        if (isGameFinished || playerController.isFainting()) return;
+        const playerXPosition = playerController.gameObj.pos.x;
+        gameState.update(dt, playerXPosition);
 
-      // Fallback de segurança para conclusão caso alcance ou ultrapasse a rota
-      if (playerXPosition >= GAME_CONFIG.ROUTE_TOTAL_DISTANCE) {
-        isGameFinished = true;
-        recordEndOnce(true);
-        presentationMode.destroy();
-        sereneInsights?.destroy();
-        playerController.freeze();
-        audioSystem.pauseAmbient();
-        showVictoryScreen(k, gameState, () => {
-          audioSystem.stopMigrationAudio();
-          k.go("menu");
-        });
-        return;
-      }
-
-      // Atualiza o cronômetro do Desafio Rápido de 1 Minuto
-      if (timerUI && options.mode === "quick_challenge") {
-        const remaining = gameState.getTimeRemaining();
-        timerUI.text = `⏱️ ${remaining}s`;
-        if (remaining <= 10) {
-          timerUI.color = k.rgb(255, 80, 80);
-        }
-      }
-
-      // Verifica término do desafio de 1 minuto
-      if (options.mode === "quick_challenge" && gameState.isTimeUp()) {
-        isGameFinished = true;
-        recordEndOnce(false);
-        presentationMode.destroy();
-        playerController.freeze();
-        audioSystem.pauseAmbient();
-        showChallengeEndScreen(
-          k,
-          gameState,
-          () => {
-            k.go("game", options);
-          },
-          () => {
-            audioSystem.stopMigrationAudio();
-            k.go("menu");
-          }
-        );
-        return;
-      }
-
-      // Se a baleia não desmaiou, atualiza distância e verifica gatilhos pedagógicos
-      if (!isGameFinished && !playerController.isFainting()) {
-        gameState.update(k.dt(), playerXPosition);
         if (options.mode === "serene") {
-          sereneInsights?.update(k.dt());
+          sereneInsights?.update(dt);
 
           gameState.checkFacts(playerXPosition, (fact) => {
             showFactPopup(k, fact);
@@ -443,48 +372,176 @@ export function registerGameScene(k: KaboomCtx): void {
             sereneInsights?.trigger("nursery_sanctuary");
           }
         }
-        // Sincroniza a trilha sonora adaptativa 16-bit com o bioma atual
-        audioSystem.updateBiomeTrack(playerXPosition);
-        // Atualiza a acústica subaquática e ressonância de acordo com a profundidade da baleia
-        audioSystem.updateDepthAcoustics(playerController.gameObj.pos.y);
-      } else if (playerController.isFainting() && !isRescueSequenceStarted && !isGameFinished) {
-        // Se a baleia já alcançou a enseada final (>= 29.600m) ou está saltando no breach, não inicia resgate de derrota
-        if (
-          playerXPosition >= GAME_CONFIG.ROUTE_TOTAL_DISTANCE - 400 ||
-          playerController.isBreaching()
-        ) {
-          return;
-        }
+      },
+      { id: "ai_and_pedagogy" }
+    );
 
-        // SE A BALEIA DESMAIOU: Inicia a sequência de resgate da Guarda Marítima
-        isRescueSequenceStarted = true;
+    // Fase 4: COLLISION & Conditions
+    systemRunner.register(
+      "collision",
+      () => {
+        if (isGameFinished) return;
+        const playerXPosition = playerController.gameObj.pos.x;
 
-        // Interrompe imediatamente os sons ambientes e cantos de baleia ao morrer/desmaiar
-        audioSystem.pauseAmbient();
-
-        // Spawna o barco da Guarda Marítima na superfície acima da baleia
-        createRescueBoat(k, playerController.gameObj.pos);
-
-        // Espera 3.5 segundos (tempo do barco chegar) e exibe o relatório
-        k.wait(3.5, () => {
-          recordEndOnce(false);
+        // Fallback de segurança para conclusão caso alcance ou ultrapasse a rota
+        if (playerXPosition >= GAME_CONFIG.ROUTE_TOTAL_DISTANCE) {
+          isGameFinished = true;
+          recordEndOnce(true);
           presentationMode.destroy();
           sereneInsights?.destroy();
           playerController.freeze();
-          showRescueScreen(k, gameState, () => {
+          audioSystem.pauseAmbient();
+          showVictoryScreen(k, gameState, () => {
             audioSystem.stopMigrationAudio();
             k.go("menu");
           });
-        });
+          return;
+        }
+
+        // Checagem de resgate caso a baleia tenha desmaiado
+        if (playerController.isFainting() && !isRescueSequenceStarted && !isGameFinished) {
+          if (
+            playerXPosition >= GAME_CONFIG.ROUTE_TOTAL_DISTANCE - 400 ||
+            playerController.isBreaching()
+          ) {
+            return;
+          }
+
+          isRescueSequenceStarted = true;
+          audioSystem.pauseAmbient();
+          createRescueBoat(k, playerController.gameObj.pos);
+
+          k.wait(3.5, () => {
+            recordEndOnce(false);
+            presentationMode.destroy();
+            sereneInsights?.destroy();
+            playerController.freeze();
+            showRescueScreen(k, gameState, () => {
+              audioSystem.stopMigrationAudio();
+              k.go("menu");
+            });
+          });
+        }
+      },
+      { id: "collision_and_endings" }
+    );
+
+    // Fase 5: CULLING & Lifecycle
+    systemRunner.register(
+      "culling",
+      () => {
+        const playerXPosition = playerController.gameObj.pos.x;
+        const currentCameraPosition = typeof k.camPos === "function" ? k.camPos() : k.vec2(0, 0);
+        biomeManager.update(playerXPosition);
+        spatialCulling.update(currentCameraPosition.x);
+      },
+      { id: "spatial_and_biome_culling" }
+    );
+
+    // Fase 6: RENDER & UI
+    systemRunner.register(
+      "render",
+      (dt) => {
+        if (isGameFinished) return;
+
+        const playerXPosition = playerController.gameObj.pos.x;
+        const currentCameraPosition = typeof k.camPos === "function" ? k.camPos() : k.vec2(0, 0);
+        const currentScreenWidth = typeof k.width === "function" ? k.width() : 1280;
+        const currentScreenHeight = typeof k.height === "function" ? k.height() : 720;
+
+        // Atualiza o cronômetro do Desafio Rápido de 1 Minuto
+        if (timerUI && options.mode === "quick_challenge") {
+          const remaining = gameState.getTimeRemaining();
+          timerUI.text = `⏱️ ${remaining}s`;
+          if (remaining <= 10) {
+            timerUI.color = k.rgb(255, 80, 80);
+          }
+
+          if (gameState.isTimeUp() && !isGameFinished) {
+            isGameFinished = true;
+            recordEndOnce(false);
+            presentationMode.destroy();
+            playerController.freeze();
+            audioSystem.pauseAmbient();
+            showChallengeEndScreen(
+              k,
+              gameState,
+              () => {
+                k.go("game", options);
+              },
+              () => {
+                audioSystem.stopMigrationAudio();
+                k.go("menu");
+              }
+            );
+            return;
+          }
+        }
+
+        // Telemetria do Debug HUD
+        if (debugDistanceUI.isVisible()) {
+          entityCountThrottleTimer += dt;
+          if (entityCountThrottleTimer >= 0.5 || cachedEntityCount === 0) {
+            entityCountThrottleTimer = 0;
+            cachedEntityCount = k.get("*").length;
+          }
+
+          const stats = particlePool.getStats();
+          const instantFps = Math.round(1 / Math.max(0.001, dt));
+          const activeMods = biomeManager.getActiveModules();
+          const modsText = activeMods.length > 0 ? activeMods.join(", ") : "Transição";
+          const cullingStats = spatialCulling.getStats();
+
+          debugDistanceUI.update(playerXPosition, {
+            fps: instantFps,
+            entities: cachedEntityCount,
+            activeParticles: stats.activeCircles + stats.activeRects,
+            totalParticles: stats.totalCircles + stats.totalRects,
+            activeModules: modsText,
+            frameTimeMs: dt * 1000,
+            visibleEntities: cullingStats.visibleEntities,
+            culledEntities: cullingStats.culledEntities,
+          });
+        }
+
+        // Atualização de Trilha e Ressonância Acústica Subaquática
+        if (!playerController.isFainting()) {
+          audioSystem.updateBiomeTrack(playerXPosition);
+          audioSystem.updateDepthAcoustics(playerController.gameObj.pos.y);
+        }
+
+        // Posicionamento de limites e cores do oceano
+        oceanFloor.pos.x = currentCameraPosition.x - currentScreenWidth;
+        oceanFloor.pos.y = currentScreenHeight - 40;
+        waterSurface.updatePosition(currentCameraPosition.x);
+        skyBand.pos.x = currentCameraPosition.x - currentScreenWidth;
+        updateOceanColors(k, playerXPosition, waterSurface, oceanFloor, skyBand);
+      },
+      { id: "render_and_ui" }
+    );
+
+    // 7. Loop Principal do Kaboom
+    k.onUpdate(() => {
+      if (k.debug && k.debug.paused) {
+        k.debug.paused = false;
       }
 
-      oceanFloor.pos.x = currentCameraPosition.x - currentScreenWidth;
-      oceanFloor.pos.y = currentScreenHeight - 40;
-      waterSurface.updatePosition(currentCameraPosition.x);
-      skyBand.pos.x = currentCameraPosition.x - currentScreenWidth;
+      if (isGameFinished) {
+        return;
+      }
 
-      // Atualiza cores do oceano (com dirty-check interno)
-      updateOceanColors(k, playerXPosition, waterSurface, oceanFloor, skyBand);
+      // Se estiver em Pausa Didática (Modo Apresentação F16), congela física e atualiza o painel
+      if (presentationMode.isDidacticPaused()) {
+        presentationMode.update();
+        return;
+      }
+      presentationMode.update();
+
+      const rawDeltaTime = typeof k.dt === "function" ? k.dt() : 0.0166;
+      const dt = Math.min(Math.max(0, rawDeltaTime), GAME_CONFIG.MAX_DELTA_TIME);
+
+      // Despacho determinístico de todas as fases canônicas
+      systemRunner.run(dt);
     });
   });
 }
