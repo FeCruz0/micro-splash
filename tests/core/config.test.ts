@@ -4,6 +4,9 @@ import {
   getSavedResolution,
   getSavedDisplayMode,
   setSavedDisplayMode,
+  GAME_CONFIG,
+  BIOME_BOUNDARIES,
+  getBiomeAtDistance,
 } from "../../src/config";
 
 describe("Configuração de Resoluções e Modo de Tela", () => {
@@ -68,5 +71,48 @@ describe("Configuração de Resoluções e Modo de Tela", () => {
 
     setSavedDisplayMode("stretch");
     expect(getSavedDisplayMode()).toBe("stretch");
+  });
+});
+
+describe("Fase 57: Configurações de Física, Timestep e Biomas Canônicos", () => {
+  it("define teto de delta time seguro (MAX_DELTA_TIME)", () => {
+    expect(GAME_CONFIG.MAX_DELTA_TIME).toBeDefined();
+    expect(GAME_CONFIG.MAX_DELTA_TIME).toBeGreaterThan(0.02);
+    expect(GAME_CONFIG.MAX_DELTA_TIME).toBeLessThanOrEqual(0.15);
+  });
+
+  it("define fronteiras canônicas contíguas cobrindo a rota completa", () => {
+    expect(BIOME_BOUNDARIES.length).toBe(5);
+    expect(BIOME_BOUNDARIES[0].startDistance).toBe(0);
+    expect(BIOME_BOUNDARIES[BIOME_BOUNDARIES.length - 1].endDistance).toBe(
+      GAME_CONFIG.ROUTE_TOTAL_DISTANCE
+    );
+
+    for (let index = 0; index < BIOME_BOUNDARIES.length - 1; index++) {
+      expect(BIOME_BOUNDARIES[index].endDistance).toBe(BIOME_BOUNDARIES[index + 1].startDistance);
+    }
+  });
+
+  it("mapeia biomas corretamente via getBiomeAtDistance", () => {
+    expect(getBiomeAtDistance(0)).toBe("antartica");
+    expect(getBiomeAtDistance(2500)).toBe("antartica");
+    expect(getBiomeAtDistance(4999)).toBe("antartica");
+
+    expect(getBiomeAtDistance(5000)).toBe("pelagico");
+    expect(getBiomeAtDistance(8000)).toBe("pelagico");
+    expect(getBiomeAtDistance(11999)).toBe("pelagico");
+
+    expect(getBiomeAtDistance(12000)).toBe("costa_urbana");
+    expect(getBiomeAtDistance(15000)).toBe("costa_urbana");
+    expect(getBiomeAtDistance(18999)).toBe("costa_urbana");
+
+    expect(getBiomeAtDistance(19000)).toBe("canyons");
+    expect(getBiomeAtDistance(22000)).toBe("canyons");
+    expect(getBiomeAtDistance(24999)).toBe("canyons");
+
+    expect(getBiomeAtDistance(25000)).toBe("arraial");
+    expect(getBiomeAtDistance(29999)).toBe("arraial");
+    expect(getBiomeAtDistance(30000)).toBe("arraial");
+    expect(getBiomeAtDistance(40000)).toBe("arraial");
   });
 });

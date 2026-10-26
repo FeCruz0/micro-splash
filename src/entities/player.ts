@@ -102,7 +102,8 @@ export function createPlayer(
   let strokeRippleTriggered = false;
 
   baleia.onUpdate(() => {
-    const dt = k.dt();
+    const rawDeltaTime = typeof k.dt === "function" ? k.dt() : 0.0166;
+    const dt = Math.min(Math.max(0, rawDeltaTime), GAME_CONFIG.MAX_DELTA_TIME);
 
     // Se o jogador estiver congelado (fim de jogo, modal ou vitória), bloqueia movimentos e controles
     if (trapMgr.isFrozen()) {

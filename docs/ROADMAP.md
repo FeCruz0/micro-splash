@@ -851,11 +851,11 @@ _Objetivo: Substituir tutoriais textuais por aprendizado mimético e orgânico i
 
 _Objetivo: Desacoplar a física do frame rate para garantir gameplay idêntico em telas de 60Hz a 144Hz+, blindar contra saltos e tunneling causados por picos de delta time, e centralizar a demarcação dos biomas em uma fonte única da verdade._
 
-- [ ] **57.1 Física & Arrasto Hidrodinâmico Independentes de Frame Rate (`src/entities/player/playerPhysics.ts`, `src/entities/companionWhale.ts`):**
+- [x] **57.1 Física & Arrasto Hidrodinâmico Independentes de Frame Rate (`src/entities/player/playerPhysics.ts`, `src/entities/companionWhale.ts`):**
   - Reformular atenuação de arrasto d'água (`WATER_DRAG`) e interpolações angulares (`lerp`) para formulação exponencial baseada no tempo decorrido: `currentSpeed.scale(Math.pow(WATER_DRAG, dt * 60))` e `1 - Math.exp(-decayRate * dt)`, eliminando a sensação de baleia "pesada" ou "rápida" dependendo da taxa de atualização do monitor.
-- [ ] **57.2 Timestep Seguro com Limitação de Delta Time (`src/scenes/gameScene.ts`, `src/config.ts`):**
+- [x] **57.2 Timestep Seguro com Limitação de Delta Time (`src/scenes/gameScene.ts`, `src/config.ts`):**
   - Aplicar clamp no delta time (`Math.min(dt, GAME_CONFIG.MAX_DELTA_TIME)` com teto em ~33ms / 30 FPS) e subtick fixo para o ciclo de física, prevenindo penetrações acidentais na banquisa polar e túneis de colisão durante engasgos de GC ou retorno de abas inativas.
-- [ ] **57.3 Fonte Única da Verdade para Delimitação de Biomas (`src/config.ts`, `src/systems/state.ts`):**
+- [x] **57.3 Fonte Única da Verdade para Delimitação de Biomas (`src/config.ts`, `src/systems/state.ts`):**
   - Criar helper unificado `getBiomeAtDistance(x: number): BiomeType` e tabela de demarcação canônica em `config.ts`, substituindo thresholds mágicos literais duplicados entre `state.ts`, `biomeLifecycleManager.ts` e geradores de cenário.
 
 ### 🧩 FASE 58: Arquitetura, Determinismo & Type Safety (Prioridade Média)

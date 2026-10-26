@@ -1,6 +1,7 @@
 import factsData from "../../data/facts.json";
 import { readLocalStorageWithSchema, writeLocalStorage } from "../utils/storage";
 import { HighscoreSchema, UnlockedFactsArraySchema } from "../schemas/storageSchemas";
+import { getBiomeAtDistance, type BiomeType } from "../config";
 
 export interface Fact {
   id: string;
@@ -66,13 +67,7 @@ export function createGameState(options: GameOptions = { mode: "standard" }) {
     hasBreached: () => didBreach,
     getQuizScore: () => quizScore,
     getQuizCorrectCount: () => quizCorrectCount,
-    getCurrentBiome: () => {
-      if (distance < 5000) return "antartica";
-      if (distance < 12000) return "pelagico";
-      if (distance < 19000) return "costa_urbana";
-      if (distance < 25000) return "canyons";
-      return "arraial";
-    },
+    getCurrentBiome: (): BiomeType => getBiomeAtDistance(distance),
 
     // incrementadores de eventos
     addKrill: () => {

@@ -7,6 +7,26 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [1.22.0] - 2026-10-26 — Refinamento Físico, Timestep & Consistência de Dados (Fase 57)
+
+### Adicionado & Modificado
+
+- **Física, Empuxo & Arrasto Hidrodinâmico Independentes de Frame Rate (`src/config.ts`, `src/entities/player/playerPhysics.ts`, `src/entities/player/playerControls.ts`, `src/entities/companionWhale.ts`)**:
+  - Calibração de empuxo responsivo (`BASE_THRUST: 140`, `PEAK_THRUST: 650`), arrasto fluido (`WATER_DRAG: 0.968`), afundamento brando (`SINK_RATE: 15`) e rotação vertical (`ROTATION_SPEED: 48`), restabelecendo nado majestoso e ascensão suave à superfície.
+  - Formulação contínua de arrasto hidrodinâmico baseada no tempo decorrido `Math.pow(GAME_CONFIG.WATER_DRAG, dt * 60)` e arrasto balístico aéreo `Math.pow(0.998, dt * 60)`, garantindo perda de momentum matematicamente idêntica em monitores de 60Hz, 120Hz e 144Hz+.
+  - Alinhamento corporal e amortecimento de retorno para arfagem neutra convertidos para decaimento exponencial temporal `1 - Math.pow(1 - alpha, dt * 60)`, eliminando rotação artificialmente acelerada em taxas de atualização elevadas.
+- **Timestep Seguro com Limitação de Delta Time (`src/scenes/gameScene.ts`, `src/entities/player.ts`, `src/config.ts`)**:
+  - Introdução de `GAME_CONFIG.MAX_DELTA_TIME: 0.1` (100ms / 10 FPS floor) e aplicação de clamp no delta time do loop da cena e do jogador (`Math.min(Math.max(0, rawDeltaTime), GAME_CONFIG.MAX_DELTA_TIME)`).
+  - Prevenção ativa de saltos anômalos de coordenadas e tunneling físico através de blocos de gelo polar ou leito marinho sem desacelerar monitores operando a 30-60 FPS.
+- **Fonte Única da Verdade para Delimitação de Biomas (`src/config.ts`, `src/systems/state.ts`)**:
+  - Criação da união canônica `BiomeType`, tabela de limites geográficos contíguos `BIOME_BOUNDARIES` e função utilitária pura `getBiomeAtDistance(distanceInMeters: number): BiomeType` em `src/config.ts`.
+  - Refatoração de `src/systems/state.ts` para consumir `getBiomeAtDistance`, eliminando condicionais literais mágicos dispersos pelo projeto.
+- **Suíte de Testes da Fase 57 (`tests/player/physics.test.ts`, `tests/player/controls.test.ts`, `tests/core/config.test.ts`)**:
+  - Testes unitários atestando equivalência de desaceleração entre 60 FPS, 120 FPS e 144 FPS com tolerância estrita < 0.1 px/s.
+  - Testes de integridade geográfica das fronteiras dos 5 biomas e testes de resiliência a picos de timestep.
+
+---
+
 ## [1.21.0] - 2026-10-22 — Tutorial Mimético & Baleia-Guia Autônoma (Fase 56)
 
 ### Adicionado & Modificado

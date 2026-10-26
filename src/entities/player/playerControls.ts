@@ -145,7 +145,8 @@ export class PlayerControlsManager {
     }
 
     if (isTrapped) {
-      this.angle = this.k.lerp(this.angle, 0, 0.05);
+      const neutralDecayFactor = 1 - Math.pow(1 - 0.05, dt * 60);
+      this.angle = this.k.lerp(this.angle, 0, neutralDecayFactor);
       this.tailAngle = this.k.lerp(this.tailAngle, this.angle, Math.min(1, dt * 6));
       this.spineCurvature = this.angle - this.tailAngle;
       this.pitchAngularVelocity = dt > 0.0001 ? (this.angle - previousAngle) / dt : 0;
@@ -166,7 +167,8 @@ export class PlayerControlsManager {
     } else if (inputs.isDownDown) {
       this.angle = this.k.clamp(this.angle + velocidadeRotacao, -45, 45);
     } else {
-      this.angle = this.k.lerp(this.angle, 0, 0.05);
+      const neutralDecayFactor = 1 - Math.pow(1 - 0.05, dt * 60);
+      this.angle = this.k.lerp(this.angle, 0, neutralDecayFactor);
     }
 
     // Dinâmica de Arfagem e Inércia Elástica Caudal

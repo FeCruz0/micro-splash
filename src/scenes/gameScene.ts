@@ -331,7 +331,8 @@ export function registerGameScene(k: KaboomCtx): void {
       }
       presentationMode.update();
 
-      const dt = k.dt();
+      const rawDeltaTime = typeof k.dt === "function" ? k.dt() : 0.0166;
+      const dt = Math.min(Math.max(0, rawDeltaTime), GAME_CONFIG.MAX_DELTA_TIME);
       const currentCameraPosition = typeof k.camPos === "function" ? k.camPos() : k.vec2(0, 0);
       const currentScreenWidth = typeof k.width === "function" ? k.width() : 1280;
       const currentScreenHeight = typeof k.height === "function" ? k.height() : 720;

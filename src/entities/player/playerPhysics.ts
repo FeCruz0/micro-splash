@@ -75,7 +75,8 @@ export class PlayerPhysicsManager {
       // Voo balístico majestoso pelo ar
       const gravity = isBreaching ? 620 : 340;
       this.currentSpeed.y += gravity * dt;
-      this.currentSpeed.x = this.currentSpeed.x * 0.998;
+      const airDragFactor = Math.pow(0.998, dt * 60);
+      this.currentSpeed.x = this.currentSpeed.x * airDragFactor;
       baleia.move(this.currentSpeed.x, this.currentSpeed.y);
 
       if (this.currentSpeed.len() > 20) {
@@ -84,7 +85,8 @@ export class PlayerPhysicsManager {
           -45,
           45
         );
-        newAngle = this.k.lerp(newAngle, trajectoryAngle, 0.1);
+        const trajectoryLerpFactor = 1 - Math.pow(1 - 0.1, dt * 60);
+        newAngle = this.k.lerp(newAngle, trajectoryAngle, trajectoryLerpFactor);
       }
     } else {
       if (isBreaching) {
@@ -99,7 +101,8 @@ export class PlayerPhysicsManager {
       } else {
         // Nado hidrodinâmico na água
         baleia.move(this.currentSpeed.x, this.currentSpeed.y + GAME_CONFIG.SINK_RATE);
-        this.currentSpeed = this.currentSpeed.scale(GAME_CONFIG.WATER_DRAG);
+        const waterDragFactor = Math.pow(GAME_CONFIG.WATER_DRAG, dt * 60);
+        this.currentSpeed = this.currentSpeed.scale(waterDragFactor);
       }
     }
 
@@ -126,7 +129,8 @@ export class PlayerPhysicsManager {
   }
 
   private handleSeabedAndFailSafe(baleia: GameObj, facingRight: boolean): void {
-    const seabedLimit = this.k.height() - 55;
+    const screenHeight = typeof this.k.height === "function" ? this.k.height() : 720;
+    const seabedLimit = screenHeight - 55;
     if (baleia.pos.y > seabedLimit) {
       baleia.pos.y = seabedLimit;
       if (this.currentSpeed.y > 0) {
@@ -137,7 +141,7 @@ export class PlayerPhysicsManager {
     if (baleia.pos.y < -250) {
       baleia.pos.y = GAME_CONFIG.SEA_LEVEL + 40;
       this.currentSpeed = this.k.vec2(facingRight ? 100 : -100, 30);
-    } else if (baleia.pos.y > this.k.height() + 100) {
+    } else if (baleia.pos.y > screenHeight + 100) {
       baleia.pos.y = seabedLimit;
       this.currentSpeed.y = 0;
     }

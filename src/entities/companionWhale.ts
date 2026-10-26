@@ -506,14 +506,16 @@ export function createCompanionWhale(
         companion.pos.y += (currentSpeed.y + effectiveSink) * deltaTime;
       }
 
-      currentSpeed = currentSpeed.scale(GAME_CONFIG.WATER_DRAG);
+      const waterDragFactor = Math.pow(GAME_CONFIG.WATER_DRAG, deltaTime * 60);
+      currentSpeed = currentSpeed.scale(waterDragFactor);
     } else {
       // Estado de repouso: desacelera e permanece suavemente no lugar
       currentSpeed = currentSpeed.scale(Math.max(0, 1 - deltaTime * 4.0));
       if (typeof companion.move === "function" && currentSpeed.len() > 1) {
         companion.move(currentSpeed.x, currentSpeed.y);
       }
-      companion.angle = k.lerp(companion.angle, 0, 0.05);
+      const neutralDecayFactor = 1 - Math.pow(1 - 0.05, deltaTime * 60);
+      companion.angle = k.lerp(companion.angle, 0, neutralDecayFactor);
     }
 
     // Failsafe do leito marinho

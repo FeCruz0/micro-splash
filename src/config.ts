@@ -7,14 +7,14 @@ import {
 
 export const GAME_CONFIG = {
   GRAVITY: 0,
-  SINK_RATE: 20, // Afundamento suave constante da água
+  SINK_RATE: 15, // Afundamento suave calibrado para permitir subida natural à superfície
   MAX_SPEED: 240, // Teto máximo de velocidade acumulada
-  MAX_STROKE_TIME: 0.5, // Duração máxima de uma batida de cauda (0.5s)
+  MAX_STROKE_TIME: 0.7, // Duração máxima de uma batida de cauda (0.5s)
   STROKE_COOLDOWN: 1.0, // Intervalo mínimo de 1 segundo entre batidas consecutivas de cauda
-  BASE_THRUST: 90, // Impulso inicial suave e orgânico da batida (reduzido de 125)
-  PEAK_THRUST: 450, // Adicional de impulso no pico da batida (reduzido de 625)
-  WATER_DRAG: 0.955, // Resistência da água com perda de momentum acentuada (desacelera rápido da velocidade máxima)
-  ROTATION_SPEED: 40, // Velocidade de rotação das nadadeiras
+  BASE_THRUST: 140, // Impulso inicial responsivo da batida
+  PEAK_THRUST: 650, // Adicional de impulso no pico da batida
+  WATER_DRAG: 0.968, // Arrasto com planeio hidrodinâmico contínuo entre batidas
+  ROTATION_SPEED: 48, // Velocidade de rotação vertical das nadadeiras
   TRASH_SLOWDOWN: 0.5, // Fator de desaceleração ao atingir lixo plástico (perde 50% da velocidade)
   KRILL_BOOST: 1.2, // Fator de aceleração do cardume krill
   KRILL_POINTS: 100, // Pontos por cardume krill
@@ -36,6 +36,7 @@ export const GAME_CONFIG = {
   UPWELLING_ZONE_END: 25000, // fim da zona de ressurgência em Arraial do Cabo (25.000m)
   ROUTE_TOTAL_DISTANCE: 30000, // distancia total do percurso (30.000m - ~4 a 5 min de partida)
   SEA_LEVEL: 80, // Nível do mar dobrado para 80px para dar espaço visível ao céu
+  MAX_DELTA_TIME: 0.1, // Teto máximo de delta time (100ms / 10 FPS) para prevenir tunneling sem penalizar 30-60 FPS
 };
 
 export const TAGS = {
@@ -51,6 +52,53 @@ export const TAGS = {
   AIR_POCKET: "bolsao_ar",
   POWERUP: "powerup",
 };
+
+export type BiomeType = "antartica" | "pelagico" | "costa_urbana" | "canyons" | "arraial";
+
+export interface BiomeBoundary {
+  id: BiomeType;
+  name: string;
+  startDistance: number;
+  endDistance: number;
+}
+
+export const BIOME_BOUNDARIES: readonly BiomeBoundary[] = [
+  { id: "antartica", name: "Antártica (Manhã Polar)", startDistance: 0, endDistance: 5000 },
+  {
+    id: "pelagico",
+    name: "Travessia Pelágica (Pôr do Sol)",
+    startDistance: 5000,
+    endDistance: 12000,
+  },
+  {
+    id: "costa_urbana",
+    name: "Costa Urbana (Noite Estrelada)",
+    startDistance: 12000,
+    endDistance: 19000,
+  },
+  {
+    id: "canyons",
+    name: "Cânions & Ressurgência (Alvorada)",
+    startDistance: 19000,
+    endDistance: 25000,
+  },
+  {
+    id: "arraial",
+    name: "Santuário de Arraial (Manhã Solar)",
+    startDistance: 25000,
+    endDistance: 30000,
+  },
+] as const;
+
+export function getBiomeAtDistance(distanceInMeters: number): BiomeType {
+  for (let index = 0; index < BIOME_BOUNDARIES.length; index++) {
+    const boundary = BIOME_BOUNDARIES[index];
+    if (distanceInMeters < boundary.endDistance) {
+      return boundary.id;
+    }
+  }
+  return "arraial";
+}
 
 export interface BiomeColorStop {
   name: string;

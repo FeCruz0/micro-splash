@@ -261,4 +261,31 @@ describe("PlayerControlsManager: Controle de Orientação", () => {
     isKeyPressedReturn = false;
     expect(player.getStrokeCooldown!()).toBe(1.0);
   });
+
+  it("produz nivelamento angular idêntico em 60 FPS e 120 FPS quando sem inputs direcionais", () => {
+    const k = createMockKaboom();
+
+    // 60 FPS: 30 quadros de 1/60s (0.5s total)
+    const controls60 = new PlayerControlsManager(k);
+    controls60.setAngle(30);
+    const baleia60 = createMockBaleia(false);
+    for (let frame = 0; frame < 30; frame++) {
+      controls60.updateOrientation(1 / 60, baleia60, createInputs(), false, false);
+    }
+    const finalAngle60 = controls60.getAngle();
+
+    // 120 FPS: 60 quadros de 1/120s (0.5s total)
+    const controls120 = new PlayerControlsManager(k);
+    controls120.setAngle(30);
+    const baleia120 = createMockBaleia(false);
+    for (let frame = 0; frame < 60; frame++) {
+      controls120.updateOrientation(1 / 120, baleia120, createInputs(), false, false);
+    }
+    const finalAngle120 = controls120.getAngle();
+
+    // Os ângulos resultantes devem coincidir com precisão
+    expect(finalAngle120).toBeCloseTo(finalAngle60, 1);
+    expect(finalAngle60).toBeLessThan(30);
+    expect(finalAngle60).toBeGreaterThan(0);
+  });
 });
