@@ -1,95 +1,94 @@
-# Plano de Implementação — Fase 56: Tutorial Intuitivo & Mimético — Baleia-Guia NPC (Mãe-Guia Antártica)
+# Plano de Implementação — Fase 57: Refinamento Físico, Timestep & Consistência de Dados
 
-Status: Concluído ✅  
-Data: 2026-10-22  
-Alvo: v1.21.0 (Tutorial Intuitivo & Naturalista)
+Status: Planejado 📝  
+Data: 2026-10-26  
+Alvo: v1.22.0 (Física Invariante a FPS & Integridade de Biomas)
 
 ---
 
-## 🔬 Diagnóstico e Escopo da Fase 56
+## 🔬 Diagnóstico e Escopo da Fase 57
 
-1. **Objetivo Pedagógico & Game Design**:
-   - Substituir tutoriais textuais estáticos por aprendizado mimético (_cultural transmission_ na etologia de cetáceos).
-   - Nos primeiros 3.200 metros da rota antártica (0m – 3.200m), o jogador é acompanhado por uma **Baleia-Guia (Mãe-Guia / Matriarca NPC)** que nada à sua frente com ritmo adaptativo (_rubber-banding_).
-   - A Baleia-Guia demonstra ativamente as quatro mecânicas vitais do jogo:
-     1. **Propulsão e Ritmo da Cauda (0m – 500m)**: Ritmo de planeio e cadência de batidas.
-     2. **Alimentação por Filtração & Krill (500m – 1.200m)**: Consumo visual de krill com animação de boca aberta.
-     3. **Identificação de Fendas e Respiração Pulmonar (1.200m – 1.900m)**: Rota até a fenda polar e duplo borrifo de vapor.
-     4. **Biosonar Acústico & Evasão de Obstáculos (1.900m – 2.700m)**: Emissão de onda de sonar iluminando o relevo.
-     5. **Salto de Despedida & Transição Rumo ao Mar Aberto (2.700m – 3.200m)**: Salto acrobático (_breach_) e mergulho pelágico.
+1. **Problemas Identificados**:
+   - **Arrasto Dependente de Framerate**: Em `playerPhysics.ts` e `companionWhale.ts`, a desaceleração é calculada a cada quadro via `currentSpeed.scale(WATER_DRAG)` e o arrasto do ar por `currentSpeed.x * 0.998`. Em 60Hz, $0.955^{60} \approx 0.063$ de velocidade retida por segundo; em 144Hz, $0.955^{144} \approx 0.0013$, tornando a baleia excessivamente travada e pesada em monitores com alta taxa de atualização.
+   - **Interpolações Angulares sem Delta Time**: `lerp(angle, 0, 0.05)` interpola 5% a cada quadro fixo, fazendo a rotação e o alinhamento corporal ocorrerem 2,4x mais rápido a 144 FPS do que a 60 FPS.
+   - **Vulnerabilidade a Picos de Delta Time (Tunneling & Leaps)**: Em `gameScene.ts`, `dt = k.dt()` não possui limitação superior (clamp). Quando o usuário altera abas ou ocorrem engasgos por coleta de lixo (GC) ou carregamento, `dt` pode atingir valores de 0.5s a 2.0s, disparando cálculos de física que arremessam a baleia através de colisores sólidos de gelo polar ou do leito marinho.
+   - **Redundância e Duplicação na Delimitação de Biomas**: Os limites de distância dos biomas (0m, 5.000m, 12.000m, 19.000m, 25.000m, 30.000m) estão espalhados com números mágicos literais em `state.ts` (`getCurrentBiome`), `config.ts` (`BIOME_COLOR_STOPS`), `biomeLifecycleManager.ts` e outros módulos, carecendo de uma fonte única da verdade e helper puro canônico.
 
-2. **Decisões Alinhadas com o Usuário**:
-   - **Identidade Visual**: Sprite `baleia` oficial em escala reduzida (`scale(0.85)`), com tom azul-ardósia escurecido (`color(140, 165, 195)`) para diferenciação nítida em relação ao jogador.
-   - **Abordagem Pedagógica**: 100% diegética e naturalista (sem botões ou ícones artificiais flutuantes na tela).
-   - **Modos de Ativação**:
-     - _Migração Serena_: Ativa por padrão (pode ser desativada nas Opções).
-     - _Modo Padrão_: Ativa na primeira partida ou caso ativada nas Opções.
-     - _Desafio Semanal / Quick Challenge_: Inativa por padrão.
+2. **Decisões Técnicas**:
+   - **Arrasto Exponencial Invariante**: Usar formulação contínua baseada no tempo decorrido `deltaTime`:
+     - Água: `Math.pow(GAME_CONFIG.WATER_DRAG, deltaTime * 60)`
+     - Ar: `Math.pow(0.998, deltaTime * 60)`
+     - Interpolação angular suave: `1 - Math.pow(1 - alpha, deltaTime * 60)`
+   - **Clamp de Delta Time Seguro**: Definir `GAME_CONFIG.MAX_DELTA_TIME = 0.0333` (~30 FPS mínimo) em `config.ts` e aplicar clamp `Math.min(Math.max(0, rawDeltaTime), GAME_CONFIG.MAX_DELTA_TIME)` na entrada do loop em `gameScene.ts`.
+   - **Fonte Canônica de Biomas**:
+     - Definir `BiomeType` canônico: `"antartica" | "pelagico" | "costa_urbana" | "canyons" | "arraial"`.
+     - Definir `BIOME_BOUNDARIES` em `src/config.ts`.
+     - Implementar helper puro `getBiomeAtDistance(distanceInMeters: number): BiomeType`.
+     - Refatorar `src/systems/state.ts` para consumir `getBiomeAtDistance`.
 
-3. **Arquitetura & Restrições Técnicas**:
-   - Zero alocações (`vec2`) por frame no loop cinemático.
-   - Entidade cinemática sem colisão sólida de bloqueio (não empurra nem trava o jogador).
-   - Partículas via `ParticlePool` consolidado.
+3. **Arquitetura & Restrições**:
+   - Respeito integral a `ai.rules` (Matt Pocock pure functions, Clean Code, TypeScript estrito, zero alocações por quadro no loop de física).
+   - Suíte de testes TDD com cobertura unitária para invariância de framerate (comparando simulações a 60 FPS vs 120 FPS vs 144 FPS com tolerância < 1%) e validação de fronteiras de biomas.
 
 ---
 
 ## 📋 Lista de Tarefas Atômicas
 
-### Etapa 1: Schemas, Configuração e Persistência
+### Etapa 1: Constantes, Tipos e Helper Canônico de Biomas (`src/config.ts`)
 
-- [x] **1.1 Adicionar Schemas de Armazenamento para a Baleia-Guia**
-  - **Arquivo**: `src/schemas/storageSchemas.ts`.
-  - **Ação**: Criar schemas Zod para persistência do tutorial (`CompanionTutorialSeenSchema` e `CompanionTutorialEnabledSchema`).
-- [x] **1.2 Configurações de Trajetória da Baleia-Guia**
+- [ ] **1.1 Definir `MAX_DELTA_TIME`, `BiomeType`, `BIOME_BOUNDARIES` e `getBiomeAtDistance`**
   - **Arquivo**: `src/config.ts`.
-  - **Ação**: Exportar `COMPANION_CONFIG` com limites de distância, targets de demonstração e velocidade base.
-- [x] **1.3 Módulo de Configurações de Tutorial do Companheiro**
-  - **Arquivo**: `src/systems/companionTutorialSettings.ts`.
-  - **Ação**: Implementar getters/setters seguros com tipagem estrita para habilitar/desabilitar e marcar como visualizado.
+  - **Ação**: Adicionar `MAX_DELTA_TIME: 0.0333` em `GAME_CONFIG`, declarar `BiomeType`, exportar constante `BIOME_BOUNDARIES` e função utilitária pura `getBiomeAtDistance(distanceInMeters: number): BiomeType`.
 
 ---
 
-### Etapa 2: Entidade de IA Autônoma & Mecânicas Espelho (`src/entities/companionWhale.ts`)
+### Etapa 2: Refatoração de Estado com Fonte Canônica (`src/systems/state.ts`)
 
-- [x] **2.1 Criação da Entidade de IA Autônoma, Colisão e Mecânicas Espelho**
-  - **Arquivo**: `src/entities/companionWhale.ts`, `src/systems/collisions.ts`, `src/entities/player/playerSonar.ts`, `src/systems/iceSurface.ts`.
-  - **Ação**: Implementar colisor ativo `k.area` proporcional (0.85x), consumo de krill real com recarga de fôlego, sonar 360° revelador de itens, ciclo de oxigênio pulmonar com busca de fendas polares, resolução de colisão de gelo e IA reativa não-repetitiva.
-- [x] **2.2 Física Hidrodinâmica Direcional, Colisão Real com Gelo e Repouso Estacionário**
-  - **Arquivo**: `src/entities/companionWhale.ts`, `src/systems/proceduralObstacles.ts`.
-  - **Ação**: Adicionar `k.body()` para resolução sólida contra blocos de gelo estáticos; implementar giro vertical lento limitando taxa angular; aplicar impulso muscular unicamente na direção virada (sem deslizar de lado); expandir quantidade de cardumes de krill na Antártica (de 12-15 para 20-24) e demais biomas; implementar estado de repouso contemplativo (`RESTING`) no fim do percurso sem destruição da entidade.
+- [ ] **2.1 Migrar `getCurrentBiome()` para `getBiomeAtDistance`**
+  - **Arquivo**: `src/systems/state.ts`.
+  - **Ação**: Substituir condicionais literais mágicos (`< 5000`, `< 12000`, etc.) pelo consumo direto do helper puro `getBiomeAtDistance`.
 
 ---
 
-### Etapa 3: Integração na Cena do Jogo (`src/scenes/gameScene.ts`)
+### Etapa 3: Física & Arrasto Hidrodinâmico Invariantes ao Framerate
 
-- [x] **3.1 Spawn Condicional e Ciclo de Vida na Cena**
+- [ ] **3.1 Arrasto Exponencial e Alinhamento Angular Invariantes no Jogador**
+  - **Arquivo**: `src/entities/player/playerPhysics.ts`, `src/entities/player/playerControls.ts`.
+  - **Ação**:
+    - Em `playerPhysics.ts`: aplicar atenuação d'água via `Math.pow(GAME_CONFIG.WATER_DRAG, dt * 60)`, arrasto aéreo via `Math.pow(0.998, dt * 60)` e `lerp` angular com fator temporal `1 - Math.pow(0.9, dt * 60)`.
+    - Em `playerControls.ts`: substituir `lerp(angle, 0, 0.05)` por decaimento exponencial `1 - Math.pow(0.95, dt * 60)`.
+- [ ] **3.2 Arrasto Exponencial e Alinhamento Angular na Baleia-Guia (NPC)**
+  - **Arquivo**: `src/entities/companionWhale.ts`.
+  - **Ação**: Atualizar arrasto aquático para `Math.pow(GAME_CONFIG.WATER_DRAG, deltaTime * 60)` e retorno angular de repouso para `1 - Math.pow(0.95, deltaTime * 60)`.
+
+---
+
+### Etapa 4: Timestep Seguro com Limitação de Delta Time (`src/scenes/gameScene.ts`)
+
+- [ ] **4.1 Clamping de Delta Time na Cena Principal**
   - **Arquivo**: `src/scenes/gameScene.ts`.
-  - **Ação**: Instanciar `createCompanionWhale` na inicialização do bioma Antártico quando aplicável, conectar com culling e registrar teardown limpo.
-
----
-
-### Etapa 4: Configurações de UI e Acessibilidade (`src/ui/options/controlsOptionsTab.ts`)
-
-- [x] **4.1 Alternador da Baleia-Guia no Menu de Opções**
-  - **Arquivo**: `src/ui/options/controlsOptionsTab.ts`.
-  - **Ação**: Adicionar botão e controle acessível na linha 6 da coluna de controles/sistema para alternar a Baleia-Guia (Ativa / Desativada).
+  - **Ação**: Aplicar clamp no delta time retornado pelo motor: `const dt = Math.min(Math.max(0, k.dt()), GAME_CONFIG.MAX_DELTA_TIME)` antes de distribuir aos subsistemas de física, entidades e culling.
 
 ---
 
 ### Etapa 5: Suíte de Testes Automatizados TDD
 
-- [x] **5.1 Testes Unitários da Baleia-Guia e Mecânicas Espelho**
-  - **Arquivo**: `tests/entities/companionWhale.test.ts`.
-  - **Ação**: Cobrir colisor `k.area`, consumo real de krill, depleção/recarga de oxigênio em fendas polares, varredura acústica com revelação de itens, rubber-banding e teardown.
-- [x] **5.2 Testes de Física Hidrodinâmica, Colisão com Gelo e Repouso Estacionário**
-  - **Arquivo**: `tests/entities/companionWhale.test.ts`.
-  - **Ação**: Validar componente `k.body()`, colisão e amortecimento em gelo, taxa de giro vertical lento, impulso vetorial direcional e permanência em estado `RESTING` sem sumir da cena (18/18 testes aprovados).
-  - **Validação**: Executar suíte completa de testes (`npm test -- --run`).
+- [ ] **5.1 Testes de Invariância de Framerate na Física**
+  - **Arquivo**: `tests/player/physics.test.ts`.
+  - **Ação**: Implementar testes comparando desaceleração após 1.0s simulado a 60 FPS, 120 FPS e 144 FPS com tolerância < 1%.
+- [ ] **5.2 Testes Unitários de `getBiomeAtDistance` e Fronteiras Geográficas**
+  - **Arquivo**: `tests/core/config.test.ts`.
+  - **Ação**: Cobrir pontos de corte (0m, 4999m, 5000m, 11999m, 12000m, 18999m, 19000m, 24999m, 25000m, 30000m e extremos).
+- [ ] **5.3 Testes de Timestep Clamping**
+  - **Arquivo**: `tests/player/physics.test.ts`.
+  - **Ação**: Testar estabilidade da física sob picos artificiais de delta time (ex: 1.5s).
 
 ---
 
-### Etapa 6: Documentação e Roadmap
+### Etapa 6: Validação e Atualização Documental
 
-- [x] **6.1 Atualizar `docs/ROADMAP.md` e `.ai/todo.md`**
-  - **Arquivo**: `docs/ROADMAP.md` e `.ai/todo.md`.
-  - **Ação**: Registrar Fase 56 em status Concluído e validar consistência de documentação.
+- [ ] **6.1 Executar Verificação de Tipos e Suíte de Testes**
+  - **Ação**: Executar `npx tsc --noEmit` e `npm test -- --run`.
+- [ ] **6.2 Sincronizar ROADMAP.md e CHANGELOG.md**
+  - **Arquivo**: `docs/ROADMAP.md`, `CHANGELOG.md`.
+  - **Ação**: Atualizar checkboxes e registrar notas de versão para a Fase 57.

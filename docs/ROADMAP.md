@@ -846,3 +846,40 @@ _Objetivo: Substituir tutoriais textuais por aprendizado mimético e orgânico i
   - Spawn condicional da baleia-guia na Antártica com teardown via `onSceneLeave` e botão de alternância acessível com suporte a navegação por teclado na aba de controles das Opções.
 - [x] **56.5 Suíte de Testes Automatizados TDD (`tests/entities/companionWhale.test.ts`):**
   - 18 testes unitários cobrindo persistência, colisor `k.area`, corpo `k.body()`, consumo real de krill, depleção e recarga de oxigênio em fendas, emissão de sonar com revelação ativa, reações de colisão com gelo/obstáculos, giro vertical gradual, impulso direcional na orientação corporal e estado de repouso permanente sem destruição.
+
+### ⚡ FASE 57: Refinamento Físico, Timestep & Consistência de Dados (Prioridade Alta)
+
+_Objetivo: Desacoplar a física do frame rate para garantir gameplay idêntico em telas de 60Hz a 144Hz+, blindar contra saltos e tunneling causados por picos de delta time, e centralizar a demarcação dos biomas em uma fonte única da verdade._
+
+- [ ] **57.1 Física & Arrasto Hidrodinâmico Independentes de Frame Rate (`src/entities/player/playerPhysics.ts`, `src/entities/companionWhale.ts`):**
+  - Reformular atenuação de arrasto d'água (`WATER_DRAG`) e interpolações angulares (`lerp`) para formulação exponencial baseada no tempo decorrido: `currentSpeed.scale(Math.pow(WATER_DRAG, dt * 60))` e `1 - Math.exp(-decayRate * dt)`, eliminando a sensação de baleia "pesada" ou "rápida" dependendo da taxa de atualização do monitor.
+- [ ] **57.2 Timestep Seguro com Limitação de Delta Time (`src/scenes/gameScene.ts`, `src/config.ts`):**
+  - Aplicar clamp no delta time (`Math.min(dt, GAME_CONFIG.MAX_DELTA_TIME)` com teto em ~33ms / 30 FPS) e subtick fixo para o ciclo de física, prevenindo penetrações acidentais na banquisa polar e túneis de colisão durante engasgos de GC ou retorno de abas inativas.
+- [ ] **57.3 Fonte Única da Verdade para Delimitação de Biomas (`src/config.ts`, `src/systems/state.ts`):**
+  - Criar helper unificado `getBiomeAtDistance(x: number): BiomeType` e tabela de demarcação canônica em `config.ts`, substituindo thresholds mágicos literais duplicados entre `state.ts`, `biomeLifecycleManager.ts` e geradores de cenário.
+
+### 🧩 FASE 58: Arquitetura, Determinismo & Type Safety (Prioridade Média)
+
+_Objetivo: Elevar o rigor arquitetural do projeto eliminando type casts em colisões, decompondo entidades complexas em submódulos atômicos, tornando a IA determinística e organizando a prioridade dos sistemas no loop da cena._
+
+- [ ] **58.1 PRNG Determinístico na IA Acompanhante (`src/entities/companionWhale.ts`):**
+  - Substituir ocorrências de `Math.random()` por gerador determinístico Mulberry32 com semente injetada, assegurando que o comportamento da baleia-guia seja 100% reproduzível nos Desafios Semanais.
+- [ ] **58.2 Centralização de Constantes e Números Mágicos em `COMPANION_CONFIG` (`src/config.ts`):**
+  - Mover parâmetros heurísticos da IA (profundidades de segurança, limites de oxigênio crítico, taxas angulares e intervalos de radar) para o objeto de configuração tipado `COMPANION_CONFIG`.
+- [ ] **58.3 Type Safety Estrita em Handlers de Colisão (`src/systems/collisions.ts`):**
+  - Substituir casts soltos `(companion as unknown as { ... })` por contratos de interface estritos (`CompanionEntity`, `CustomCollidable`), garantindo validação em tempo de compilação sem burlar o sistema de tipos.
+- [ ] **58.4 Decomposição Modular da Baleia-Guia (`src/entities/companionWhale.ts`):**
+  - Fracionar o módulo monolítico (>500 linhas) em submódulos focados sob `src/entities/companion/`: `companionSenses.ts` (radar e visão), `companionLocomotion.ts` (propulsão e hidrodinâmica) e `companionStates.ts` (fábulas e transições da FSM), seguindo a decomposição já consolidada na entidade do jogador.
+- [ ] **58.5 Orquestrador Central com Prioridades Determinísticas de Execução (`src/systems/systemRunner.ts`):**
+  - Implementar um despachante de sistemas que registre e ordene explicitamente as fases de execução por frame (Input -> Física -> IA -> Colisão -> Culling -> Render/Áudio), eliminando dependências implícitas da ordem de chamada de `onUpdate`.
+
+### 🔬 FASE 59: Otimizações Estruturais Avançadas & Profiling (Prioridade Baixa)
+
+_Objetivo: Otimizar a escalabilidade para densidades maciças de entidades com particionamento espacial, estruturar a máquina de estados com padrão formal e auditar perfis de memória para totens de uso contínuo._
+
+- [ ] **59.1 Particionamento Espacial em Grade (Spatial Hash Grid) (`src/systems/spatialHashGrid.ts`):**
+  - Estrutura de dados espacial em grid 2D para acelerar consultas de vizinhança de alta frequência (radar da IA, pulsos de sonar e boids de krill), reduzindo a complexidade de busca de O(n·m) para O(1) médio.
+- [ ] **59.2 Máquina de Estados Finita Hierárquica Formal (FSM Pattern) (`src/entities/companion/`):**
+  - Substituir o bloco `switch-case` da IA por classes ou tabelas formais de estado com métodos explícitos de ciclo de vida (`enter`, `update`, `exit`) e guardas de transição previsíveis.
+- [ ] **59.3 Auditoria de Alocações, GC e Orçamentos de Frame Time para Totens Escolares:**
+  - Perfilamento de retenção de memória e alocações transientes em sessões prolongadas (>2h de execução ininterrupta em totens), definindo teto de latência por subsistema no overlay de telemetria F3.
