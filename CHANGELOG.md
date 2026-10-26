@@ -7,6 +7,36 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [1.21.0] - 2026-10-22 — Tutorial Mimético & Baleia-Guia Autônoma (Fase 56)
+
+### Adicionado & Modificado
+
+- **Entidade da Baleia-Guia Autônoma (`src/entities/companionWhale.ts`)**:
+  - Implementação da Mãe-Guia Antártica para aprendizado mimético nos primeiros 3.200m da rota migratória com sprite `baleia` oficial em escala 0.85x, tom azul-ardósia escurecido (`color(140, 165, 195)`) e colisor ativo `k.area` (`91.8 × 35.7` px).
+  - **Física Hidrodinâmica Direcional Idêntica ao Jogador**:
+    - Giro vertical lento: controle gradual de arfagem limitado por `GAME_CONFIG.ROTATION_SPEED * 0.75 * dt` (~90°/s) ao manobrar em direção a cardumes, fendas ou cruzeiro, sem guinadas instantâneas.
+    - Impulso vetorial direcional: empuxo muscular das batidas de cauda (`stroke_down` e `stroke_up`) aplicado estritamente no vetor apontado `vec2(cos θ, sin θ)`.
+    - Fase de planeio (`glide`) por inércia hidrodinâmica pura com arrasto aquático (`WATER_DRAG = 0.985`) e afundamento natural suave (`SINK_RATE`), eliminando qualquer deslize lateral.
+  - **Colisão Física Sólida com Gelo**:
+    - Registro de corpo físico `k.body()` e deslocamento com `companion.move(...)`, bloqueando travessia sólida contra a calota estática (`ice_block`).
+    - Manipulador `handleIceCollision`: anulação de velocidade ascendente e nivelamento horizontal de rotação no contato.
+  - **Mecânicas Ecológicas Espelho**:
+    - Alimentação real por filtração: detecção sensorial de `TAGS.KRILL` e consumo destruindo a entidade, emitindo som `playKrillGulp`, animação `feed` e restauração de oxigênio.
+    - Ciclo pulmonar de oxigênio: depleção biológica e busca autônoma de fendas na banquisa polar (`getNearestIceGap`), com subida à superfície, borrifo duplo com som e recarga completa.
+    - Biosonar funcional 360°: varredura acústica com ondas visuais concêntricas e revelação de itens, krills e obstáculos no escuro através de `revealEntitiesInSonarRadius`.
+  - **Repouso Estacionário Permanente (`RESTING`)**:
+    - Ao concluir a jornada pedagógica antártica (~3.150m), transiciona para o estado de repouso, desacelera suavemente até parar (`currentSpeed -> 0`), assume a animação `idle_swim` e permanece contemplativa no cenário, eliminando qualquer desaparecimento abrupto (`k.destroy` removido).
+- **Densidade Ampliada de Krill (`src/systems/proceduralObstacles.ts`)**:
+  - Elevação na Antártica de 12–15 para 20–24 cardumes de krill, provendo alimento abundante simultâneo para demonstração pedagógica e consumo do jogador.
+  - Inserção de cardumes suplementares na Travessia Pelágica e nos Cânions de Ressurgência.
+- **Configurações, Persistência e Acessibilidade (`src/schemas/storageSchemas.ts`, `src/systems/companionTutorialSettings.ts`, `src/ui/options/controlsOptionsTab.ts`)**:
+  - Schemas Zod `CompanionTutorialSeenSchema` e `CompanionTutorialEnabledSchema` com persistência segura em `localStorage`.
+  - Alternador acessível na aba de controles das Opções com suporte nativo a navegação por teclado.
+- **Suíte de Testes Automatizados da Fase 56 (`tests/entities/companionWhale.test.ts`)**:
+  - 18 testes unitários cobrindo persistência, colisor `k.area`, corpo `k.body()`, consumo real de krill, depleção/recarga de oxigênio em fendas, emissão de sonar com revelação ativa, reações de colisão com gelo/obstáculos, giro vertical gradual, impulso direcional na orientação corporal e estado de repouso permanente sem destruição.
+
+---
+
 ## [1.18.0] - 2026-10-20 — Otimização Extrema de Frame Time & Taxa de Quadros (Fase 53)
 
 ### Adicionado & Modificado

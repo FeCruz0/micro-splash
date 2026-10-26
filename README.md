@@ -16,6 +16,7 @@ Este projeto foi concebido com foco em **educação e consciência ecológica**,
 ## 🌟 Principais Recursos
 
 - 🐋 **Identidade Real da Jubarte:** Spritesheet anatômico com cinemática de 8 quadros em resolução nativa (nado planado, batidas de cauda ascendente/descendente e abertura de mandíbula com cerdas filtradoras ao se alimentar de krill).
+- 🌊 **Tutorial Mimético & Baleia-Guia (Mãe-Guia Antártica):** Acompanhamento diegético nos primeiros 3.200m com uma Matriarca autônoma com física hidrodinâmica espelhada (giro vertical lento e empuxo direcional), colisão com gelo, alimentação de krill real, busca de fendas polares para respirar, biosonar 360° e repouso contemplativo permanente no cenário.
 - 💨 **Esguicho do Espiráculo (_Blowhole Spout_):** Erupção vertical dupla em "V" de vapor e água ao quebrar a superfície marinha para renovar o oxigênio.
 - 📡 **Biosonar 360° Omnidirecional:** Pulso acústico de ecolocalização (`Shift`, `E` ou `X`) que revela lixos plásticos e redes de pesca fantasmas camufladas nas profundezas escuras, com retorno sonoro de eco e destaque fluorescente.
 - 🧭 **Modos de Jogo Adaptados:**
@@ -77,7 +78,7 @@ O _Micro Splash_ prioriza a acessibilidade desde a sua concepção:
 - **Áudio:** Web Audio API nativa com síntese procedural, limiter dinâmico, espacialização estéreo 2D e acústica convolutiva
 - **Validação de Schemas:** [Zod](https://zod.dev/) para integridade estrita de dados
 - **Build Tool & Dev Server:** [Vite 6](https://vitejs.dev/)
-- **Testes Unitários:** [Vitest](https://vitest.dev/) (48 suítes e 327 testes automatizados) com `@vitest/coverage-v8`
+- **Testes Unitários:** [Vitest](https://vitest.dev/) (73 suítes e 551 testes automatizados) com `@vitest/coverage-v8`
 - **Linters & Formatadores:** ESLint 9 Flat Config + Prettier
 - **Containerização:** Docker Multi-stage + Nginx Alpine (imagem de apenas ~21.2 MB)
 

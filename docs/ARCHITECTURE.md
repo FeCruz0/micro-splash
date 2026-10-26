@@ -45,6 +45,7 @@ micro-splash/
 │   │   │   ├── playerCaustics.ts       # Iluminação e cáusticos ventrais dinâmicos
 │   │   │   ├── playerCollision.ts      # Gerenciamento de redes, armadilhas e salvamento
 │   │   │   └── playerParticles.ts      # Spawners de vórtices peitorais e bolhas
+│   │   ├── companionWhale.ts       # Baleia-Guia NPC (Mãe-Guia Antártica) autônoma com física espelho
 │   │   ├── boat.ts                 # Traineiras de pesca artesanal e barcos da guarda costeira
 │   │   ├── iceberg.ts              # Plataforma de gelo polar com fendas de respiração
 │   │   ├── krill.ts                # Cardumes alimentares com atração magnética e física oscilatória
@@ -53,6 +54,7 @@ micro-splash/
 │   │   └── trash.ts                # Lixo plástico camuflado no fundo com revelação por sonar
 │   ├── systems/                    # Sistemas de simulação de mundo, áudio e acessibilidade
 │   │   ├── accessibilitySystem.ts  # Daltonismo, tipografia, foco e movimento reduzido
+│   │   ├── companionTutorialSettings.ts # Configurações, persistência e alternância da Baleia-Guia
 │   │   ├── audioSystem.ts          # Fachada canônica para o subsistema de áudio
 │   │   ├── audio/                  # Arquitetura modular de áudio e síntese Web Audio API
 │   │   │   ├── audioEngine.ts      # Master bus, limiter (-6dB), convolver e ciclo de aba
@@ -200,7 +202,58 @@ A rota de 30.000 metros é particionada em zonas geográficas e comportamentais 
 
 ---
 
-## 🖥️ 5. Arquitetura de UI, Code-Splitting & Acessibilidade (`src/ui/`)
+## 🐋 5. Tutorial Mimético & Baleia-Guia Autônoma (`src/entities/companionWhale.ts`)
+
+A Baleia-Guia (Mãe-Guia Antártica) introduz um modelo de aprendizado mimético (_cultural transmission_ na etologia de cetáceos) nos primeiros 3.200 metros da rota. Ela espelha com precisão a física e as mecânicas vitais do jogador:
+
+```mermaid
+graph TD
+    subgraph IA["IA Autônoma & Tomada de Decisão"]
+        RADAR["Radar Sensorial (0.35s)"] --> KRILL_DET["Detecção de Krill Acessível"]
+        RADAR --> SONAR_TRIG["Gatilho Acústico de Biosonar"]
+        O2_CHECK["Monitor de Fôlego"] --> O2_LOW{"Oxigênio < 38%?"}
+        O2_LOW -->|"Sim"| SEEK["SEEK_BREATH: Rota para Fenda Polar"]
+        O2_LOW -->|"Não"| CRUISE_AIM["CRUISE: Profundidade Senoidal / Krill"]
+    end
+
+    subgraph FISICA["Física Hidrodinâmica Fiel"]
+        STEER["Giro Vertical Lento (máx ~90°/s)"] --> ANGLE["Orientação Corporal (angle)"]
+        STROKE["Ciclo Muscular da Cauda (down / up / glide)"] --> THRUST["Empuxo no Vetor Apontado: vec2(cos θ, sin θ)"]
+        THRUST --> MOVE["companion.move(currentSpeed.x, currentSpeed.y)"]
+        MOVE --> DRAG["Arrasto Hidrodinâmico (WATER_DRAG = 0.985)"]
+        MOVE --> ICE_COL["Colisão Sólida k.body() com ice_block"]
+    end
+
+    subgraph CICLO["Máquina de Estados Finita"]
+        INTRO["INTRO"] --> CRUISE["CRUISE"]
+        CRUISE --> SEEK
+        SEEK --> SURFACE["SURFACE_BREATHE (Borrifo duplo)"]
+        SURFACE --> CRUISE
+        CRUISE -->|"Fim do Percurso (3.150m)"| REST["RESTING (Repouso Permanente no Cenário)"]
+    end
+```
+
+### Características Centrais da Arquitetura da Baleia-Guia
+
+1. **Movimentação Hidrodinâmica Direcional**:
+   - Elimina o deslizamento lateral desacoplado.
+   - Aplica manobra de arfagem lenta (`GAME_CONFIG.ROTATION_SPEED * 0.75 * dt`), girando o corpo suavemente em direção à profundidade desejada.
+   - O empuxo das batidas de cauda (`stroke_down` e `stroke_up`) é direcionado exclusivamente no vetor polar $\begin{pmatrix} \cos\theta \\ \sin\theta \end{pmatrix}$.
+   - No planeio (`glide`), a baleia avança por inércia e arrasto aquático sem empuxo adicional.
+2. **Colisão Física Sólida com Gelo**:
+   - Provida do componente Kaboom `k.body()`, colidindo fisicamente contra blocos estáticos de gelo polar (`ice_block`).
+   - O contato anula o componente de velocidade ascendente e estabiliza a angulação na horizontal.
+3. **Mecânicas Ecológicas Espelhadas**:
+   - **Consumo Real de Krill**: Detecção por varredura, atração em ângulo de perseguição e destruição da entidade com incremento de fôlego e animação `feed`.
+   - **Respiração em Fendas Polares**: Identificação dinâmica de aberturas na banquisa (`isPositionInIceGap`), subida à superfície, emissão de borrifo duplo com som e renovação a 100% do oxigênio.
+   - **Biosonar 360° Funcional**: Pulso acústico que ilumina itens, perigos e recursos via `revealEntitiesInSonarRadius`.
+4. **Repouso Estacionário Permanente (`RESTING`)**:
+   - Ao concluir a travessia antártica (~3.150m), a baleia emite sua canção e transiciona para `RESTING`.
+   - Ela desacelera suavemente até parar (`currentSpeed -> 0`), assume a animação `idle_swim` e permanece serena flutuando no cenário polar, garantindo que nunca desapareça abruptamente da visão do jogador (`k.destroy` removido).
+
+---
+
+## 🖥️ 6. Arquitetura de UI, Code-Splitting & Acessibilidade (`src/ui/`)
 
 A camada de interface gráfica é desacoplada da lógica central de simulação:
 
@@ -226,7 +279,7 @@ A camada de interface gráfica é desacoplada da lógica central de simulação:
 
 ---
 
-## 💾 6. Persistência de Dados & Schemas Zod (`src/utils/storage.ts`)
+## 💾 7. Persistência de Dados & Schemas Zod (`src/utils/storage.ts`)
 
 O armazenamento local utiliza exclusivamente a fachada tipada `readLocalStorageWithSchema` e `writeLocalStorage` validada por schemas Zod (`src/types/storageSchemas.ts`), blindando a aplicação contra dados corrompidos ou tipos inconsistentes:
 
@@ -237,10 +290,12 @@ O armazenamento local utiliza exclusivamente a fachada tipada `readLocalStorageW
 - **`micro_splash_weekly`**: Semente determinística da semana e pontuação obtida no Desafio Semanal.
 - **`micro_splash_accessibility`**: Configurações de daltonismo, movimento reduzido, alto contraste e escala tipográfica.
 - **`micro_splash_resolution_*`**: Resolução 16:9 individualizada por monitor.
+- **`micro_splash_companion_tutorial_seen`**: Status booleano indicando se o jogador já vivenciou o tutorial mimético.
+- **`micro_splash_companion_tutorial_enabled`**: Preferência do usuário para ativar ou silenciar a Baleia-Guia nas opções.
 
 ---
 
-## 📱 7. PWA Versionado, Cache Offline & Culling de Performance
+## 📱 8. PWA Versionado, Cache Offline & Culling de Performance
 
 1. **Service Worker Versionado Dinamicamente (`pwaVersionPlugin` & `public/sw.js`):**
    - O Vite injeta dinamicamente o número da versão do `package.json` no Service Worker na compilação.
