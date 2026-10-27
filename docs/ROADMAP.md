@@ -877,9 +877,26 @@ _Objetivo: Elevar o rigor arquitetural do projeto eliminando type casts em colis
 
 _Objetivo: Otimizar a escalabilidade para densidades maciças de entidades com particionamento espacial, estruturar a máquina de estados com padrão formal e auditar perfis de memória para totens de uso contínuo._
 
-- [ ] **59.1 Particionamento Espacial em Grade (Spatial Hash Grid) (`src/systems/spatialHashGrid.ts`):**
+- [x] **59.1 Particionamento Espacial em Grade (Spatial Hash Grid) (`src/systems/spatialHashGrid.ts`):**
   - Estrutura de dados espacial em grid 2D para acelerar consultas de vizinhança de alta frequência (radar da IA, pulsos de sonar e boids de krill), reduzindo a complexidade de busca de O(n·m) para O(1) médio.
-- [ ] **59.2 Máquina de Estados Finita Hierárquica Formal (FSM Pattern) (`src/entities/companion/`):**
+- [x] **59.2 Máquina de Estados Finita Hierárquica Formal (FSM Pattern) (`src/entities/companion/`):**
   - Substituir o bloco `switch-case` da IA por classes ou tabelas formais de estado com métodos explícitos de ciclo de vida (`enter`, `update`, `exit`) e guardas de transição previsíveis.
-- [ ] **59.3 Auditoria de Alocações, GC e Orçamentos de Frame Time para Totens Escolares:**
+- [x] **59.3 Auditoria de Alocações, GC e Orçamentos de Frame Time para Totens Escolares (`src/systems/frameBudgetMonitor.ts`):**
   - Perfilamento de retenção de memória e alocações transientes em sessões prolongadas (>2h de execução ininterrupta em totens), definindo teto de latência por subsistema no overlay de telemetria F3.
+
+### 🐋 FASE 60: Baleia Co-Migrante Autônoma & Ciclo de Vida Contínuo (Serene Co-Migration)
+
+_Objetivo: Estender a vida útil e autonomia da Baleia-Guia para além do tutorial antártico, permitindo que ela acompanhe o jogador ao longo de todos os 5 biomas até 30.000m (Abrolhos), com respiração em mar aberto, desvio de obstáculos, vulnerabilidade a redes e anóxia (desmaio sereno) e celebração conjunta de vitória._
+
+- [x] **60.1 Contratos de Estado e Configurações de Co-Migração (`src/config.ts`, `src/entities/companion/types.ts`):**
+  - Adicionar constantes em `COMPANION_CONFIG` e novos estados formais na FSM (`INDEPENDENT_CRUISE`, `AVOID_OBSTACLE`, `TRAPPED`, `FAINTED`, `VICTORY_BREACH`).
+- [x] **60.2 Respiração Universal em Mar Aberto & Transição Pós-Tutorial (`src/entities/companion/states/concreteStates.ts`, `companionStates.ts`):**
+  - Suportar ascensão e respiração na lâmina livre d'água (`SEA_LEVEL`) fora da Antártica (`x >= 3200`) e manter a baleia ativa após o tutorial em vez de estacionar em `RESTING`.
+- [x] **60.3 Detecção e Desvio Autônomo de Ameaças (`src/entities/companion/companionSenses.ts`, `AvoidObstacleState`):**
+  - Varredura de perigos à frente (redes, embarcações, blocos rochosos) via `SpatialHashGrid` e manobras evasivas tridimensionais/angulares calculadas.
+- [x] **60.4 Estados de Mortalidade Serena (`FAINTED`, `TRAPPED`) e Vitória Compartilhada (`VICTORY_BREACH`):**
+  - Esgotamento total de fôlego resultando em desmaio biológico sereno (`FAINTED`) com afundamento suave até o leito; emaranhamento em redes (`TRAPPED`); e ritual do Salto Majestoso sincronizado nos 30.000m em Abrolhos.
+- [x] **60.5 Integração de Longo Curso na Cena e Streaming sem Despawn (`src/scenes/gameScene.ts`, `spatialCullingSystem.ts`):**
+  - Manter a simulação e o acompanhamento migratório sem corte prematuro pelo culling frustum ou barreiras de bioma.
+- [x] **60.6 Suíte de Testes Automatizados da Co-Migração (`tests/entities/companion/coMigration.test.ts`):**
+  - Cobertura de testes unitários para a rota de 30.000m, desvio de perigos, ciclo respiratório universal e estados de desmaio/vitória.

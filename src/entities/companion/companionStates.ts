@@ -3,9 +3,14 @@ import { COMPANION_CONFIG, GAME_CONFIG } from "../../config";
 import { audioSystem } from "../../systems/audioSystem";
 import { getParticlePool } from "../../systems/particlePool";
 import { markCompanionTutorialSeen } from "../../systems/companionTutorialSettings";
-import { isPositionInIceGap } from "../../systems/iceSurface";
 import type { RandomNumberGenerator } from "../../utils/random";
 import type { CompanionOptions, CompanionState } from "./types";
+import { CompanionStateMachine } from "./companionStateMachine";
+import type { CompanionStateContext } from "./states/types";
+
+export * from "./states/types";
+export * from "./states/concreteStates";
+export * from "./companionStateMachine";
 
 export interface CompanionStates {
   getState: () => CompanionState;
@@ -13,15 +18,18 @@ export interface CompanionStates {
   getOxygen: () => number;
   getMaxOxygen: () => number;
   restoreOxygen: (amount: number) => void;
+  drainOxygen: (amount: number) => void;
   getKrillsEaten: () => number;
   consumeKrill: (krillObj: GameObj) => void;
   isDeparted: () => boolean;
+  isFainted: () => boolean;
   shouldStopUpdate: () => boolean;
   destroy: () => void;
   update: (
     deltaTime: number,
     playerX: number,
     targetKrill: GameObj | null,
+    targetHazard: GameObj | null,
     onResetVerticalSpeed: () => void
   ) => number;
 }
@@ -34,31 +42,22 @@ export interface CompanionStatesOptions {
 }
 
 /**
- * Módulo de Estados Biológicos e FSM da Baleia-Guia.
- * Controla depleção/recarga de oxigênio pulmonar, borrifo duplo com PRNG,
- * e transições de comportamento (INTRO -> CRUISE -> SEEK_BREATH -> SURFACE_BREATHE -> RESTING).
+ * Módulo de Estados Biológicos e FSM Formal da Baleia-Guia (Fase 59 & Fase 60).
+ * Utiliza o State Pattern hierárquico com contratos formais (onEnter, onUpdate, onExit),
+ * ciclo biológico de oxigênio pulmonar, co-migração de longo curso e partículas com PRNG determinístico.
  */
 export function createCompanionStates(statesOptions: CompanionStatesOptions): CompanionStates {
   const { k, companion, options, prng } = statesOptions;
 
-  let currentState: CompanionState = "INTRO";
+  const stateMachine = new CompanionStateMachine("INTRO", options.onStateChange);
+
   let stateTimer = 0;
   const maxOxygen = 100;
   let currentOxygen = 100;
   let krillsEatenCount = 0;
 
   let feedActionTimer = 0;
-  let surfaceBreatheTimer = 0;
   let isDepartedFlag = false;
-
-  const updateState = (nextState: CompanionState): void => {
-    if (currentState === nextState) return;
-    currentState = nextState;
-    stateTimer = 0;
-    if (options.onStateChange) {
-      options.onStateChange(nextState);
-    }
-  };
 
   const emitDoubleBlowholeSpout = (sourceX: number, sourceY: number): void => {
     const pool = getParticlePool();
@@ -101,6 +100,30 @@ export function createCompanionStates(statesOptions: CompanionStatesOptions): Co
     }
   };
 
+  const drainOxygen = (amount: number): void => {
+    currentOxygen = Math.max(0, currentOxygen - amount);
+  };
+
+  const getContext = (onResetVerticalSpeed: () => void): CompanionStateContext => ({
+    k,
+    companion,
+    options,
+    prng,
+    getOxygen: () => currentOxygen,
+    restoreOxygen: (amount: number) => {
+      currentOxygen = Math.min(maxOxygen, currentOxygen + amount);
+    },
+    drainOxygen,
+    getMaxOxygen: () => maxOxygen,
+    getKrillsEaten: () => krillsEatenCount,
+    incrementKrillsEaten: () => {
+      krillsEatenCount++;
+    },
+    emitDoubleBlowholeSpout,
+    onResetVerticalSpeed,
+    stateTimer,
+  });
+
   const consumeKrill = (krillObj: GameObj): void => {
     if (krillObj && (!krillObj.exists || krillObj.exists())) {
       k.destroy(krillObj);
@@ -116,134 +139,114 @@ export function createCompanionStates(statesOptions: CompanionStatesOptions): Co
     deltaTime: number,
     playerX: number,
     targetKrill: GameObj | null,
+    targetHazard: GameObj | null,
     onResetVerticalSpeed: () => void
   ): number => {
     stateTimer += deltaTime;
 
-    // 1. Depleção biológica de oxigênio
-    currentOxygen = Math.max(0, currentOxygen - deltaTime * (GAME_CONFIG.OXYGEN_DRAIN_RATE * 0.75));
+    // 1. Depleção biológica de oxigênio pulmonar
+    if (stateMachine.getState() !== "SURFACE_BREATHE") {
+      currentOxygen = Math.max(
+        0,
+        currentOxygen - deltaTime * (GAME_CONFIG.OXYGEN_DRAIN_RATE * 0.75)
+      );
+    }
 
-    // 2. Animação de alimentação
+    const context = getContext(onResetVerticalSpeed);
+
+    // 2. Checagem de exaustão/anóxia (mortalidade serena)
+    if (
+      currentOxygen <= 0 &&
+      stateMachine.getState() !== "FAINTED" &&
+      stateMachine.getState() !== "DEPARTED"
+    ) {
+      stateTimer = 0;
+      context.stateTimer = 0;
+      stateMachine.transitionTo("FAINTED", context);
+      audioSystem.playWhaleSong(0.6, 0.8);
+      return stateMachine.update(context, deltaTime, playerX, targetKrill, targetHazard);
+    }
+
+    // 3. Animação de alimentação
     if (feedActionTimer > 0) {
       feedActionTimer -= deltaTime;
       if (
         feedActionTimer <= 0 &&
-        currentState !== "FAREWELL_BREACH" &&
-        currentState !== "RESTING"
+        stateMachine.getState() !== "FAREWELL_BREACH" &&
+        stateMachine.getState() !== "RESTING" &&
+        stateMachine.getState() !== "FAINTED"
       ) {
         if (typeof companion.play === "function") companion.play("idle_swim");
       }
     }
 
-    // 3. Checagem de oxigênio crítico
+    // 4. Checagem de oxigênio crítico
+    const currentState = stateMachine.getState();
     if (
       currentOxygen < COMPANION_CONFIG.CRITICAL_OXYGEN &&
       currentState !== "SEEK_BREATH" &&
       currentState !== "SURFACE_BREATHE" &&
       currentState !== "FAREWELL_BREACH" &&
-      currentState !== "RESTING"
+      currentState !== "RESTING" &&
+      currentState !== "FAINTED" &&
+      currentState !== "TRAPPED"
     ) {
-      updateState("SEEK_BREATH");
+      stateTimer = 0;
+      context.stateTimer = 0;
+      stateMachine.transitionTo("SEEK_BREATH", context);
     }
 
-    // 4. Conclusão do Tutorial ao final da Antártica (~3.150m)
+    // 5. Conclusão do Tutorial ao final da Antártica (~3.150m)
+    const isCoMigration = options.isCoMigration || options.mode === "serene";
     if (
       playerX >= COMPANION_CONFIG.FAREWELL_TARGET_X - 180 &&
-      currentState !== "RESTING" &&
-      currentState !== "DEPARTED"
+      (stateMachine.getState() === "CRUISE" || stateMachine.getState() === "INTRO")
     ) {
-      updateState("RESTING");
-      audioSystem.playWhaleSong(1.0, 1.1);
+      stateTimer = 0;
+      context.stateTimer = 0;
       markCompanionTutorialSeen();
       if (options.onDeparted) options.onDeparted();
+
+      if (isCoMigration) {
+        stateMachine.transitionTo("INDEPENDENT_CRUISE", context);
+      } else {
+        stateMachine.transitionTo("RESTING", context);
+        audioSystem.playWhaleSong(1.0, 1.1);
+      }
     }
 
-    // 5. Cálculo de mira angular por estado
-    let targetAngle = 0;
-    switch (currentState) {
-      case "INTRO": {
-        targetAngle = 0;
-        if (playerX > 40) {
-          updateState("CRUISE");
-        }
-        break;
-      }
-
-      case "CRUISE": {
-        if (targetKrill && (!targetKrill.exists || targetKrill.exists())) {
-          const deltaY = targetKrill.pos.y - companion.pos.y;
-          const deltaX = Math.max(40, targetKrill.pos.x - companion.pos.x);
-          targetAngle = k.clamp(k.rad2deg(Math.atan2(deltaY, deltaX)), -30, 30);
-        } else {
-          const oceanSway = Math.sin(stateTimer * 1.4) * 12 + Math.sin(stateTimer * 0.7) * 8;
-          const targetCruiseY = 195 + oceanSway;
-          const deltaY = targetCruiseY - companion.pos.y;
-          targetAngle = k.clamp(deltaY * 0.25, -22, 22);
-        }
-        break;
-      }
-
-      case "SEEK_BREATH": {
-        const canBreatheHere = isPositionInIceGap(companion.pos.x);
-        if (canBreatheHere) {
-          targetAngle = -26;
-          if (companion.pos.y <= GAME_CONFIG.SEA_LEVEL + 4) {
-            updateState("SURFACE_BREATHE");
-            surfaceBreatheTimer = 0;
-            emitDoubleBlowholeSpout(companion.pos.x, companion.pos.y);
-            audioSystem.playBlowholeSpout();
-            currentOxygen = maxOxygen;
-          }
-        } else {
-          const safeDepthY = 130;
-          const deltaY = safeDepthY - companion.pos.y;
-          targetAngle = k.clamp(deltaY * 0.25, -18, 18);
-        }
-        break;
-      }
-
-      case "SURFACE_BREATHE": {
-        surfaceBreatheTimer += deltaTime;
-        targetAngle = 0;
-        onResetVerticalSpeed();
-        if (surfaceBreatheTimer >= COMPANION_CONFIG.SURFACE_BREATHE_DURATION) {
-          updateState("CRUISE");
-        }
-        break;
-      }
-
-      case "RESTING": {
-        targetAngle = 0;
-        if (typeof companion.play === "function") {
-          companion.play("idle_swim");
-        }
-        break;
-      }
-
-      case "FAREWELL_BREACH": {
-        updateState("RESTING");
-        break;
-      }
-
-      case "DEPARTED":
-        break;
-    }
-
-    return targetAngle;
+    // 6. Atualização da FSM Formal com perigos detectados
+    return stateMachine.update(context, deltaTime, playerX, targetKrill, targetHazard);
   };
 
   return {
-    getState: () => currentState,
-    forceState: (state: CompanionState) => updateState(state),
+    getState: () => stateMachine.getState(),
+    forceState: (state: CompanionState) => {
+      stateTimer = 0;
+      stateMachine.transitionTo(
+        state,
+        getContext(() => {})
+      );
+    },
     getOxygen: () => currentOxygen,
     getMaxOxygen: () => maxOxygen,
     restoreOxygen: (amount: number) => {
       currentOxygen = Math.min(maxOxygen, currentOxygen + amount);
     },
+    drainOxygen,
     getKrillsEaten: () => krillsEatenCount,
     consumeKrill,
-    isDeparted: () => currentState === "RESTING" || currentState === "DEPARTED" || isDepartedFlag,
-    shouldStopUpdate: () => isDepartedFlag || currentState === "DEPARTED",
+    isDeparted: () => {
+      const s = stateMachine.getState();
+      return s === "RESTING" || s === "DEPARTED" || isDepartedFlag;
+    },
+    isFainted: () => {
+      return stateMachine.getState() === "FAINTED";
+    },
+    shouldStopUpdate: () => {
+      const s = stateMachine.getState();
+      return isDepartedFlag || s === "DEPARTED";
+    },
     destroy: () => {
       isDepartedFlag = true;
       if (companion && (!companion.exists || companion.exists())) {

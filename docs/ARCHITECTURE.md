@@ -45,7 +45,14 @@ micro-splash/
 │   │   │   ├── playerCaustics.ts       # Iluminação e cáusticos ventrais dinâmicos
 │   │   │   ├── playerCollision.ts      # Gerenciamento de redes, armadilhas e salvamento
 │   │   │   └── playerParticles.ts      # Spawners de vórtices peitorais e bolhas
-│   │   ├── companionWhale.ts       # Baleia-Guia NPC (Mãe-Guia Antártica) autônoma com física espelho
+│   │   ├── companionWhale.ts       # Fachada da Baleia-Guia NPC (Mãe-Guia Antártica) autônoma
+│   │   ├── companion/              # Módulos especializados da IA da Baleia-Guia
+│   │   │   ├── companionStateMachine.ts # Orquestrador formal da máquina de estados (FSM)
+│   │   │   ├── companionLocomotion.ts   # Propulsão, decaimento e arrasto hidrodinâmico
+│   │   │   ├── companionSenses.ts       # Varredura sensorial com acelerador espacial
+│   │   │   ├── companionStates.ts       # Fachada retrocompatível de estados e respiração
+│   │   │   ├── states/                  # Nós concretos de estado (Intro, Cruise, Seek, etc.)
+│   │   │   └── types.ts                 # Contratos de controle, estado e colisão
 │   │   ├── boat.ts                 # Traineiras de pesca artesanal e barcos da guarda costeira
 │   │   ├── iceberg.ts              # Plataforma de gelo polar com fendas de respiração
 │   │   ├── krill.ts                # Cardumes alimentares com atração magnética e física oscilatória
@@ -55,6 +62,9 @@ micro-splash/
 │   ├── systems/                    # Sistemas de simulação de mundo, áudio e acessibilidade
 │   │   ├── accessibilitySystem.ts  # Daltonismo, tipografia, foco e movimento reduzido
 │   │   ├── companionTutorialSettings.ts # Configurações, persistência e alternância da Baleia-Guia
+│   │   ├── systemRunner.ts         # Despachante orquestrador de fases do game loop
+│   │   ├── spatialHashGrid.ts      # Particionamento espacial 2D em células uniformes O(1)
+│   │   ├── frameBudgetMonitor.ts   # Auditoria de orçamento de frame time e picos de GC
 │   │   ├── audioSystem.ts          # Fachada canônica para o subsistema de áudio
 │   │   ├── audio/                  # Arquitetura modular de áudio e síntese Web Audio API
 │   │   │   ├── audioEngine.ts      # Master bus, limiter (-6dB), convolver e ciclo de aba
@@ -333,3 +343,65 @@ graph LR
 1. **Prioridade Numérica Intra-Fase**: Permite ordenação fina (`priority: number`), executando tarefas prioritárias antes (ex: prioridade -10 antes de 0, e 0 antes de 10).
 2. **Isolamento e Resiliência a Exceções**: Cada subsistema é protegido individualmente por bloco `try-catch` com manipulador opcional `onError`, impedindo que uma falha em um componente visual ou telemetria paralise o loop de física ou controle do jogador.
 3. **Desregistro Dinâmico em O(1)**: O método `register(...)` devolve uma função de desregistro para limpeza imediata durante transições de cena (`onSceneLeave`), evitando vazamentos de memória e referências mortas.
+4. **Hook de Profiling Zero-Overhead (`setProfiler`)**: Instrumentação acoplável via callback que mede o tempo de execução de cada fase com `performance.now()` sem incorrer em penalidade quando inativo.
+
+---
+
+## 🔬 10. Particionamento Espacial, Máquina de Estados & Profiling (Fase 59)
+
+Para garantir estabilidade computacional prolongada em totens de exibição contínua (>2h sem vazamento ou degradação de FPS) e escalabilidade para densidades elevadas de cardumes, foram introduzidos três subsistemas avançados:
+
+### 1. Particionamento Espacial em Grade (`src/systems/spatialHashGrid.ts`)
+
+- **Complexidade de Busca O(1) Médio**: Grade uniforme bidimensional indexada por função hash de chave inteira `(cx, cy) => (cx * 73856093) ^ (cy * 19349663)`.
+- **Consultas AABB e Radiais**: `queryAABB` para varredura retangular e `queryRadius` com rejeição antecipada por bounding box e refinamento euclidiano `Math.hypot()`.
+- **Migração Dinâmica de Nós**: `updateBounds(item, newBounds)` recalcula o conjunto de células ocupadas e migra itens apenas quando cruzam fronteiras de células, sem recriar o grid.
+- **Aceleração do Radar da IA**: Utilizado em `companionSenses.ts` para localizar krill consumível à frente da Baleia-Guia sem iterar sobre toda a coleção de entidades da cena.
+
+### 2. Máquina de Estados Finita Hierárquica Formal (`src/entities/companion/`)
+
+- **Padrão State com Nós Concretos**: Substituição de blocos condicionais/switch monolíticos por nós atômicos de ciclo de vida (`CompanionStateNode`):
+  - `IntroState`: Aproximação inicial e aceleração tutorial.
+  - `CruiseState`: Nado de cruzeiro guiado com radar ativo de krill e monitoramento de fôlego.
+  - `SeekBreathState`: Rumo de emergência para fenda de ar polar ou superfície aberta nos demais biomas.
+  - `SurfaceBreatheState`: Respiração estacionária na lâmina d'água com borrifo de vapor duplo.
+  - `RestingState`: Desaceleração suave e repouso perpétuo no leito polar (apenas se tutorial for encerrado sem co-migração).
+  - `FarewellBreachState`: Sequência de salto e despedida na saída de bioma.
+  - `DepartedState`: Estado terminal pós-despedida.
+  - `IndependentCruiseState`: Nado migratório autônomo ao longo dos 30.000m até Abrolhos.
+  - `AvoidObstacleState`: Manobra evasiva angular contra redes de pesca, barcos e recifes.
+  - `TrappedState`: Aprisionamento em rede fantasma com desaceleração e queima acelerada de oxigênio.
+  - `FaintedState`: Anóxia e desmaio sereno por oxigênio zero, descendo suavemente até o leito.
+  - `VictoryBreachState`: Salto Majestoso sincronizado nos 30.000m em Abrolhos.
+- **Ciclo de Vida Sincronizado**: `onEnter`, `onUpdate` e `onExit` previsíveis gerenciados por `CompanionStateMachine`, eliminando efeitos colaterais e flags órfãs entre transições.
+
+### 3. Monitor de Orçamento de Frame Time & Detecção de GC (`src/systems/frameBudgetMonitor.ts`)
+
+- **Orçamento Nominal de 16.6ms (60 FPS)**: Limites de latência dedicados por fase do game loop:
+  - `input`: 1.0ms
+  - `physics`: 4.0ms
+  - `ai`: 3.0ms
+  - `collision`: 2.5ms
+  - `culling`: 2.0ms
+  - `render`: 4.1ms
+- **Média Móvel Exponencial (EMA)**: Alisamento estatístico ($\alpha = 0.05$) dos tempos observados para isolar tendências de degradação sem ruído de flutuação instantânea.
+- **Detecção de Anomalias de Garbage Collection**: Rastreia frames com duração total $> 33.3ms$ (2 quadros perdidos consecutivamente) para identificar pressões transitórias de desalocação.
+- **Telemetria no Overlay F3**: Integração com `debugDistance.ts` para exibição em tempo real do estado de conformidade (`BUDGET OK` vs `BUDGET EXCEEDED`).
+
+---
+
+## 🐋 11. Baleia Co-Migrante Autônoma & Ciclo de Vida Contínuo (Fase 60)
+
+A Baleia-Guia evoluiu de um NPC limitado ao tutorial antártico para uma **companheira de co-migração autônoma de longo curso**:
+
+1. **Transição Tutora ➔ Co-Migrante (`INDEPENDENT_CRUISE`)**:
+   - Ao ultrapassar a marca de ~3.150m, o tutorial é marcado como visto em persistência local, mas no Modo Sereno (e sob co-migração ativada) a baleia transiciona fluidamente para `INDEPENDENT_CRUISE`, mantendo cadência de nado autônoma sem despawnar nem parar.
+2. **Respiração em Mar Aberto (Biomas 2 a 5)**:
+   - Fora da banquisa antártica (`x >= 3200`), `SeekBreathState` não busca fendas de gelo, identificando a lâmina d'água livre (`SEA_LEVEL`) como área segura para ascensão e respiração.
+3. **Evasão Ativa de Perigos (`AVOID_OBSTACLE`)**:
+   - Cone de varredura à frente (320px) acelerado pelo `SpatialHashGrid` detecta redes fantasmas (`TAGS.NET`), embarcações (`TAGS.BOAT`, `TAGS.SHIP`) e obstáculos rochosos, disparando manobras evasivas tridimensionais calculadas.
+4. **Vulnerabilidade e Consequência Biológica (`TRAPPED` & `FAINTED`)**:
+   - Caso colida com uma rede fantasma, entra em `TRAPPED`, com queima de oxigênio multiplicada por 2.2x até se desvencilhar.
+   - Caso o oxigênio pulmonar atinja 0%, entra em `FAINTED` (anóxia / desmaio biológico sereno), cessando a propulsão motora e afundando suavemente até o fundo marinho.
+5. **Ritual Compartilhado de Vitória (`VICTORY_BREACH`)**:
+   - Sobrevivendo até os 30.000m (Abrolhos), executa o Salto Majestoso sincronizado ao lado do jogador para celebrar a conclusão da jornada.

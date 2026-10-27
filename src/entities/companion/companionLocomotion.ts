@@ -16,6 +16,7 @@ export interface CompanionLocomotion {
   ) => void;
   handleIceBlockCollision: (iceBlock?: GameObj) => void;
   handleObstacleBlockCollision: (obstacle?: GameObj) => void;
+  handleNetCollision: (net?: GameObj) => void;
 }
 
 export interface CompanionLocomotionOptions {
@@ -55,6 +56,10 @@ export function createCompanionLocomotion(
     currentSpeed.y = Math.abs(currentSpeed.y) + 40;
   };
 
+  const handleNetCollision = (_net?: GameObj): void => {
+    currentSpeed = currentSpeed.scale(0.3);
+  };
+
   const update = (
     deltaTime: number,
     targetAngle: number,
@@ -75,7 +80,9 @@ export function createCompanionLocomotion(
     if (
       currentState !== "SURFACE_BREATHE" &&
       currentState !== "RESTING" &&
-      currentState !== "INTRO"
+      currentState !== "INTRO" &&
+      currentState !== "FAINTED" &&
+      currentState !== "TRAPPED"
     ) {
       // Ajuste de cadência por rubber-banding
       const distanceAhead = companion.pos.x - playerX;
@@ -85,7 +92,11 @@ export function createCompanionLocomotion(
       } else if (distanceAhead < COMPANION_CONFIG.LEAD_DISTANCE_MIN) {
         strokePacingBoost = 1.45;
       }
-      if (playerSpeed < 20) {
+
+      if (currentState === "INDEPENDENT_CRUISE" || currentState === "AVOID_OBSTACLE") {
+        // Na co-migração de longo curso, mantém ritmo autônomo sem parar se o jogador desacelerar
+        strokePacingBoost = Math.max(0.75, strokePacingBoost);
+      } else if (playerSpeed < 20) {
         strokePacingBoost = Math.min(strokePacingBoost, 0.25);
       }
 
@@ -128,7 +139,25 @@ export function createCompanionLocomotion(
     }
 
     // 3. Cinemática e Arrasto Hidrodinâmico
-    if (currentState !== "RESTING") {
+    if (currentState === "FAINTED") {
+      // Afundamento suave por anóxia/desmaio sereno até o leito
+      currentSpeed = currentSpeed.scale(Math.max(0, 1 - deltaTime * 2.5));
+      const sinkSpeed = COMPANION_CONFIG.FAINT_SINK_RATE;
+      if (typeof companion.move === "function") {
+        companion.move(currentSpeed.x, sinkSpeed);
+      } else {
+        companion.pos.x += currentSpeed.x * deltaTime;
+        companion.pos.y += sinkSpeed * deltaTime;
+      }
+      const neutralDecayFactor = 1 - Math.pow(1 - 0.05, deltaTime * 60);
+      companion.angle = k.lerp(companion.angle, 5, neutralDecayFactor);
+    } else if (currentState === "TRAPPED") {
+      // Aprisionamento em rede fantasma: frenagem drástica
+      currentSpeed = currentSpeed.scale(Math.max(0, 1 - deltaTime * 3.5));
+      if (typeof companion.move === "function" && currentSpeed.len() > 1) {
+        companion.move(currentSpeed.x, currentSpeed.y + GAME_CONFIG.SINK_RATE * 0.5);
+      }
+    } else if (currentState !== "RESTING") {
       const effectiveSink =
         currentState === "SURFACE_BREATHE" || companion.pos.y <= GAME_CONFIG.SEA_LEVEL
           ? 0
@@ -173,5 +202,6 @@ export function createCompanionLocomotion(
     update,
     handleIceBlockCollision,
     handleObstacleBlockCollision,
+    handleNetCollision,
   };
 }

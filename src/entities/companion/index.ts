@@ -61,7 +61,12 @@ export function createCompanionWhale(
   ]);
 
   // Submódulos da arquitetura modular
-  const companionSenses = createCompanionSenses({ k, companion, prng });
+  const companionSenses = createCompanionSenses({
+    k,
+    companion,
+    prng,
+    spatialGrid: options.spatialGrid,
+  });
   const companionLocomotion = createCompanionLocomotion({ k, companion, prng });
   const companionStates = createCompanionStates({ k, companion, options, prng });
 
@@ -78,6 +83,10 @@ export function createCompanionWhale(
   };
   collidableCompanion.handleObstacleCollision = (obstacle: GameObj) => {
     companionLocomotion.handleObstacleBlockCollision(obstacle);
+  };
+  collidableCompanion.handleNetCollision = (net: GameObj) => {
+    companionLocomotion.handleNetCollision(net);
+    companionStates.forceState("TRAPPED");
   };
 
   // Loop de atualização contínua
@@ -105,11 +114,18 @@ export function createCompanionWhale(
 
     // 2. Atualização de FSM e cálculo de mira angular
     const targetKrill = companionSenses.getTargetKrill();
-    const targetAngle = companionStates.update(deltaTime, playerX, targetKrill, () => {
-      const speed = companionLocomotion.getSpeed();
-      speed.y = 0;
-      companionLocomotion.setSpeed(speed);
-    });
+    const targetHazard = companionSenses.getTargetHazard();
+    const targetAngle = companionStates.update(
+      deltaTime,
+      playerX,
+      targetKrill,
+      targetHazard,
+      () => {
+        const speed = companionLocomotion.getSpeed();
+        speed.y = 0;
+        companionLocomotion.setSpeed(speed);
+      }
+    );
 
     // 3. Cinemática hidrodinâmica e giro vertical
     companionLocomotion.update(
@@ -133,6 +149,7 @@ export function createCompanionWhale(
     triggerSonar: companionSenses.triggerSonar,
     getSpeed: companionLocomotion.getSpeed,
     isDeparted: companionStates.isDeparted,
+    isFainted: companionStates.isFainted,
     destroy: companionStates.destroy,
   };
 }

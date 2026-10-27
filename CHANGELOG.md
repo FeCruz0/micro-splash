@@ -7,6 +7,53 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [1.25.0] - 2026-10-27 — Baleia Co-Migrante Autônoma & Ciclo de Vida Contínuo (Fase 60)
+
+### Adicionado & Modificado
+
+- **Ciclo de Vida Contínuo da Baleia Co-Migrante (`src/entities/companion/`, `src/config.ts`)**:
+  - Transição fluida da Baleia-Guia ao final do tutorial (~3.150m) para o estado `INDEPENDENT_CRUISE` em vez de desacelerar em repouso estático, permitindo co-migração de longo curso até os 30.000m (Abrolhos) no Modo Sereno e quando habilitada.
+  - Constantes de co-migração adicionadas a `COMPANION_CONFIG` (`INDEPENDENT_SPEED: 190`, `HAZARD_AVOID_RANGE: 320`, `HAZARD_VERTICAL_CLEARANCE: 75`, `TRAPPED_OXYGEN_DRAIN_MULTIPLIER: 2.2`, `NET_ESCAPE_DURATION: 3.5`, `FAINT_SINK_RATE: 22`, `VICTORY_BREACH_SPEED: 320`).
+- **Respiração Universal em Mar Aberto (`src/entities/companion/states/concreteStates.ts`)**:
+  - Generalização de `SeekBreathState`: nos biomas pós-Antártica (`x >= 3200`), a baleia sobe diretamente para a superfície livre (`SEA_LEVEL`) sem necessidade de fendas de gelo polar.
+  - Preservação da saturação de oxigênio pulmonar sem decaimento durante `SURFACE_BREATHE`.
+- **Sensoriamento Perceptivo & Evasão Autônoma de Perigos (`src/entities/companion/companionSenses.ts`, `AvoidObstacleState`)**:
+  - Varredura cônica de 320px à frente acelerada via `SpatialHashGrid` para identificar redes de pesca (`TAGS.NET`), embarcações (`TAGS.BOAT`, `TAGS.SHIP`), obstáculos rochosos e blocos de gelo.
+  - Implementação do nó `AvoidObstacleState` com manobra evasiva angular calculada (mergulho sob quilhas ou ascensão sobre recifes).
+- **Mortalidade Serena por Anóxia & Aprisionamento em Redes (`TrappedState`, `FaintedState`, `src/systems/collisions.ts`)**:
+  - Registro de colisão com redes de pesca fantasma (`TAGS.NET`), transicionando para `TRAPPED` com consumo dobrado de oxigênio e desaceleração.
+  - Transição para `FAINTED` quando o oxigênio atinge zero (`currentOxygen <= 0`): cessação de propulsão motora ativa, afundamento suave até o leito polar e disparo de callback `onFainted`.
+- **Clímax Compartilhado em Abrolhos (`VictoryBreachState`)**:
+  - Transição para `VICTORY_BREACH` aos 30.000m (`ROUTE_TOTAL_DISTANCE - 400`), sincronizando o Salto Majestoso com o jogador.
+- **Suíte de Testes da Fase 60 (`tests/entities/companion/coMigration.test.ts`)**:
+  - 9 novos testes unitários automatizados cobrindo transição de cruzeiro, respiração em mar aberto, desvio de obstáculos, aprisionamento em redes, esgotamento de oxigênio e vitória em Abrolhos.
+  - Base de testes total expandida para 78 arquivos e 598 testes automatizados 100% verdes.
+
+---
+
+## [1.24.0] - 2026-10-26 — Otimizações Estruturais Avançadas & Profiling (Fase 59)
+
+### Adicionado & Modificado
+
+- **Particionamento Espacial em Grade (Spatial Hash Grid) (`src/systems/spatialHashGrid.ts`, `src/entities/companion/companionSenses.ts`)**:
+  - Implementação da classe pura `SpatialHashGrid<T>` para particionamento espacial bidimensional em células uniformes com hashing de coordenadas discretas.
+  - Suporte a consultas de vizinhança retangulares (`queryAABB`) e radiais (`queryRadius`) em complexidade $O(1)$ médio, além de suporte a migração dinâmica de entidades em movimento (`updateBounds`).
+  - Aceleração das consultas de proximidade de krill no radar sensorial da Baleia-Guia (`companionSenses.ts`), substituindo a varredura linear global $O(N)$ por busca localizada de alta frequência.
+- **Máquina de Estados Finita Hierárquica Formal (FSM Pattern) (`src/entities/companion/states/`, `src/entities/companion/companionStateMachine.ts`)**:
+  - Adoção formal do padrão de projeto State, decompondo a inteligência artificial da Baleia-Guia em nós desacoplados com ciclo de vida explícito (`onEnter`, `onUpdate`, `onExit`).
+  - Estados concretos implementados: `IntroState`, `CruiseState`, `SeekBreathState`, `SurfaceBreatheState`, `RestingState`, `FarewellBreachState` e `DepartedState`.
+  - Refatoração de `src/entities/companion/companionStates.ts` para delegar à nova FSM mantendo 100% de retrocompatibilidade com o controlador e os testes anteriores.
+- **Auditoria de Orçamentos de Frame Time & Monitor de GC (`src/systems/frameBudgetMonitor.ts`, `src/systems/systemRunner.ts`, `src/ui/debugDistance.ts`)**:
+  - Implementação do `FrameBudgetMonitor` com orçamento nominal de 16.6ms a 60 FPS distribuído por fase (`input`: 1.0ms, `physics`: 4.0ms, `ai`: 3.0ms, `collision`: 2.5ms, `culling`: 2.0ms, `render`: 4.1ms).
+  - Algoritmo de média móvel exponencial (EMA, $\alpha = 0.05$) e detecção de anomalias/picos de Garbage Collection (> 33.3ms / 2 frames perdidos).
+  - Gancho de instrumentação zero-overhead em `SystemRunner.setProfiler()` medindo tempos de execução com `performance.now()` apenas quando o monitor está ativo.
+  - Integração do status de conformidade do orçamento (`budgetStatus`) na telemetria F3 (`src/ui/debugDistance.ts`).
+- **Suíte de Testes Automatizados da Fase 59 (`tests/systems/spatialHashGrid.test.ts`, `tests/entities/companion/stateMachine.test.ts`, `tests/systems/frameBudgetMonitor.test.ts`)**:
+  - 19 novos testes unitários adicionados cobrindo particionamento espacial, transições e ciclos de vida da FSM e orçamentos do despachante.
+  - Base de testes total expandida para 77 arquivos e 589 testes automatizados com 100% de aprovação.
+
+---
+
 ## [1.23.0] - 2026-10-26 — Arquitetura Modular, Determinismo & Type Safety (Fase 58)
 
 ### Adicionado & Modificado

@@ -147,4 +147,11 @@ export function setupCollisions(
       companion.handleObstacleCollision(obstacle);
     }
   });
+
+  // Reação a redes fantasmas (Fase 60)
+  k.onCollide("companion_whale", TAGS.NET, (companion: GameObj, net: GameObj) => {
+    if (isCompanionCollidable(companion) && typeof companion.handleNetCollision === "function") {
+      companion.handleNetCollision(net);
+    }
+  });
 }

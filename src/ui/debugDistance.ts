@@ -12,6 +12,8 @@ export interface PerformanceStats {
   frameTimeMs?: number;
   visibleEntities?: number;
   culledEntities?: number;
+  budgetStatus?: string;
+  phaseBreakdown?: string;
 }
 
 export interface FrameTimeMetrics {
@@ -411,7 +413,11 @@ export function createDebugDistanceUI(k: KaboomCtx, playerController?: PlayerCon
 
         // Sem concatenar strings longas de activeModules para não estourar horizontalmente a tela
         perfText.text = `Taxa: ${fpsStr}   •   Objetos: ${entStr}   •   Pool: ${poolStr}`;
-        frameTimeText.text = `Latência: Méd ${metrics.avg}ms • p95 ${metrics.p95}ms • p99 ${metrics.p99}ms`;
+        if (perfStats.budgetStatus) {
+          frameTimeText.text = `Latência: Méd ${metrics.avg}ms • p95 ${metrics.p95}ms • ${perfStats.budgetStatus}`;
+        } else {
+          frameTimeText.text = `Latência: Méd ${metrics.avg}ms • p95 ${metrics.p95}ms • p99 ${metrics.p99}ms`;
+        }
 
         // Alerta de taxa crítica (< 45 FPS ou p95 alto) em texto legível sem caracteres quebrados
         const isCritical = curFps < 45 || avgFps < 45 || metrics.p95 > 22.0;

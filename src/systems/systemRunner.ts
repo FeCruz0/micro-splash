@@ -31,6 +31,7 @@ export interface RegisterSystemOptions {
 }
 
 export type SystemErrorHandler = (error: unknown, task: SystemTask) => void;
+export type PhaseProfilerCallback = (phase: SystemPhase, durationMs: number) => void;
 
 export class SystemRunner {
   private tasks: Map<string, SystemTask> = new Map();
@@ -38,6 +39,7 @@ export class SystemRunner {
   private isDirty = false;
   private nextOrderIndex = 0;
   private errorHandler: SystemErrorHandler | null = null;
+  private profilerCallback: PhaseProfilerCallback | null = null;
 
   constructor(errorHandler?: SystemErrorHandler) {
     if (errorHandler) {
@@ -125,6 +127,13 @@ export class SystemRunner {
   }
 
   /**
+   * Configura o coletor opcional de telemetria e profiling por fase.
+   */
+  public setProfiler(callback: PhaseProfilerCallback | null): void {
+    this.profilerCallback = callback;
+  }
+
+  /**
    * Retorna a lista ordenada de tarefas ativas para uma fase ou para todas.
    */
   public getTasks(phase?: SystemPhase): readonly SystemTask[] {
@@ -159,6 +168,12 @@ export class SystemRunner {
       const phaseTasks = this.sortedTasksByPhase.get(phase);
       if (!phaseTasks || phaseTasks.length === 0) continue;
 
+      const shouldProfile =
+        this.profilerCallback !== null &&
+        typeof performance !== "undefined" &&
+        typeof performance.now === "function";
+      const startMs = shouldProfile ? performance.now() : 0;
+
       for (let i = 0; i < phaseTasks.length; i++) {
         const task = phaseTasks[i];
         if (!task.enabled) continue;
@@ -172,6 +187,10 @@ export class SystemRunner {
             console.error(`[SystemRunner] Erro no sistema ${task.id} (fase ${task.phase}):`, error);
           }
         }
+      }
+
+      if (shouldProfile && this.profilerCallback) {
+        this.profilerCallback(phase, performance.now() - startMs);
       }
     }
   }

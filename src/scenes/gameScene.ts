@@ -1,5 +1,5 @@
 import type { GameObj, KaboomCtx } from "kaboom";
-import { GAME_CONFIG } from "../config";
+import { GAME_CONFIG, TAGS } from "../config";
 import { createPlayer } from "../entities/player";
 import { createRescueBoat } from "../entities/boat";
 import { setupCollisions } from "../systems/collisions";
@@ -49,6 +49,8 @@ import { setupSereneInsightsSystem } from "../systems/sereneMigrationInsights";
 import { createCompanionWhale } from "../entities/companionWhale";
 import { shouldSpawnCompanionWhale } from "../systems/companionTutorialSettings";
 import { SystemRunner } from "../systems/systemRunner";
+import { SpatialHashGrid } from "../systems/spatialHashGrid";
+import { FrameBudgetMonitor } from "../systems/frameBudgetMonitor";
 
 export function registerGameScene(k: KaboomCtx): void {
   k.scene("game", (options: GameOptions = { mode: "standard" }) => {
@@ -200,6 +202,10 @@ export function registerGameScene(k: KaboomCtx): void {
     const biomeManager = initBiomeLifecycleManager(k);
     const spatialCulling = initSpatialCullingManager(k);
     const presentationMode = initPresentationMode(k, playerController);
+    const spatialGrid = new SpatialHashGrid<GameObj>({ cellSize: 200 });
+    k.onSceneLeave(() => {
+      spatialGrid.clear();
+    });
 
     // 2. Instancia obstáculos, krill, redes e bolsões de ar procedurais (com semente determinística caso informada)
     const obstacleData = loadLevelLayout(k, true, options.seed);
@@ -228,9 +234,14 @@ export function registerGameScene(k: KaboomCtx): void {
     }
     const sereneInsights = setupSereneInsightsSystem(k, options.mode === "serene");
 
-    // Fase 56: Baleia-Guia (Mãe-Guia Antártica) - Tutorial Mimético e Intuitivo
-    if (initialX < 3200 && shouldSpawnCompanionWhale(options.mode)) {
-      const companionWhale = createCompanionWhale(k, playerController);
+    // Fase 56 & 60: Baleia-Guia / Co-Migrante - Tutorial Mimético e Co-Migração Serena
+    const isCoMigrationMode = options.mode === "serene";
+    if ((initialX < 3200 || isCoMigrationMode) && shouldSpawnCompanionWhale(options.mode)) {
+      const companionWhale = createCompanionWhale(k, playerController, {
+        spatialGrid,
+        mode: options.mode,
+        isCoMigration: isCoMigrationMode,
+      });
       k.onSceneLeave(() => {
         companionWhale.destroy();
       });
@@ -310,10 +321,14 @@ export function registerGameScene(k: KaboomCtx): void {
     let cachedEntityCount = 0;
     let entityCountThrottleTimer = 0;
 
-    // 6. Orquestrador Central de Fases (Fase 58: Arquitetura Determinística)
+    // 6. Orquestrador Central de Fases & Profiling (Fase 58 & 59)
     const systemRunner = new SystemRunner();
+    const frameBudgetMonitor = new FrameBudgetMonitor();
+    systemRunner.setProfiler((phase, ms) => frameBudgetMonitor.recordPhaseDuration(phase, ms));
+
     k.onSceneLeave(() => {
       systemRunner.clear();
+      frameBudgetMonitor.reset();
     });
 
     // Fase 1: INPUT
@@ -329,10 +344,29 @@ export function registerGameScene(k: KaboomCtx): void {
     );
 
     // Fase 2: PHYSICS
+    let spatialGridSyncTimer = 0;
     systemRunner.register(
       "physics",
       (dt) => {
         particlePool.update(dt);
+
+        spatialGridSyncTimer += dt;
+        if (spatialGridSyncTimer >= 0.5) {
+          spatialGridSyncTimer = 0;
+          spatialGrid.clear();
+          const krills = typeof k.get === "function" ? k.get(TAGS.KRILL) : [];
+          for (let i = 0; i < krills.length; i++) {
+            const krill = krills[i];
+            if (krill && krill.pos) {
+              spatialGrid.insert(`krill_${krill.id ?? i}`, krill, {
+                minX: krill.pos.x - 8,
+                minY: krill.pos.y - 8,
+                maxX: krill.pos.x + 8,
+                maxY: krill.pos.y + 8,
+              });
+            }
+          }
+        }
       },
       { id: "particle_simulation" }
     );
@@ -491,6 +525,8 @@ export function registerGameScene(k: KaboomCtx): void {
           const activeMods = biomeManager.getActiveModules();
           const modsText = activeMods.length > 0 ? activeMods.join(", ") : "Transição";
           const cullingStats = spatialCulling.getStats();
+          const snapshot = frameBudgetMonitor.getSnapshot(dt * 1000);
+          const budgetStatus = snapshot.isBudgetExceeded ? "⚠️ Overrun" : "Budget OK";
 
           debugDistanceUI.update(playerXPosition, {
             fps: instantFps,
@@ -501,6 +537,7 @@ export function registerGameScene(k: KaboomCtx): void {
             frameTimeMs: dt * 1000,
             visibleEntities: cullingStats.visibleEntities,
             culledEntities: cullingStats.culledEntities,
+            budgetStatus,
           });
         }
 
