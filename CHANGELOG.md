@@ -7,6 +7,24 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [1.27.0] - 2026-10-28 — Ocultação de Recursos em Desenvolvimento (Fases 62 & 63)
+
+### Modificado & Otimizado
+
+- **Ocultação do Desafio Semanal na Seleção de Modos (`src/ui/modeSelectScreen.ts`)**:
+  - Ocultação do Card 3 do "Desafio Semanal" na interface de seleção de modos, reposicionando o card de "Migração Rápida" para manter distribuição vertical equilibrada e responsiva.
+  - O sistema subjacente de sementes procedurais determinísticas (`src/systems/weeklyChallenge.ts`), schemas e testes continuam preservados para futura reativação.
+- **Ocultação da Narração por Voz nas Opções de Acessibilidade (`src/ui/options/accessibilityOptionsTab.ts`)**:
+  - Remoção do botão de alternância de Narração em Voz (TTS) da aba de acessibilidade, promovendo a seleção de idioma para a linha 3 e consolidando 4 controles contínuos sem lacunas verticais.
+  - O subsistema de áudio e síntese (`src/systems/ttsSystem.ts`) permanece mantido no core para aprimoramento de compatibilidade.
+- **Atualização da Documentação Técnica**:
+  - Desafio Semanal e Narração em Voz oficialmente marcados como _(Em Desenvolvimento)_ em `docs/ROADMAP.md`, `docs/GDD.md`, `docs/ARCHITECTURE.md`, `docs/PRIVACIDADE.md` e `README.md`.
+- **Suíte de Testes Automatizados (`tests/ui/phase62_63_ui_refinement.test.ts`)**:
+  - Novos testes unitários validando a exibição exclusiva dos 3 modos ativos, as 4 linhas da aba de acessibilidade e a integridade funcional dos módulos preservados.
+  - Base de testes expandida para **80 arquivos e 615 testes automatizados 100% aprovados**.
+
+---
+
 ## [1.26.0] - 2026-10-28 — Desacoplamento da Dependência do Jogador & Co-Migração 100% Autônoma (Fase 61)
 
 ### Adicionado & Modificado

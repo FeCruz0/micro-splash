@@ -2,7 +2,6 @@ import type { GameObj, KaboomCtx } from "kaboom";
 import { audioSystem } from "../systems/audioSystem";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
 import type { GameOptions } from "../systems/state";
-import { getWeeklyChallengeInfo } from "../systems/weeklyChallenge";
 import { createFocusGroup, type FocusableItem } from "./keyboardNav";
 import { FONT_TITLE, FONT_BODY, TEXT_SIZE_H1, TEXT_SIZE_BODY } from "../config";
 import { addShadowedText } from "./textUtils";
@@ -364,115 +363,11 @@ export function showModeSelectScreen(
   });
 
   // ==========================================
-  // CARD 3: DESAFIO SEMANAL PROCEDURAL
-  // ==========================================
-  const weeklyInfo = getWeeklyChallengeInfo();
-  const card3H = 92;
-  const card3Y = card2Y + card2H / 2 + 12 + card3H / 2;
-
-  const cardWeekly = k.add([
-    k.rect(contentBoxW, card3H, { radius: 12 }),
-    k.pos(cX, card3Y),
-    k.color(14, 36, 72),
-    k.outline(1.5, k.rgb(250, 204, 21)),
-    k.scale(1),
-    k.anchor("center"),
-    k.area(),
-    k.fixed(),
-    k.z(302),
-  ]);
-  elements.push(cardWeekly);
-
-  const icon3Pos = k.vec2(cX - contentBoxW / 2 + 36, card3Y);
-  elements.push(
-    k.add([
-      k.rect(50, 50, { radius: 10 }),
-      k.pos(icon3Pos),
-      k.color(45, 38, 16),
-      k.outline(1.5, k.rgb(250, 204, 21)),
-      k.anchor("center"),
-      k.fixed(),
-      k.z(303),
-    ])
-  );
-  elements.push(
-    k.add([
-      k.text("📅", {
-        size: accessibilitySystem.scaleFont(26),
-        font: "Outfit",
-      }),
-      k.pos(icon3Pos),
-      k.anchor("center"),
-      k.fixed(),
-      k.z(304),
-    ])
-  );
-
-  elements.push(
-    k.add([
-      k.text(`DESAFIO SEMANAL DA ROTA — ${weeklyInfo.weekLabel}`, {
-        size: accessibilitySystem.scaleFont(17.5),
-        font: "Outfit",
-      }),
-      k.pos(textStartX, card3Y - 18),
-      k.color(255, 225, 90),
-      k.anchor("left"),
-      k.fixed(),
-      k.z(303),
-    ])
-  );
-
-  elements.push(
-    k.add([
-      k.text(
-        `Semente #${weeklyInfo.seed} • Rota idêntica para o mundo todo • ⏳ ${weeklyInfo.daysLeft} dia(s) restantes\nSupere obstáculos idênticos e dispute o topo do ranking semanal global!`,
-        {
-          size: accessibilitySystem.scaleFont(14.5),
-          font: "Inter",
-          lineSpacing: 3.5,
-          width: contentBoxW - 90,
-        }
-      ),
-      k.pos(textStartX, card3Y + 14),
-      k.color(235, 245, 255),
-      k.anchor("left"),
-      k.fixed(),
-      k.z(303),
-    ])
-  );
-
-  attachButtonHoverEffect(k, cardWeekly, {
-    baseColor: [14, 36, 72],
-    hoverColor: [30, 45, 80],
-    baseScale: 1.0,
-    hoverScale: 1.015,
-    canInteract: () => canInteract,
-  });
-
-  const selectWeekly = () => {
-    if (!canInteract) return;
-    audioSystem.playUiClick();
-    destroyAll();
-    onSelectMode({
-      mode: "weekly",
-      seed: weeklyInfo.seed,
-      weekKey: weeklyInfo.weekKey,
-    });
-  };
-  cardWeekly.onClick(selectWeekly);
-  focusItems.push({
-    pos: k.vec2(cX, card3Y),
-    width: contentBoxW,
-    height: card3H,
-    onActivate: selectWeekly,
-  });
-
-  // ==========================================
-  // CARD 4: MIGRAÇÃO RÁPIDA (60 SEGUNDOS)
+  // CARD 3: MIGRAÇÃO RÁPIDA (60 SEGUNDOS)
   // ==========================================
   let selectedBiomeIndex = 0;
   const card4H = 124;
-  const card4Y = card3Y + card3H / 2 + 12 + card4H / 2;
+  const card4Y = card2Y + card2H / 2 + 16 + card4H / 2;
 
   const card4 = k.add([
     k.rect(contentBoxW, card4H, { radius: 12 }),

@@ -926,10 +926,10 @@ _Objetivo: Desatrelar a baleia co-migrante de restrições artificiais baseadas 
 
 _Objetivo: Remover o botão de acesso ao Desafio Semanal na tela de seleção de modos (`src/ui/modeSelectScreen.ts`), mantendo o Desafio Semanal documentado como "Em Desenvolvimento" em toda a documentação até o polimento completo do ecossistema de rankings comunitários e geração de sementes determinísticas._
 
-- [ ] **62.1 Remover Botão de Desafio Semanal da Interface (`src/ui/modeSelectScreen.ts`):**
+- [x] **62.1 Remover Botão de Desafio Semanal da Interface (`src/ui/modeSelectScreen.ts`):**
   - Remover ou desativar o card/botão do "Desafio Semanal" na tela de seleção de modos (`src/ui/modeSelectScreen.ts`).
   - Reorganizar a grade e o alinhamento visual dos cards de modos ativos remanescentes (Migração Normal, Migração Serena e Migração Rápida).
-- [ ] **62.2 Deixar na Documentação o Desafio Semanal como "Em Desenvolvimento":**
+- [x] **62.2 Deixar na Documentação o Desafio Semanal como "Em Desenvolvimento":**
   - Manter e sinalizar o status do Desafio Semanal como **"Em Desenvolvimento"** em `docs/ROADMAP.md`, `docs/GDD.md`, `docs/ARCHITECTURE.md` e `README.md`.
   - Preservar a infraestrutura de código subjacente (`src/systems/weeklyChallenge.ts`, schemas Zod e testes unitários) para viabilizar sua reativação futura sem retrabalho arquitetural.
 
@@ -937,9 +937,9 @@ _Objetivo: Remover o botão de acesso ao Desafio Semanal na tela de seleção de
 
 _Objetivo: Remover o botão de alternância de Narração em Voz (TTS) do painel de Opções de Acessibilidade (`src/ui/options/accessibilityOptionsTab.ts`), mantendo a funcionalidade documentada como "Em Desenvolvimento" em toda a documentação enquanto a síntese de voz nativa Web Speech API é aprimorada para compatibilidade multiplataforma._
 
-- [ ] **63.1 Remover Botão de Narração por Voz da Interface de Acessibilidade (`src/ui/options/accessibilityOptionsTab.ts`):**
+- [x] **63.1 Remover Botão de Narração por Voz da Interface de Acessibilidade (`src/ui/options/accessibilityOptionsTab.ts`):**
   - Remover ou desativar o botão de alternância de Narração em Voz (TTS) na aba de opções de acessibilidade (`accessibilityOptionsTab.ts`).
   - Reorganizar o espaçamento e o alinhamento vertical dos controles remanescentes da aba de acessibilidade.
-- [ ] **63.2 Atualizar a Documentação para Sinalizar a Narração por Voz como "Em Desenvolvimento":**
+- [x] **63.2 Atualizar a Documentação para Sinalizar a Narração por Voz como "Em Desenvolvimento":**
   - Registrar formalmente em `docs/ROADMAP.md`, `docs/ARCHITECTURE.md`, `docs/PRIVACIDADE.md` e `README.md` que a Narração por Voz (TTS) está categorizada como **"Em Desenvolvimento"**.
   - Preservar o sistema subjacente (`src/systems/ttsSystem.ts`, chamadas nos pop-ups pedagógicos/insights e testes unitários) para viabilizar futura reativação sem quebra arquitetural.

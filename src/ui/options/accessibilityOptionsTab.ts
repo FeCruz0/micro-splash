@@ -1,6 +1,5 @@
 import { audioSystem } from "../../systems/audioSystem";
 import { accessibilitySystem } from "../../systems/accessibilitySystem";
-import { ttsSystem } from "../../systems/ttsSystem";
 import { i18n } from "../../i18n/i18n";
 import type { OptionsScreenContext } from "./optionsTypes";
 
@@ -12,7 +11,6 @@ export function renderAccessibilityOptions(context: OptionsScreenContext): void 
   const row1Y = rowStartY + 1 * (btnH + rowGap);
   const row2Y = rowStartY + 2 * (btnH + rowGap);
   const row3Y = rowStartY + 3 * (btnH + rowGap);
-  const row4Y = rowStartY + 4 * (btnH + rowGap);
 
   // --- Linha 0: Filtro de Cores / Daltonismo ---
   const btnAccessibilityPos = k.vec2(col1X, row0Y);
@@ -165,57 +163,8 @@ export function renderAccessibilityOptions(context: OptionsScreenContext): void 
     onActivate: handleFont,
   });
 
-  // --- Linha 3: Narração em Voz (TTS) ---
-  const btnTtsPos = k.vec2(col1X, row3Y);
-  const btnTts = k.add([
-    k.rect(colW, btnH, { radius: 8 }),
-    k.pos(btnTtsPos),
-    k.color(ttsSystem.isEnabled() ? k.rgb(20, 100, 140) : k.rgb(45, 55, 75)),
-    k.outline(1.5, k.rgb(56, 189, 248)),
-    k.scale(1),
-    k.anchor("center"),
-    k.area(),
-    k.fixed(),
-    k.z(302),
-  ]);
-  elements.push(btnTts);
-
-  const ttsText = k.add([
-    k.text(ttsSystem.getLabel(), {
-      size: accessibilitySystem.scaleFont(15),
-      font: "Outfit",
-    }),
-    k.pos(btnTtsPos),
-    k.color(255, 255, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(303),
-  ]);
-  elements.push(ttsText);
-
-  const handleTts = () => {
-    const newState = ttsSystem.toggle();
-    audioSystem.playUiClick();
-    btnTts.color = newState ? k.rgb(20, 100, 140) : k.rgb(45, 55, 75);
-    ttsText.text = ttsSystem.getLabel();
-  };
-
-  btnTts.onHoverUpdate(() => {
-    btnTts.scale = k.vec2(1.02, 1.02);
-  });
-  btnTts.onHoverEnd(() => {
-    btnTts.scale = k.vec2(1, 1);
-  });
-  btnTts.onClick(handleTts);
-  focusItems.push({
-    pos: btnTtsPos,
-    width: colW,
-    height: btnH,
-    onActivate: handleTts,
-  });
-
-  // --- Linha 4: Idioma / Language ---
-  const btnLangPos = k.vec2(col1X, row4Y);
+  // --- Linha 3: Idioma / Language ---
+  const btnLangPos = k.vec2(col1X, row3Y);
   const btnLang = k.add([
     k.rect(colW, btnH, { radius: 8 }),
     k.pos(btnLangPos),
