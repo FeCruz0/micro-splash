@@ -14,9 +14,9 @@ export interface CompanionSenses {
   triggerSonar: () => void;
   update: (
     deltaTime: number,
-    playerX: number,
-    currentOxygen: number,
-    currentState: CompanionState
+    playerX?: number,
+    currentOxygen?: number,
+    currentState?: CompanionState
   ) => void;
 }
 
@@ -25,6 +25,8 @@ export interface CompanionSensesOptions {
   companion: GameObj;
   prng: RandomNumberGenerator;
   spatialGrid?: SpatialHashGrid<GameObj>;
+  autonomyMode?: "guided" | "autonomous";
+  isCoMigration?: boolean;
 }
 
 /**
@@ -76,9 +78,9 @@ export function createCompanionSenses(options: CompanionSensesOptions): Companio
 
   const update = (
     deltaTime: number,
-    playerX: number,
-    currentOxygen: number,
-    currentState: CompanionState
+    playerX?: number,
+    currentOxygen?: number,
+    currentState?: CompanionState
   ): void => {
     sonarCooldownTimer = Math.max(0, sonarCooldownTimer - deltaTime);
     perceptionCooldownTimer -= deltaTime;
@@ -146,8 +148,9 @@ export function createCompanionSenses(options: CompanionSensesOptions): Companio
     }
 
     // 2. Detecção de Krill: busca cardumes à frente quando não estiver em busca de ar
+    const oxygenLevel = currentOxygen ?? 100;
     if (
-      currentOxygen >= COMPANION_CONFIG.CRITICAL_OXYGEN &&
+      oxygenLevel >= COMPANION_CONFIG.CRITICAL_OXYGEN &&
       currentState !== "FEEDING" &&
       currentState !== "FAREWELL_BREACH" &&
       currentState !== "RESTING" &&
@@ -180,12 +183,16 @@ export function createCompanionSenses(options: CompanionSensesOptions): Companio
           deltaX < shortestDist &&
           Math.abs(krill.pos.y - companion.pos.y) < COMPANION_CONFIG.RADAR_VERTICAL_RANGE
         ) {
-          // Se o jogador estiver muito mais perto do krill, a baleia-guia deixa para ele
-          const playerDistToKrill = Math.abs(krill.pos.x - playerX);
-          if (playerDistToKrill > 50) {
-            shortestDist = deltaX;
-            bestTarget = krill;
+          // No modo guiado/tutorial, a baleia-guia cede o krill se o jogador estiver muito próximo
+          const isGuidedTutorial = options.autonomyMode !== "autonomous" && !options.isCoMigration;
+          if (isGuidedTutorial && playerX !== undefined) {
+            const playerDistToKrill = Math.abs(krill.pos.x - playerX);
+            if (playerDistToKrill <= 50) {
+              continue;
+            }
           }
+          shortestDist = deltaX;
+          bestTarget = krill;
         }
       }
       targetKrillEntity = bestTarget;

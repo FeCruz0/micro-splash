@@ -1,6 +1,6 @@
 import type { GameObj } from "kaboom";
 import { COMPANION_CONFIG, GAME_CONFIG } from "../../../config";
-import { isPositionInIceGap } from "../../../systems/iceSurface";
+import { getNearestIceGap, isPositionInIceGap } from "../../../systems/iceSurface";
 import type {
   CompanionStateContext,
   CompanionStateNode,
@@ -11,13 +11,24 @@ export class IntroState implements CompanionStateNode {
   public readonly name = "INTRO";
 
   public onUpdate(
-    _ctx: CompanionStateContext,
+    ctx: CompanionStateContext,
     _dt: number,
-    playerX: number
+    playerX?: number
   ): CompanionStateUpdateResult {
+    const isAutonomous = ctx.options.autonomyMode === "autonomous" || ctx.options.isCoMigration;
+
+    // No modo autônomo, inicia o nado por aclimatação espontânea sem depender do jogador
+    if (isAutonomous && ctx.stateTimer >= COMPANION_CONFIG.AUTONOMOUS_INTRO_DELAY) {
+      return {
+        targetAngle: 0,
+        nextState: "INDEPENDENT_CRUISE",
+      };
+    }
+
+    const shouldStartCruise = playerX !== undefined && playerX > 40;
     return {
       targetAngle: 0,
-      nextState: playerX > 40 ? "CRUISE" : undefined,
+      nextState: shouldStartCruise ? "CRUISE" : undefined,
     };
   }
 }
@@ -34,8 +45,8 @@ export class CruiseState implements CompanionStateNode {
   public onUpdate(
     ctx: CompanionStateContext,
     _dt: number,
-    _playerX: number,
-    targetKrill: GameObj | null
+    _playerX?: number,
+    targetKrill?: GameObj | null
   ): CompanionStateUpdateResult {
     const { k, companion, stateTimer } = ctx;
 
@@ -61,23 +72,30 @@ export class SeekBreathState implements CompanionStateNode {
 
   public onUpdate(ctx: CompanionStateContext): CompanionStateUpdateResult {
     const { k, companion } = ctx;
-    const isAntarcticShelf = companion.pos.x < 3200;
-    const canBreatheHere = isAntarcticShelf ? isPositionInIceGap(companion.pos.x) : true;
+    // isPositionInIceGap checa fendas polares (0 a 5.000m) e retorna true para x > 5000 (mar aberto)
+    const canBreatheHere = isPositionInIceGap(companion.pos.x);
+    const surfaceThreshold = GAME_CONFIG.SEA_LEVEL + COMPANION_CONFIG.SURFACE_DETECTION_TOLERANCE;
 
     if (canBreatheHere) {
-      if (companion.pos.y <= GAME_CONFIG.SEA_LEVEL + 4) {
+      if (companion.pos.y <= surfaceThreshold) {
         return {
-          targetAngle: -26,
+          targetAngle: -28,
           nextState: "SURFACE_BREATHE",
         };
       }
-      return { targetAngle: -26 };
+      return { targetAngle: -28 };
     }
 
-    const safeDepthY = 130;
+    // Navega proativamente em direção à fenda de gelo polar mais próxima à frente
+    const nearestGap = getNearestIceGap(companion.pos.x);
+    const safeDepthY = 135;
     const deltaY = safeDepthY - companion.pos.y;
+    const targetGapX = nearestGap ? (nearestGap.start + nearestGap.end) / 2 : companion.pos.x + 200;
+    const isApproachingGap = targetGapX > companion.pos.x && targetGapX - companion.pos.x < 120;
+    const travelAngle = isApproachingGap ? -15 : k.clamp(deltaY * 0.25, -15, 15);
+
     return {
-      targetAngle: k.clamp(deltaY * 0.25, -18, 18),
+      targetAngle: travelAngle,
     };
   }
 }
@@ -155,8 +173,8 @@ export class IndependentCruiseState implements CompanionStateNode {
   public onUpdate(
     ctx: CompanionStateContext,
     _dt: number,
-    _playerX: number,
-    targetKrill: GameObj | null,
+    _playerX?: number,
+    targetKrill?: GameObj | null,
     targetHazard?: GameObj | null
   ): CompanionStateUpdateResult {
     const { k, companion, stateTimer } = ctx;
@@ -209,8 +227,8 @@ export class AvoidObstacleState implements CompanionStateNode {
   public onUpdate(
     ctx: CompanionStateContext,
     dt: number,
-    _playerX: number,
-    _targetKrill: GameObj | null,
+    _playerX?: number,
+    _targetKrill?: GameObj | null,
     targetHazard?: GameObj | null
   ): CompanionStateUpdateResult {
     this.avoidanceTimer += dt;

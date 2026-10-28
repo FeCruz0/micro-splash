@@ -225,10 +225,12 @@ describe("Fase 56: Tutorial Intuitivo & Mimético — Baleia-Guia NPC (Mãe-Guia
   });
 
   describe("56.4: Ciclo Biológico de Oxigênio e Respiração Polar", () => {
-    it("deve reduzir oxigênio ao longo do tempo e acionar busca por respiração", () => {
+    it("deve reduzir oxigênio ao longo do tempo e acionar busca por respiração quando oxigênio finito estiver ativo", () => {
       const mockKaboom = createMockKaboom();
       const mockPlayer = createMockPlayerController(100, 200);
-      const companionController = createCompanionWhale(mockKaboom, mockPlayer);
+      const companionController = createCompanionWhale(mockKaboom, mockPlayer, {
+        infiniteOxygen: false,
+      });
 
       companionController.forceState("CRUISE");
       mockKaboom.setDeltaTime(5.0);
@@ -241,6 +243,19 @@ describe("Fase 56: Tutorial Intuitivo & Mimético — Baleia-Guia NPC (Mãe-Guia
       mockKaboom.setDeltaTime(15.0);
       companionController.gameObj._triggerUpdate();
       expect(companionController.getState()).toBe("SEEK_BREATH");
+    });
+
+    it("deve manter oxigênio infinito (100%) por padrão sem entrar em SEEK_BREATH", () => {
+      const mockKaboom = createMockKaboom();
+      const mockPlayer = createMockPlayerController(100, 200);
+      const companionController = createCompanionWhale(mockKaboom, mockPlayer);
+
+      companionController.forceState("CRUISE");
+      mockKaboom.setDeltaTime(30.0);
+      companionController.gameObj._triggerUpdate();
+
+      expect(companionController.getOxygen()).toBe(100);
+      expect(companionController.getState()).toBe("CRUISE");
     });
 
     it("deve restaurar oxigênio ao subir para a superfície", () => {

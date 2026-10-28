@@ -63,7 +63,8 @@ Para atender a múltiplos perfis de jogadores, o jogo conta com modos dedicados 
 2. **Migração Serena (Acessibilidade & Crianças):**
    - **Fôlego Infinito (`∞`)**: Sem dreno de oxigênio e sem risco de desmaio subaquático.
    - Navegação relaxante e contemplativa com foco na beleza do mar e aprendizado de fatos ecológicos.
-3. **Desafio Semanal (Competitivo Comunitário):**
+3. **Desafio Semanal (Competitivo Comunitário — Em Desenvolvimento):**
+   - _(Em Desenvolvimento)_: Modo temporariamente desativado da tela de seleção enquanto o sistema de sementes procedurais e tabelas competitivas passa por refinamento.
    - Semente determinística semanal gerando rota idêntica para todos os participantes do mundo.
    - Certificado Oficial com selo digital e cálculo padronizado de pontuação de travessia.
 4. **Migração Rápida (Desafio de 60 Segundos):**

@@ -241,6 +241,8 @@ export function registerGameScene(k: KaboomCtx): void {
         spatialGrid,
         mode: options.mode,
         isCoMigration: isCoMigrationMode,
+        autonomyMode: isCoMigrationMode ? "autonomous" : "guided",
+        infiniteOxygen: true,
       });
       k.onSceneLeave(() => {
         companionWhale.destroy();

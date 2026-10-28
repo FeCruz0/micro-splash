@@ -292,7 +292,7 @@ A camada de interface gráfica é desacoplada da lógica central de simulação:
    - `src/i18n/i18n.ts`: Formatação numérica, métrica (milhas náuticas e metros) e datas localizada via `Intl` nativo com suporte total a `pt-BR`, `en-US` e `gn` (Guarani Nhandewa).
 6. **Diário de Bordo da Migração Serena (`src/systems/sereneMigrationInsights.ts`):**
    - Módulo educativo interativo com catálogo de 10 momentos da ecologia da jubarte (filtração de krill, respiração, hidrodinâmica, polínias, canal SOFAR, drafting, ameaça de plásticos, redes, ressurgência e berçário).
-   - Gerenciador com fila anti-sobreposição, temporização pedagógica (5.5s), transições acessíveis e integração com narração por voz (TTS).
+   - Gerenciador com fila anti-sobreposição, temporização pedagógica (5.5s), transições acessíveis e integração com narração por voz (TTS — recurso em desenvolvimento).
 
 ---
 
@@ -304,7 +304,7 @@ O armazenamento local utiliza exclusivamente a fachada tipada `readLocalStorageW
 - **`micro_splash_highscore`**: Maior distância percorrida e pontuação Eco-Score acumulada.
 - **`micro_splash_unlocked_facts`**: Identificadores dos fatos pedagógicos desbloqueados no Codex.
 - **`micro_splash_stats`**: Estatísticas cumulativas (distância total, krill consumido, redes rompidas, saltos executados).
-- **`micro_splash_weekly`**: Semente determinística da semana e pontuação obtida no Desafio Semanal.
+- **`micro_splash_weekly`**: Semente determinística da semana e pontuação obtida no Desafio Semanal (modo em desenvolvimento).
 - **`micro_splash_accessibility`**: Configurações de daltonismo, movimento reduzido, alto contraste e escala tipográfica.
 - **`micro_splash_resolution_*`**: Resolução 16:9 individualizada por monitor.
 - **`micro_splash_companion_tutorial_seen`**: Status booleano indicando se o jogador já vivenciou o tutorial mimético.
@@ -405,3 +405,22 @@ A Baleia-Guia evoluiu de um NPC limitado ao tutorial antártico para uma **compa
    - Caso o oxigênio pulmonar atinja 0%, entra em `FAINTED` (anóxia / desmaio biológico sereno), cessando a propulsão motora e afundando suavemente até o fundo marinho.
 5. **Ritual Compartilhado de Vitória (`VICTORY_BREACH`)**:
    - Sobrevivendo até os 30.000m (Abrolhos), executa o Salto Majestoso sincronizado ao lado do jogador para celebrar a conclusão da jornada.
+
+---
+
+## 🌊 12. Desacoplamento da Dependência do Jogador & Co-Migração 100% Autônoma (Fase 61)
+
+A arquitetura da Baleia Co-Migrante foi desacoplada de vínculos e restrições artificiais dependentes do jogador, operando como um agente biológico autônomo pleno no ecossistema marinho:
+
+1. **Modos Coexistentes de Autonomia (`autonomyMode: "guided" | "autonomous"`)**:
+   - `guided`: Modo pedagógico da Antártica inicial, preservando o acompanhamento assistido e a aproximação mútua para novatos.
+   - `autonomous`: Modo de co-migração desatrelado (ativado no Modo Sereno e em mar aberto), no qual a baleia não sofre qualquer alteração artificial de pacing decorrente do jogador.
+2. **Eliminação do Rubber-Banding e Freio por Inércia**:
+   - Em `companionLocomotion.ts`, o fator de propulsão é mantido constante (`AUTONOMOUS_STROKE_PACING: 1.0`), dispensando frenagens quando o jogador desacelera ou para (`playerSpeed < 20`) e acelerações artificiais por distância relativa (`distanceAhead`).
+3. **Forrageamento Competitivo Livre**:
+   - Em `companionSenses.ts`, a restrição de distância mínima (`playerDistToKrill > 50`) é suprimida no modo autônomo. A baleia forrageia ativamente para manter sua saturação de oxigênio vital, competindo de forma natural por nutrientes ao longo de toda a rota.
+4. **Partida Espontânea & Transições FSM Descentralizadas**:
+   - Em `concreteStates.ts`, o estado `IntroState` não aguarda o deslocamento do jogador (`playerX > 40`), iniciando o nado migratório após um temporizador de aclimatação (`AUTONOMOUS_INTRO_DELAY: 1.5s`).
+   - A transição do tutorial é regida primariamente pela posição da própria baleia (`companion.pos.x >= FAREWELL_TARGET_X - 180`).
+5. **Referência Fraca e Instanciação Autônoma**:
+   - O controlador `PlayerController` tornou-se opcional na função de criação `createCompanionWhale`, permitindo que a entidade exista, navegue e interaja no mapa de forma completamente autônoma.

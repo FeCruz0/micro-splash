@@ -16,10 +16,12 @@ export * from "./types";
  */
 export function createCompanionWhale(
   k: KaboomCtx,
-  playerController: PlayerController,
+  playerController?: PlayerController | null,
   options: CompanionOptions = {}
 ): CompanionWhaleController {
-  const startX = options.initialX ?? playerController.gameObj.pos.x + 140;
+  const startX =
+    options.initialX ??
+    (playerController?.gameObj?.pos ? playerController.gameObj.pos.x + 140 : 100);
   const startY = options.initialY ?? 200;
 
   // Gerador determinístico Mulberry32
@@ -66,8 +68,16 @@ export function createCompanionWhale(
     companion,
     prng,
     spatialGrid: options.spatialGrid,
+    autonomyMode: options.autonomyMode,
+    isCoMigration: options.isCoMigration,
   });
-  const companionLocomotion = createCompanionLocomotion({ k, companion, prng });
+  const companionLocomotion = createCompanionLocomotion({
+    k,
+    companion,
+    prng,
+    autonomyMode: options.autonomyMode,
+    isCoMigration: options.isCoMigration,
+  });
   const companionStates = createCompanionStates({ k, companion, options, prng });
 
   const handleConsumeKrill = (krillObj: GameObj): void => {
@@ -94,15 +104,13 @@ export function createCompanionWhale(
     if (companionStates.shouldStopUpdate()) return;
 
     const deltaTime = k.dt();
-    const playerObj = playerController.gameObj;
-    if (!playerObj || (typeof playerObj.exists === "function" && !playerObj.exists())) {
-      return;
-    }
+    const playerObj = playerController?.gameObj;
+    const hasActivePlayer =
+      playerObj && (typeof playerObj.exists !== "function" || playerObj.exists());
 
-    const playerX = playerObj.pos.x;
-    const playerSpeed = playerController.getSpeed
-      ? playerController.getSpeed().x
-      : COMPANION_CONFIG.BASE_SPEED;
+    const playerX = hasActivePlayer && playerObj.pos ? playerObj.pos.x : undefined;
+    const playerSpeed =
+      hasActivePlayer && playerController?.getSpeed ? playerController.getSpeed().x : undefined;
 
     // 1. Atualização Sensorial e Radar
     companionSenses.update(

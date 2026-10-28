@@ -85,8 +85,8 @@ export class CompanionStateMachine {
   public update(
     ctx: CompanionStateContext,
     dt: number,
-    playerX: number,
-    targetKrill: GameObj | null,
+    playerX?: number,
+    targetKrill?: GameObj | null,
     targetHazard?: GameObj | null
   ): number {
     const result = this.currentStateNode.onUpdate(ctx, dt, playerX, targetKrill, targetHazard);

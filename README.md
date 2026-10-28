@@ -22,7 +22,7 @@ Este projeto foi concebido com foco em **educação e consciência ecológica**,
 - 🧭 **Modos de Jogo Adaptados:**
   - **Migração Normal:** A jornada clássica de 30.000m com gerenciamento de oxigênio, perigos e Eco-Score.
   - **Migração Serena:** Modo acessível com fôlego infinito (`∞`) e sem desmaios, ideal para crianças menores e exploração relaxante.
-  - **Desafio Semanal:** Semente determinística semanal gerando percurso idêntico com ranking comunitário e Certificado Oficial com selo digital.
+  - **Desafio Semanal (Em Desenvolvimento):** Semente determinística semanal gerando percurso idêntico com ranking comunitário e Certificado Oficial com selo digital (atualmente em desenvolvimento e temporariamente oculto na seleção de modos).
 - 📖 **Diário de Bordo da Expedição (Codex):** Enciclopédia interativa no menu com fichas biológicas das espécies, fatos ecológicos desbloqueados na rota e informações de conservação do _Instituto Baleia Jubarte_ e UNESCO.
 - 🎵 **Sonoplastia 16-Bit Retrô, Espacialização & Masterização em Tempo Real:**
   - Trilha adaptativa inspirada em _Donkey Kong Country: Aquatic Ambiance_ (David Wise) com baixo _wavetable_ aveludado e arpejos híbridos de harpa e coral.
@@ -56,7 +56,7 @@ O _Micro Splash_ prioriza a acessibilidade desde a sua concepção:
 - 👁️ **Filtros de Daltonismo & Alto Contraste:** Modos para **Protanopia**, **Deuteranopia** e **Alto Contraste** com matrizes de cor validadas e contornos reforçados para redes e lixos.
 - 🧘 **Suporte a Movimento Reduzido (`prefers-reduced-motion`):** Detecção automática da preferência do sistema operacional e alternador manual nas Opções, desativando tremores de tela (_screen shake_) e flashes intensos.
 - 🔤 **Tamanho de Fonte Configurável:** Ajuste de textos de interface em três tamanhos (`Pequeno 0.85x`, `Normal 1.0x`, `Grande 1.2x`).
-- 🗣️ **Narração em Voz (TTS):** Narração opcional de fatos ecológicos via Web Speech API em português para estudantes em fase de alfabetização ou baixa visão.
+- 🗣️ **Narração em Voz (TTS — Em Desenvolvimento):** Narração de fatos ecológicos via Web Speech API em português (atualmente em desenvolvimento e temporariamente desativada do menu de opções).
 - ⌨️ **Navegação por Teclado Completa:** Todos os menus contam com anel de foco visual de alto contraste e navegação intuitiva por `Tab`/`Setas` e `Enter`.
 
 ---

@@ -29,8 +29,8 @@ export interface CompanionStateNode {
   onUpdate: (
     context: CompanionStateContext,
     deltaTime: number,
-    playerX: number,
-    targetKrill: GameObj | null,
+    playerX?: number,
+    targetKrill?: GameObj | null,
     targetHazard?: GameObj | null
   ) => CompanionStateUpdateResult;
   onExit?: (context: CompanionStateContext) => void;

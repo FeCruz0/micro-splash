@@ -1,125 +1,113 @@
-# Plano de Implementação — Fase 60: Baleia Co-Migrante Autônoma & Ciclo de Vida Contínuo
+# Plano de Implementação — Fase 61: Desacoplamento da Dependência do Jogador & Co-Migração 100% Autônoma (Organic Ocean Pod)
 
 Status: Concluído ✅  
-Data: 2026-10-27  
-Alvo: v1.25.0 (Baleia Co-Migrante Autônoma com Fôlego Aberto, Desvio de Perigos, Desmaio e Chegada em Abrolhos)
+Data: 2026-10-28  
+Alvo: v1.26.0 (Baleia Co-Migrante com Autonomia Plena, Nado Desatrelado, Partida Espontânea e Forrageamento Competitivo)
 
 ---
 
-## 🔬 Diagnóstico e Escopo da Fase 60
+## 🔬 Diagnóstico e Escopo da Fase 61
 
 1. **Problemas Identificados**:
-   - **Despawn Prematuro / Parada Estacionária em 3.150m**: Atualmente, a Baleia-Guia foi projetada exclusivamente como tutora do bioma Antártico (`initialX < 3200`, `FAREWELL_TARGET_X: 3150`). Ao término do tutorial, ela transiciona para `RESTING` e para no leito marinho polar, sendo deixada para trás ou despawnada.
-   - **Ausência de Ciclo de Vida Contínuo na Rota de 30.000m**: No Modo Sereno (e no Modo Padrão quando habilitada), o jogador nada por todos os 5 biomas até Abrolhos, mas perde a companheira ao sair da Antártica.
-   - **Restrição de Respiração Exclusiva ao Gelo**: `SeekBreathState` checa unicamente `isPositionInIceGap(companion.pos.x)`. Fora da Antártica (após 3.200m), não há banquisa de gelo polar; a baleia precisa reconhecer a lâmina d'água de mar aberto (`SEA_LEVEL`) para respirar.
-   - **Imunidade a Perigos e Falta de Mortalidade**: A baleia-guia não desvia ativamente de redes de pesca fantasma (`TAGS.NET`), embarcações industriais (`TAGS.SHIP`), traineiras (`TAGS.BOAT`), lixo plástico (`TAGS.TRASH`) e relevo abissal. Além disso, se o oxigênio cair a zero, ela não sofre consequências biológicas de anóxia (como o desmaio `fainting` do jogador).
+   - **Rubber-Banding Artificial Compulsório**: Em `companionLocomotion.ts`, a cadência de remada é artificialmente forçada para baixo (35%) ou para cima (145%) baseando-se estritamente na distância relativa `distanceAhead = companion.pos.x - playerX`. Isso cria a sensação de um "elástico invisível" prendendo a baleia ao jogador.
+   - **Freio por Inércia do Jogador**: Em `companionLocomotion.ts`, se o jogador para de nadar ou desacelera (`playerSpeed < 20`), a baleia-guia freia drasticamente suas remadas para 25%, mesmo que esteja no oceano aberto precisando respirar ou migrar.
+   - **Partida Subordinada ao Jogador**: Em `IntroState`, a baleia fica congelada na largada esperando passivamente que o jogador nade além de `playerX > 40`, em vez de iniciar sua própria jornada biológica.
+   - **Cedência Não-Natural de Alimento**: Em `companionSenses.ts`, a baleia detecta se o jogador está a menos de 50px de um cardume de krill e renuncia à alimentação (`playerDistToKrill > 50`). No mar aberto, isso prejudica sua sobrevivência biológica por anóxia.
+   - **Progressão do Ciclo de Vida Vinculada à Posição do Jogador**: A transição da Antártica para o mar aberto checa `playerX >= FAREWELL_TARGET_X - 180`, em vez de respeitar a posição e o progresso da própria baleia (`companion.pos.x`).
+   - **Acoplamento Estrutural Rígido no Construtor**: `createCompanionWhale` exige `PlayerController` obrigatório, impedindo que a baleia funcione como agente oceânico independente sem depender da existência do jogador.
 
-2. **Decisões Técnicas**:
-   - **Transição Fluida: Tutora ➔ Co-Migrante Autônoma (`INDEPENDENT_CRUISE`)**:
-     - Ao atingir ~3.150m (fim do aprendizado de fôlego, alimentação e sonar), o tutorial é concluído e salvo no storage, mas a baleia NÃO para nem despawna. Ela entra no estado `INDEPENDENT_CRUISE`.
-     - Nesse estado, ela tem objetivo idêntico ao do jogador: percorrer a rota migratória completa até Abrolhos (`GAME_CONFIG.ROUTE_TOTAL_DISTANCE`: 30.000m).
-   - **Ciclo Pulmonar Universal & Mar Aberto**:
-     - Na Antártica (`x < 3200`): busca fendas no gelo com `isPositionInIceGap`.
-     - Nos demais biomas (`x >= 3200`): sobe suavemente para a superfície aberta (`companion.pos.y <= GAME_CONFIG.SEA_LEVEL`), expira vapor duplo determinístico e recarrega 100% do oxigênio.
-     - Coleta contínua de cardumes de krill e plâncton usando o `SpatialHashGrid` para sustentar energia de nado.
-   - **Sensoriamento Perceptivo & Desvio Proativo de Ameaças (`AVOID_OBSTACLE`)**:
-     - Expansão de `companionSenses.ts` com varredura cônica à frente (`HAZARD_AVOID_RANGE: 320px`) via `SpatialHashGrid` para redes, barcos, cargueiros e obstáculos.
-     - Ao detectar uma ameaça em rota de colisão, transiciona para `AVOID_OBSTACLE`, aplicando manobra evasiva calculada (mergulho profundo para evitar barcos/redes de superfície ou ascensão para contornar relevos rochosos).
-   - **Mortalidade e Consequência Serena (`FAINTED` & `TRAPPED`)**:
-     - Se colidir diretamente com uma rede de pesca fantasma (`TAGS.NET`), entra em `TRAPPED`, desacelerando bruscamente e perdendo oxigênio em ritmo dobrado até conseguir se desvencilhar (ou com apoio de sonar).
-     - Se o oxigênio pulmonar atingir 0 (`currentOxygen <= 0`), ela entra em `FAINTED` (anóxia/desmaio biológico sereno, idêntico ao estado do jogador): cessa propulsão motora, emite canto fúnebre/melancólico e afunda suavemente até repousar no leito marinho, registrando seu sacrifício ou exaustão na migração.
-   - **Clímax Compartilhado em Abrolhos (`VICTORY_BREACH`)**:
-     - Caso chegue aos 30.000m viva ao lado do jogador, transiciona para `VICTORY_BREACH`, executando o Salto Majestoso sincronizado na celebração final.
-   - **Pacing Migratório Orgânico & Culling Sem Despawn**:
-     - Ritmo de nado autônomo equilibrado (`MIGRATION_PACE`), mantendo proximidade natural quando o jogador está perto, sem prender o jogador nem teleportar repentinamente.
-     - Culling espacial adaptado para a companheira: preserva a simulação de deslocamento contínuo mesmo quando ligeiramente fora do frustum da câmera.
+2. **Decisões Técnicas & Design Arquitetural**:
+   - **Dois Modos Coexistentes (Configuráveis)**:
+     - `guided` (Modo Tutorial / Antártica inicial padrão): Mantém a assistência mútua e o acompanhamento próximo para jogadores iniciantes aprenderem fôlego, nado e sonar.
+     - `autonomous` (Modo Sereno / Co-migração pós-tutorial): Desacoplamento integral. A baleia não espera o jogador, não freia se o jogador parar, nada na velocidade constante de cruzeiro de sua espécie (`INDEPENDENT_SPEED: 190`), parte de forma espontânea e compete naturalmente por krill.
+   - **Referência Fraca ao Jogador (_Optional Weak Observer_)**:
+     - Tornar `playerController` opcional na interface de criação e nos submódulos (`companionSenses.ts`, `companionLocomotion.ts`). Quando ausente ou quando em modo autônomo, a IA toma decisões 100% baseadas no ambiente (topografia, banquisa, lâmina d'água, cardumes e perigos via `SpatialHashGrid`).
+   - **Co-Navegação Orgânica de Bando (_Pod Flocking Harmônico_)**:
+     - Quando ambos estiverem próximos (alcance de ~150-300px), a baleia emite cantos ocasionais de reconhecimento e navega em harmonia, mas sem prender sua velocidade ou frear se o jogador parar.
+     - Ultrapassagens e cruzamentos naturais: o jogador pode ultrapassá-la ao usar correntes/impulsos velozes ou reencontrá-la quilômetros à frente respirando na superfície.
+   - **Partida Espontânea por Timer de Aclimatação**:
+     - Em modo autônomo, a baleia se aclimata por 1.5s no ponto de partida e inicia o nado migratório por conta própria, sem requerer comando ou movimento do jogador.
+   - **Forrageamento Competitivo Livre**:
+     - Em modo autônomo, a baleia consome qualquer cardume em sua rota para recarregar oxigênio e manter sua sobrevivência rumo a Abrolhos.
 
 3. **Arquitetura & Restrições**:
-   - Respeito estrito a `ai.rules`: funções puras, TypeScript estrito, zero any, sem regressões nos 78 arquivos e 598 testes existentes.
-   - Nomes descritivos em inglês no código e documentação em PT-BR.
-   - Cobertura de testes unitários TDD abrangente cobrindo todos os novos estados e comportamentos.
+   - Respeito integral a `ai.rules`: funções puras, TypeScript estrito, zero `any`, sem regressões nos 78 arquivos e 598 testes existentes.
+   - Preservação de 100% de compatibilidade com os testes do modo tutorial original (`tests/entities/companionWhale.test.ts`).
+   - Nomes descritivos em inglês no código e documentação técnica em PT-BR.
 
 ---
 
 ## 📋 Lista de Tarefas Atômicas
 
-### Etapa 1: Configurações & Contratos de Estado da Co-Migração
+### Etapa 1: Configurações & Tipagem de Autonomia Plena
 
 - [x] **1.1 Expandir `COMPANION_CONFIG` em `src/config.ts`**
   - **Arquivo**: `src/config.ts`.
-  - **Ação**: Adicionar constantes de co-migração de longo curso: `INDEPENDENT_SPEED: 190`, `HAZARD_AVOID_RANGE: 320`, `HAZARD_VERTICAL_CLEARANCE: 75`, `TRAPPED_OXYGEN_DRAIN_MULTIPLIER: 2.2`, `NET_ESCAPE_DURATION: 3.5`.
-- [x] **1.2 Expandir União de Estados e Contratos em `src/entities/companion/types.ts`**
+  - **Ação**: Adicionar parâmetros de desacoplamento: `AUTONOMOUS_STROKE_PACING: 1.0`, `AUTONOMOUS_INTRO_DELAY: 1.5`, `POD_HARMONY_DISTANCE: 250`, permitindo controle refinado de independência.
+- [x] **1.2 Atualizar Contratos e Opções em `src/entities/companion/types.ts`**
   - **Arquivo**: `src/entities/companion/types.ts`.
-  - **Ação**: Expandir `CompanionState` com `"INDEPENDENT_CRUISE" | "AVOID_OBSTACLE" | "TRAPPED" | "FAINTED" | "VICTORY_BREACH"`. Adicionar `handleNetCollision` e `isFainted` na interface `CompanionCollidable` e `CompanionWhaleController`.
+  - **Ação**: Adicionar `autonomyMode?: "guided" | "autonomous"` a `CompanionOptions`. Tornar referências ao jogador opcionais nos contratos de atualização.
 
 ---
 
-### Etapa 2: Respiração em Mar Aberto & Conclusão do Tutorial sem Despawn
+### Etapa 2: Desacoplamento da Locomoção e Cinemática
 
-- [x] **2.1 Adaptar Busca de Fôlego para Todos os Biomas em `concreteStates.ts`**
-  - **Arquivo**: `src/entities/companion/states/concreteStates.ts`.
-  - **Ação**: Em `SeekBreathState`, validar se a posição x está na Antártica (`x < 3200`) usando `isPositionInIceGap`, ou em mar aberto (`x >= 3200`), onde qualquer coordenada de superfície (`y <= SEA_LEVEL + 4`) permite subir e transicionar para `SURFACE_BREATHE`.
-- [x] **2.2 Atualizar Transição de Conclusão do Tutorial em `companionStates.ts`**
-  - **Arquivo**: `src/entities/companion/companionStates.ts`.
-  - **Ação**: Ao ultrapassar ~3.150m, marcar o tutorial como visto (`markCompanionTutorialSeen`), mas em vez de ir para `RESTING`, transicionar para `INDEPENDENT_CRUISE` (ou manter `RESTING` apenas se o tutorial tiver sido explicitamente desativado pelo jogador).
-
----
-
-### Etapa 3: Sensoriamento Cônico e Evasão de Perigos
-
-- [x] **3.1 Implementar Detecção de Ameaças no Radar em `companionSenses.ts`**
-  - **Arquivo**: `src/entities/companion/companionSenses.ts`.
-  - **Ação**: Adicionar método `detectAheadHazards` usando o `SpatialHashGrid` para varrer um cone de 320px à frente buscando entidades com tags `TAGS.NET`, `TAGS.SHIP`, `TAGS.BOAT` e `TAGS.OBSTACLE`.
-- [x] **3.2 Criar Nós Concretos `IndependentCruiseState` e `AvoidObstacleState`**
-  - **Arquivo**: `src/entities/companion/states/concreteStates.ts`.
-  - **Ação**:
-    - `IndependentCruiseState`: navegação fluida em direção a 30.000m, oscilação oceânica natural, checagem contínua de oxigênio e escaneamento de perigos.
-    - `AvoidObstacleState`: manobra evasiva angular calculada para desviar de redes e embarcações (arremetida para baixo ou subida).
-- [x] **3.3 Registrar Colisão com Redes em `src/systems/collisions.ts` e Nó `TrappedState`**
-  - **Arquivo**: `src/systems/collisions.ts`, `src/entities/companion/states/concreteStates.ts`.
-  - **Ação**: Registrar colisão `companion_whale` com `TAGS.NET`, acionando `TrappedState` com perda acelerada de oxigênio e desaceleração.
-
----
-
-### Etapa 4: Estados de Mortalidade e Vitória Compartilhada
-
-- [x] **4.1 Implementar Nó `FaintedState` (Mortalidade Serena por Anóxia)**
-  - **Arquivo**: `src/entities/companion/states/concreteStates.ts`.
-  - **Ação**: Quando `currentOxygen <= 0`, transicionar para `FAINTED`. Bloquear controles de propulsão ativa, reproduzir animação de desmaio/repouso, descer suavemente via afundamento brando e emitir som melancólico de canto de baleia.
-- [x] **4.2 Implementar Nó `VictoryBreachState` nos 30.000m**
-  - **Arquivo**: `src/entities/companion/states/concreteStates.ts`.
-  - **Ação**: Ao ultrapassar `ROUTE_TOTAL_DISTANCE - 400`, transicionar para `VICTORY_BREACH`, acelerando para cima e executando o salto majestoso em sincronia com o jogador.
-- [x] **4.3 Ajustar Cinemática Hidrodinâmica em `companionLocomotion.ts`**
+- [x] **2.1 Eliminar Rubber-Banding Compulsório em `companionLocomotion.ts`**
   - **Arquivo**: `src/entities/companion/companionLocomotion.ts`.
-  - **Ação**: Suportar empuxo e arrasto de cruzeiro autônomo de longo curso, frenagem em `TRAPPED`, afundamento passivo em `FAINTED` e propulsão de salto em `VICTORY_BREACH`.
+  - **Ação**: Quando `options.autonomyMode === "autonomous"` ou nos estados de co-migração, suprimir ajustes artificiais de cadência (`strokePacingBoost`) baseados em `distanceAhead` e `playerSpeed < 20`, mantendo cadência hidrodinâmica autônoma contínua.
+- [x] **2.2 Desacoplar Assinatura de `update` em `companionLocomotion.ts`**
+  - **Arquivo**: `src/entities/companion/companionLocomotion.ts`.
+  - **Ação**: Tornar `playerX` e `playerSpeed` parâmetros opcionais (`playerX?: number, playerSpeed?: number`), operando com velocidade intrínseca autônoma quando não informados.
 
 ---
 
-### Etapa 5: Integração na Cena Principal e Culling Frustum
+### Etapa 3: Desacoplamento Sensorial e Forrageamento Livre
 
-- [x] **5.1 Estender Ciclo de Vida da Baleia-Guia em `src/scenes/gameScene.ts`**
+- [x] **3.1 Habilitar Forrageamento Competitivo em `companionSenses.ts`**
+  - **Arquivo**: `src/entities/companion/companionSenses.ts`.
+  - **Ação**: Em modo autônomo, remover a restrição `playerDistToKrill > 50`, permitindo que a baleia co-migrante mire e consuma qualquer cardume de krill à frente para manter seu suprimento vital de oxigênio.
+- [x] **3.2 Tornar `playerX` Opcional no Loop Sensorial**
+  - **Arquivo**: `src/entities/companion/companionSenses.ts`.
+  - **Ação**: Ajustar `companionSenses.update` para operar perfeitamente sem exigir coordenada do jogador.
+
+---
+
+### Etapa 4: Desacoplamento dos Estados FSM & Partida Espontânea
+
+- [x] **4.1 Partida Espontânea em `IntroState` (`concreteStates.ts`)**
+  - **Arquivo**: `src/entities/companion/states/concreteStates.ts`.
+  - **Ação**: Em modo autônomo, transicionar de `INTRO` para `CRUISE` / `INDEPENDENT_CRUISE` quando `stateTimer >= COMPANION_CONFIG.AUTONOMOUS_INTRO_DELAY` (1.5s), dispensando a espera por `playerX > 40`.
+- [x] **4.2 Transição Baseada na Própria Posição em `companionStates.ts`**
+  - **Arquivo**: `src/entities/companion/companionStates.ts`.
+  - **Ação**: Validar a conclusão da etapa antártica usando a posição da própria baleia (`companion.pos.x >= FAREWELL_TARGET_X - 180`) em vez de subordiná-la a `playerX`.
+
+---
+
+### Etapa 5: Orquestração Desacoplada da Entidade
+
+- [x] **5.1 Tornar `PlayerController` Opcional em `createCompanionWhale` (`index.ts`)**
+  - **Arquivo**: `src/entities/companion/index.ts`, `src/entities/companionWhale.ts`.
+  - **Ação**: Aceitar `playerController?: PlayerController | null`, permitindo que a baleia seja instanciada como entidade de vida marinha 100% autônoma no mundo.
+- [x] **5.2 Configuração da Co-Migração Serena em `src/scenes/gameScene.ts`**
   - **Arquivo**: `src/scenes/gameScene.ts`.
-  - **Ação**: Remover o teto de spawn `initialX < 3200` para modos que suportam co-migração contínua (`serene` e `standard`), mantendo a baleia ativa por toda a migração.
-- [x] **5.2 Proteção Contra Despawn por Culling Espacial**
-  - **Arquivo**: `src/systems/spatialCullingSystem.ts`, `src/entities/companion/index.ts`.
-  - **Ação**: Garantir que a Baleia-Guia não seja descartada ou permanentemente congelada quando o jogador se distanciar; manter atualização cinemática simplificada fora do frustum.
+  - **Ação**: Configurar `autonomyMode: "autonomous"` no Modo Sereno (`options.mode === "serene"`), concedendo independência imediata ao co-migrante.
 
 ---
 
 ### Etapa 6: Suíte de Testes Automatizados TDD
 
-- [x] **6.1 Criar Suíte `tests/entities/companion/coMigration.test.ts`**
-  - **Arquivo**: `tests/entities/companion/coMigration.test.ts`.
-  - **Ação**:
-    - Testar transição de tutorial para `INDEPENDENT_CRUISE` sem interrupção de nado.
-    - Testar respiração em mar aberto pós-Antártica (`x > 3200`).
-    - Testar detecção e evasão de perigos (`AVOID_OBSTACLE`).
-    - Testar aprisionamento em redes (`TRAPPED`) e aumento de consumo de oxigênio.
-    - Testar esgotamento de oxigênio e entrada em `FAINTED`.
-    - Testar chegada aos 30.000m e acionamento de `VICTORY_BREACH`.
-- [x] **6.2 Atualizar Testes Existentes da FSM e da Baleia-Guia**
-  - **Arquivo**: `tests/entities/companion/stateMachine.test.ts`, `tests/entities/companionWhale.test.ts`.
-  - **Ação**: Assegurar 100% de retrocompatibilidade com os testes existentes de repouso e tutorial.
+- [x] **6.1 Criar Suíte de Testes de Autonomia em `tests/entities/companion/autonomousPod.test.ts`**
+  - **Arquivo**: `tests/entities/companion/autonomousPod.test.ts`.
+  - **Ação**: Cobrir:
+    - Partida espontânea da baleia sem movimento do jogador (`stateTimer >= 1.5s`);
+    - Nado com cadência constante (100%) mesmo quando o jogador para completamente (`playerSpeed = 0`);
+    - Continuidade da migração quando o jogador fica a centenas de metros para trás;
+    - Forrageamento livre de krill próximo ao jogador em modo autônomo;
+    - Funcionamento do ciclo de vida sem `playerController` injetado;
+    - Preservação da fidelidade do modo tutorial guiado em `autonomyMode: "guided"`.
+- [x] **6.2 Validar Retrocompatibilidade dos Testes Existentes**
+  - **Arquivo**: `tests/entities/companionWhale.test.ts`, `tests/entities/companion/coMigration.test.ts`.
+  - **Ação**: Garantir 100% de aprovação de todos os testes anteriores.
 
 ---
 
@@ -129,4 +117,22 @@ Alvo: v1.25.0 (Baleia Co-Migrante Autônoma com Fôlego Aberto, Desvio de Perigo
   - **Ação**: Executar `npx tsc --noEmit` e `npm test -- --run`.
 - [x] **7.2 Sincronizar Documentação Técnica**
   - **Arquivo**: `docs/ROADMAP.md`, `CHANGELOG.md`, `docs/ARCHITECTURE.md`.
-  - **Ação**: Registrar a Fase 60 e os novos estados da Baleia Co-Migrante.
+  - **Ação**: Adicionar a Fase 61 no roadmap, documentar a arquitetura desatrelada de co-migração e atualizar o changelog para a versão v1.26.0.
+
+---
+
+## 📅 Backlog / Fase Planejada no Roadmap
+
+### Fase 62: Ajuste de Interface & Ocultação do Desafio Semanal (Em Desenvolvimento)
+
+- [ ] **62.1 Remover Botão de Desafio Semanal da Interface (`src/ui/modeSelectScreen.ts`)**:
+  - Remover/ocultar card de seleção do Desafio Semanal e reorganizar a grade dos modos ativos (Migração Normal, Serena e Rápida).
+- [x] **62.2 Deixar na Documentação o Desafio Semanal como "Em Desenvolvimento"**:
+  - Atualizado em `docs/ROADMAP.md`, `docs/GDD.md`, `docs/ARCHITECTURE.md` e `README.md`.
+
+### Fase 63: Ocultação da Narração por Voz & Recurso em Desenvolvimento
+
+- [ ] **63.1 Remover Botão de Narração por Voz da Interface de Acessibilidade (`src/ui/options/accessibilityOptionsTab.ts`)**:
+  - Remover/ocultar o botão de alternância de Narração em Voz (TTS) e reorganizar os controles verticais da aba.
+- [x] **63.2 Atualizar a Documentação para Sinalizar a Narração por Voz como "Em Desenvolvimento"**:
+  - Atualizado em `docs/ROADMAP.md`, `docs/ARCHITECTURE.md`, `docs/PRIVACIDADE.md` e `README.md`.

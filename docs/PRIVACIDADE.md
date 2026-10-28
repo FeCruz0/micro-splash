@@ -60,7 +60,7 @@ Todas as chaves criadas pelo Micro Splash utilizam o prefixo identificador `micr
 | `micro_splash_resolution`       | Preset de resolução do canvas (`auto`, `4K`, `1440p`, `1080p`) e chaves específicas por dispositivo. | String                        |
 | `micro_splash_display_mode`     | Modo de proporção de tela (`stretch` ou `letterbox`).                                                | String                        |
 | `micro_splash_onboarding_seen`  | Indica se o onboarding em 3 slides já foi visualizado no dispositivo.                                | Booleano (`"true"`)           |
-| `micro_splash_tts_enabled`      | Ativação da narração em voz acessível dos fatos ecológicos.                                          | Booleano (`"true"`/`"false"`) |
+| `micro_splash_tts_enabled`      | Ativação da narração em voz acessível dos fatos ecológicos (em desenvolvimento).                     | Booleano (`"true"`/`"false"`) |
 
 ---
 

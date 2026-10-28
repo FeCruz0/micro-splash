@@ -7,6 +7,32 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [1.26.0] - 2026-10-28 — Desacoplamento da Dependência do Jogador & Co-Migração 100% Autônoma (Fase 61)
+
+### Adicionado & Modificado
+
+- **Desacoplamento Cinemático e de Locomoção (`src/entities/companion/companionLocomotion.ts`)**:
+  - Eliminação do _rubber-banding_ artificial e do freio por inércia do jogador (`playerSpeed < 20`) no modo autônomo e nos estados de co-migração, garantindo cadência hidrodinâmica contínua e velocidade de cruzeiro independente (`AUTONOMOUS_STROKE_PACING: 1.0`).
+  - Assinatura do método `update` flexibilizada para receber coordenadas do jogador como parâmetros opcionais (`playerX?: number, playerSpeed?: number`).
+- **Forrageamento Competitivo Livre (`src/entities/companion/companionSenses.ts`)**:
+  - Remoção da restrição de proximidade com o jogador (`playerDistToKrill > 50`) no modo autônomo, permitindo que a baleia forrageie e consuma cardumes de krill livremente para sustentar seus níveis de oxigênio pulmonar.
+  - Varredura de radar adaptada para operar com ou sem a presença do jogador.
+- **Partida Espontânea & Transições FSM Independentes (`src/entities/companion/states/concreteStates.ts`, `companionStates.ts`)**:
+  - Partida espontânea no estado `IntroState` acionada por temporizador de aclimatação (`AUTONOMOUS_INTRO_DELAY: 1.5s`) sem requerer movimento do jogador (`playerX > 40`).
+  - Validação da conclusão da etapa tutorial baseada no progresso da própria baleia (`companion.pos.x >= FAREWELL_TARGET_X - 180`).
+- **Instanciação Autônoma da Entidade (`src/entities/companion/index.ts`, `src/scenes/gameScene.ts`)**:
+  - Suporte a `PlayerController` opcional na função de criação `createCompanionWhale`, permitindo que a baleia co-migrante funcione como agente autônomo de vida marinha mesmo sem jogador.
+  - Ativação de `autonomyMode: "autonomous"` no Modo Sereno (`options.mode === "serene"`).
+- **Fôlego Infinito & Fluidez de Nado (`src/config.ts`, `src/entities/companion/companionStates.ts`, `src/scenes/gameScene.ts`)**:
+  - Habilitação de oxigênio infinito (`INFINITE_OXYGEN: true`) por padrão para a baleia-guia, eliminando a lentidão causada por repetidas manobras de subida forçada para respirar ou estados de exaustão/anóxia.
+  - Opção configurável `infiniteOxygen` adicionada em `CompanionOptions`, mantendo suporte retrocompatível para cenários com oxigênio finito via `infiniteOxygen: false`.
+  - Calibração de velocidades de cruzeiro e fuga de redes em `COMPANION_CONFIG` para garantir nado ágil e gracioso.
+- **Suíte de Testes da Fase 61 (`tests/entities/companion/autonomousPod.test.ts`)**:
+  - Testes unitários automatizados cobrindo oxigênio infinito por padrão, partida espontânea, cadência constante com jogador parado, nado de longo curso independente, forrageamento competitivo livre e instanciação autônoma.
+  - Base de testes expandida para 79 arquivos e 611 testes automatizados 100% aprovados.
+
+---
+
 ## [1.25.0] - 2026-10-27 — Baleia Co-Migrante Autônoma & Ciclo de Vida Contínuo (Fase 60)
 
 ### Adicionado & Modificado

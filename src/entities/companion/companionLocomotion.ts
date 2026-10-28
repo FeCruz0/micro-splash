@@ -10,9 +10,9 @@ export interface CompanionLocomotion {
   update: (
     deltaTime: number,
     targetAngle: number,
-    playerX: number,
-    playerSpeed: number,
-    currentState: CompanionState
+    playerX?: number,
+    playerSpeed?: number,
+    currentState?: CompanionState
   ) => void;
   handleIceBlockCollision: (iceBlock?: GameObj) => void;
   handleObstacleBlockCollision: (obstacle?: GameObj) => void;
@@ -23,6 +23,8 @@ export interface CompanionLocomotionOptions {
   k: KaboomCtx;
   companion: GameObj;
   prng: RandomNumberGenerator;
+  autonomyMode?: "guided" | "autonomous";
+  isCoMigration?: boolean;
 }
 
 /**
@@ -63,9 +65,9 @@ export function createCompanionLocomotion(
   const update = (
     deltaTime: number,
     targetAngle: number,
-    playerX: number,
-    playerSpeed: number,
-    currentState: CompanionState
+    playerX?: number,
+    playerSpeed?: number,
+    currentState?: CompanionState
   ): void => {
     // 1. Giro vertical lento (espelha controle vertical da baleia do jogador)
     const rotationSpeed = GAME_CONFIG.ROTATION_SPEED * COMPANION_CONFIG.ROTATION_SPEED_FACTOR;
@@ -77,27 +79,42 @@ export function createCompanionLocomotion(
     );
 
     // 2. Propulsão direcional no ângulo virado
+    const currentCompanionState = currentState ?? "CRUISE";
     if (
-      currentState !== "SURFACE_BREATHE" &&
-      currentState !== "RESTING" &&
-      currentState !== "INTRO" &&
-      currentState !== "FAINTED" &&
-      currentState !== "TRAPPED"
+      currentCompanionState !== "SURFACE_BREATHE" &&
+      currentCompanionState !== "RESTING" &&
+      currentCompanionState !== "INTRO" &&
+      currentCompanionState !== "FAINTED" &&
+      currentCompanionState !== "TRAPPED"
     ) {
-      // Ajuste de cadência por rubber-banding
-      const distanceAhead = companion.pos.x - playerX;
       let strokePacingBoost = 1.0;
-      if (distanceAhead > COMPANION_CONFIG.LEAD_DISTANCE_MAX) {
-        strokePacingBoost = 0.35;
-      } else if (distanceAhead < COMPANION_CONFIG.LEAD_DISTANCE_MIN) {
-        strokePacingBoost = 1.45;
+      const isAutonomous =
+        options.autonomyMode === "autonomous" ||
+        options.isCoMigration ||
+        currentCompanionState === "INDEPENDENT_CRUISE" ||
+        currentCompanionState === "AVOID_OBSTACLE" ||
+        currentCompanionState === "VICTORY_BREACH";
+
+      if (isAutonomous) {
+        // Modo Autônomo / Co-Migração: velocidade e cadência constante de cruzeiro independente
+        strokePacingBoost = COMPANION_CONFIG.AUTONOMOUS_STROKE_PACING;
+      } else if (playerX !== undefined) {
+        // Modo Guiado (Tutorial didático): ajuste de cadência por proximidade pedagógica
+        const distanceAhead = companion.pos.x - playerX;
+        if (distanceAhead > COMPANION_CONFIG.LEAD_DISTANCE_MAX) {
+          strokePacingBoost = 0.35;
+        } else if (distanceAhead < COMPANION_CONFIG.LEAD_DISTANCE_MIN) {
+          strokePacingBoost = 1.45;
+        }
+
+        if (playerSpeed !== undefined && playerSpeed < 20) {
+          strokePacingBoost = Math.min(strokePacingBoost, 0.25);
+        }
       }
 
-      if (currentState === "INDEPENDENT_CRUISE" || currentState === "AVOID_OBSTACLE") {
-        // Na co-migração de longo curso, mantém ritmo autônomo sem parar se o jogador desacelerar
-        strokePacingBoost = Math.max(0.75, strokePacingBoost);
-      } else if (playerSpeed < 20) {
-        strokePacingBoost = Math.min(strokePacingBoost, 0.25);
+      if (currentCompanionState === "SEEK_BREATH") {
+        // Urgência biológica: intensifica remadas para alcançar a superfície com rapidez
+        strokePacingBoost = Math.max(1.3, strokePacingBoost);
       }
 
       strokeCycleTimer += deltaTime;

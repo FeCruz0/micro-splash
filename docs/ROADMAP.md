@@ -230,8 +230,8 @@ _Objetivo: Aprofundar o impacto pedagógico com quiz rico (exclusivo para o fina
 
 - [x] **21.1 Banco de Quiz Expandido (50+ Perguntas por Bioma & Dificuldade):**
   - Expandir o `data/quiz.json` de 10 para 50+ perguntas organizadas por bioma e dificuldade progressiva (fácil → médio → difícil). **Nota de Design Estrita:** O quiz permanece exclusivamente como desafio opcional pós-jogo (na tela de vitória e no Diário de Bordo/Codex no menu), nunca interrompendo a natação durante a migração ativa.
-- [x] **21.2 Narração em Voz via Web Speech API (TTS):**
-  - Usar `SpeechSynthesisUtterance` nativo do browser para narrar os fatos ecológicos em voz neutra em português quando surgem na tela — sem necessidade de arquivos de áudio externos. Configurável nas Opções (ativar/desativar). Torna o jogo acessível para crianças menores que ainda não leem fluentemente.
+- [x] **21.2 Narração em Voz via Web Speech API (TTS) (Em Desenvolvimento):**
+  - _(Em Desenvolvimento)_ Usar `SpeechSynthesisUtterance` nativo do browser para narrar os fatos ecológicos em voz neutra em português quando surgem na tela — sem necessidade de arquivos de áudio externos. Opção temporariamente desativada do menu de opções para aprimoramento de compatibilidade. Torna o jogo acessível para crianças menores que ainda não leem fluentemente.
 - [x] **21.3 Onboarding PWA para Primeira Abertura:**
   - Na primeira abertura como PWA ou web (detectada via `localStorage`), exibir 3 slides rápidos de contextualização: (1) quem é a jubarte (_Megaptera novaeangliae_), (2) como os controles funcionam (nado, oxigênio e Biosonar), (3) por que ela migra (30.000m até Arraial do Cabo). Essencial para totens onde não há monitor humano explicando o jogo, acessível também a qualquer momento pelo menu.
 
@@ -241,8 +241,8 @@ _Objetivo: Criar motivação para retorno e competição saudável entre jogador
 
 - [x] **22.1 Ranking Online Global (Cloudflare Worker + KV):**
   - Substituir o ranking local pelo envio de score ao backend (Cloudflare Worker gratuito + KV Store) com arquitetura offline-first transparente. O nome/iniciais já é coletado pelo `initialsInputModal.ts`. Exibir top 10 global, semanal e local com abas de navegação.
-- [x] **22.2 Desafios Semanais por Semente Procedural:**
-  - Usar a data da semana como semente determinística para um layout de obstáculos idêntico no mundo todo a cada 7 dias. Ranking semanal separado do ranking padrão. Ao completar, gera um Certificado Oficial com selo único, data e semente no Victory Card.
+- [x] **22.2 Desafios Semanais por Semente Procedural (Em Desenvolvimento):**
+  - _(Em Desenvolvimento)_ Usar a data da semana como semente determinística para um layout de obstáculos idêntico no mundo todo a cada 7 dias. Ranking semanal separado do ranking padrão. Ao completar, gera um Certificado Oficial com selo único, data e semente no Victory Card. Modo temporariamente desativado da interface de seleção para reformulação.
 
 ### 🔧 FASE 23: Qualidade Técnica & Plataformas
 
@@ -900,3 +900,46 @@ _Objetivo: Estender a vida útil e autonomia da Baleia-Guia para além do tutori
   - Manter a simulação e o acompanhamento migratório sem corte prematuro pelo culling frustum ou barreiras de bioma.
 - [x] **60.6 Suíte de Testes Automatizados da Co-Migração (`tests/entities/companion/coMigration.test.ts`):**
   - Cobertura de testes unitários para a rota de 30.000m, desvio de perigos, ciclo respiratório universal e estados de desmaio/vitória.
+
+### 🌊 FASE 61: Desacoplamento da Dependência do Jogador & Co-Migração 100% Autônoma (Organic Ocean Pod)
+
+_Objetivo: Desatrelar a baleia co-migrante de restrições artificiais baseadas no jogador (rubber-banding rígido, freio por inércia do jogador, espera passiva na largada e renúncia de alimento), concedendo autonomia biológica plena e transformando-a em um agente de vida marinha livre no oceano._
+
+- [x] **61.1 Configurações de Autonomia & Contratos Tipados (`src/config.ts`, `src/entities/companion/types.ts`):**
+  - Adição de `AUTONOMOUS_STROKE_PACING: 1.0`, `AUTONOMOUS_INTRO_DELAY: 1.5`, `POD_HARMONY_DISTANCE: 250` e modo `autonomyMode: "guided" | "autonomous"`.
+- [x] **61.2 Desacoplamento da Locomoção e Cinemática Hidrodinâmica (`src/entities/companion/companionLocomotion.ts`):**
+  - Eliminação de acelerações/frenagens artificiais por distância e inércia do jogador no modo autônomo, tornando os parâmetros do jogador opcionais.
+- [x] **61.3 Forrageamento Competitivo Livre (`src/entities/companion/companionSenses.ts`):**
+  - Supressão da concessão forçada de krill em modo autônomo, permitindo alimentação natural para sustentação de oxigênio vital.
+- [x] **61.4 Partida Espontânea & Transições FSM Independentes (`src/entities/companion/states/concreteStates.ts`, `companionStates.ts`):**
+  - Partida autônoma em `IntroState` após aclimatação (1.5s) e transição da Antártica para o mar aberto baseada no progresso da própria baleia (`companion.pos.x`).
+- [x] **61.5 Orquestração e Instanciação Autônoma sem Jogador (`src/entities/companion/index.ts`, `src/scenes/gameScene.ts`):**
+  - `PlayerController` tornado opcional no construtor e ativação de `autonomyMode: "autonomous"` na co-migração serena.
+- [x] **61.6 Suíte de Testes Automatizados de Autonomia (`tests/entities/companion/autonomousPod.test.ts`):**
+  - Cobertura de testes para partida espontânea, nado constante com jogador imóvel, ultrapassagens orgânicas, forrageamento livre e operação sem referência ao jogador.
+
+---
+
+## 🎯 Próximas Fases Planejadas (Backlog)
+
+### 📅 FASE 62: Ajuste de Interface & Ocultação do Desafio Semanal (Em Desenvolvimento)
+
+_Objetivo: Remover o botão de acesso ao Desafio Semanal na tela de seleção de modos (`src/ui/modeSelectScreen.ts`), mantendo o Desafio Semanal documentado como "Em Desenvolvimento" em toda a documentação até o polimento completo do ecossistema de rankings comunitários e geração de sementes determinísticas._
+
+- [ ] **62.1 Remover Botão de Desafio Semanal da Interface (`src/ui/modeSelectScreen.ts`):**
+  - Remover ou desativar o card/botão do "Desafio Semanal" na tela de seleção de modos (`src/ui/modeSelectScreen.ts`).
+  - Reorganizar a grade e o alinhamento visual dos cards de modos ativos remanescentes (Migração Normal, Migração Serena e Migração Rápida).
+- [ ] **62.2 Deixar na Documentação o Desafio Semanal como "Em Desenvolvimento":**
+  - Manter e sinalizar o status do Desafio Semanal como **"Em Desenvolvimento"** em `docs/ROADMAP.md`, `docs/GDD.md`, `docs/ARCHITECTURE.md` e `README.md`.
+  - Preservar a infraestrutura de código subjacente (`src/systems/weeklyChallenge.ts`, schemas Zod e testes unitários) para viabilizar sua reativação futura sem retrabalho arquitetural.
+
+### 🗣️ FASE 63: Ocultação da Narração por Voz & Recurso em Desenvolvimento
+
+_Objetivo: Remover o botão de alternância de Narração em Voz (TTS) do painel de Opções de Acessibilidade (`src/ui/options/accessibilityOptionsTab.ts`), mantendo a funcionalidade documentada como "Em Desenvolvimento" em toda a documentação enquanto a síntese de voz nativa Web Speech API é aprimorada para compatibilidade multiplataforma._
+
+- [ ] **63.1 Remover Botão de Narração por Voz da Interface de Acessibilidade (`src/ui/options/accessibilityOptionsTab.ts`):**
+  - Remover ou desativar o botão de alternância de Narração em Voz (TTS) na aba de opções de acessibilidade (`accessibilityOptionsTab.ts`).
+  - Reorganizar o espaçamento e o alinhamento vertical dos controles remanescentes da aba de acessibilidade.
+- [ ] **63.2 Atualizar a Documentação para Sinalizar a Narração por Voz como "Em Desenvolvimento":**
+  - Registrar formalmente em `docs/ROADMAP.md`, `docs/ARCHITECTURE.md`, `docs/PRIVACIDADE.md` e `README.md` que a Narração por Voz (TTS) está categorizada como **"Em Desenvolvimento"**.
+  - Preservar o sistema subjacente (`src/systems/ttsSystem.ts`, chamadas nos pop-ups pedagógicos/insights e testes unitários) para viabilizar futura reativação sem quebra arquitetural.

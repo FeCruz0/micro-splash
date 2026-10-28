@@ -240,13 +240,14 @@ describe("Fase 60: Baleia Co-Migrante Autônoma & Ciclo de Vida Contínuo", () =
   });
 
   describe("60.4: Aprisionamento em Redes Fantasma (TRAPPED)", () => {
-    it("deve entrar em TRAPPED ao colidir com rede, desacelerar e drenar oxigênio", () => {
+    it("deve entrar em TRAPPED ao colidir com rede, desacelerar e drenar oxigênio quando finito", () => {
       const mockKaboom = createMockKaboom();
       const mockPlayer = createMockPlayerController(10000, 200, 180);
 
       const companionController = createCompanionWhale(mockKaboom, mockPlayer, {
         mode: "serene",
         isCoMigration: true,
+        infiniteOxygen: false,
       });
       companionController.gameObj.pos.x = 10000;
       companionController.gameObj.pos.y = 200;
@@ -294,6 +295,7 @@ describe("Fase 60: Baleia Co-Migrante Autônoma & Ciclo de Vida Contínuo", () =
       const companionController = createCompanionWhale(mockKaboom, mockPlayer, {
         mode: "serene",
         isCoMigration: true,
+        infiniteOxygen: false,
         onFainted: onFaintedMock,
       });
       companionController.gameObj.pos.x = 12000;

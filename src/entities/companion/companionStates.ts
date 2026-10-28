@@ -27,10 +27,10 @@ export interface CompanionStates {
   destroy: () => void;
   update: (
     deltaTime: number,
-    playerX: number,
-    targetKrill: GameObj | null,
-    targetHazard: GameObj | null,
-    onResetVerticalSpeed: () => void
+    playerX?: number,
+    targetKrill?: GameObj | null,
+    targetHazard?: GameObj | null,
+    onResetVerticalSpeed?: () => void
   ) => number;
 }
 
@@ -101,10 +101,12 @@ export function createCompanionStates(statesOptions: CompanionStatesOptions): Co
   };
 
   const drainOxygen = (amount: number): void => {
+    const hasInfiniteOxygen = options.infiniteOxygen ?? COMPANION_CONFIG.INFINITE_OXYGEN;
+    if (hasInfiniteOxygen) return;
     currentOxygen = Math.max(0, currentOxygen - amount);
   };
 
-  const getContext = (onResetVerticalSpeed: () => void): CompanionStateContext => ({
+  const getContext = (onResetVerticalSpeed?: () => void): CompanionStateContext => ({
     k,
     companion,
     options,
@@ -120,7 +122,7 @@ export function createCompanionStates(statesOptions: CompanionStatesOptions): Co
       krillsEatenCount++;
     },
     emitDoubleBlowholeSpout,
-    onResetVerticalSpeed,
+    onResetVerticalSpeed: onResetVerticalSpeed ?? (() => {}),
     stateTimer,
   });
 
@@ -137,25 +139,30 @@ export function createCompanionStates(statesOptions: CompanionStatesOptions): Co
 
   const update = (
     deltaTime: number,
-    playerX: number,
-    targetKrill: GameObj | null,
-    targetHazard: GameObj | null,
-    onResetVerticalSpeed: () => void
+    playerX?: number,
+    targetKrill: GameObj | null = null,
+    targetHazard: GameObj | null = null,
+    onResetVerticalSpeed?: () => void
   ): number => {
     stateTimer += deltaTime;
 
+    const hasInfiniteOxygen = options.infiniteOxygen ?? COMPANION_CONFIG.INFINITE_OXYGEN;
+
     // 1. Depleção biológica de oxigênio pulmonar
-    if (stateMachine.getState() !== "SURFACE_BREATHE") {
+    if (!hasInfiniteOxygen && stateMachine.getState() !== "SURFACE_BREATHE") {
       currentOxygen = Math.max(
         0,
         currentOxygen - deltaTime * (GAME_CONFIG.OXYGEN_DRAIN_RATE * 0.75)
       );
+    } else if (hasInfiniteOxygen) {
+      currentOxygen = maxOxygen;
     }
 
     const context = getContext(onResetVerticalSpeed);
 
     // 2. Checagem de exaustão/anóxia (mortalidade serena)
     if (
+      !hasInfiniteOxygen &&
       currentOxygen <= 0 &&
       stateMachine.getState() !== "FAINTED" &&
       stateMachine.getState() !== "DEPARTED"
@@ -183,6 +190,7 @@ export function createCompanionStates(statesOptions: CompanionStatesOptions): Co
     // 4. Checagem de oxigênio crítico
     const currentState = stateMachine.getState();
     if (
+      !hasInfiniteOxygen &&
       currentOxygen < COMPANION_CONFIG.CRITICAL_OXYGEN &&
       currentState !== "SEEK_BREATH" &&
       currentState !== "SURFACE_BREATHE" &&
@@ -197,9 +205,13 @@ export function createCompanionStates(statesOptions: CompanionStatesOptions): Co
     }
 
     // 5. Conclusão do Tutorial ao final da Antártica (~3.150m)
-    const isCoMigration = options.isCoMigration || options.mode === "serene";
+    const isCoMigration =
+      options.isCoMigration || options.mode === "serene" || options.autonomyMode === "autonomous";
+    const targetProgressX = companion.pos.x >= COMPANION_CONFIG.FAREWELL_TARGET_X - 180;
+    const playerProgressX =
+      playerX !== undefined && playerX >= COMPANION_CONFIG.FAREWELL_TARGET_X - 180;
     if (
-      playerX >= COMPANION_CONFIG.FAREWELL_TARGET_X - 180 &&
+      (targetProgressX || playerProgressX) &&
       (stateMachine.getState() === "CRUISE" || stateMachine.getState() === "INTRO")
     ) {
       stateTimer = 0;

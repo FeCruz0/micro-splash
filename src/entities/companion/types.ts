@@ -17,6 +17,8 @@ export type CompanionState =
   | "FAINTED"
   | "VICTORY_BREACH";
 
+export type CompanionAutonomyMode = "guided" | "autonomous";
+
 export interface CompanionOptions {
   initialX?: number;
   initialY?: number;
@@ -25,6 +27,8 @@ export interface CompanionOptions {
   spatialGrid?: SpatialHashGrid<GameObj>;
   mode?: string;
   isCoMigration?: boolean;
+  autonomyMode?: CompanionAutonomyMode;
+  infiniteOxygen?: boolean;
   onStateChange?: (state: CompanionState) => void;
   onDeparted?: () => void;
   onFainted?: () => void;
