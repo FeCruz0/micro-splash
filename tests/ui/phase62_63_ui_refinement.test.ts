@@ -21,7 +21,10 @@ describe("Fases 62 & 63: Ocultação de Recursos em Desenvolvimento (Desafio Sem
         vec2: (x: number, y: number) => ({ x, y }),
         rgb: (r: number, g: number, b: number) => ({ r, g, b }),
         rect: (w: number, h: number) => ({ type: "rect", w, h }),
-        pos: (x: number, y: number) => ({ type: "pos", x, y }),
+        pos: (x: any, y?: number) =>
+          typeof x === "object" && x !== null
+            ? { type: "pos", x: x.x, y: x.y }
+            : { type: "pos", x, y },
         color: (r: any, g?: any, b?: any) => ({ type: "color", r, g, b }),
         outline: (w: number, col: any) => ({ type: "outline", w, col }),
         scale: (s: number) => ({ type: "scale", s }),
@@ -72,6 +75,72 @@ describe("Fases 62 & 63: Ocultação de Recursos em Desenvolvimento (Desafio Sem
       // 2. Os modos de jogo ativos devem ser exibidos
       expect(textContents.some((t) => t.includes("MIGRAÇÃO SERENA"))).toBe(true);
       expect(textContents.some((t) => t.includes("MIGRAÇÃO RÁPIDA"))).toBe(true);
+    });
+
+    it("deve posicionar o texto instrutivo 'Selecione o bioma de partida:' em linha própria acima dos botões de bioma", () => {
+      const addedElements: any[] = [];
+      const mockKaboom: any = {
+        width: () => 1280,
+        height: () => 720,
+        vec2: (x: number, y: number) => ({ x, y }),
+        rgb: (r: number, g: number, b: number) => ({ r, g, b }),
+        rect: (w: number, h: number) => ({ type: "rect", w, h }),
+        pos: (x: any, y?: number) =>
+          typeof x === "object" && x !== null
+            ? { type: "pos", x: x.x, y: x.y }
+            : { type: "pos", x, y },
+        color: (r: any, g?: any, b?: any) => ({ type: "color", r, g, b }),
+        outline: (w: number, col: any) => ({ type: "outline", w, col }),
+        scale: (s: number) => ({ type: "scale", s }),
+        opacity: (o: number) => ({ type: "opacity", o }),
+        anchor: (a: string) => ({ type: "anchor", a }),
+        fixed: () => ({ type: "fixed" }),
+        area: () => ({ type: "area" }),
+        z: (idx: number) => ({ type: "z", idx }),
+        text: (content: string, opts?: any) => ({ type: "text", content, opts }),
+        add: vi.fn((comps: any[]) => {
+          const obj: any = {
+            comps,
+            onClick: vi.fn(),
+            onHoverUpdate: vi.fn(),
+            onHoverEnd: vi.fn(),
+            onUpdate: vi.fn(),
+            destroy: vi.fn(),
+          };
+          for (const c of comps) {
+            if (c.type === "pos") obj.pos = { x: c.x, y: c.y };
+            if (c.type === "text") obj.text = c.content;
+            if (c.type === "color") obj.color = c;
+          }
+          addedElements.push(obj);
+          return obj;
+        }),
+        wait: vi.fn((_time: number, cb: () => void) => cb()),
+        tween: vi.fn().mockReturnValue({ then: (cb: () => void) => cb() }),
+        easings: { easeOutBack: vi.fn() },
+        onKeyPress: vi.fn(),
+        onKeyDown: vi.fn(),
+        isKeyDown: vi.fn().mockReturnValue(false),
+      };
+
+      showModeSelectScreen(mockKaboom, vi.fn(), vi.fn());
+
+      const promptLabel = addedElements.find((el) => el.text === "Selecione o bioma de partida:");
+      const antarticaBtnTxt = addedElements.find((el) => el.text === "❄️ Antártica");
+      const startBtnTxt = addedElements.find((el) => el.text === "⚡ INICIAR DESAFIO RÁPIDO (60s)");
+
+      expect(promptLabel).toBeDefined();
+      expect(antarticaBtnTxt).toBeDefined();
+      expect(startBtnTxt).toBeDefined();
+
+      // O texto instrutivo deve estar estritamente acima dos botões de bioma (Y menor)
+      expect(promptLabel.pos.y).toBeLessThan(antarticaBtnTxt.pos.y);
+
+      // Os botões de bioma devem estar estritamente acima do botão de início
+      expect(antarticaBtnTxt.pos.y).toBeLessThan(startBtnTxt.pos.y);
+
+      // Distância vertical segura mínima de 20px entre o texto instrutivo e os botões
+      expect(antarticaBtnTxt.pos.y - promptLabel.pos.y).toBeGreaterThanOrEqual(20);
     });
 
     it("preserva o gerador de semente e dados do desafio semanal para futura reativação", () => {

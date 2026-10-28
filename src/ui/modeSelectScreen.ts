@@ -41,7 +41,7 @@ export function showModeSelectScreen(
 
   // Modal Card Principal com geometria ampla expandida (Fase 34.1)
   const cardW = Math.min(1000, screenW - 24);
-  const cardH = Math.min(660, screenH - 20);
+  const cardH = Math.min(580, screenH - 20);
   const card = k.add([
     k.rect(cardW, cardH, { radius: 16 }),
     k.pos(cX, cY),
@@ -366,7 +366,7 @@ export function showModeSelectScreen(
   // CARD 3: MIGRAÇÃO RÁPIDA (60 SEGUNDOS)
   // ==========================================
   let selectedBiomeIndex = 0;
-  const card4H = 124;
+  const card4H = 168;
   const card4Y = card2Y + card2H / 2 + 16 + card4H / 2;
 
   const card4 = k.add([
@@ -380,7 +380,7 @@ export function showModeSelectScreen(
   ]);
   elements.push(card4);
 
-  const icon4Pos = k.vec2(cX - contentBoxW / 2 + 36, card4Y);
+  const icon4Pos = k.vec2(cX - contentBoxW / 2 + 36, card4Y - 42);
   elements.push(
     k.add([
       k.rect(50, 50, { radius: 10 }),
@@ -411,7 +411,7 @@ export function showModeSelectScreen(
         size: accessibilitySystem.scaleFont(17.5),
         font: "Outfit",
       }),
-      k.pos(textStartX, card4Y - 36),
+      k.pos(textStartX, card4Y - 56),
       k.color(255, 190, 110),
       k.anchor("left"),
       k.fixed(),
@@ -425,7 +425,7 @@ export function showModeSelectScreen(
         size: accessibilitySystem.scaleFont(14.5),
         font: "Inter",
       }),
-      k.pos(textStartX, card4Y - 8),
+      k.pos(textStartX, card4Y - 28),
       k.color(225, 235, 250),
       k.anchor("left"),
       k.fixed(),
@@ -441,12 +441,14 @@ export function showModeSelectScreen(
   ];
 
   const biomeBtns: Array<{ btn: GameObj; txt: GameObj; index: number }> = [];
-  const biomeBtnW = 165;
+  const biomeBtnW = 160;
   const biomeBtnH = 34;
+  const biomeGap = 12;
+  const totalBiomesW = biomes.length * biomeBtnW + (biomes.length - 1) * biomeGap;
 
   biomes.forEach((b, i) => {
-    const bX = textStartX + 195 + i * (biomeBtnW + 10);
-    const bY = card4Y - 8;
+    const bX = cX - totalBiomesW / 2 + biomeBtnW / 2 + i * (biomeBtnW + biomeGap);
+    const bY = card4Y + 8;
 
     const bBtn = k.add([
       k.rect(biomeBtnW, biomeBtnH, { radius: 7 }),
@@ -504,9 +506,9 @@ export function showModeSelectScreen(
   });
 
   // Botão Iniciar Trecho Rápido
-  const btnStartQuickPos = k.vec2(cX, card4Y + 32);
+  const btnStartQuickPos = k.vec2(cX, card4Y + 52);
   const btnStartQuick = k.add([
-    k.rect(380, 40, { radius: 8 }),
+    k.rect(380, 38, { radius: 8 }),
     k.pos(btnStartQuickPos),
     k.color(200, 95, 15),
     k.outline(1.5, k.rgb(255, 210, 100)),
@@ -554,14 +556,14 @@ export function showModeSelectScreen(
   focusItems.push({
     pos: btnStartQuickPos,
     width: 380,
-    height: 40,
+    height: 38,
     onActivate: startQuick,
   });
 
   // ==========================================
   // BOTÃO VOLTAR AO MENU NA BASE
   // ==========================================
-  const btnBackPos = k.vec2(cX, cY + cardH / 2 - 32);
+  const btnBackPos = k.vec2(cX, cY + cardH / 2 - 34);
   const btnBack = k.add([
     k.rect(280, 46, { radius: 10 }),
     k.pos(btnBackPos),
