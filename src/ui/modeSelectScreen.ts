@@ -6,7 +6,14 @@ import { createFocusGroup, type FocusableItem } from "./keyboardNav";
 import { FONT_TITLE, FONT_BODY, TEXT_SIZE_H1, TEXT_SIZE_BODY } from "../config";
 import { addShadowedText } from "./textUtils";
 import { animateModalEntrance, attachButtonHoverEffect } from "./animationUtils";
-import { UI_COLORS, UI_RADII, UI_Z_INDEX, getModalDimensions } from "./theme";
+import {
+  UI_COLORS,
+  UI_RADII,
+  UI_Z_INDEX,
+  getModalDimensions,
+  staggerElementsEntrance,
+  attachPulseEffect,
+} from "./shared";
 
 export function showModeSelectScreen(
   k: KaboomCtx,
@@ -82,10 +89,15 @@ export function showModeSelectScreen(
   );
 
   let keyHandler: ((event: KeyboardEvent) => void) | null = null;
+  let quickPulseHandle: { destroy: () => void } | null = null;
 
   const destroyAll = () => {
     if (isClosed) return;
     isClosed = true;
+    if (quickPulseHandle) {
+      quickPulseHandle.destroy();
+      quickPulseHandle = null;
+    }
     if (focusGroup) {
       focusGroup.destroy();
     }
@@ -593,6 +605,9 @@ export function showModeSelectScreen(
     hoverScale: 1.025,
     canInteract: () => canInteract,
   });
+  quickPulseHandle = attachPulseEffect(k, btnStartQuick, {
+    canInteract: () => canInteract,
+  });
 
   const startQuick = () => {
     if (!canInteract) return;
@@ -665,6 +680,10 @@ export function showModeSelectScreen(
     items: focusItems,
     initialIndex: 1, // Começa no modo clássico
     ringZ: 315,
+  });
+
+  staggerElementsEntrance(k, [card1, card2, card4], {
+    staggerDelayMs: 40,
   });
 
   keyHandler = (event: KeyboardEvent) => {

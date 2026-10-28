@@ -6,7 +6,7 @@ import { getWeeklyTop10Entries, getWeeklyChallengeInfo } from "../systems/weekly
 import { fetchOnlineLeaderboard } from "../services/leaderboardApi";
 import { createFocusGroup, type FocusableItem } from "./keyboardNav";
 import { UI_COLORS, UI_RADII, UI_Z_INDEX, getModalDimensions } from "./theme";
-import { createTabBar, createCardButton } from "./shared";
+import { createTabBar, createCardButton, staggerElementsEntrance } from "./shared";
 
 export type LeaderboardTab = "global" | "weekly" | "local";
 
@@ -249,23 +249,26 @@ export function showLeaderboardScreen(k: KaboomCtx, onClose: () => void) {
     });
     tableElements = [];
 
+    const rowBackgrounds: GameObj[] = [];
+
     entries.slice(0, 10).forEach((entry, idx) => {
       const y = rowStartY + idx * rowHeight;
       const isTop1 = idx === 0;
       const isTop2 = idx === 1;
       const isTop3 = idx === 2;
 
-      // Fundo individual de cada linha com efeito zebrado
+      // Fundo individual de cada linha com efeito zebrado e destaque de pódio
       const rowBg = k.add([
         k.rect(tableW, 33, { radius: 6 }),
         k.pos(centerX, y),
-        k.color(idx % 2 === 0 ? k.rgb(14, 34, 68) : k.rgb(10, 26, 52)),
-        k.outline(1, isTop1 ? k.rgb(255, 215, 80) : k.rgb(30, 68, 115)),
+        k.color(isTop1 ? k.rgb(24, 48, 88) : idx % 2 === 0 ? k.rgb(14, 34, 68) : k.rgb(10, 26, 52)),
+        k.outline(isTop1 ? 1.5 : 1, isTop1 ? k.rgb(255, 215, 80) : k.rgb(30, 68, 115)),
         k.anchor("center"),
         k.fixed(),
         k.z(302),
       ]);
       tableElements.push(rowBg);
+      rowBackgrounds.push(rowBg);
 
       const medal = isTop1 ? "🥇 1º" : isTop2 ? "🥈 2º" : isTop3 ? "🥉 3º" : `${idx + 1}º`;
       const modeLabel =
@@ -374,6 +377,11 @@ export function showLeaderboardScreen(k: KaboomCtx, onClose: () => void) {
           k.z(303),
         ])
       );
+    });
+
+    staggerElementsEntrance(k, rowBackgrounds, {
+      staggerDelayMs: 25,
+      duration: 0.18,
     });
   };
 

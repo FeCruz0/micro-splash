@@ -5,6 +5,7 @@ import type { GameState } from "../systems/state";
 import { isTop10Score } from "../systems/leaderboard";
 import { showInitialsInputModal } from "./initialsInputModal";
 import { attachButtonHoverEffect } from "./animationUtils";
+import { animateScoreCounter, attachPulseEffect } from "./shared";
 
 export function showChallengeEndScreen(
   k: KaboomCtx,
@@ -152,6 +153,9 @@ function renderChallengeEndContent(
       : `⭐ Eco-Pontuação da Rodada: ${finalScore} pts`;
   };
 
+  const initialFinalScore = gameState.calculateFinalScore();
+  const initialQuizBonus = gameState.getQuizScore();
+
   const scoreTextObj = k.add([
     k.text(getScoreText(), {
       size: accessibilitySystem.scaleFont(18),
@@ -164,6 +168,11 @@ function renderChallengeEndContent(
     k.z(302),
   ]);
   elements.push(scoreTextObj);
+
+  animateScoreCounter(k, scoreTextObj, initialFinalScore, {
+    prefix: initialQuizBonus > 0 ? "⭐ Eco-Pontuação: " : "⭐ Eco-Pontuação da Rodada: ",
+    suffix: initialQuizBonus > 0 ? ` pts (+${initialQuizBonus} Bônus Quiz)` : " pts",
+  });
 
   // Botão 1: Desafio Ecológico (Quiz)
   let quizCompleted = gameState.getQuizScore() > 0;
@@ -222,7 +231,12 @@ function renderChallengeEndContent(
         btnQuiz.color = k.rgb(18, 95, 60);
         btnQuiz.outline.color = k.rgb(90, 240, 160);
         btnQuizLabel.text = `Quiz Concluído! +${scoreGained} pts (${correctCount}/3) ✓`;
-        scoreTextObj.text = getScoreText();
+        const updatedScore = gameState.calculateFinalScore();
+        animateScoreCounter(k, scoreTextObj, updatedScore, {
+          startValue: initialFinalScore,
+          prefix: "⭐ Eco-Pontuação: ",
+          suffix: ` pts (+${gameState.getQuizScore()} Bônus Quiz)`,
+        });
         btnAgainLabel.text = "Jogar Novamente [ENTER] 🔄";
       },
       () => {
@@ -279,7 +293,13 @@ function renderChallengeEndContent(
     });
   });
 
+  let pulseHandle: { destroy: () => void } | null = null;
+
   const destroyAll = () => {
+    if (pulseHandle) {
+      pulseHandle.destroy();
+      pulseHandle = null;
+    }
     keyListeners.forEach((l) => {
       try {
         if (l && typeof l.cancel === "function") l.cancel();
@@ -324,6 +344,9 @@ function renderChallengeEndContent(
   attachButtonHoverEffect(k, btnAgain, {
     baseColor: [20, 120, 180],
     hoverColor: [30, 140, 210],
+    canInteract: () => canInteract && !isModalOpen,
+  });
+  pulseHandle = attachPulseEffect(k, btnAgain, {
     canInteract: () => canInteract && !isModalOpen,
   });
   btnAgain.onClick(handlePlayAgain);

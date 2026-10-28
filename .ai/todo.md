@@ -1,115 +1,126 @@
-# Plano de Implementação — Fase 64: Design System Centralizado, Tokens Semânticos & Shell de Modais (UI Foundation)
+# Plano de Implementação — Fase 65: Polimento Visual, Micro-Interações & Dinâmica Oceânica (Motion & Juice)
 
 Status: Concluído ✅  
 Data: 2026-10-28  
-Alvo: v1.28.0 (Camada Fundacional de UI, Design System Oceânico & Componentes Unificados)
+Alvo: v1.29.0 (Micro-Animações Sutis, Contadores de Pontuação, Escala Tipográfica Padronizada & Transições de Bioma)
 
 ---
 
 ## 🔬 Diagnóstico e Motivação
 
-1. **Literais de Cor e Hardcoding (`k.rgb` espalhado)**:
-   - Mais de 280 chamadas diretas a `k.rgb(...)` e `k.color(...)` espalhadas pelas telas (`leaderboardScreen.ts`, `modeSelectScreen.ts`, `victoryScreen.ts`, `shareModal.ts`, `quizModal.ts`, `statsModal.ts`, `onboardingModal.ts`).
-   - Cores ligeiramente inconsistentes para superfícies semelhantes (ex.: `[10, 28, 56]` vs `[14, 36, 72]` vs `[18, 48, 95]`) sem uma hierarquia semântica explícita.
-   - Dificulta a aplicação automática de temas de alto contraste (WCAG 2.1 AA) e personalização unificada.
+1. **Micro-Interações Estáticas nos Call-to-Action Principais**:
+   - Botões primários cruciais (`JOGAR / INICIAR`, `JOGAR NOVAMENTE`, `EMITIR CERTIFICADO`) possuíam apenas expansão reativa ao ponteiro via `attachButtonHoverEffect`, sem atratividade orgânica passiva (respiração/brilho suave).
+   - Telas de seleção de modo (`modeSelectScreen.ts`) e o quadro de recordes (`leaderboardScreen.ts`) exibiam seus cards e linhas instantaneamente, sem entrada escalonada (_stagger_ visual), resultando em aparição visual abrupta.
 
-2. **Geometria de Modais Redundante (14 ocorrências)**:
-   - Cada tela recalcula `Math.min(1000, screenW - 24)`, `Math.min(660/580, screenH - 20)`, backdrop opaco, card centralizado, texto do título e botão de fechar `[X]` de forma independente.
-   - Modais fecham com `destroy()` abrupto, ignorando o utilitário existente `animateModalExit` em `src/ui/animationUtils.ts`.
+2. **Pontuações Estáticas e Ausência de "Juice" nos Resultados**:
+   - Ao concluir a migração ou o desafio rápido de 60s, o placar de Eco-Pontos era exibido de forma imediata e numérica fria em `victoryScreen.ts` e `challengeEndScreen.ts`. A experiência se torna mais gratificante com contagem animada progressiva (_slot counter_ suave) que respeite o modo de movimento reduzido (`isReducedMotion`).
+   - O Quadro de Recordes (`leaderboardScreen.ts`) já possuía ícones de medalha (🥇, 🥈, 🥉), mas carecia de distinção visual marcante e escalonamento na exibição das linhas.
 
-3. **Inconsistência de Hover e Foco Acessível**:
-   - Apenas 8 telas utilizam `attachButtonHoverEffect`.
-   - Modais como `leaderboardScreen`, `optionsScreen`, `quizModal`, `shareModal` e `statsModal` implementam listeners manuais (`onHoverUpdate`/`onHoverEnd`), gerando redundância e discrepância de transições.
+3. **Disparidade de Escala Tipográfica e Contraste**:
+   - Variações dispersas de tamanhos de fonte literais (`size: 14.5`, `15`, `16`, `17.5`, `23`, `25`) entre modais e telas, sem uma enumeração tipada formal no Design System.
+   - Embora `addShadowedText` existisse em `src/ui/textUtils.ts`, vários títulos e labels em modais ainda usavam texto plano sobreposto a fundos dinâmicos sem sombra protetora de contraste.
+
+4. **Transições Ambientais de Bioma em Tempo Real**:
+   - `biomeTransitionSystem.ts` e `biomeVignetteSystem.ts` continham cálculos matemáticos de atenuação e apresentação de marcos, porém necessitavam de padronização nas curvas de opacidade, garantia estrita de não-alocação no loop quente do Kaboom (`onUpdate`) e conformidade com o orçamento estável de 60 FPS (Fase 53).
 
 ---
 
 ## 🏗️ Decisões Arquiteturais
 
-1. **Tokens Semânticos Centralizados (`src/ui/theme.ts`)**:
-   - Criação de contratos imutáveis tipados em estilo Matt Pocock: `UI_COLORS`, `UI_FONTS`, `UI_RADII`, `UI_SPACING`, `UI_Z_INDEX`.
-   - Mapeamento explícito de identidades cromáticas por modalidade de jogo:
-     - _Migração Serena_: Esmeralda/Menta (`[52, 211, 153]`, texto `[140, 255, 200]`, fundo `[16, 50, 40]`).
-     - _Migração Difícil_: Carmesim/Coral (`[244, 63, 94]`, texto `[255, 120, 140]`, fundo `[45, 20, 30]`).
-     - _Migração Rápida_: Âmbar/Dourado (`[249, 115, 22]`, texto `[255, 190, 110]`, fundo `[45, 26, 14]`).
-   - Função utilitária `getModalDimensions(screenW, screenH, variant)` para encapsular o dimensionamento canônico responsivo.
+1. **Módulo de Micro-Interações e Movimento (`src/ui/shared/motion.ts`)**:
+   - **`attachPulseEffect`**: Pulso harmônico suave de escala e opacidade (fator `1.0` a `1.025` em período de ~1.4s) em botões primários, com cancelamento automático no ciclo de vida e suspensão imediata caso `accessibilitySystem.isReducedMotion()` retorne verdadeiro.
+   - **`staggerElementsEntrance`**: Função utilitária que recebe uma lista de `GameObj[]`, escalonando a entrada com delay incremental (~40ms a 50ms por item) e deslocamento vertical sutil via `k.tween` ou atribuição direta caso `reducedMotion` esteja ativo.
 
-2. **Componente de Estrutura Universal (`src/ui/shared/modalShell.ts`)**:
-   - Função `createModalShell(k, options)` que instancia:
-     - Backdrop escuro semi-transparente que bloqueia eventos de fundo (`z: UI_Z_INDEX.backdrop`).
-     - Card modal principal com raio de curvatura padronizado, borda oceânica e sombra (`z: UI_Z_INDEX.modalCard`).
-     - Título com sombra de leitura universal via `addShadowedText`.
-     - Botão fechar `[X]` com hover tátil e registro imediato de foco acessível.
-     - Ciclo de vida completo: `animateModalEntrance` na abertura e `animateModalExit` antes do disparo de `onClose()`.
-     - Gerenciador integrado de atalho de teclado `Escape`.
+2. **Contador Progressivo de Eco-Pontuação (`src/ui/shared/scoreCounter.ts`)**:
+   - **`animateScoreCounter`**: Função pura/modular que interpola numericamente do valor base ao valor alvo ao longo de ~0.8s a 1.2s usando curva `easeOutQuad` / `easeOutCubic`, formatando com separador de milhar pt-BR e disparando callback `onComplete` opcional.
 
-3. **Componentes Compartilhados de Seletores & Ações (`src/ui/shared/`)**:
-   - `createTabBar<T extends string>(k, options)`: Centraliza simetricamente $N$ abas, computa espaçamentos uniformes (`tabGap`), gerencia estado ativo/inativo, aplica hover e expõe itens de foco acessível para navegação por teclado (`keyboardNav.ts`).
-   - `createCardButton(k, options)`: Cria botões padronizados em variantes semânticas (`primary`, `secondary`, `danger`, `ghost`) com `attachButtonHoverEffect` embutido.
+3. **Consolidação dos Tokens Tipográficos Canônicos (`src/ui/theme.ts`)**:
+   - Formalização de `UI_FONTS` (`title: "Orbitron"`, `body: "Inter"`, `accent: "Outfit"`) e `UI_TYPOGRAPHY_SCALE` com 5 degraus canônicos padronizados:
+     - `caption`: 11px (badges, rodapés, dicas de tecla)
+     - `body`: 14px (texto corrido, descrições)
+     - `label`: 16px (rótulos de botões e itens de formulário)
+     - `h2`: 18px (subtítulos e seções)
+     - `h1`: 24px (títulos de modais)
+     - `display`: 44px (logos monumentais e destaques comemorativos)
+   - Padronização do uso de `addShadowedText` em títulos e cabeçalhos em superfícies transparentes ou submarinas.
 
-4. **Zero Regressão e Migração Gradual**:
-   - Validação da arquitetura integrando as telas refinadas recentemente (`src/ui/leaderboardScreen.ts` e `src/ui/modeSelectScreen.ts`).
-   - Manutenção rigorosa dos 81 arquivos de testes (628 testes passando) com acréscimo de cobertura para o Design System.
+4. **Polimento das Transições de Bioma (`src/systems/biomeVignetteSystem.ts` & `src/systems/biomeTransitionSystem.ts`)**:
+   - Reforço visual na vinheta do cartão de marco com entrada suave (fade-in 0.35s), permanência pedagógica e saída (fade-out 0.45s).
+   - Validação de que não há instanciação excessiva de objetos efêmeros que cause pressão no Garbage Collector (GC).
+
+5. **Acessibilidade Universal e Não-Bloqueio**:
+   - Respeito irrestrito a `accessibilitySystem.isReducedMotion()`: todos os tweens de pulso, stagger e contadores adotam estado final estático instantâneo sem atrasos quando o usuário optar por movimento reduzido.
+   - Zero dependência de diálogo nativo do navegador (`alert`, `confirm`, `prompt`).
 
 ---
 
 ## 📋 Lista de Tarefas Atômicas
 
-### Etapa 1: Tokens Semânticos & Design System (`src/ui/theme.ts`)
+### Etapa 1: Utilitários de Movimento & Micro-Interações (`src/ui/shared/motion.ts`)
 
-- [x] **1.1 Criar `src/ui/theme.ts`**
-  - Declarar `UI_COLORS`, `UI_FONTS`, `UI_RADII`, `UI_SPACING`, `UI_Z_INDEX`.
-  - Definir helper `getModalDimensions(screenWidth: number, screenHeight: number, variant?: "standard" | "compact" | "wide")`.
-  - Tipos e exportações de alto nível com tipagem estrita `as const`.
-- [x] **1.2 Reexportar Tokens em `src/ui/shared/index.ts`**
-  - Garantir ponto de entrada limpo e modularizado para consumo interno em telas e componentes.
+- [x] **1.1 Implementar `src/ui/shared/motion.ts`**
+  - Implementar `attachPulseEffect(k, buttonObj, options)` com pulso suave de escala (1.0 → 1.025) e suporte a checagem de `isReducedMotion()`.
+  - Implementar `staggerElementsEntrance(k, elements, options)` com deslocamento vertical inicial e atraso progressivo (~50ms por item).
+  - Adicionar controle de cleanup/cancelamento de tweens para evitar memory leaks em destruição de objetos.
+- [x] **1.2 Reexportar utilitários de movimento em `src/ui/shared/index.ts`**
+  - Exportar `attachPulseEffect`, `staggerElementsEntrance` e interfaces associadas.
 
-### Etapa 2: Shell de Modal Universal (`src/ui/shared/modalShell.ts`)
+### Etapa 2: Contador Numérico Progressivo (`src/ui/shared/scoreCounter.ts`)
 
-- [x] **2.1 Implementar `src/ui/shared/modalShell.ts`**
-  - Definir interfaces `ModalShellOptions` e `ModalShellHandle`.
-  - Instanciar backdrop, card, título com `addShadowedText`, botão fechar `[X]`.
-  - Conectar `animateModalEntrance` e `animateModalExit` no callback de encerramento.
-  - Adicionar listener de `Escape` seguro com remoção em cleanup.
-- [x] **2.2 Reexportar `modalShell` em `src/ui/shared/index.ts`**
-  - Adicionar exports em `src/ui/shared/index.ts` e `src/ui/index.ts`.
+- [x] **2.1 Implementar `src/ui/shared/scoreCounter.ts`**
+  - Definir interface `ScoreCounterOptions` (`duration`, `startValue`, `prefix`, `suffix`, `onComplete`).
+  - Implementar `animateScoreCounter(k, textObj, targetScore, options)` com interpolação `easeOutQuad` e formatação `pt-BR`.
+  - Adicionar bypass instantâneo se `isReducedMotion()` for verdadeiro ou ambiente de teste sem tween.
+- [x] **2.2 Integrar contador progressivo nas telas de finalização**
+  - Integrar `animateScoreCounter` em `src/ui/challengeEndScreen.ts` para contagem dinâmica dos Eco-Pontos da rodada.
+  - Integrar em `src/ui/victoryScreen.ts` na exibição dos pontos conquistados.
 
-### Etapa 3: Componentes Unificados de Abas e Botões (`src/ui/shared/tabBar.ts`, `cardButton.ts`)
+### Etapa 3: Pódio, Stagger & Realce no Quadro de Recordes e Seleção de Modos
 
-- [x] **3.1 Implementar `src/ui/shared/tabBar.ts`**
-  - Definir tipos `TabItem<T>`, `TabBarOptions<T>`, `TabBarHandle<T>`.
-  - Cálculo de largura e centralização simétrica horizontal adaptativa para 2 ou mais abas.
-  - Atualização automática de estilos e retorno de `FocusableItem[]`.
-- [x] **3.2 Implementar `src/ui/shared/cardButton.ts`**
-  - Definir `CardButtonVariant = "primary" | "secondary" | "danger" | "ghost"`.
-  - Acoplar `attachButtonHoverEffect` e retornar handle com `btn`, `txt`, e `focusItem`.
-- [x] **3.3 Reexportar em `src/ui/shared/index.ts`**
+- [x] **3.1 Aplicar entrada escalonada em `src/ui/modeSelectScreen.ts`**
+  - Aplicar `staggerElementsEntrance` nos 3 cards de seleção de modo (Normal, Sereno, Rápido) para entrada harmoniosa.
+- [x] **3.2 Refinar pódio e entrada de linhas em `src/ui/leaderboardScreen.ts`**
+  - Integrar `staggerElementsEntrance` nas linhas renderizadas da tabela de recordes.
+  - Adicionar realce cromático refinado na borda e fundo do 1º colocado (🥇 Ouro Oceânico).
 
-### Etapa 4: Integração de Referência nas Telas Principais
+### Etapa 4: Padronização da Escala Tipográfica & Contraste (`src/ui/theme.ts`)
 
-- [x] **4.1 Refatorar `src/ui/leaderboardScreen.ts`**
-  - Utilizar `UI_COLORS`, `getModalDimensions` e `createTabBar`.
-  - Eliminar código redundante de hover manual e centralização matemática de abas.
-- [x] **4.2 Refatorar `src/ui/modeSelectScreen.ts`**
-  - Utilizar `UI_COLORS`, `getModalDimensions` e `createCardButton`.
-  - Manter rigorosamente o layout e a hierarquia corrigidos na Fase 62.
+- [x] **4.1 Adicionar `UI_FONTS` e `UI_TYPOGRAPHY_SCALE` em `src/ui/theme.ts`**
+  - Formalizar a hierarquia de 5 degraus canônicos (`caption`, `body`, `label`, `h2`, `h1`, `display`) compatíveis com `accessibilitySystem.scaleFont`.
+  - Reexportar tokens tipográficos em `src/ui/shared/index.ts`.
+- [x] **4.2 Padronização do uso de `addShadowedText`**
+  - Garantir que modais fundacionais utilizem `addShadowedText` ou sombra nativa do Design System para títulos de primeiro nível.
 
-### Etapa 5: Suíte de Testes Automatizados & Validação
+### Etapa 5: Transições Ambientais de Bioma & Performance (`src/systems/`)
 
-- [x] **5.1 Criar `tests/ui/phase64_design_system.test.ts`**
-  - Teste 1: Integridade dos tokens cromáticos (`UI_COLORS`), raio e espaçamento.
-  - Teste 2: Cálculo responsivo de `getModalDimensions` em resoluções 4K, 1080p, 720p e telas compactas (640x360).
-  - Teste 3: Criação do `createModalShell`, hierarquia de z-index, animações de entrada/saída e fechamento via ESC.
-  - Teste 4: `createTabBar` com centralização simétrica exata e foco acessível.
-  - Teste 5: `createCardButton` com variantes semânticas e hover anexado.
-  - Teste 6: Regressão zero nos testes existentes de tela (`phase62_63_ui_refinement.test.ts`).
-- [x] **5.2 Auditoria Completa de Qualidade**
-  - Executar `npx tsc --noEmit` (0 erros).
-  - Executar `npx eslint src/ tests/` (0 avisos/erros).
-  - Executar `npx vitest run` (81 arquivos de teste aprovados, 628 testes).
+- [x] **5.1 Refinar apresentação de marcos em `src/systems/biomeVignetteSystem.ts`**
+  - Suavizar a transição de fade-in/fade-out do cartão de apresentação de bioma.
+  - Validar limpeza imediata de timers e referências na destruição ou transição de cena.
+- [x] **5.2 Auditoria de Alocação e Frame Budget**
+  - Confirmar ausência de alocações transitórias em `calculateBiomeTransitionFactor` e `checkBiomeVignetteTrigger`.
 
-### Etapa 6: Documentação & Sincronização
+### Etapa 6: Suíte de Testes Automatizados & Validação de Qualidade
 
-- [x] **6.1 Atualizar `docs/ARCHITECTURE.md`**
-  - Documentar a seção de Design System, tokens semânticos e hierarquia de componentes compartilhados em `src/ui/shared/`.
-- [x] **6.2 Atualizar `docs/ROADMAP.md`**
-  - Marcar tarefas da Fase 64 como concluídas `[x]`.
+- [x] **6.1 Criar `tests/ui/phase65_ui_motion.test.ts`**
+  - Teste 1: `attachPulseEffect` — variação de escala e comportamento quando `isReducedMotion` está ativado.
+  - Teste 2: `staggerElementsEntrance` — cálculo correto dos tempos escalonados e posicionamento final.
+  - Teste 3: `animateScoreCounter` — interpolação progressiva, formatação correta de texto e disparo de `onComplete`.
+  - Teste 4: `UI_TYPOGRAPHY_SCALE` e `UI_FONTS` — integridade dos tokens e compatibilidade de escala.
+  - Teste 5: `biomeVignetteSystem` e `calculateBiomeTransitionFactor` — cálculo puro e transição de marcos sem vazamentos.
+- [x] **6.2 Execução de Testes e Linters**
+  - `npx vitest run` (100% de aprovação em todos os 82 arquivos de teste e 642 testes).
+  - `npx tsc --noEmit` (0 erros de tipagem).
+  - `npx eslint src/ tests/` (0 avisos ou violações de regras).
+
+---
+
+## 🔒 Critérios de Aceite
+
+1. **Acessibilidade (WCAG 2.1 AA)**:
+   - Todas as animações (pulso, stagger, contador) são instantaneamente desativadas ou colapsadas para o estado final estático se `isReducedMotion()` for verdadeiro.
+2. **Performance (60 FPS)**:
+   - As novas micro-animações utilizam exclusivamente tweens com callbacks leves, sem alocações contínuas de objetos dentro de `onUpdate`.
+3. **Tipagem Estrita**:
+   - Nenhum uso de `any`; todos os contratos e handles possuem interfaces TypeScript exportadas.
+4. **Regressão Zero**:
+   - Todos os 642 testes unitários existentes passando sem alterações disruptivas.

@@ -967,13 +967,13 @@ _Objetivo: Estruturar uma camada fundacional de UI eliminando cores hardcoded es
 
 _Objetivo: Elevar a sensação tátil e o acabamento premium do jogo mediante micro-animações pontuais, contadores numéricos dinâmicos, hierarquia tipográfica consolidada e transições ambientais suaves sem impacto no orçamento de 60 FPS._
 
-- [ ] **65.1 Micro-Animações Sutis em Ações Principais (Call-to-Action Pulse & Stagger):**
+- [x] **65.1 Micro-Animações Sutis em Ações Principais (Call-to-Action Pulse & Stagger):**
   - Aplicar pulso suave de respiração (brilho/escala 1.02) em botões de ação primária (`INICIAR`, `JOGAR NOVAMENTE`) e entrada escalonada (_stagger_ de ~50ms) nos cards de modos e linhas de tabela.
-- [ ] **65.2 Contadores Progressivos de Pontuação & Pódio no Ranking:**
+- [x] **65.2 Contadores Progressivos de Pontuação & Pódio no Ranking:**
   - Efeito de contagem animada nos Eco-Pontos nas telas de vitória e desafio rápido; estilização visual de pódio com medalhas (🥇, 🥈, 🥉), linhas zebradas e realce para o 1º lugar no Quadro de Recordes.
-- [ ] **65.3 Padronização da Escala Tipográfica & Contraste Universal:**
+- [x] **65.3 Padronização da Escala Tipográfica & Contraste Universal:**
   - Reduzir variações de fontes a 5 degraus canônicos (`caption`, `body`, `label`, `h2`, `h1`), aplicando `addShadowedText` universalmente nos títulos para garantir legibilidade sobre quaisquer fundos submarinos.
-- [ ] **65.4 Transições Fluidas de Bioma em Tempo Real (`src/systems/biomeTransitionSystem.ts`):**
+- [x] **65.4 Transições Fluidas de Bioma em Tempo Real (`src/systems/biomeTransitionSystem.ts`):**
   - Reforçar a sinalização de entrada em novos biomas com vinheta suave e cartão sutil de apresentação com fade-in/fade-out, validando que o frame time permaneça estritamente dentro da meta estável da Fase 53.
-- [ ] **65.5 Suíte de Testes de Motion & Micro-Interações (`tests/ui/phase65_ui_motion.test.ts`):**
+- [x] **65.5 Suíte de Testes de Motion & Micro-Interações (`tests/ui/phase65_ui_motion.test.ts`):**
   - Testes unitários para temporizações de tween, comportamento de fallback em modo de movimento reduzido e garantia de não-bloqueio de interação.

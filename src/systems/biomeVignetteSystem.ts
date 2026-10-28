@@ -1,5 +1,6 @@
 import type { EventController, KaboomCtx, GameObj } from "kaboom";
 import type { PlayerController } from "../entities/player";
+import { accessibilitySystem } from "./accessibilitySystem";
 
 export interface BiomeMilestone {
   triggerDistance: number;
@@ -148,12 +149,14 @@ export function setupBiomeVignetteSystem(
       }
     };
 
-    // Animação: Fade-in suave (0.4s) -> Exibição (2.0s) -> Fade-out suave (0.5s)
-    if (typeof k.tween === "function" && k.easings?.easeOutQuad) {
+    const isReduced = accessibilitySystem.isReducedMotion();
+
+    // Animação: Fade-in suave (0.35s) -> Exibição (2.0s) -> Fade-out suave (0.45s)
+    if (!isReduced && typeof k.tween === "function" && k.easings?.easeOutQuad) {
       k.tween(
         0,
         0.92,
-        0.4,
+        0.35,
         (opacityValue) => {
           if (!isContainerDestroyed) {
             container.opacity = opacityValue;
@@ -166,13 +169,13 @@ export function setupBiomeVignetteSystem(
             k.tween(
               0.92,
               0,
-              0.5,
+              0.45,
               (fadeValue) => {
                 if (!isContainerDestroyed) {
                   container.opacity = fadeValue;
                 }
               },
-              k.easings.easeInQuad
+              k.easings?.easeInQuad ?? ((t: number) => t)
             ).then(() => {
               safeDestroyContainer();
             });
@@ -181,7 +184,7 @@ export function setupBiomeVignetteSystem(
       });
     } else {
       container.opacity = 0.92;
-      activeVignetteTimer = k.wait(2.5, () => {
+      activeVignetteTimer = k.wait(2.2, () => {
         safeDestroyContainer();
       });
     }

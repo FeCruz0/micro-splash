@@ -6,6 +6,7 @@ import { createFocusGroup, type FocusableItem } from "./keyboardNav";
 import { hasSeenOnboarding, showOnboardingModal } from "./onboardingModal";
 import { t } from "../i18n/i18n";
 import { attachButtonHoverEffect } from "./animationUtils";
+import { attachPulseEffect } from "./shared";
 import { getKioskIdleTimeoutSeconds } from "../systems/kioskMode";
 import { getRandomFloat } from "../utils/random";
 import { readLocalStorageWithSchema } from "../utils/storage";
@@ -327,6 +328,12 @@ export function createMainMenu(
       hoverScale: 1.035,
       canInteract: () => !isModalOpen,
     });
+
+    if (menuButtons.indexOf(btnData) === 0) {
+      attachPulseEffect(k, btn, {
+        canInteract: () => !isModalOpen,
+      });
+    }
 
     btn.onClick(activate);
 

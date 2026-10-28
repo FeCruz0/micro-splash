@@ -98,6 +98,21 @@ export const UI_Z_INDEX = {
   focusRing: 315,
 } as const;
 
+export const UI_FONTS = {
+  title: "Orbitron",
+  body: "Inter",
+  accent: "Outfit",
+} as const;
+
+export const UI_TYPOGRAPHY_SCALE = {
+  caption: 11,
+  body: 14,
+  label: 16,
+  h2: 18,
+  h1: 24,
+  display: 44,
+} as const;
+
 export type ModalVariant = "standard" | "compact" | "tall";
 
 export interface ModalDimensions {

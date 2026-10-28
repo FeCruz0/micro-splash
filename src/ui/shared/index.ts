@@ -11,3 +11,5 @@ export * from "../keyBadge";
 export * from "./modalShell";
 export * from "./tabBar";
 export * from "./cardButton";
+export * from "./motion";
+export * from "./scoreCounter";

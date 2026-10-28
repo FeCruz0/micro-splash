@@ -443,3 +443,22 @@ Para assegurar consistência visual, eliminar duplicações de geometria e unifi
 3. **Componentes Compartilhados de Abas e Botões (`src/ui/shared/`)**:
    - `createTabBar`: Centralização horizontal simétrica calculada para $N$ abas com transição visual instantânea e anel de foco acessível.
    - `createCardButton`: Criação padronizada de botões de ação com variantes semânticas, hover elástico suave (`attachButtonHoverEffect`) e itens de foco para navegação por teclado (WCAG 2.1 AA).
+
+## ✨ 14. Motion, Micro-Interações & Dinâmica Oceânica (Fase 65)
+
+Para elevar a sensação tátil e o acabamento premium do jogo sem comprometer a meta de 60 FPS estáveis nem violar diretrizes de acessibilidade (WCAG 2.1 AA), a camada de UI e simulação recebeu um subsistema dedicado de animações pontuais:
+
+1. **Micro-Interações e Pulso de Ações Principais (`src/ui/shared/motion.ts`)**:
+   - `attachPulseEffect(k, buttonObj, options)`: Pulso de respiração suave e harmônico (escala senoidal entre 1.0 e 1.025) aplicado em botões primários (`INICIAR`, `JOGAR NOVAMENTE`). O efeito pausa durante o hover do ponteiro e é suprimido imediatamente quando `accessibilitySystem.isReducedMotion()` estiver ativo.
+   - `staggerElementsEntrance(k, elements, options)`: Animação de entrada escalonada com deslocamento vertical de 12px e intervalo incremental (~40ms a 50ms por item), eliminando aparições visuais abruptas nos cards de modos (`modeSelectScreen.ts`) e linhas de tabela (`leaderboardScreen.ts`).
+
+2. **Contador Progressivo de Pontuação (`src/ui/shared/scoreCounter.ts`)**:
+   - `animateScoreCounter(k, textObj, targetScore, options)`: Interpolação numérica fluida de pontuação final via curva `easeOutQuad` ao longo de ~0.8s, com formatação monetária/milhar brasileira (`pt-BR`). Em ambientes com movimento reduzido ou sem suporte a tween, colapsa instantaneamente para o valor final sem latência.
+
+3. **Escala Tipográfica Canônica (`src/ui/theme.ts`)**:
+   - `UI_FONTS`: Famílias padronizadas (`title: "Orbitron"`, `body: "Inter"`, `accent: "Outfit"`).
+   - `UI_TYPOGRAPHY_SCALE`: 6 degraus canônicos padronizados (`caption: 11`, `body: 14`, `label: 16`, `h2: 18`, `h1: 24`, `display: 44`), garantindo conformidade com o redimensionamento dinâmico de fontes do sistema de acessibilidade.
+
+4. **Transições Ambientais de Bioma & Acessibilidade (`src/systems/`)**:
+   - `biomeVignetteSystem.ts`: Exibição cinematográfica de cartões narrativos de fronteira com fade-in suave (0.35s), permanência pedagógica e fade-out (0.45s), com desativação de tweens em modo de movimento reduzido.
+   - `biomeTransitionSystem.ts`: Cálculo puro e livre de alocações transitórias de atenuação suave (_smoothstep_ de 300m) em zonas de transição entre biomas.
