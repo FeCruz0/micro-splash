@@ -924,7 +924,7 @@ _Objetivo: Desatrelar a baleia co-migrante de restrições artificiais baseadas 
 
 ### 📅 FASE 62: Ajuste de Interface & Ocultação do Desafio Semanal (Em Desenvolvimento)
 
-_Objetivo: Remover o botão de acesso ao Desafio Semanal na tela de seleção de modos (`src/ui/modeSelectScreen.ts`), mantendo o Desafio Semanal documentado como "Em Desenvolvimento" em toda a documentação até o polimento completo do ecossistema de rankings comunitários e geração de sementes determinísticas._
+_Objetivo: Remover o botão de acesso ao Desafio Semanal na tela de seleção de modos (`src/ui/modeSelectScreen.ts`) e a aba de Desafio Semanal do quadro de recordes (`src/ui/leaderboardScreen.ts`), mantendo o Desafio Semanal documentado como "Em Desenvolvimento" em toda a documentação até o polimento completo do ecossistema de rankings comunitários e geração de sementes determinísticas._
 
 - [x] **62.1 Remover Botão de Desafio Semanal da Interface (`src/ui/modeSelectScreen.ts`):**
   - Remover ou desativar o card/botão do "Desafio Semanal" na tela de seleção de modos (`src/ui/modeSelectScreen.ts`).
@@ -932,6 +932,10 @@ _Objetivo: Remover o botão de acesso ao Desafio Semanal na tela de seleção de
 - [x] **62.2 Deixar na Documentação o Desafio Semanal como "Em Desenvolvimento":**
   - Manter e sinalizar o status do Desafio Semanal como **"Em Desenvolvimento"** em `docs/ROADMAP.md`, `docs/GDD.md`, `docs/ARCHITECTURE.md` e `README.md`.
   - Preservar a infraestrutura de código subjacente (`src/systems/weeklyChallenge.ts`, schemas Zod e testes unitários) para viabilizar sua reativação futura sem retrabalho arquitetural.
+- [x] **62.3 Remoção da Aba de Desafio Semanal no Quadro de Recordes (`src/ui/leaderboardScreen.ts`):**
+  - Remover a aba "📅 Desafio Semanal" do quadro de recordes (`src/ui/leaderboardScreen.ts`), mantendo apenas as abas ativas "🌐 Global Online" e "💾 Local / Totem".
+  - Centralizar simetricamente as abas remanescentes com largura adaptativa e navegação por foco acessível com 4 itens ([X], Global, Local, Fechar).
+  - Preservar os endpoints e funções de dados de ranking semanal (`src/services/leaderboardApi.ts`, `src/systems/weeklyChallenge.ts`) para reativação futura.
 
 ### 🗣️ FASE 63: Ocultação da Narração por Voz & Recurso em Desenvolvimento
 

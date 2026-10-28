@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderAccessibilityOptions } from "../../src/ui/options/accessibilityOptionsTab";
 import { showModeSelectScreen } from "../../src/ui/modeSelectScreen";
+import { showLeaderboardScreen } from "../../src/ui/leaderboardScreen";
 import { getWeeklyChallengeInfo } from "../../src/systems/weeklyChallenge";
 import { ttsSystem } from "../../src/systems/ttsSystem";
 import type { OptionsScreenContext } from "../../src/ui/options/optionsTypes";
@@ -141,6 +142,82 @@ describe("Fases 62 & 63: Ocultação de Recursos em Desenvolvimento (Desafio Sem
 
       // Distância vertical segura mínima de 20px entre o texto instrutivo e os botões
       expect(antarticaBtnTxt.pos.y - promptLabel.pos.y).toBeGreaterThanOrEqual(20);
+    });
+
+    it("deve renderizar apenas 2 abas ativas ('Global' e 'Local') no quadro de recordes, sem a aba de Desafio Semanal", () => {
+      const addedElements: any[] = [];
+      const mockKaboom: any = {
+        width: () => 1280,
+        height: () => 720,
+        vec2: (x: number, y: number) => ({ x, y }),
+        rgb: (r: number, g: number, b: number) => ({ r, g, b }),
+        rect: (w: number, h: number, opts?: any) => ({ type: "rect", w, h, opts }),
+        pos: (x: any, y?: number) =>
+          typeof x === "object" && x !== null
+            ? { type: "pos", x: x.x, y: x.y }
+            : { type: "pos", x, y },
+        color: (r: any, g?: any, b?: any) => ({ type: "color", r, g, b }),
+        outline: (w: number, col: any) => ({ type: "outline", w, col }),
+        scale: (s: number) => ({ type: "scale", s }),
+        opacity: (o: number) => ({ type: "opacity", o }),
+        anchor: (a: string) => ({ type: "anchor", a }),
+        fixed: () => ({ type: "fixed" }),
+        area: () => ({ type: "area" }),
+        z: (idx: number) => ({ type: "z", idx }),
+        text: (content: string, opts?: any) => ({ type: "text", content, opts }),
+        add: vi.fn((comps: any[]) => {
+          const obj: any = {
+            comps,
+            onClick: vi.fn(),
+            onHoverUpdate: vi.fn(),
+            onHoverEnd: vi.fn(),
+            onUpdate: vi.fn(),
+            destroy: vi.fn(),
+          };
+          for (const c of comps) {
+            if (c.type === "pos") obj.pos = { x: c.x, y: c.y };
+            if (c.type === "text") obj.text = c.content;
+            if (c.type === "color") obj.color = c;
+            if (c.type === "rect") {
+              obj.width = c.w;
+              obj.height = c.h;
+            }
+          }
+          addedElements.push(obj);
+          return obj;
+        }),
+        destroy: vi.fn(),
+        wait: vi.fn((_time: number, cb: () => void) => cb()),
+        tween: vi.fn().mockReturnValue({ then: (cb: () => void) => cb() }),
+        easings: { easeOutBack: vi.fn() },
+        onKeyPress: vi.fn(),
+        onKeyDown: vi.fn(),
+        isKeyDown: vi.fn().mockReturnValue(false),
+      };
+
+      const onClose = vi.fn();
+      showLeaderboardScreen(mockKaboom, onClose);
+
+      const textContents = addedElements
+        .filter((el) => typeof el.text === "string")
+        .map((el) => el.text);
+
+      // 1. As 2 abas ativas devem existir
+      expect(textContents.some((t) => t.includes("Global Online"))).toBe(true);
+      expect(textContents.some((t) => t.includes("Local / Totem"))).toBe(true);
+
+      // 2. A aba de Desafio Semanal NÃO deve existir no quadro de recordes
+      expect(textContents.some((t) => t.includes("Desafio Semanal"))).toBe(false);
+
+      // 3. Os botões das abas devem estar simetricamente centralizados no modal
+      const globalBtn = addedElements.find((el) => el.text === "🌐 Global Online");
+      const localBtn = addedElements.find((el) => el.text === "💾 Local / Totem");
+      expect(globalBtn).toBeDefined();
+      expect(localBtn).toBeDefined();
+
+      const centerX = mockKaboom.width() / 2;
+      const midPointX = (globalBtn.pos.x + localBtn.pos.x) / 2;
+      expect(midPointX).toBeCloseTo(centerX, 1);
     });
 
     it("preserva o gerador de semente e dados do desafio semanal para futura reativação", () => {

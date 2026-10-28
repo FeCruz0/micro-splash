@@ -6,7 +6,7 @@ import { getWeeklyTop10Entries, getWeeklyChallengeInfo } from "../systems/weekly
 import { fetchOnlineLeaderboard } from "../services/leaderboardApi";
 import { createFocusGroup, type FocusableItem } from "./keyboardNav";
 
-type LeaderboardTab = "global" | "weekly" | "local";
+export type LeaderboardTab = "global" | "weekly" | "local";
 
 export function showLeaderboardScreen(k: KaboomCtx, onClose: () => void) {
   audioSystem.playUiClick();
@@ -129,10 +129,9 @@ export function showLeaderboardScreen(k: KaboomCtx, onClose: () => void) {
   });
   btnX.onClick(close);
 
-  // Botões de Abas
+  // Botões de Abas (Apenas abas ativas: Global e Local; Desafio Semanal mantido em desenvolvimento)
   const tabs: Array<{ id: LeaderboardTab; label: string }> = [
     { id: "global", label: "🌐 Global Online" },
-    { id: "weekly", label: "📅 Desafio Semanal" },
     { id: "local", label: "💾 Local / Totem" },
   ];
 
@@ -142,12 +141,14 @@ export function showLeaderboardScreen(k: KaboomCtx, onClose: () => void) {
     txt: GameObj;
     id: LeaderboardTab;
   }> = [];
-  const tabW = Math.min(280, (cardW - 60) / 3);
+  const tabGap = 20;
+  const tabW = Math.min(320, (cardW - 60 - tabGap) / 2);
   const tabH = 42;
   const tabY = centerY - cardH / 2 + 82;
+  const totalTabsW = tabs.length * tabW + (tabs.length - 1) * tabGap;
 
   tabs.forEach((tab, i) => {
-    const tX = centerX - tabW - 14 + i * (tabW + 14);
+    const tX = centerX - totalTabsW / 2 + tabW / 2 + i * (tabW + tabGap);
 
     const btn = k.add([
       k.rect(tabW, tabH, { radius: 9 }),
@@ -430,8 +431,6 @@ export function showLeaderboardScreen(k: KaboomCtx, onClose: () => void) {
   };
 
   const loadTabData = () => {
-    const weeklyChallenge = getWeeklyChallengeInfo();
-
     if (activeTab === "local") {
       statusTxt.text = "💾 Exibindo dados locais do dispositivo / totem (Offline-First)";
       statusTxt.color = k.rgb(180, 230, 255);
@@ -440,6 +439,7 @@ export function showLeaderboardScreen(k: KaboomCtx, onClose: () => void) {
     }
 
     if (activeTab === "weekly") {
+      const weeklyChallenge = getWeeklyChallengeInfo();
       const localWeekly = getWeeklyTop10Entries(weeklyChallenge.weekKey);
       renderTableRows(localWeekly);
 
