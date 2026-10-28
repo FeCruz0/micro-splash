@@ -6,6 +6,7 @@ import { createFocusGroup, type FocusableItem } from "./keyboardNav";
 import { FONT_TITLE, FONT_BODY, TEXT_SIZE_H1, TEXT_SIZE_BODY } from "../config";
 import { addShadowedText } from "./textUtils";
 import { animateModalEntrance, attachButtonHoverEffect } from "./animationUtils";
+import { UI_COLORS, UI_RADII, UI_Z_INDEX, getModalDimensions } from "./theme";
 
 export function showModeSelectScreen(
   k: KaboomCtx,
@@ -24,34 +25,31 @@ export function showModeSelectScreen(
 
   const screenW = k.width();
   const screenH = k.height();
-  const cX = screenW / 2;
-  const cY = screenH / 2;
+  const { cardW, cardH, cX, cY } = getModalDimensions(screenW, screenH, "standard");
 
   // Fundo escuro semitransparente
   const backdrop = k.add([
     k.rect(screenW, screenH),
     k.pos(0, 0),
-    k.color(4, 14, 32),
-    k.opacity(0.95),
+    k.color(UI_COLORS.backdrop[0], UI_COLORS.backdrop[1], UI_COLORS.backdrop[2]),
+    k.opacity(UI_COLORS.backdropOpacity),
     k.area(),
     k.fixed(),
-    k.z(300),
+    k.z(UI_Z_INDEX.backdrop),
   ]);
   elements.push(backdrop);
 
-  // Modal Card Principal com geometria ampla expandida (Fase 34.1)
-  const cardW = Math.min(1000, screenW - 24);
-  const cardH = Math.min(580, screenH - 20);
+  // Modal Card Principal com geometria ampla expandida (Fase 34.1 e 64)
   const card = k.add([
-    k.rect(cardW, cardH, { radius: 16 }),
+    k.rect(cardW, cardH, { radius: UI_RADII.xl }),
     k.pos(cX, cY),
-    k.color(10, 28, 56),
-    k.outline(2.5, k.rgb(56, 189, 248)),
+    k.color(UI_COLORS.panel[0], UI_COLORS.panel[1], UI_COLORS.panel[2]),
+    k.outline(2.5, k.rgb(UI_COLORS.border[0], UI_COLORS.border[1], UI_COLORS.border[2])),
     k.anchor("center"),
     k.scale(1),
     k.area(),
     k.fixed(),
-    k.z(301),
+    k.z(UI_Z_INDEX.modalCard),
   ]);
   elements.push(card);
   animateModalEntrance(k, card);
@@ -169,10 +167,17 @@ export function showModeSelectScreen(
   const card1Y = startCardsY + card1H / 2;
 
   const card1 = k.add([
-    k.rect(contentBoxW, card1H, { radius: 12 }),
+    k.rect(contentBoxW, card1H, { radius: UI_RADII.lg }),
     k.pos(cX, card1Y),
-    k.color(14, 36, 72),
-    k.outline(1.5, k.rgb(52, 211, 153)),
+    k.color(UI_COLORS.panelSurface[0], UI_COLORS.panelSurface[1], UI_COLORS.panelSurface[2]),
+    k.outline(
+      1.5,
+      k.rgb(
+        UI_COLORS.modes.serene.accent[0],
+        UI_COLORS.modes.serene.accent[1],
+        UI_COLORS.modes.serene.accent[2]
+      )
+    ),
     k.scale(1),
     k.anchor("center"),
     k.area(),
@@ -186,8 +191,19 @@ export function showModeSelectScreen(
     k.add([
       k.rect(50, 50, { radius: 10 }),
       k.pos(icon1Pos),
-      k.color(16, 50, 40),
-      k.outline(1.5, k.rgb(52, 211, 153)),
+      k.color(
+        UI_COLORS.modes.serene.surface[0],
+        UI_COLORS.modes.serene.surface[1],
+        UI_COLORS.modes.serene.surface[2]
+      ),
+      k.outline(
+        1.5,
+        k.rgb(
+          UI_COLORS.modes.serene.accent[0],
+          UI_COLORS.modes.serene.accent[1],
+          UI_COLORS.modes.serene.accent[2]
+        )
+      ),
       k.anchor("center"),
       k.fixed(),
       k.z(303),
@@ -270,10 +286,17 @@ export function showModeSelectScreen(
   const card2Y = card1Y + card1H / 2 + 12 + card2H / 2;
 
   const card2 = k.add([
-    k.rect(contentBoxW, card2H, { radius: 12 }),
+    k.rect(contentBoxW, card2H, { radius: UI_RADII.lg }),
     k.pos(cX, card2Y),
-    k.color(14, 36, 72),
-    k.outline(1.5, k.rgb(244, 63, 94)),
+    k.color(UI_COLORS.panelSurface[0], UI_COLORS.panelSurface[1], UI_COLORS.panelSurface[2]),
+    k.outline(
+      1.5,
+      k.rgb(
+        UI_COLORS.modes.difficult.accent[0],
+        UI_COLORS.modes.difficult.accent[1],
+        UI_COLORS.modes.difficult.accent[2]
+      )
+    ),
     k.scale(1),
     k.anchor("center"),
     k.area(),
@@ -287,8 +310,19 @@ export function showModeSelectScreen(
     k.add([
       k.rect(50, 50, { radius: 10 }),
       k.pos(icon2Pos),
-      k.color(45, 20, 30),
-      k.outline(1.5, k.rgb(244, 63, 94)),
+      k.color(
+        UI_COLORS.modes.difficult.surface[0],
+        UI_COLORS.modes.difficult.surface[1],
+        UI_COLORS.modes.difficult.surface[2]
+      ),
+      k.outline(
+        1.5,
+        k.rgb(
+          UI_COLORS.modes.difficult.accent[0],
+          UI_COLORS.modes.difficult.accent[1],
+          UI_COLORS.modes.difficult.accent[2]
+        )
+      ),
       k.anchor("center"),
       k.fixed(),
       k.z(303),
@@ -370,10 +404,17 @@ export function showModeSelectScreen(
   const card4Y = card2Y + card2H / 2 + 16 + card4H / 2;
 
   const card4 = k.add([
-    k.rect(contentBoxW, card4H, { radius: 12 }),
+    k.rect(contentBoxW, card4H, { radius: UI_RADII.lg }),
     k.pos(cX, card4Y),
-    k.color(14, 36, 72),
-    k.outline(1.5, k.rgb(249, 115, 22)),
+    k.color(UI_COLORS.panelSurface[0], UI_COLORS.panelSurface[1], UI_COLORS.panelSurface[2]),
+    k.outline(
+      1.5,
+      k.rgb(
+        UI_COLORS.modes.quick.accent[0],
+        UI_COLORS.modes.quick.accent[1],
+        UI_COLORS.modes.quick.accent[2]
+      )
+    ),
     k.anchor("center"),
     k.fixed(),
     k.z(302),
@@ -385,8 +426,19 @@ export function showModeSelectScreen(
     k.add([
       k.rect(50, 50, { radius: 10 }),
       k.pos(icon4Pos),
-      k.color(45, 26, 14),
-      k.outline(1.5, k.rgb(249, 115, 22)),
+      k.color(
+        UI_COLORS.modes.quick.surface[0],
+        UI_COLORS.modes.quick.surface[1],
+        UI_COLORS.modes.quick.surface[2]
+      ),
+      k.outline(
+        1.5,
+        k.rgb(
+          UI_COLORS.modes.quick.accent[0],
+          UI_COLORS.modes.quick.accent[1],
+          UI_COLORS.modes.quick.accent[2]
+        )
+      ),
       k.anchor("center"),
       k.fixed(),
       k.z(303),

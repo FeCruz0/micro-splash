@@ -5,6 +5,8 @@ import { getTop10Entries, type LeaderboardEntry } from "../systems/leaderboard";
 import { getWeeklyTop10Entries, getWeeklyChallengeInfo } from "../systems/weeklyChallenge";
 import { fetchOnlineLeaderboard } from "../services/leaderboardApi";
 import { createFocusGroup, type FocusableItem } from "./keyboardNav";
+import { UI_COLORS, UI_RADII, UI_Z_INDEX, getModalDimensions } from "./theme";
+import { createTabBar, createCardButton } from "./shared";
 
 export type LeaderboardTab = "global" | "weekly" | "local";
 
@@ -18,35 +20,40 @@ export function showLeaderboardScreen(k: KaboomCtx, onClose: () => void) {
   const statusMessage = "🌐 Consultando ranking mundial em tempo real...";
   const statusColor = k.rgb(180, 220, 255);
 
-  const cardW = Math.min(1000, k.width() - 24);
-  const cardH = Math.min(660, k.height() - 20);
-  const centerX = k.width() / 2;
-  const centerY = k.height() / 2;
+  const {
+    cardW,
+    cardH,
+    cX: centerX,
+    cY: centerY,
+  } = getModalDimensions(k.width(), k.height(), "tall");
 
   // Fundo escuro semitransparente
   elements.push(
     k.add([
       k.rect(k.width(), k.height()),
       k.pos(0, 0),
-      k.color(4, 14, 32),
-      k.opacity(0.95),
+      k.color(UI_COLORS.backdrop[0], UI_COLORS.backdrop[1], UI_COLORS.backdrop[2]),
+      k.opacity(UI_COLORS.backdropOpacity),
       k.area(),
       k.fixed(),
-      k.z(300),
+      k.z(UI_Z_INDEX.backdrop),
     ])
   );
 
   // Card do Modal Principal com contorno dourado de prestígio ampliado
   elements.push(
     k.add([
-      k.rect(cardW, cardH, { radius: 16 }),
+      k.rect(cardW, cardH, { radius: UI_RADII.xl }),
       k.pos(centerX, centerY),
-      k.color(10, 28, 56),
-      k.outline(2.5, k.rgb(250, 204, 21)),
+      k.color(UI_COLORS.panel[0], UI_COLORS.panel[1], UI_COLORS.panel[2]),
+      k.outline(
+        2.5,
+        k.rgb(UI_COLORS.borderGold[0], UI_COLORS.borderGold[1], UI_COLORS.borderGold[2])
+      ),
       k.anchor("center"),
       k.area(),
       k.fixed(),
-      k.z(301),
+      k.z(UI_Z_INDEX.modalCard),
     ])
   );
 
@@ -135,83 +142,23 @@ export function showLeaderboardScreen(k: KaboomCtx, onClose: () => void) {
     { id: "local", label: "💾 Local / Totem" },
   ];
 
-  const tabBtns: GameObj[] = [];
-  const tabEntities: Array<{
-    btn: GameObj;
-    txt: GameObj;
-    id: LeaderboardTab;
-  }> = [];
-  const tabGap = 20;
-  const tabW = Math.min(320, (cardW - 60 - tabGap) / 2);
-  const tabH = 42;
-  const tabY = centerY - cardH / 2 + 82;
-  const totalTabsW = tabs.length * tabW + (tabs.length - 1) * tabGap;
-
-  tabs.forEach((tab, i) => {
-    const tX = centerX - totalTabsW / 2 + tabW / 2 + i * (tabW + tabGap);
-
-    const btn = k.add([
-      k.rect(tabW, tabH, { radius: 9 }),
-      k.pos(tX, tabY),
-      k.color(activeTab === tab.id ? k.rgb(20, 100, 165) : k.rgb(14, 32, 60)),
-      k.outline(
-        activeTab === tab.id ? 2 : 1,
-        activeTab === tab.id ? k.rgb(56, 189, 248) : k.rgb(45, 75, 115)
-      ),
-      k.scale(1),
-      k.anchor("center"),
-      k.area(),
-      k.fixed(),
-      k.z(303),
-    ]);
-    elements.push(btn);
-    tabBtns.push(btn);
-
-    const txt = k.add([
-      k.text(tab.label, {
-        size: accessibilitySystem.scaleFont(15.5),
-        font: "Outfit",
-      }),
-      k.pos(tX, tabY),
-      k.color(activeTab === tab.id ? k.rgb(255, 255, 255) : k.rgb(175, 205, 235)),
-      k.anchor("center"),
-      k.fixed(),
-      k.z(304),
-    ]);
-    elements.push(txt);
-    tabEntities.push({ btn, txt, id: tab.id });
-
-    btn.onHoverUpdate(() => {
-      if (activeTab !== tab.id) {
-        btn.color = k.rgb(25, 55, 95);
-        btn.scale = k.vec2(1.02, 1.02);
-      }
-    });
-    btn.onHoverEnd(() => {
-      btn.scale = k.vec2(1, 1);
-      updateTabsUI();
-    });
-
-    btn.onClick(() => {
-      if (isClosed || activeTab === tab.id) return;
-      audioSystem.playUiClick();
-      activeTab = tab.id;
-      updateTabsUI();
+  const tabBar = createTabBar<LeaderboardTab>(k, {
+    tabs,
+    activeTab,
+    posY: centerY - cardH / 2 + 82,
+    containerWidth: cardW,
+    centerX,
+    tabGap: 20,
+    tabHeight: 42,
+    maxTabWidth: 320,
+    onTabChange: (tabId) => {
+      if (isClosed) return;
+      activeTab = tabId;
       loadTabData();
-    });
+    },
+    canInteract: () => !isClosed,
   });
-
-  const updateTabsUI = () => {
-    tabEntities.forEach((t) => {
-      const isSel = activeTab === t.id;
-      t.btn.color = isSel ? k.rgb(20, 100, 165) : k.rgb(14, 32, 60);
-      t.btn.outline = {
-        width: isSel ? 2 : 1,
-        color: isSel ? k.rgb(56, 189, 248) : k.rgb(45, 75, 115),
-      };
-      t.txt.color = isSel ? k.rgb(255, 255, 255) : k.rgb(175, 205, 235);
-    });
-  };
+  elements.push(...tabBar.elements);
 
   // Barra de Status de Conexão com fundo estilizado
   const statusBoxW = cardW - 48;
@@ -488,42 +435,17 @@ export function showLeaderboardScreen(k: KaboomCtx, onClose: () => void) {
 
   // Botão Fechar no rodapé
   const btnClosePos = k.vec2(centerX, centerY + cardH / 2 - 32);
-  const btnClose = k.add([
-    k.rect(280, 46, { radius: 10 }),
-    k.pos(btnClosePos),
-    k.color(24, 85, 150),
-    k.outline(2, k.rgb(56, 189, 248)),
-    k.scale(1),
-    k.anchor("center"),
-    k.area(),
-    k.fixed(),
-    k.z(304),
-  ]);
-  elements.push(btnClose);
-
-  elements.push(
-    k.add([
-      k.text("Fechar (ESC) ✕", {
-        size: accessibilitySystem.scaleFont(16),
-        font: "Outfit",
-      }),
-      k.pos(btnClosePos),
-      k.color(255, 255, 255),
-      k.anchor("center"),
-      k.fixed(),
-      k.z(305),
-    ])
-  );
-
-  btnClose.onHoverUpdate(() => {
-    btnClose.color = k.rgb(35, 115, 200);
-    btnClose.scale = k.vec2(1.02, 1.02);
+  const btnClose = createCardButton(k, {
+    label: "Fechar (ESC) ✕",
+    pos: btnClosePos,
+    width: 280,
+    height: 46,
+    variant: "secondary",
+    fontSize: 16,
+    onClick: close,
+    canInteract: () => !isClosed,
   });
-  btnClose.onHoverEnd(() => {
-    btnClose.color = k.rgb(24, 85, 150);
-    btnClose.scale = k.vec2(1, 1);
-  });
-  btnClose.onClick(close);
+  elements.push(...btnClose.elements);
 
   // Grupo de foco por teclado acessível
   const focusItems: FocusableItem[] = [
@@ -533,23 +455,8 @@ export function showLeaderboardScreen(k: KaboomCtx, onClose: () => void) {
       height: 38,
       onActivate: close,
     },
-    ...tabEntities.map((t) => ({
-      pos: t.btn.pos,
-      width: tabW,
-      height: tabH,
-      onActivate: () => {
-        audioSystem.playUiClick();
-        activeTab = t.id;
-        updateTabsUI();
-        loadTabData();
-      },
-    })),
-    {
-      pos: btnClosePos,
-      width: 280,
-      height: 46,
-      onActivate: close,
-    },
+    ...tabBar.focusItems,
+    btnClose.focusItem,
   ];
 
   const focusGroup = createFocusGroup(k, {

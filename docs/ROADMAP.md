@@ -947,3 +947,33 @@ _Objetivo: Remover o botão de alternância de Narração em Voz (TTS) do painel
 - [x] **63.2 Atualizar a Documentação para Sinalizar a Narração por Voz como "Em Desenvolvimento":**
   - Registrar formalmente em `docs/ROADMAP.md`, `docs/ARCHITECTURE.md`, `docs/PRIVACIDADE.md` e `README.md` que a Narração por Voz (TTS) está categorizada como **"Em Desenvolvimento"**.
   - Preservar o sistema subjacente (`src/systems/ttsSystem.ts`, chamadas nos pop-ups pedagógicos/insights e testes unitários) para viabilizar futura reativação sem quebra arquitetural.
+
+### 🎨 FASE 64: Design System Centralizado, Tokens Semânticos & Shell de Modais (UI Foundation)
+
+_Objetivo: Estruturar uma camada fundacional de UI eliminando cores hardcoded espalhadas e geometrias redundantes, introduzindo tokens semânticos unificados, um container padronizado para modais com animação de entrada e saída, e componentes compartilhados de abas e botões com foco acessível._
+
+- [x] **64.1 Paleta Central de Tema e Design Tokens (`src/ui/theme.ts`):**
+  - Centralizar paleta oceânica com tokens semânticos (`UI_COLORS`, `UI_FONTS`, `UI_RADII`, `UI_SPACING`), substituindo chamadas literais `k.rgb` espalhadas nas telas (`leaderboardScreen`, `victoryScreen`, `modeSelectScreen`, `shareModal`, `quizModal`, `statsModal`, `onboardingModal`).
+  - Definir identidades visuais coerentes por modalidade (Serena: verde esmeralda, Difícil: carmesim, Rápida: âmbar dourado) e suporte nativo a alto contraste.
+- [x] **64.2 Componente Estrutural de Modal Universal (`src/ui/shared/modalShell.ts`):**
+  - Criar função utilitária `createModalShell` unificando backdrop semi-transparente, card centralizado com cantos arredondados, título estilizado com sombra (`addShadowedText`), botão de fechamento `[X]` e ciclo de vida animado (`animateModalEntrance` e `animateModalExit`).
+  - Eliminar duplicações de cálculos de dimensões (`Math.min(1000/660/580, ...)`) distribuídas pelos modais da aplicação.
+- [x] **64.3 Componentes Compartilhados de Abas e Botões (`src/ui/shared/`):**
+  - Implementar `createTabBar` e `createCardButton` reutilizáveis integrados com `attachButtonHoverEffect` e navegação WCAG 2.1 AA (`keyboardNav.ts`), eliminando código de hover manual em `leaderboardScreen`, `optionsScreen`, `quizModal`, `shareModal` e `statsModal`.
+- [x] **64.4 Suíte de Testes Automatizados do Design System (`tests/ui/phase64_design_system.test.ts`):**
+  - Cobertura de integridade para a tabela de tokens, cálculo de proporções responsivas no `modalShell` e ciclos de foco nos componentes unificados.
+
+### ✨ FASE 65: Polimento Visual, Micro-Interações & Dinâmica Oceânica (Motion & Juice)
+
+_Objetivo: Elevar a sensação tátil e o acabamento premium do jogo mediante micro-animações pontuais, contadores numéricos dinâmicos, hierarquia tipográfica consolidada e transições ambientais suaves sem impacto no orçamento de 60 FPS._
+
+- [ ] **65.1 Micro-Animações Sutis em Ações Principais (Call-to-Action Pulse & Stagger):**
+  - Aplicar pulso suave de respiração (brilho/escala 1.02) em botões de ação primária (`INICIAR`, `JOGAR NOVAMENTE`) e entrada escalonada (_stagger_ de ~50ms) nos cards de modos e linhas de tabela.
+- [ ] **65.2 Contadores Progressivos de Pontuação & Pódio no Ranking:**
+  - Efeito de contagem animada nos Eco-Pontos nas telas de vitória e desafio rápido; estilização visual de pódio com medalhas (🥇, 🥈, 🥉), linhas zebradas e realce para o 1º lugar no Quadro de Recordes.
+- [ ] **65.3 Padronização da Escala Tipográfica & Contraste Universal:**
+  - Reduzir variações de fontes a 5 degraus canônicos (`caption`, `body`, `label`, `h2`, `h1`), aplicando `addShadowedText` universalmente nos títulos para garantir legibilidade sobre quaisquer fundos submarinos.
+- [ ] **65.4 Transições Fluidas de Bioma em Tempo Real (`src/systems/biomeTransitionSystem.ts`):**
+  - Reforçar a sinalização de entrada em novos biomas com vinheta suave e cartão sutil de apresentação com fade-in/fade-out, validando que o frame time permaneça estritamente dentro da meta estável da Fase 53.
+- [ ] **65.5 Suíte de Testes de Motion & Micro-Interações (`tests/ui/phase65_ui_motion.test.ts`):**
+  - Testes unitários para temporizações de tween, comportamento de fallback em modo de movimento reduzido e garantia de não-bloqueio de interação.

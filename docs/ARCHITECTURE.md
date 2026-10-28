@@ -424,3 +424,22 @@ A arquitetura da Baleia Co-Migrante foi desacoplada de vínculos e restrições 
    - A transição do tutorial é regida primariamente pela posição da própria baleia (`companion.pos.x >= FAREWELL_TARGET_X - 180`).
 5. **Referência Fraca e Instanciação Autônoma**:
    - O controlador `PlayerController` tornou-se opcional na função de criação `createCompanionWhale`, permitindo que a entidade exista, navegue e interaja no mapa de forma completamente autônoma.
+
+---
+
+## 🎨 13. Design System Centralizado & Componentes Compartilhados de UI (Fase 64)
+
+Para assegurar consistência visual, eliminar duplicações de geometria e unificar a experiência do usuário em todas as resoluções e totens, a camada de UI foi refatorada com um Design System oceânico centralizado:
+
+1. **Tokens Semânticos Centralizados (`src/ui/theme.ts`)**:
+   - `UI_COLORS`: Mapeia paletas semânticas para o ecossistema marinho (`panel`, `panelSurface`, `panelDeep`, `border`, `textPrimary`, `textGold`), além de identidades de modo (Serena: esmeralda, Difícil: carmesim, Rápida: âmbar) e estados de botões (`primary`, `secondary`, `danger`, `tabActive`).
+   - `UI_RADII` & `UI_SPACING`: Escalas proporcionais padronizadas de cantos e preenchimentos.
+   - `UI_Z_INDEX`: Hierarquia rigorosa e estrita de profundidade (`backdrop: 300` a `focusRing: 315`), eliminando bugs de sobreposição.
+   - `getModalDimensions(screenW, screenH, variant)`: Cálculo canônico de dimensões e centralização responsiva com suporte a variantes `standard`, `tall` e `compact`.
+
+2. **Shell Universal de Modais (`src/ui/shared/modalShell.ts`)**:
+   - Função utilitária `createModalShell` que encapsula o backdrop interceptor, card modal centralizado, título tipográfico com sombra de leitura universal (`addShadowedText`), botão de fechar `[X]` com hover tátil, listener seguro da tecla `Escape` e ciclo de vida com `animateModalEntrance` e `animateModalExit`.
+
+3. **Componentes Compartilhados de Abas e Botões (`src/ui/shared/`)**:
+   - `createTabBar`: Centralização horizontal simétrica calculada para $N$ abas com transição visual instantânea e anel de foco acessível.
+   - `createCardButton`: Criação padronizada de botões de ação com variantes semânticas, hover elástico suave (`attachButtonHoverEffect`) e itens de foco para navegação por teclado (WCAG 2.1 AA).
