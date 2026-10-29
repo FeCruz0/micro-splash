@@ -4,8 +4,14 @@
   "project": "micro-splash",
   "engine_source": "kaboom@3000.1.17",
   "engine_target": "pixi.js@8.x",
-  "contracts_manifest": ["src/engine/contracts/INTERFACE_CONTRACTS.ts"],
-  "architecture_decisions": ["DECISION_LOG.md"],
+  "contracts_manifest": [
+    "src/engine/contracts/INTERFACE_CONTRACTS.ts",
+    "src/engine/adapters/PixiNodes.ts",
+    "src/engine/adapters/RenderEngineAdapter.ts",
+    "src/engine/SceneManager.ts",
+    "src/engine/utils/Tween.ts"
+  ],
+  "architecture_decisions": ["DECISION_LOG.md", "docs/MIGRATION_SYNTAX_CHEAT_SHEET.md"],
   "metrics": {
     "total_files": 109,
     "migrated": 0,
@@ -54,7 +60,7 @@
     "stage_0_infrastructure": {
       "name": "Stage 0: Contracts & Infrastructure Setup",
       "description": "Pure TypeScript Interface Contracts definition, PixiJS v8 foundation, RenderEngineAdapter spike and Parallel Canvas mount harness.",
-      "status": "ready",
+      "status": "completed",
       "summary": {
         "total_files": 0,
         "migrated": 0,
@@ -76,10 +82,34 @@
           "description": "Architecture Decision Records: ADR 001 (Adapter Pattern), ADR 002 (Hybrid UI DOM/Canvas), ADR 003 (Decoupled Physics), ADR 004 (Parallel Canvas Transition)"
         },
         {
-          "path": "src/engine/adapters/PixiRenderEngineAdapter.ts",
-          "status": "planned",
-          "type": "adapter",
-          "description": "Concrete PixiJS v8 engine adapter fulfilling IRenderEngine"
+          "path": "src/engine/adapters/PixiNodes.ts",
+          "status": "completed",
+          "type": "adapter_nodes",
+          "description": "PixiContainerNode, PixiSpriteNode, PixiGraphicsNode, PixiTextNode wrapping PixiJS v8 native nodes"
+        },
+        {
+          "path": "src/engine/adapters/RenderEngineAdapter.ts",
+          "status": "completed",
+          "type": "adapter_engine",
+          "description": "RenderEngineAdapter implementing IRenderEngine with PixiJS v8 and Docker/Vite safe DOM lifecycle"
+        },
+        {
+          "path": "src/engine/SceneManager.ts",
+          "status": "completed",
+          "type": "scene_manager",
+          "description": "Formal SceneManager with FSM (IDLE, EXITING, SWITCHING, ENTERING, ERROR) replacing k.scene() and k.go()"
+        },
+        {
+          "path": "src/engine/utils/Tween.ts",
+          "status": "completed",
+          "type": "engine_utility",
+          "description": "Pure TypeScript tween and easing engine replacing k.tween()"
+        },
+        {
+          "path": "docs/MIGRATION_SYNTAX_CHEAT_SHEET.md",
+          "status": "completed",
+          "type": "documentation",
+          "description": "Canonical syntax equivalence table mapping Kaboom.js API calls to Adapter Pattern equivalents"
         }
       ],
       "files": []
