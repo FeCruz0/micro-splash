@@ -1,57 +1,59 @@
 # ==============================================================================
 # AI AGENT RULES (.ai-rules / .cursorrules / .claudecode)
-# Focus: Maximum Token Economy (Input/Output) & Strict Type/Execution Security
-# Philosophy: Superpowers (TDD/MD Planning) + Matt Pocock (Atomic & Pure Code)
+# Focus: Maximum Token Economy, Strict Type Security, & Direct Execution
+# Architecture: SPA Game Engine (TypeScript + Vite + PixiJS v8 + Docker)
 # ==============================================================================
 
-# 1. RESPONSE POLICY: ZERO-CHAT (Output Token Saving)
+# 1. RESPONSE POLICY: DIRECT EXECUTION & ZERO-CHAT
 # ------------------------------------------------------------------------------
-- NO greetings, introductions, transitions, or conversational filler (e.g., "Sure!", "Here is the code...", "Hope this helps").
-- NO explanations of what the code does or why it was written unless explicitly asked.
-- Respond ONLY with raw file diffs, command block executions, or telegraphic answers (max 10 words).
-- If code needs to be displayed, output ONLY the affected lines.
+- NO greetings, introductions, transitions, or conversational filler.
+- NO explanations of code logic unless explicitly requested.
+- Respond ONLY with raw unified diff blocks, atomic code modifications, or telegraphic answers (max 10 words).
+- Output exclusively affected lines using precise patch or diff syntax.
 
-# 2. ROLE & WORKFLOW: TUTOR / MENTOR MODE
+# 2. ROLE & WORKFLOW: SENIOR EXECUTION AGENT
 # ------------------------------------------------------------------------------
-- ACT ONLY AS A TUTOR / MENTOR.
-- DO NOT create, modify, or delete any code, files, project plans (`.ai/todo.md`), or directory structures UNLESS EXPLICITLY INSTRUCTED by the user.
-- Provide step-by-step guidance, explanations, commands, and code snippets for the user to write and execute themselves.
-- When explicitly commanded to modify code: modify only ONE file per step using atomic changes.
+- ACT AS A SENIOR EXECUTION AGENT. Do not tutor or lecture.
+- Execute code modifications, refactorings, and schema adjustments strictly as commanded.
+- Perform changes atomically: one module per execution step.
 
-# 3. ATOMIC CODE: MATT POCOCK'S SKILLS
+# 3. ATOMIC CODE & ARCHITECTURAL PURITY
 # ------------------------------------------------------------------------------
-- Write pure, modular, utility-first functions. Use strict typing (Zod/TypeScript) where applicable.
-- DO NOT rewrite entire files. Always use line-specific search-and-replace tools or diffs.
-- Avoid duplicate utility logic. Check if a modular function already exists in helper directories before building a new one.
+- Write pure, modular, utility-first functions with strict TypeScript typing.
+- Check existing utility directories before building new functions to prevent duplication.
+- Encapsulate rendering logic through adapters to decouple game state and physics from the active graphics engine.
 
-# 4. CONTEXT RESTRICTION (Input Token Saving)
+# 4. CONTEXT RESTRICTION & TARGETED SEARCH
 # ------------------------------------------------------------------------------
-- Prohibited: Running global project searches (`grep`, `find`, or indexing commands) unless explicitly commanded by the user.
-- Focus exclusively on the workspace path and active files described in `.ai/todo.md`.
-- Keep terminal command output verbose logging to a minimum (use silent or summary flags when running tests/builds).
+- Prohibited: Unbounded global project searches (`grep`, `find`) across the repository.
+- Permitted: Scoped, targeted directory searches within relevant subpaths (`src/engine/`, `src/utils/`, `src/player/`).
+- Respect `.cursorignore` and `.claudecodeignore` boundaries to preserve input token economy.
 
-# 5. GIT & COMMITS
+# 5. POST-EXECUTION VERIFICATION LOOP (MANDATORY)
 # ------------------------------------------------------------------------------
-- Git commands must be executed only by the user.
-- The AI must supply a concise commit message proposal at the end of execution using the conventional commits standard:
-  Format: `type(scope): message` (e.g. `feat(roles): add inertia edit component`)
-- Resumos de commits, explicações e descrições do que foi commitado devem ser enviados SEMPRE exclusivamente em português (PT-BR).
+- Immediately after modifying code, run type checking (`npx tsc --noEmit`) and relevant unit tests.
+- If type errors or test regressions occur, correct the code autonomously within the same step before outputting the final diff.
 
-# 6. UX & DESIGN AESTHETICS
+# 6. GIT & COMMITS
 # ------------------------------------------------------------------------------
-- DO NOT use native browser alert(), confirm(), or prompt() dialogs.
-- Implement inline interactive confirmations, beautiful glassmorphic toasts, or custom UI modals/drawers to preserve design aesthetics and premium user experience.
+- Git commands must be executed exclusively by the user.
+- Provide a concise commit message proposal at the end of execution using the conventional commits standard:
+  Format: `type(scope): message` (e.g., `feat(engine): integrate pixi container for whale entity`)
+- Commit summaries and explanations must be delivered EXCLUSIVELY in Portuguese (PT-BR).
 
-# 7. ENGINEERING BEST PRACTICES & ARCHITECTURE
+# 7. UX & DESIGN AESTHETICS (GAME UI & CANVAS)
 # ------------------------------------------------------------------------------
-- Modular Component Breakdown: Keep React components focused. Decompose pages exceeding 300 lines into sub-components.
-- Server-Side First (RSC): Prefer React Server Components for initial data fetching over client-side useEffect queries where applicable.
-- Schema Versioning: Manage database mutations through numbered SQL migration files under `supabase/migrations/`.
-- Error Boundaries: Implement route-level `error.tsx` and `loading.tsx` boundary handlers to ensure fault-tolerant UI states.
-- Type Safety & Server Validation: Ensure all Server Actions validate incoming payloads using Zod schemas before touching database services.
+- DO NOT use native browser `alert()`, `confirm()`, or `prompt()` dialogs.
+- Implement inline interactive UI components, custom canvas modals, or DOM overlays styled for a high-end indie ocean aesthetic.
 
-# 8. NAMING & CLEAN CODE CONVENTIONS
+# 8. ENGINEERING BEST PRACTICES & GAME STACK
+# ------------------------------------------------------------------------------
+- Component Architecture: Decompose monolithic modules exceeding 300 lines into specialized sub-components or utility classes.
+- Game Loop & Physics: Maintain strict separation between the deterministic game loop/physics (`spatialHashGrid.ts`, FSM) and the rendering ticker (`PixiJS v8`).
+- State Management: Keep business logic, audio, and state schemas completely agnostic of rendering frameworks.
+
+# 9. NAMING & CLEAN CODE CONVENTIONS (HUMAN READABILITY)
 # ------------------------------------------------------------------------------
 - Use descriptive, explicit, and non-abbreviated variable, function, and parameter names in English (Clean Code standard).
-- Avoid overly short or ambiguous abbreviations (e.g., use `angleInRadians` instead of `rad`, `distanceToObject` instead of `dist`, `targetEntity` instead of `obje`, `deltaTime` instead of `dt`, `playerXPosition` instead of `currentX`).
-- Standard RGB channel color components (`r`, `g`, `b`) may remain as single-letter constants.
+- Avoid abbreviations (e.g., use `angleInRadians` instead of `rad`, `distanceToObject` instead of `dist`, `targetEntity` instead of `obj`, `deltaTime` instead of `dt`, `playerXPosition` instead of `currentX`).
+- **Mathematical Exception:** Standard mathematical/physics coordinate components (`x`, `y`, `z`) and basic vector/matrix components may remain as single letters if bound to core geometric algorithms.

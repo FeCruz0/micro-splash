@@ -1,0 +1,1514 @@
+{
+  "version": "1.0.0",
+  "schema_version": "2026-10-29",
+  "project": "micro-splash",
+  "engine_source": "kaboom@3000.1.17",
+  "engine_target": "pixi.js@8.x",
+  "contracts_manifest": ["src/engine/contracts/INTERFACE_CONTRACTS.ts"],
+  "architecture_decisions": ["DECISION_LOG.md"],
+  "metrics": {
+    "total_files": 109,
+    "migrated": 0,
+    "pending": 109,
+    "total_lines_of_code": 25949,
+    "total_kaboom_calls": 5268,
+    "breakdown_by_stage": {
+      "stage_0_infrastructure": {
+        "total_files": 0,
+        "migrated": 0,
+        "pending": 0,
+        "total_lines_of_code": 0,
+        "total_kaboom_calls": 0
+      },
+      "stage_1_leaf_systems": {
+        "total_files": 23,
+        "migrated": 0,
+        "pending": 23,
+        "total_lines_of_code": 5073,
+        "total_kaboom_calls": 717
+      },
+      "stage_2_ui_layer": {
+        "total_files": 36,
+        "migrated": 0,
+        "pending": 36,
+        "total_lines_of_code": 11136,
+        "total_kaboom_calls": 3159
+      },
+      "stage_3_entities_fauna_companion": {
+        "total_files": 29,
+        "migrated": 0,
+        "pending": 29,
+        "total_lines_of_code": 5885,
+        "total_kaboom_calls": 962
+      },
+      "stage_4_scenes_and_core_loop": {
+        "total_files": 21,
+        "migrated": 0,
+        "pending": 21,
+        "total_lines_of_code": 3855,
+        "total_kaboom_calls": 430
+      }
+    }
+  },
+  "stages": {
+    "stage_0_infrastructure": {
+      "name": "Stage 0: Contracts & Infrastructure Setup",
+      "description": "Pure TypeScript Interface Contracts definition, PixiJS v8 foundation, RenderEngineAdapter spike and Parallel Canvas mount harness.",
+      "status": "ready",
+      "summary": {
+        "total_files": 0,
+        "migrated": 0,
+        "pending": 0,
+        "total_lines_of_code": 0,
+        "total_kaboom_calls": 0
+      },
+      "infrastructure_deliverables": [
+        {
+          "path": "src/engine/contracts/INTERFACE_CONTRACTS.ts",
+          "status": "completed",
+          "type": "contracts",
+          "description": "Pure TypeScript definitions (IRenderEngine, IRenderNode, ISpriteNode, IGraphicsNode, ITextNode, IScene, ISceneManager)"
+        },
+        {
+          "path": "DECISION_LOG.md",
+          "status": "completed",
+          "type": "adr",
+          "description": "Architecture Decision Records: ADR 001 (Adapter Pattern), ADR 002 (Hybrid UI DOM/Canvas), ADR 003 (Decoupled Physics), ADR 004 (Parallel Canvas Transition)"
+        },
+        {
+          "path": "src/engine/adapters/PixiRenderEngineAdapter.ts",
+          "status": "planned",
+          "type": "adapter",
+          "description": "Concrete PixiJS v8 engine adapter fulfilling IRenderEngine"
+        }
+      ],
+      "files": []
+    },
+    "stage_1_leaf_systems": {
+      "name": "Stage 1: Autonomous Leaf Systems",
+      "description": "Autonomous procedural shaders, background effects, weather, particle systems, caustics, and camera math with zero inward dependencies on gameplay state.",
+      "status": "pending",
+      "summary": {
+        "total_files": 23,
+        "migrated": 0,
+        "pending": 23,
+        "total_lines_of_code": 5073,
+        "total_kaboom_calls": 717
+      },
+      "files": [
+        {
+          "path": "src/systems/abyssalFogSystem.ts",
+          "status": "pending",
+          "linesOfCode": 62,
+          "kaboomCallCount": 11,
+          "dependsOn": [],
+          "dependedBy": ["src/scenes/gameScene.ts"],
+          "target_adapter": "IGraphicsNode | IRenderEngine (Procedural Shaders / Graphics)"
+        },
+        {
+          "path": "src/systems/auroraSystem.ts",
+          "status": "pending",
+          "linesOfCode": 110,
+          "kaboomCallCount": 17,
+          "dependsOn": [],
+          "dependedBy": ["src/scenes/gameScene.ts"],
+          "target_adapter": "IGraphicsNode | IRenderEngine (Procedural Shaders / Graphics)"
+        },
+        {
+          "path": "src/systems/benthicFloorSystem.ts",
+          "status": "pending",
+          "linesOfCode": 504,
+          "kaboomCallCount": 113,
+          "dependsOn": [
+            "src/systems/biomeLifecycleManager.ts",
+            "src/systems/spatialCullingSystem.ts"
+          ],
+          "dependedBy": ["src/scenes/gameScene.ts"],
+          "target_adapter": "IGraphicsNode | IRenderEngine (Procedural Shaders / Graphics)"
+        },
+        {
+          "path": "src/systems/bioluminescenceSystem.ts",
+          "status": "pending",
+          "linesOfCode": 334,
+          "kaboomCallCount": 30,
+          "dependsOn": ["src/entities/player.ts", "src/systems/biomeLifecycleManager.ts"],
+          "dependedBy": ["src/scenes/gameScene.ts"],
+          "target_adapter": "IGraphicsNode | IRenderEngine (Procedural Shaders / Graphics)"
+        },
+        {
+          "path": "src/systems/coastalSurfSystem.ts",
+          "status": "pending",
+          "linesOfCode": 102,
+          "kaboomCallCount": 14,
+          "dependsOn": [],
+          "dependedBy": ["src/scenes/gameScene.ts"],
+          "target_adapter": "IGraphicsNode | IRenderEngine (Procedural Shaders / Graphics)"
+        },
+        {
+          "path": "src/systems/depthDarknessSystem.ts",
+          "status": "pending",
+          "linesOfCode": 76,
+          "kaboomCallCount": 14,
+          "dependsOn": ["src/entities/player.ts"],
+          "dependedBy": ["src/scenes/gameScene.ts"],
+          "target_adapter": "IGraphicsNode | IRenderEngine (Procedural Shaders / Graphics)"
+        },
+        {
+          "path": "src/systems/dynamicShadowSystem.ts",
+          "status": "pending",
+          "linesOfCode": 198,
+          "kaboomCallCount": 29,
+          "dependsOn": ["src/entities/player.ts", "src/systems/oceanEnvironment.ts"],
+          "dependedBy": ["src/scenes/gameScene.ts"],
+          "target_adapter": "IGraphicsNode | IRenderEngine (Procedural Shaders / Graphics)"
+        },
+        {
+          "path": "src/systems/iceSurface.ts",
+          "status": "pending",
+          "linesOfCode": 402,
+          "kaboomCallCount": 91,
+          "dependsOn": [
+            "src/entities/player.ts",
+            "src/systems/biomeLifecycleManager.ts",
+            "src/systems/particlePool.ts",
+            "src/systems/spatialCullingSystem.ts",
+            "src/utils/camera.ts"
+          ],
+          "dependedBy": [
+            "src/entities/companion/states/concreteStates.ts",
+            "src/entities/player/playerOxygen.ts",
+            "src/scenes/gameScene.ts"
+          ],
+          "target_adapter": "IGraphicsNode | IRenderEngine (Procedural Shaders / Graphics)"
+        },
+        {
+          "path": "src/systems/letterboxSystem.ts",
+          "status": "pending",
+          "linesOfCode": 112,
+          "kaboomCallCount": 35,
+          "dependsOn": [],
+          "dependedBy": ["src/main.ts"],
+          "target_adapter": "IGraphicsNode | IRenderEngine (Procedural Shaders / Graphics)"
+        },
+        {
+          "path": "src/systems/lightRaysSystem.ts",
+          "status": "pending",
+          "linesOfCode": 137,
+          "kaboomCallCount": 27,
+          "dependsOn": ["src/systems/spatialCullingSystem.ts"],
+          "dependedBy": ["src/scenes/gameScene.ts", "src/systems/kioskMode.ts"],
+          "target_adapter": "IGraphicsNode | IRenderEngine (Procedural Shaders / Graphics)"
+        },
+        {
+          "path": "src/systems/marineSnowSystem.ts",
+          "status": "pending",
+          "linesOfCode": 167,
+          "kaboomCallCount": 11,
+          "dependsOn": ["src/systems/biomeLifecycleManager.ts"],
+          "dependedBy": ["src/scenes/gameScene.ts"],
+          "target_adapter": "IGraphicsNode | IRenderEngine (Procedural Shaders / Graphics)"
+        },
+        {
+          "path": "src/systems/oceanFloorSystem.ts",
+          "status": "pending",
+          "linesOfCode": 406,
+          "kaboomCallCount": 49,
+          "dependsOn": ["src/systems/spatialCullingSystem.ts"],
+          "dependedBy": ["src/scenes/gameScene.ts"],
+          "target_adapter": "IGraphicsNode | IRenderEngine (Procedural Shaders / Graphics)"
+        },
+        {
+          "path": "src/systems/oceanEnvironment.ts",
+          "status": "pending",
+          "linesOfCode": 139,
+          "kaboomCallCount": 17,
+          "dependsOn": ["src/systems/waterSurfaceSystem.ts"],
+          "dependedBy": [
+            "src/scenes/gameScene.ts",
+            "src/systems/dynamicShadowSystem.ts",
+            "src/ui/debugDistance.ts"
+          ],
+          "target_adapter": "IGraphicsNode | IRenderEngine (Procedural Shaders / Graphics)"
+        },
+        {
+          "path": "src/systems/parallaxSkySystem.ts",
+          "status": "pending",
+          "linesOfCode": 457,
+          "kaboomCallCount": 97,
+          "dependsOn": [],
+          "dependedBy": ["src/scenes/gameScene.ts"],
+          "target_adapter": "IGraphicsNode | IRenderEngine (Procedural Shaders / Graphics)"
+        },
+        {
+          "path": "src/systems/particlePool.ts",
+          "status": "pending",
+          "linesOfCode": 467,
+          "kaboomCallCount": 12,
+          "dependsOn": [],
+          "dependedBy": [
+            "src/entities/companion/companionStates.ts",
+            "src/entities/player/playerParticles.ts",
+            "src/entities/player/playerSonar.ts",
+            "src/scenes/gameScene.ts",
+            "src/systems/backgroundFauna.ts",
+            "src/systems/breachSystem.ts",
+            "src/systems/dolphinDraftingSystem.ts",
+            "src/systems/iceSurface.ts",
+            "src/systems/oilSpillSystem.ts",
+            "src/systems/penguinFlockSystem.ts",
+            "src/systems/weatherSystem.ts"
+          ],
+          "target_adapter": "IGraphicsNode | IRenderEngine (Procedural Shaders / Graphics)"
+        },
+        {
+          "path": "src/systems/waterSurfaceSystem.ts",
+          "status": "pending",
+          "linesOfCode": 142,
+          "kaboomCallCount": 26,
+          "dependsOn": [],
+          "dependedBy": ["src/scenes/gameScene.ts", "src/systems/oceanEnvironment.ts"],
+          "target_adapter": "IGraphicsNode | IRenderEngine (Procedural Shaders / Graphics)"
+        },
+        {
+          "path": "src/systems/weatherSystem.ts",
+          "status": "pending",
+          "linesOfCode": 384,
+          "kaboomCallCount": 52,
+          "dependsOn": [
+            "src/entities/player.ts",
+            "src/systems/biomeLifecycleManager.ts",
+            "src/systems/particlePool.ts"
+          ],
+          "dependedBy": ["src/scenes/gameScene.ts"],
+          "target_adapter": "IGraphicsNode | IRenderEngine (Procedural Shaders / Graphics)"
+        },
+        {
+          "path": "src/systems/biomeLifecycleManager.ts",
+          "status": "pending",
+          "linesOfCode": 106,
+          "kaboomCallCount": 0,
+          "dependsOn": [],
+          "dependedBy": [
+            "src/scenes/gameScene.ts",
+            "src/systems/backgroundFauna.ts",
+            "src/systems/benthicFloorSystem.ts",
+            "src/systems/bioluminescenceSystem.ts",
+            "src/systems/dolphinDraftingSystem.ts",
+            "src/systems/iceSurface.ts",
+            "src/systems/marineSnowSystem.ts",
+            "src/systems/oilSpillSystem.ts",
+            "src/systems/penguinFlockSystem.ts",
+            "src/systems/shipNoiseSystem.ts",
+            "src/systems/weatherSystem.ts"
+          ],
+          "target_adapter": "IGraphicsNode | IRenderEngine (Procedural Shaders / Graphics)"
+        },
+        {
+          "path": "src/systems/biomeVignetteSystem.ts",
+          "status": "pending",
+          "linesOfCode": 231,
+          "kaboomCallCount": 28,
+          "dependsOn": ["src/entities/player.ts", "src/systems/accessibilitySystem.ts"],
+          "dependedBy": ["src/scenes/gameScene.ts"],
+          "target_adapter": "IGraphicsNode | IRenderEngine (Procedural Shaders / Graphics)"
+        },
+        {
+          "path": "src/entities/bubbleVent.ts",
+          "status": "pending",
+          "linesOfCode": 138,
+          "kaboomCallCount": 24,
+          "dependsOn": ["src/entities/player/playerParticles.ts"],
+          "dependedBy": ["src/entities/powerup.ts", "src/systems/proceduralObstacles.ts"],
+          "target_adapter": "IGraphicsNode | IRenderEngine (Procedural Shaders / Graphics)"
+        },
+        {
+          "path": "src/entities/player/playerCaustics.ts",
+          "status": "pending",
+          "linesOfCode": 142,
+          "kaboomCallCount": 20,
+          "dependsOn": [],
+          "dependedBy": ["src/entities/player.ts"],
+          "target_adapter": "IGraphicsNode | IRenderEngine (Procedural Shaders / Graphics)"
+        },
+        {
+          "path": "src/entities/player/playerPectoralFin.ts",
+          "status": "pending",
+          "linesOfCode": 245,
+          "kaboomCallCount": 0,
+          "dependsOn": ["src/systems/accessibilitySystem.ts"],
+          "dependedBy": ["src/entities/player.ts", "src/entities/player/types.ts"],
+          "target_adapter": "IGraphicsNode | IRenderEngine (Procedural Shaders / Graphics)"
+        },
+        {
+          "path": "src/utils/camera.ts",
+          "status": "pending",
+          "linesOfCode": 12,
+          "kaboomCallCount": 0,
+          "dependsOn": ["src/systems/accessibilitySystem.ts"],
+          "dependedBy": [
+            "src/systems/breachSystem.ts",
+            "src/systems/iceSurface.ts",
+            "src/systems/oceanCurrentsSystem.ts",
+            "src/systems/shipNoiseSystem.ts",
+            "src/systems/upwellingSystem.ts"
+          ],
+          "target_adapter": "IGraphicsNode | IRenderEngine (Procedural Shaders / Graphics)"
+        }
+      ]
+    },
+    "stage_2_ui_layer": {
+      "name": "Stage 2: UI Layer, Modals & Navigation",
+      "description": "Menus, HUD, Modals, Options and Codex screens migrated to accessible DOM overlay and responsive adapter components according to ADR 002.",
+      "status": "pending",
+      "summary": {
+        "total_files": 36,
+        "migrated": 0,
+        "pending": 36,
+        "total_lines_of_code": 11136,
+        "total_kaboom_calls": 3159
+      },
+      "files": [
+        {
+          "path": "src/ui/animationUtils.ts",
+          "status": "pending",
+          "linesOfCode": 281,
+          "kaboomCallCount": 41,
+          "dependsOn": [],
+          "dependedBy": [
+            "src/ui/challengeEndScreen.ts",
+            "src/ui/codexScreen.ts",
+            "src/ui/mainMenu.ts",
+            "src/ui/modeSelectScreen.ts",
+            "src/ui/options/optionsNavigation.ts",
+            "src/ui/optionsScreen.ts",
+            "src/ui/pwaInstallModal.ts",
+            "src/ui/rescueScreen.ts",
+            "src/ui/shared/cardButton.ts",
+            "src/ui/shared/modalShell.ts",
+            "src/ui/victoryScreen.ts"
+          ],
+          "target_adapter": "DOM Overlay / HTML5 semantic elements + ITextNode / IGraphicsNode"
+        },
+        {
+          "path": "src/ui/keyBadge.ts",
+          "status": "pending",
+          "linesOfCode": 88,
+          "kaboomCallCount": 25,
+          "dependsOn": [],
+          "dependedBy": ["src/ui/splashScreen.ts"],
+          "target_adapter": "DOM Overlay / HTML5 semantic elements + ITextNode / IGraphicsNode"
+        },
+        {
+          "path": "src/ui/keyboardNav.ts",
+          "status": "pending",
+          "linesOfCode": 210,
+          "kaboomCallCount": 21,
+          "dependsOn": [],
+          "dependedBy": [
+            "src/ui/codex/codexTypes.ts",
+            "src/ui/codexScreen.ts",
+            "src/ui/leaderboardScreen.ts",
+            "src/ui/mainMenu.ts",
+            "src/ui/modeSelectScreen.ts",
+            "src/ui/onboardingModal.ts",
+            "src/ui/options/optionsNavigation.ts",
+            "src/ui/options/optionsTypes.ts",
+            "src/ui/optionsScreen.ts",
+            "src/ui/shared/cardButton.ts",
+            "src/ui/shared/modalShell.ts",
+            "src/ui/shared/tabBar.ts",
+            "src/ui/statsModal.ts"
+          ],
+          "target_adapter": "DOM Overlay / HTML5 semantic elements + ITextNode / IGraphicsNode"
+        },
+        {
+          "path": "src/ui/textUtils.ts",
+          "status": "pending",
+          "linesOfCode": 95,
+          "kaboomCallCount": 20,
+          "dependsOn": [],
+          "dependedBy": [
+            "src/ui/modeSelectScreen.ts",
+            "src/ui/rescueScreen.ts",
+            "src/ui/shared/modalShell.ts"
+          ],
+          "target_adapter": "DOM Overlay / HTML5 semantic elements + ITextNode / IGraphicsNode"
+        },
+        {
+          "path": "src/ui/touchControls.ts",
+          "status": "pending",
+          "linesOfCode": 357,
+          "kaboomCallCount": 79,
+          "dependsOn": [],
+          "dependedBy": [
+            "src/entities/player.ts",
+            "src/entities/player/playerControls.ts",
+            "src/scenes/gameScene.ts"
+          ],
+          "target_adapter": "DOM Overlay / HTML5 semantic elements + ITextNode / IGraphicsNode"
+        },
+        {
+          "path": "src/ui/shared/cardButton.ts",
+          "status": "pending",
+          "linesOfCode": 144,
+          "kaboomCallCount": 19,
+          "dependsOn": [
+            "src/systems/accessibilitySystem.ts",
+            "src/ui/animationUtils.ts",
+            "src/ui/keyboardNav.ts"
+          ],
+          "dependedBy": [],
+          "target_adapter": "DOM Overlay / HTML5 semantic elements + ITextNode / IGraphicsNode"
+        },
+        {
+          "path": "src/ui/shared/modalShell.ts",
+          "status": "pending",
+          "linesOfCode": 260,
+          "kaboomCallCount": 49,
+          "dependsOn": [
+            "src/systems/accessibilitySystem.ts",
+            "src/ui/animationUtils.ts",
+            "src/ui/keyboardNav.ts",
+            "src/ui/textUtils.ts"
+          ],
+          "dependedBy": [],
+          "target_adapter": "DOM Overlay / HTML5 semantic elements + ITextNode / IGraphicsNode"
+        },
+        {
+          "path": "src/ui/shared/motion.ts",
+          "status": "pending",
+          "linesOfCode": 208,
+          "kaboomCallCount": 3,
+          "dependsOn": ["src/systems/accessibilitySystem.ts"],
+          "dependedBy": [],
+          "target_adapter": "DOM Overlay / HTML5 semantic elements + ITextNode / IGraphicsNode"
+        },
+        {
+          "path": "src/ui/shared/scoreCounter.ts",
+          "status": "pending",
+          "linesOfCode": 97,
+          "kaboomCallCount": 1,
+          "dependsOn": ["src/systems/accessibilitySystem.ts"],
+          "dependedBy": [],
+          "target_adapter": "DOM Overlay / HTML5 semantic elements + ITextNode / IGraphicsNode"
+        },
+        {
+          "path": "src/ui/shared/tabBar.ts",
+          "status": "pending",
+          "linesOfCode": 160,
+          "kaboomCallCount": 23,
+          "dependsOn": ["src/systems/accessibilitySystem.ts", "src/ui/keyboardNav.ts"],
+          "dependedBy": [],
+          "target_adapter": "DOM Overlay / HTML5 semantic elements + ITextNode / IGraphicsNode"
+        },
+        {
+          "path": "src/ui/factPopup.ts",
+          "status": "pending",
+          "linesOfCode": 91,
+          "kaboomCallCount": 34,
+          "dependsOn": [],
+          "dependedBy": ["src/scenes/gameScene.ts"],
+          "target_adapter": "DOM Overlay / HTML5 semantic elements + ITextNode / IGraphicsNode"
+        },
+        {
+          "path": "src/ui/hudSystem.ts",
+          "status": "pending",
+          "linesOfCode": 243,
+          "kaboomCallCount": 42,
+          "dependsOn": ["src/entities/player.ts", "src/systems/accessibilitySystem.ts"],
+          "dependedBy": [],
+          "target_adapter": "DOM Overlay / HTML5 semantic elements + ITextNode / IGraphicsNode"
+        },
+        {
+          "path": "src/ui/initialsInputModal.ts",
+          "status": "pending",
+          "linesOfCode": 340,
+          "kaboomCallCount": 126,
+          "dependsOn": ["src/systems/accessibilitySystem.ts"],
+          "dependedBy": ["src/ui/challengeEndScreen.ts", "src/ui/victoryScreen.ts"],
+          "target_adapter": "DOM Overlay / HTML5 semantic elements + ITextNode / IGraphicsNode"
+        },
+        {
+          "path": "src/ui/pwaInstallModal.ts",
+          "status": "pending",
+          "linesOfCode": 178,
+          "kaboomCallCount": 71,
+          "dependsOn": ["src/systems/accessibilitySystem.ts", "src/ui/animationUtils.ts"],
+          "dependedBy": [],
+          "target_adapter": "DOM Overlay / HTML5 semantic elements + ITextNode / IGraphicsNode"
+        },
+        {
+          "path": "src/ui/onboardingModal.ts",
+          "status": "pending",
+          "linesOfCode": 559,
+          "kaboomCallCount": 157,
+          "dependsOn": ["src/systems/accessibilitySystem.ts", "src/ui/keyboardNav.ts"],
+          "dependedBy": [
+            "src/ui/codex/codexNavigation.ts",
+            "src/ui/codexScreen.ts",
+            "src/ui/mainMenu.ts",
+            "src/ui/options/kioskOptionsTab.ts"
+          ],
+          "target_adapter": "DOM Overlay / HTML5 semantic elements + ITextNode / IGraphicsNode"
+        },
+        {
+          "path": "src/ui/quizModal.ts",
+          "status": "pending",
+          "linesOfCode": 624,
+          "kaboomCallCount": 167,
+          "dependsOn": ["src/systems/accessibilitySystem.ts"],
+          "dependedBy": [
+            "src/ui/challengeEndScreen.ts",
+            "src/ui/codex/codexNavigation.ts",
+            "src/ui/codexScreen.ts",
+            "src/ui/victoryScreen.ts"
+          ],
+          "target_adapter": "DOM Overlay / HTML5 semantic elements + ITextNode / IGraphicsNode"
+        },
+        {
+          "path": "src/ui/shareModal.ts",
+          "status": "pending",
+          "linesOfCode": 424,
+          "kaboomCallCount": 181,
+          "dependsOn": ["src/systems/accessibilitySystem.ts"],
+          "dependedBy": ["src/ui/challengeEndScreen.ts", "src/ui/victoryScreen.ts"],
+          "target_adapter": "DOM Overlay / HTML5 semantic elements + ITextNode / IGraphicsNode"
+        },
+        {
+          "path": "src/ui/statsModal.ts",
+          "status": "pending",
+          "linesOfCode": 407,
+          "kaboomCallCount": 147,
+          "dependsOn": ["src/systems/accessibilitySystem.ts", "src/ui/keyboardNav.ts"],
+          "dependedBy": ["src/ui/mainMenu.ts"],
+          "target_adapter": "DOM Overlay / HTML5 semantic elements + ITextNode / IGraphicsNode"
+        },
+        {
+          "path": "src/ui/debugDistance.ts",
+          "status": "pending",
+          "linesOfCode": 504,
+          "kaboomCallCount": 116,
+          "dependsOn": ["src/entities/player.ts", "src/systems/oceanEnvironment.ts"],
+          "dependedBy": ["src/scenes/gameScene.ts"],
+          "target_adapter": "DOM Overlay / HTML5 semantic elements + ITextNode / IGraphicsNode"
+        },
+        {
+          "path": "src/ui/options/optionsTypes.ts",
+          "status": "pending",
+          "linesOfCode": 31,
+          "kaboomCallCount": 0,
+          "dependsOn": ["src/ui/keyboardNav.ts"],
+          "dependedBy": ["src/ui/options/kioskOptionsTab.ts", "src/ui/optionsScreen.ts"],
+          "target_adapter": "DOM Overlay / HTML5 semantic elements + ITextNode / IGraphicsNode"
+        },
+        {
+          "path": "src/ui/options/optionsNavigation.ts",
+          "status": "pending",
+          "linesOfCode": 157,
+          "kaboomCallCount": 57,
+          "dependsOn": [
+            "src/systems/accessibilitySystem.ts",
+            "src/ui/animationUtils.ts",
+            "src/ui/keyboardNav.ts"
+          ],
+          "dependedBy": ["src/ui/optionsScreen.ts"],
+          "target_adapter": "DOM Overlay / HTML5 semantic elements + ITextNode / IGraphicsNode"
+        },
+        {
+          "path": "src/ui/options/kioskOptionsTab.ts",
+          "status": "pending",
+          "linesOfCode": 582,
+          "kaboomCallCount": 202,
+          "dependsOn": [
+            "src/systems/accessibilitySystem.ts",
+            "src/ui/onboardingModal.ts",
+            "src/ui/options/optionsTypes.ts"
+          ],
+          "dependedBy": ["src/ui/optionsScreen.ts"],
+          "target_adapter": "DOM Overlay / HTML5 semantic elements + ITextNode / IGraphicsNode"
+        },
+        {
+          "path": "src/ui/optionsScreen.ts",
+          "status": "pending",
+          "linesOfCode": 225,
+          "kaboomCallCount": 22,
+          "dependsOn": [
+            "src/systems/accessibilitySystem.ts",
+            "src/ui/animationUtils.ts",
+            "src/ui/keyboardNav.ts",
+            "src/ui/options/kioskOptionsTab.ts",
+            "src/ui/options/optionsNavigation.ts",
+            "src/ui/options/optionsTypes.ts"
+          ],
+          "dependedBy": ["src/scenes/menuScene.ts"],
+          "target_adapter": "DOM Overlay / HTML5 semantic elements + ITextNode / IGraphicsNode"
+        },
+        {
+          "path": "src/ui/codex/codexTypes.ts",
+          "status": "pending",
+          "linesOfCode": 18,
+          "kaboomCallCount": 0,
+          "dependsOn": ["src/ui/keyboardNav.ts"],
+          "dependedBy": ["src/ui/codexScreen.ts"],
+          "target_adapter": "DOM Overlay / HTML5 semantic elements + ITextNode / IGraphicsNode"
+        },
+        {
+          "path": "src/ui/codex/codexNavigation.ts",
+          "status": "pending",
+          "linesOfCode": 343,
+          "kaboomCallCount": 115,
+          "dependsOn": [
+            "src/systems/accessibilitySystem.ts",
+            "src/ui/onboardingModal.ts",
+            "src/ui/quizModal.ts"
+          ],
+          "dependedBy": ["src/ui/codexScreen.ts"],
+          "target_adapter": "DOM Overlay / HTML5 semantic elements + ITextNode / IGraphicsNode"
+        },
+        {
+          "path": "src/ui/codexScreen.ts",
+          "status": "pending",
+          "linesOfCode": 282,
+          "kaboomCallCount": 35,
+          "dependsOn": [
+            "src/systems/accessibilitySystem.ts",
+            "src/ui/animationUtils.ts",
+            "src/ui/codex/codexNavigation.ts",
+            "src/ui/codex/codexTypes.ts",
+            "src/ui/keyboardNav.ts",
+            "src/ui/onboardingModal.ts",
+            "src/ui/quizModal.ts"
+          ],
+          "dependedBy": ["src/scenes/menuScene.ts"],
+          "target_adapter": "DOM Overlay / HTML5 semantic elements + ITextNode / IGraphicsNode"
+        },
+        {
+          "path": "src/ui/leaderboardScreen.ts",
+          "status": "pending",
+          "linesOfCode": 486,
+          "kaboomCallCount": 155,
+          "dependsOn": ["src/systems/accessibilitySystem.ts", "src/ui/keyboardNav.ts"],
+          "dependedBy": ["src/scenes/menuScene.ts"],
+          "target_adapter": "DOM Overlay / HTML5 semantic elements + ITextNode / IGraphicsNode"
+        },
+        {
+          "path": "src/ui/modeSelectScreen.ts",
+          "status": "pending",
+          "linesOfCode": 699,
+          "kaboomCallCount": 235,
+          "dependsOn": [
+            "src/systems/accessibilitySystem.ts",
+            "src/ui/animationUtils.ts",
+            "src/ui/keyboardNav.ts",
+            "src/ui/textUtils.ts"
+          ],
+          "dependedBy": ["src/scenes/menuScene.ts"],
+          "target_adapter": "DOM Overlay / HTML5 semantic elements + ITextNode / IGraphicsNode"
+        },
+        {
+          "path": "src/ui/challengeEndScreen.ts",
+          "status": "pending",
+          "linesOfCode": 409,
+          "kaboomCallCount": 143,
+          "dependsOn": [
+            "src/systems/accessibilitySystem.ts",
+            "src/ui/animationUtils.ts",
+            "src/ui/initialsInputModal.ts",
+            "src/ui/quizModal.ts",
+            "src/ui/shareModal.ts"
+          ],
+          "dependedBy": ["src/scenes/gameScene.ts", "src/scenes/gameoverScene.ts"],
+          "target_adapter": "DOM Overlay / HTML5 semantic elements + ITextNode / IGraphicsNode"
+        },
+        {
+          "path": "src/ui/rescueScreen.ts",
+          "status": "pending",
+          "linesOfCode": 284,
+          "kaboomCallCount": 117,
+          "dependsOn": [
+            "src/systems/accessibilitySystem.ts",
+            "src/ui/animationUtils.ts",
+            "src/ui/textUtils.ts"
+          ],
+          "dependedBy": ["src/scenes/gameScene.ts", "src/scenes/rescueScene.ts"],
+          "target_adapter": "DOM Overlay / HTML5 semantic elements + ITextNode / IGraphicsNode"
+        },
+        {
+          "path": "src/ui/victoryScreen.ts",
+          "status": "pending",
+          "linesOfCode": 686,
+          "kaboomCallCount": 261,
+          "dependsOn": [
+            "src/systems/accessibilitySystem.ts",
+            "src/ui/animationUtils.ts",
+            "src/ui/initialsInputModal.ts",
+            "src/ui/quizModal.ts",
+            "src/ui/shareModal.ts"
+          ],
+          "dependedBy": ["src/scenes/gameScene.ts"],
+          "target_adapter": "DOM Overlay / HTML5 semantic elements + ITextNode / IGraphicsNode"
+        },
+        {
+          "path": "src/ui/splashScreen.ts",
+          "status": "pending",
+          "linesOfCode": 269,
+          "kaboomCallCount": 110,
+          "dependsOn": ["src/ui/keyBadge.ts"],
+          "dependedBy": ["src/scenes/splashScene.ts"],
+          "target_adapter": "DOM Overlay / HTML5 semantic elements + ITextNode / IGraphicsNode"
+        },
+        {
+          "path": "src/ui/mainMenu.ts",
+          "status": "pending",
+          "linesOfCode": 421,
+          "kaboomCallCount": 161,
+          "dependsOn": [
+            "src/systems/accessibilitySystem.ts",
+            "src/systems/kioskMode.ts",
+            "src/ui/animationUtils.ts",
+            "src/ui/keyboardNav.ts",
+            "src/ui/onboardingModal.ts",
+            "src/ui/statsModal.ts"
+          ],
+          "dependedBy": ["src/scenes/menuScene.ts"],
+          "target_adapter": "DOM Overlay / HTML5 semantic elements + ITextNode / IGraphicsNode"
+        },
+        {
+          "path": "src/systems/presentationMode.ts",
+          "status": "pending",
+          "linesOfCode": 399,
+          "kaboomCallCount": 65,
+          "dependsOn": ["src/entities/player.ts"],
+          "dependedBy": ["src/scenes/gameScene.ts"],
+          "target_adapter": "DOM Overlay / HTML5 semantic elements + ITextNode / IGraphicsNode"
+        },
+        {
+          "path": "src/systems/kioskMode.ts",
+          "status": "pending",
+          "linesOfCode": 267,
+          "kaboomCallCount": 129,
+          "dependsOn": ["src/systems/lightRaysSystem.ts"],
+          "dependedBy": ["src/scenes/kioskScene.ts", "src/ui/mainMenu.ts"],
+          "target_adapter": "DOM Overlay / HTML5 semantic elements + ITextNode / IGraphicsNode"
+        },
+        {
+          "path": "src/systems/sereneMigrationInsights.ts",
+          "status": "pending",
+          "linesOfCode": 308,
+          "kaboomCallCount": 30,
+          "dependsOn": ["src/systems/accessibilitySystem.ts"],
+          "dependedBy": ["src/scenes/gameScene.ts", "src/systems/collisions.ts"],
+          "target_adapter": "DOM Overlay / HTML5 semantic elements + ITextNode / IGraphicsNode"
+        }
+      ]
+    },
+    "stage_3_entities_fauna_companion": {
+      "name": "Stage 3: Entities, Obstacles, Fauna & Companion AI",
+      "description": "Gameplay entities (Boat, Krill, Trash, Net), Canyon procedural hazards, Fauna, and Companion state machine migrated to contract-based nodes with decoupled physics.",
+      "status": "pending",
+      "summary": {
+        "total_files": 29,
+        "migrated": 0,
+        "pending": 29,
+        "total_lines_of_code": 5885,
+        "total_kaboom_calls": 962
+      },
+      "files": [
+        {
+          "path": "src/entities/boat.ts",
+          "status": "pending",
+          "linesOfCode": 198,
+          "kaboomCallCount": 106,
+          "dependsOn": [],
+          "dependedBy": ["src/scenes/gameScene.ts", "src/systems/shipNoiseSystem.ts"],
+          "target_adapter": "ISpriteNode | IGraphicsNode + SpatialHashGrid (ADR 003)"
+        },
+        {
+          "path": "src/entities/krill.ts",
+          "status": "pending",
+          "linesOfCode": 290,
+          "kaboomCallCount": 75,
+          "dependsOn": ["src/entities/player.ts", "src/systems/accessibilitySystem.ts"],
+          "dependedBy": [
+            "src/systems/levelLoader.ts",
+            "src/systems/proceduralObstacles.ts",
+            "src/systems/upwellingSystem.ts"
+          ],
+          "target_adapter": "ISpriteNode | IGraphicsNode + SpatialHashGrid (ADR 003)"
+        },
+        {
+          "path": "src/entities/net.ts",
+          "status": "pending",
+          "linesOfCode": 179,
+          "kaboomCallCount": 40,
+          "dependsOn": ["src/systems/accessibilitySystem.ts"],
+          "dependedBy": ["src/systems/levelLoader.ts", "src/systems/proceduralObstacles.ts"],
+          "target_adapter": "ISpriteNode | IGraphicsNode + SpatialHashGrid (ADR 003)"
+        },
+        {
+          "path": "src/entities/powerup.ts",
+          "status": "pending",
+          "linesOfCode": 42,
+          "kaboomCallCount": 0,
+          "dependsOn": ["src/entities/bubbleVent.ts"],
+          "dependedBy": [],
+          "target_adapter": "ISpriteNode | IGraphicsNode + SpatialHashGrid (ADR 003)"
+        },
+        {
+          "path": "src/entities/trash.ts",
+          "status": "pending",
+          "linesOfCode": 190,
+          "kaboomCallCount": 52,
+          "dependsOn": ["src/systems/accessibilitySystem.ts"],
+          "dependedBy": ["src/systems/levelLoader.ts", "src/systems/proceduralObstacles.ts"],
+          "target_adapter": "ISpriteNode | IGraphicsNode + SpatialHashGrid (ADR 003)"
+        },
+        {
+          "path": "src/systems/backgroundFauna.ts",
+          "status": "pending",
+          "linesOfCode": 438,
+          "kaboomCallCount": 106,
+          "dependsOn": [
+            "src/entities/player.ts",
+            "src/systems/biomeLifecycleManager.ts",
+            "src/systems/particlePool.ts",
+            "src/systems/spatialCullingSystem.ts"
+          ],
+          "dependedBy": ["src/scenes/gameScene.ts"],
+          "target_adapter": "ISpriteNode | IGraphicsNode + SpatialHashGrid (ADR 003)"
+        },
+        {
+          "path": "src/systems/dolphinDraftingSystem.ts",
+          "status": "pending",
+          "linesOfCode": 355,
+          "kaboomCallCount": 35,
+          "dependsOn": [
+            "src/entities/player.ts",
+            "src/systems/biomeLifecycleManager.ts",
+            "src/systems/particlePool.ts"
+          ],
+          "dependedBy": ["src/scenes/gameScene.ts"],
+          "target_adapter": "ISpriteNode | IGraphicsNode + SpatialHashGrid (ADR 003)"
+        },
+        {
+          "path": "src/systems/penguinFlockSystem.ts",
+          "status": "pending",
+          "linesOfCode": 375,
+          "kaboomCallCount": 43,
+          "dependsOn": [
+            "src/entities/player.ts",
+            "src/systems/biomeLifecycleManager.ts",
+            "src/systems/particlePool.ts"
+          ],
+          "dependedBy": ["src/scenes/gameScene.ts"],
+          "target_adapter": "ISpriteNode | IGraphicsNode + SpatialHashGrid (ADR 003)"
+        },
+        {
+          "path": "src/systems/oceanCurrentsSystem.ts",
+          "status": "pending",
+          "linesOfCode": 288,
+          "kaboomCallCount": 61,
+          "dependsOn": ["src/entities/player.ts", "src/utils/camera.ts"],
+          "dependedBy": ["src/scenes/gameScene.ts", "src/systems/proceduralObstacles.ts"],
+          "target_adapter": "ISpriteNode | IGraphicsNode + SpatialHashGrid (ADR 003)"
+        },
+        {
+          "path": "src/systems/oilSpillSystem.ts",
+          "status": "pending",
+          "linesOfCode": 212,
+          "kaboomCallCount": 41,
+          "dependsOn": [
+            "src/entities/player.ts",
+            "src/systems/biomeLifecycleManager.ts",
+            "src/systems/particlePool.ts"
+          ],
+          "dependedBy": ["src/scenes/gameScene.ts"],
+          "target_adapter": "ISpriteNode | IGraphicsNode + SpatialHashGrid (ADR 003)"
+        },
+        {
+          "path": "src/systems/shipNoiseSystem.ts",
+          "status": "pending",
+          "linesOfCode": 236,
+          "kaboomCallCount": 80,
+          "dependsOn": [
+            "src/entities/boat.ts",
+            "src/entities/player.ts",
+            "src/systems/biomeLifecycleManager.ts",
+            "src/utils/camera.ts"
+          ],
+          "dependedBy": ["src/scenes/gameScene.ts"],
+          "target_adapter": "ISpriteNode | IGraphicsNode + SpatialHashGrid (ADR 003)"
+        },
+        {
+          "path": "src/systems/upwellingSystem.ts",
+          "status": "pending",
+          "linesOfCode": 156,
+          "kaboomCallCount": 37,
+          "dependsOn": ["src/entities/krill.ts", "src/entities/player.ts", "src/utils/camera.ts"],
+          "dependedBy": ["src/scenes/gameScene.ts"],
+          "target_adapter": "ISpriteNode | IGraphicsNode + SpatialHashGrid (ADR 003)"
+        },
+        {
+          "path": "src/systems/canyon/canyonTypes.ts",
+          "status": "pending",
+          "linesOfCode": 40,
+          "kaboomCallCount": 0,
+          "dependsOn": [],
+          "dependedBy": [
+            "src/systems/canyon/canyonCurrents.ts",
+            "src/systems/canyon/canyonGeometry.ts",
+            "src/systems/canyon/canyonObstacles.ts",
+            "src/systems/canyonSystem.ts"
+          ],
+          "target_adapter": "ISpriteNode | IGraphicsNode + SpatialHashGrid (ADR 003)"
+        },
+        {
+          "path": "src/systems/canyon/canyonGeometry.ts",
+          "status": "pending",
+          "linesOfCode": 453,
+          "kaboomCallCount": 161,
+          "dependsOn": ["src/systems/canyon/canyonTypes.ts"],
+          "dependedBy": ["src/systems/canyonSystem.ts"],
+          "target_adapter": "ISpriteNode | IGraphicsNode + SpatialHashGrid (ADR 003)"
+        },
+        {
+          "path": "src/systems/canyon/canyonCurrents.ts",
+          "status": "pending",
+          "linesOfCode": 89,
+          "kaboomCallCount": 6,
+          "dependsOn": ["src/systems/canyon/canyonTypes.ts"],
+          "dependedBy": ["src/systems/canyonSystem.ts"],
+          "target_adapter": "ISpriteNode | IGraphicsNode + SpatialHashGrid (ADR 003)"
+        },
+        {
+          "path": "src/systems/canyon/canyonObstacles.ts",
+          "status": "pending",
+          "linesOfCode": 151,
+          "kaboomCallCount": 52,
+          "dependsOn": ["src/systems/canyon/canyonTypes.ts"],
+          "dependedBy": ["src/systems/canyonSystem.ts"],
+          "target_adapter": "ISpriteNode | IGraphicsNode + SpatialHashGrid (ADR 003)"
+        },
+        {
+          "path": "src/systems/canyonSystem.ts",
+          "status": "pending",
+          "linesOfCode": 54,
+          "kaboomCallCount": 2,
+          "dependsOn": [
+            "src/systems/canyon/canyonCurrents.ts",
+            "src/systems/canyon/canyonGeometry.ts",
+            "src/systems/canyon/canyonObstacles.ts",
+            "src/systems/canyon/canyonTypes.ts"
+          ],
+          "dependedBy": ["src/scenes/gameScene.ts"],
+          "target_adapter": "ISpriteNode | IGraphicsNode + SpatialHashGrid (ADR 003)"
+        },
+        {
+          "path": "src/systems/proceduralObstacles.ts",
+          "status": "pending",
+          "linesOfCode": 330,
+          "kaboomCallCount": 1,
+          "dependsOn": [
+            "src/entities/bubbleVent.ts",
+            "src/entities/krill.ts",
+            "src/entities/net.ts",
+            "src/entities/trash.ts",
+            "src/systems/oceanCurrentsSystem.ts",
+            "src/systems/spatialCullingSystem.ts"
+          ],
+          "dependedBy": ["src/systems/levelLoader.ts"],
+          "target_adapter": "ISpriteNode | IGraphicsNode + SpatialHashGrid (ADR 003)"
+        },
+        {
+          "path": "src/systems/levelLoader.ts",
+          "status": "pending",
+          "linesOfCode": 64,
+          "kaboomCallCount": 1,
+          "dependsOn": [
+            "src/entities/krill.ts",
+            "src/entities/net.ts",
+            "src/entities/trash.ts",
+            "src/systems/proceduralObstacles.ts"
+          ],
+          "dependedBy": ["src/scenes/gameScene.ts"],
+          "target_adapter": "ISpriteNode | IGraphicsNode + SpatialHashGrid (ADR 003)"
+        },
+        {
+          "path": "src/systems/spatialCullingSystem.ts",
+          "status": "pending",
+          "linesOfCode": 181,
+          "kaboomCallCount": 0,
+          "dependsOn": [],
+          "dependedBy": [
+            "src/scenes/gameScene.ts",
+            "src/systems/backgroundFauna.ts",
+            "src/systems/benthicFloorSystem.ts",
+            "src/systems/iceSurface.ts",
+            "src/systems/lightRaysSystem.ts",
+            "src/systems/oceanFloorSystem.ts",
+            "src/systems/proceduralObstacles.ts"
+          ],
+          "target_adapter": "ISpriteNode | IGraphicsNode + SpatialHashGrid (ADR 003)"
+        },
+        {
+          "path": "src/systems/collisions.ts",
+          "status": "pending",
+          "linesOfCode": 158,
+          "kaboomCallCount": 15,
+          "dependsOn": [
+            "src/entities/companion/types.ts",
+            "src/entities/player.ts",
+            "src/systems/accessibilitySystem.ts",
+            "src/systems/sereneMigrationInsights.ts"
+          ],
+          "dependedBy": ["src/scenes/gameScene.ts"],
+          "target_adapter": "ISpriteNode | IGraphicsNode + SpatialHashGrid (ADR 003)"
+        },
+        {
+          "path": "src/entities/companion/types.ts",
+          "status": "pending",
+          "linesOfCode": 71,
+          "kaboomCallCount": 0,
+          "dependsOn": [],
+          "dependedBy": [
+            "src/entities/companion/companionLocomotion.ts",
+            "src/entities/companion/companionSenses.ts",
+            "src/entities/companion/companionStateMachine.ts",
+            "src/entities/companion/companionStates.ts",
+            "src/entities/companion/index.ts",
+            "src/entities/companion/states/types.ts",
+            "src/systems/collisions.ts"
+          ],
+          "target_adapter": "ISpriteNode | IGraphicsNode + SpatialHashGrid (ADR 003)"
+        },
+        {
+          "path": "src/entities/companion/states/types.ts",
+          "status": "pending",
+          "linesOfCode": 38,
+          "kaboomCallCount": 0,
+          "dependsOn": ["src/entities/companion/types.ts"],
+          "dependedBy": [
+            "src/entities/companion/companionStateMachine.ts",
+            "src/entities/companion/companionStates.ts",
+            "src/entities/companion/states/concreteStates.ts"
+          ],
+          "target_adapter": "ISpriteNode | IGraphicsNode + SpatialHashGrid (ADR 003)"
+        },
+        {
+          "path": "src/entities/companion/states/concreteStates.ts",
+          "status": "pending",
+          "linesOfCode": 321,
+          "kaboomCallCount": 5,
+          "dependsOn": ["src/entities/companion/states/types.ts", "src/systems/iceSurface.ts"],
+          "dependedBy": [
+            "src/entities/companion/companionStateMachine.ts",
+            "src/entities/companion/companionStates.ts"
+          ],
+          "target_adapter": "ISpriteNode | IGraphicsNode + SpatialHashGrid (ADR 003)"
+        },
+        {
+          "path": "src/entities/companion/companionLocomotion.ts",
+          "status": "pending",
+          "linesOfCode": 225,
+          "kaboomCallCount": 4,
+          "dependsOn": ["src/entities/companion/types.ts"],
+          "dependedBy": ["src/entities/companion/index.ts"],
+          "target_adapter": "ISpriteNode | IGraphicsNode + SpatialHashGrid (ADR 003)"
+        },
+        {
+          "path": "src/entities/companion/companionSenses.ts",
+          "status": "pending",
+          "linesOfCode": 215,
+          "kaboomCallCount": 15,
+          "dependsOn": ["src/entities/companion/types.ts", "src/entities/player/playerSonar.ts"],
+          "dependedBy": ["src/entities/companion/index.ts"],
+          "target_adapter": "ISpriteNode | IGraphicsNode + SpatialHashGrid (ADR 003)"
+        },
+        {
+          "path": "src/entities/companion/companionStateMachine.ts",
+          "status": "pending",
+          "linesOfCode": 101,
+          "kaboomCallCount": 0,
+          "dependsOn": [
+            "src/entities/companion/states/concreteStates.ts",
+            "src/entities/companion/states/types.ts",
+            "src/entities/companion/types.ts"
+          ],
+          "dependedBy": ["src/entities/companion/companionStates.ts"],
+          "target_adapter": "ISpriteNode | IGraphicsNode + SpatialHashGrid (ADR 003)"
+        },
+        {
+          "path": "src/entities/companion/companionStates.ts",
+          "status": "pending",
+          "linesOfCode": 271,
+          "kaboomCallCount": 11,
+          "dependsOn": [
+            "src/entities/companion/companionStateMachine.ts",
+            "src/entities/companion/states/concreteStates.ts",
+            "src/entities/companion/states/types.ts",
+            "src/entities/companion/types.ts",
+            "src/systems/particlePool.ts"
+          ],
+          "dependedBy": ["src/entities/companion/index.ts"],
+          "target_adapter": "ISpriteNode | IGraphicsNode + SpatialHashGrid (ADR 003)"
+        },
+        {
+          "path": "src/entities/companion/index.ts",
+          "status": "pending",
+          "linesOfCode": 164,
+          "kaboomCallCount": 13,
+          "dependsOn": [
+            "src/entities/companion/companionLocomotion.ts",
+            "src/entities/companion/companionSenses.ts",
+            "src/entities/companion/companionStates.ts",
+            "src/entities/companion/types.ts",
+            "src/entities/player/types.ts"
+          ],
+          "dependedBy": [],
+          "target_adapter": "ISpriteNode | IGraphicsNode + SpatialHashGrid (ADR 003)"
+        }
+      ]
+    },
+    "stage_4_scenes_and_core_loop": {
+      "name": "Stage 4: Player Subsystems, Scenes & Main Core Loop",
+      "description": "Player aggregate modules, core GameScene, scene management transitions, asset pipeline cutover, and main.ts engine bootstrap switch to PixiJS v8.",
+      "status": "pending",
+      "summary": {
+        "total_files": 21,
+        "migrated": 0,
+        "pending": 21,
+        "total_lines_of_code": 3855,
+        "total_kaboom_calls": 430
+      },
+      "files": [
+        {
+          "path": "src/entities/player/types.ts",
+          "status": "pending",
+          "linesOfCode": 72,
+          "kaboomCallCount": 0,
+          "dependsOn": ["src/entities/player/playerPectoralFin.ts"],
+          "dependedBy": ["src/entities/companion/index.ts", "src/entities/player.ts"],
+          "target_adapter": "IRenderEngine | ISceneManager | PlayerAggregate"
+        },
+        {
+          "path": "src/entities/player/playerCollision.ts",
+          "status": "pending",
+          "linesOfCode": 90,
+          "kaboomCallCount": 0,
+          "dependsOn": ["src/entities/player/playerPhysics.ts"],
+          "dependedBy": ["src/entities/player.ts"],
+          "target_adapter": "IRenderEngine | ISceneManager | PlayerAggregate"
+        },
+        {
+          "path": "src/entities/player/playerControls.ts",
+          "status": "pending",
+          "linesOfCode": 188,
+          "kaboomCallCount": 23,
+          "dependsOn": ["src/ui/touchControls.ts"],
+          "dependedBy": ["src/entities/player.ts"],
+          "target_adapter": "IRenderEngine | ISceneManager | PlayerAggregate"
+        },
+        {
+          "path": "src/entities/player/playerOxygen.ts",
+          "status": "pending",
+          "linesOfCode": 182,
+          "kaboomCallCount": 4,
+          "dependsOn": ["src/entities/player/playerParticles.ts", "src/systems/iceSurface.ts"],
+          "dependedBy": ["src/entities/player.ts"],
+          "target_adapter": "IRenderEngine | ISceneManager | PlayerAggregate"
+        },
+        {
+          "path": "src/entities/player/playerParticles.ts",
+          "status": "pending",
+          "linesOfCode": 536,
+          "kaboomCallCount": 77,
+          "dependsOn": ["src/systems/particlePool.ts"],
+          "dependedBy": [
+            "src/entities/bubbleVent.ts",
+            "src/entities/player.ts",
+            "src/entities/player/playerOxygen.ts"
+          ],
+          "target_adapter": "IRenderEngine | ISceneManager | PlayerAggregate"
+        },
+        {
+          "path": "src/entities/player/playerPhysics.ts",
+          "status": "pending",
+          "linesOfCode": 150,
+          "kaboomCallCount": 3,
+          "dependsOn": ["src/systems/accessibilitySystem.ts", "src/systems/breachSystem.ts"],
+          "dependedBy": ["src/entities/player.ts", "src/entities/player/playerCollision.ts"],
+          "target_adapter": "IRenderEngine | ISceneManager | PlayerAggregate"
+        },
+        {
+          "path": "src/entities/player/playerSonar.ts",
+          "status": "pending",
+          "linesOfCode": 224,
+          "kaboomCallCount": 52,
+          "dependsOn": ["src/systems/particlePool.ts"],
+          "dependedBy": ["src/entities/companion/companionSenses.ts", "src/entities/player.ts"],
+          "target_adapter": "IRenderEngine | ISceneManager | PlayerAggregate"
+        },
+        {
+          "path": "src/entities/player.ts",
+          "status": "pending",
+          "linesOfCode": 625,
+          "kaboomCallCount": 45,
+          "dependsOn": [
+            "src/entities/player/playerCaustics.ts",
+            "src/entities/player/playerCollision.ts",
+            "src/entities/player/playerControls.ts",
+            "src/entities/player/playerOxygen.ts",
+            "src/entities/player/playerParticles.ts",
+            "src/entities/player/playerPectoralFin.ts",
+            "src/entities/player/playerPhysics.ts",
+            "src/entities/player/playerSonar.ts",
+            "src/entities/player/types.ts",
+            "src/systems/accessibilitySystem.ts",
+            "src/ui/touchControls.ts"
+          ],
+          "dependedBy": [
+            "src/entities/krill.ts",
+            "src/scenes/gameScene.ts",
+            "src/systems/backgroundFauna.ts",
+            "src/systems/bioluminescenceSystem.ts",
+            "src/systems/biomeVignetteSystem.ts",
+            "src/systems/breachSystem.ts",
+            "src/systems/cinematicCameraSystem.ts",
+            "src/systems/collisions.ts",
+            "src/systems/depthDarknessSystem.ts",
+            "src/systems/dolphinDraftingSystem.ts",
+            "src/systems/dynamicShadowSystem.ts",
+            "src/systems/iceSurface.ts",
+            "src/systems/oceanCurrentsSystem.ts",
+            "src/systems/oilSpillSystem.ts",
+            "src/systems/penguinFlockSystem.ts",
+            "src/systems/presentationMode.ts",
+            "src/systems/shipNoiseSystem.ts",
+            "src/systems/upwellingSystem.ts",
+            "src/systems/weatherSystem.ts",
+            "src/ui/debugDistance.ts",
+            "src/ui/hudSystem.ts"
+          ],
+          "target_adapter": "IRenderEngine | ISceneManager | PlayerAggregate"
+        },
+        {
+          "path": "src/systems/breachSystem.ts",
+          "status": "pending",
+          "linesOfCode": 458,
+          "kaboomCallCount": 118,
+          "dependsOn": [
+            "src/entities/player.ts",
+            "src/systems/particlePool.ts",
+            "src/utils/camera.ts"
+          ],
+          "dependedBy": ["src/entities/player/playerPhysics.ts", "src/scenes/gameScene.ts"],
+          "target_adapter": "IRenderEngine | ISceneManager | PlayerAggregate"
+        },
+        {
+          "path": "src/systems/cinematicCameraSystem.ts",
+          "status": "pending",
+          "linesOfCode": 187,
+          "kaboomCallCount": 7,
+          "dependsOn": ["src/entities/player.ts"],
+          "dependedBy": ["src/scenes/gameScene.ts"],
+          "target_adapter": "IRenderEngine | ISceneManager | PlayerAggregate"
+        },
+        {
+          "path": "src/scenes/assetLoader.ts",
+          "status": "pending",
+          "linesOfCode": 63,
+          "kaboomCallCount": 7,
+          "dependsOn": [],
+          "dependedBy": ["src/scenes/index.ts"],
+          "target_adapter": "IRenderEngine | ISceneManager | PlayerAggregate"
+        },
+        {
+          "path": "src/scenes/splashScene.ts",
+          "status": "pending",
+          "linesOfCode": 11,
+          "kaboomCallCount": 2,
+          "dependsOn": ["src/ui/splashScreen.ts"],
+          "dependedBy": ["src/scenes/index.ts"],
+          "target_adapter": "IRenderEngine | ISceneManager | PlayerAggregate"
+        },
+        {
+          "path": "src/scenes/menuScene.ts",
+          "status": "pending",
+          "linesOfCode": 37,
+          "kaboomCallCount": 2,
+          "dependsOn": [
+            "src/ui/codexScreen.ts",
+            "src/ui/leaderboardScreen.ts",
+            "src/ui/mainMenu.ts",
+            "src/ui/modeSelectScreen.ts",
+            "src/ui/optionsScreen.ts"
+          ],
+          "dependedBy": ["src/scenes/index.ts", "src/scenes/startScene.ts"],
+          "target_adapter": "IRenderEngine | ISceneManager | PlayerAggregate"
+        },
+        {
+          "path": "src/scenes/startScene.ts",
+          "status": "pending",
+          "linesOfCode": 10,
+          "kaboomCallCount": 2,
+          "dependsOn": ["src/scenes/menuScene.ts"],
+          "dependedBy": ["src/scenes/index.ts"],
+          "target_adapter": "IRenderEngine | ISceneManager | PlayerAggregate"
+        },
+        {
+          "path": "src/scenes/gameScene.ts",
+          "status": "pending",
+          "linesOfCode": 587,
+          "kaboomCallCount": 77,
+          "dependsOn": [
+            "src/entities/boat.ts",
+            "src/entities/player.ts",
+            "src/systems/abyssalFogSystem.ts",
+            "src/systems/auroraSystem.ts",
+            "src/systems/backgroundFauna.ts",
+            "src/systems/benthicFloorSystem.ts",
+            "src/systems/bioluminescenceSystem.ts",
+            "src/systems/biomeLifecycleManager.ts",
+            "src/systems/biomeVignetteSystem.ts",
+            "src/systems/breachSystem.ts",
+            "src/systems/canyonSystem.ts",
+            "src/systems/cinematicCameraSystem.ts",
+            "src/systems/coastalSurfSystem.ts",
+            "src/systems/collisions.ts",
+            "src/systems/depthDarknessSystem.ts",
+            "src/systems/dolphinDraftingSystem.ts",
+            "src/systems/dynamicShadowSystem.ts",
+            "src/systems/iceSurface.ts",
+            "src/systems/levelLoader.ts",
+            "src/systems/lightRaysSystem.ts",
+            "src/systems/marineSnowSystem.ts",
+            "src/systems/oceanCurrentsSystem.ts",
+            "src/systems/oceanEnvironment.ts",
+            "src/systems/oceanFloorSystem.ts",
+            "src/systems/oilSpillSystem.ts",
+            "src/systems/parallaxSkySystem.ts",
+            "src/systems/particlePool.ts",
+            "src/systems/penguinFlockSystem.ts",
+            "src/systems/presentationMode.ts",
+            "src/systems/sereneMigrationInsights.ts",
+            "src/systems/shipNoiseSystem.ts",
+            "src/systems/spatialCullingSystem.ts",
+            "src/systems/upwellingSystem.ts",
+            "src/systems/waterSurfaceSystem.ts",
+            "src/systems/weatherSystem.ts",
+            "src/ui/challengeEndScreen.ts",
+            "src/ui/debugDistance.ts",
+            "src/ui/factPopup.ts",
+            "src/ui/rescueScreen.ts",
+            "src/ui/touchControls.ts",
+            "src/ui/victoryScreen.ts"
+          ],
+          "dependedBy": ["src/scenes/index.ts"],
+          "target_adapter": "IRenderEngine | ISceneManager | PlayerAggregate"
+        },
+        {
+          "path": "src/scenes/gameoverScene.ts",
+          "status": "pending",
+          "linesOfCode": 21,
+          "kaboomCallCount": 3,
+          "dependsOn": ["src/ui/challengeEndScreen.ts"],
+          "dependedBy": ["src/scenes/index.ts"],
+          "target_adapter": "IRenderEngine | ISceneManager | PlayerAggregate"
+        },
+        {
+          "path": "src/scenes/rescueScene.ts",
+          "status": "pending",
+          "linesOfCode": 16,
+          "kaboomCallCount": 2,
+          "dependsOn": ["src/ui/rescueScreen.ts"],
+          "dependedBy": ["src/scenes/index.ts"],
+          "target_adapter": "IRenderEngine | ISceneManager | PlayerAggregate"
+        },
+        {
+          "path": "src/scenes/kioskScene.ts",
+          "status": "pending",
+          "linesOfCode": 9,
+          "kaboomCallCount": 1,
+          "dependsOn": ["src/systems/kioskMode.ts"],
+          "dependedBy": ["src/scenes/index.ts"],
+          "target_adapter": "IRenderEngine | ISceneManager | PlayerAggregate"
+        },
+        {
+          "path": "src/scenes/index.ts",
+          "status": "pending",
+          "linesOfCode": 31,
+          "kaboomCallCount": 0,
+          "dependsOn": [
+            "src/scenes/assetLoader.ts",
+            "src/scenes/gameScene.ts",
+            "src/scenes/gameoverScene.ts",
+            "src/scenes/kioskScene.ts",
+            "src/scenes/menuScene.ts",
+            "src/scenes/rescueScene.ts",
+            "src/scenes/splashScene.ts",
+            "src/scenes/startScene.ts"
+          ],
+          "dependedBy": ["src/main.ts"],
+          "target_adapter": "IRenderEngine | ISceneManager | PlayerAggregate"
+        },
+        {
+          "path": "src/systems/accessibilitySystem.ts",
+          "status": "pending",
+          "linesOfCode": 279,
+          "kaboomCallCount": 1,
+          "dependsOn": [],
+          "dependedBy": [
+            "src/entities/krill.ts",
+            "src/entities/net.ts",
+            "src/entities/player.ts",
+            "src/entities/player/playerPectoralFin.ts",
+            "src/entities/player/playerPhysics.ts",
+            "src/entities/trash.ts",
+            "src/main.ts",
+            "src/systems/biomeVignetteSystem.ts",
+            "src/systems/collisions.ts",
+            "src/systems/sereneMigrationInsights.ts",
+            "src/ui/challengeEndScreen.ts",
+            "src/ui/codex/codexNavigation.ts",
+            "src/ui/codexScreen.ts",
+            "src/ui/hudSystem.ts",
+            "src/ui/initialsInputModal.ts",
+            "src/ui/leaderboardScreen.ts",
+            "src/ui/mainMenu.ts",
+            "src/ui/modeSelectScreen.ts",
+            "src/ui/onboardingModal.ts",
+            "src/ui/options/kioskOptionsTab.ts",
+            "src/ui/options/optionsNavigation.ts",
+            "src/ui/optionsScreen.ts",
+            "src/ui/pwaInstallModal.ts",
+            "src/ui/quizModal.ts",
+            "src/ui/rescueScreen.ts",
+            "src/ui/shareModal.ts",
+            "src/ui/shared/cardButton.ts",
+            "src/ui/shared/modalShell.ts",
+            "src/ui/shared/motion.ts",
+            "src/ui/shared/scoreCounter.ts",
+            "src/ui/shared/tabBar.ts",
+            "src/ui/statsModal.ts",
+            "src/ui/victoryScreen.ts",
+            "src/utils/camera.ts"
+          ],
+          "target_adapter": "IRenderEngine | ISceneManager | PlayerAggregate"
+        },
+        {
+          "path": "src/main.ts",
+          "status": "pending",
+          "linesOfCode": 79,
+          "kaboomCallCount": 4,
+          "dependsOn": [
+            "src/scenes/index.ts",
+            "src/systems/accessibilitySystem.ts",
+            "src/systems/letterboxSystem.ts"
+          ],
+          "dependedBy": [],
+          "target_adapter": "IRenderEngine | ISceneManager | PlayerAggregate"
+        }
+      ]
+    }
+  }
+}
