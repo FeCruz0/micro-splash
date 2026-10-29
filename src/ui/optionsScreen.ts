@@ -1,7 +1,6 @@
-import type { GameObj, KaboomCtx } from "kaboom";
 import { audioSystem } from "../systems/audioSystem";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
-import { createFocusGroup, type FocusableItem } from "./keyboardNav";
+import { createFocusGroup, type FocusableItem, type LegacyKeyboardNavContext } from "./keyboardNav";
 import { i18n } from "../i18n/i18n";
 import {
   type ResolutionKey,
@@ -11,18 +10,29 @@ import {
   getSavedLetterboxColor,
   type LetterboxColor,
 } from "../config";
-import { animateModalEntrance, createResolutionTransitionOverlay } from "./animationUtils";
-import type { OptionsScreenContext } from "./options/optionsTypes";
+import {
+  animateModalEntrance,
+  createResolutionTransitionOverlay,
+  type AnimationEngineContext,
+} from "./animationUtils";
+import type { LegacyOptionsEngineContext, OptionsScreenContext } from "./options/optionsTypes";
 import { renderAudioOptions } from "./options/audioOptionsTab";
 import { renderAccessibilityOptions } from "./options/accessibilityOptionsTab";
 import { renderControlsOptions, renderControlsGuide } from "./options/controlsOptionsTab";
 import { renderGraphicsOptions, renderKioskActionButtons } from "./options/kioskOptionsTab";
 import { renderOptionsHeader, renderColumnTitles } from "./options/optionsNavigation";
 
-export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
+export interface ShowOptionsEngineContext {
+  width(): number;
+  height(): number;
+  add(components?: unknown): unknown;
+}
+
+export function showOptionsScreen(k: ShowOptionsEngineContext, onBack: () => void) {
+  const engine = k as unknown as LegacyOptionsEngineContext;
   audioSystem.playUiClick();
 
-  const elements: GameObj[] = [];
+  const elements: Array<{ destroy?: () => void } | object> = [];
   let isClosed = false;
   let isModalOpen = false;
 
@@ -39,22 +49,22 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   const initialLocale = i18n.getLocale();
 
   // Fundo escuro semitransparente (absorve cliques e bloqueia o menu)
-  const backdrop = k.add([
-    k.rect(k.width(), k.height()),
-    k.pos(0, 0),
-    k.color(6, 16, 36),
-    k.opacity(0.95),
-    k.area(),
-    k.fixed(),
-    k.z(300),
+  const backdrop = engine.add([
+    engine.rect(engine.width(), engine.height()),
+    engine.pos(0, 0),
+    engine.color(6, 16, 36),
+    engine.opacity(0.95),
+    engine.area(),
+    engine.fixed(),
+    engine.z(300),
   ]);
   elements.push(backdrop);
 
   // Card do Modal de Opções com geometria ampla e adaptativa
-  const cardW = Math.min(1000, k.width() - 24);
-  const cardH = Math.min(650, k.height() - 20);
-  const cX = k.width() / 2;
-  const cY = k.height() / 2;
+  const cardW = Math.min(1000, engine.width() - 24);
+  const cardH = Math.min(650, engine.height() - 20);
+  const cX = engine.width() / 2;
+  const cY = engine.height() / 2;
   const cardTop = cY - cardH / 2;
 
   const focusItems: FocusableItem[] = [];
@@ -73,7 +83,7 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
     }
     elements.forEach((el) => {
       try {
-        k.destroy(el);
+        engine.destroy(el);
       } catch {}
     });
     if (
@@ -84,7 +94,7 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
         i18n.getLocale() !== initialLocale) &&
       typeof window !== "undefined"
     ) {
-      createResolutionTransitionOverlay(k, () => {
+      createResolutionTransitionOverlay(engine as unknown as AnimationEngineContext, () => {
         window.location.reload();
       });
       return;
@@ -93,7 +103,7 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   };
 
   const { card, closeBtnFocusItem } = renderOptionsHeader(
-    k,
+    engine,
     cX,
     cardTop,
     cardW,
@@ -102,7 +112,7 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
     close,
     () => !isClosed && !isModalOpen
   );
-  animateModalEntrance(k, card);
+  animateModalEntrance(engine as unknown as AnimationEngineContext, card);
   focusItems.push(closeBtnFocusItem);
 
   // Fechar com ESC
@@ -123,7 +133,7 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   const col1X = cX + colW / 2 + colGap / 2;
   const headerY = cardTop + 88;
 
-  renderColumnTitles(k, col0X, col1X, headerY, elements);
+  renderColumnTitles(engine, col0X, col1X, headerY, elements);
 
   const rowStartY = cardTop + 124;
   const btnH = 41;
@@ -131,16 +141,16 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
 
   // Dica informativa de reload ao salvar
   const reloadHintY = cardTop + 424;
-  const resHintText = k.add([
-    k.text("", {
+  const resHintText = engine.add([
+    engine.text("", {
       size: accessibilitySystem.scaleFont(13.5),
       font: "Inter",
     }),
-    k.pos(cX, reloadHintY),
-    k.color(255, 220, 100),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(303),
+    engine.pos(cX, reloadHintY),
+    engine.color(255, 220, 100),
+    engine.anchor("center"),
+    engine.fixed(),
+    engine.z(303),
   ]);
   elements.push(resHintText);
 
@@ -160,7 +170,7 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   };
 
   const context: OptionsScreenContext = {
-    k,
+    k: engine,
     elements,
     focusItems,
     col0X,
@@ -214,7 +224,7 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   renderKioskActionButtons(context);
 
   // Inicia o grupo de foco por teclado acessível
-  focusGroup = createFocusGroup(k, {
+  focusGroup = createFocusGroup(engine as unknown as LegacyKeyboardNavContext, {
     items: focusItems,
     onEscape: close,
     initialIndex: focusItems.length - 1, // Inicia focado em Salvar & Voltar

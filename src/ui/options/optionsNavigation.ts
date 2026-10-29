@@ -1,20 +1,30 @@
-import type { GameObj, KaboomCtx } from "kaboom";
+/**
+ * Navegação e Cabeçalhos do Menu de Opções (WBS 2.21) — Micro Splash
+ *
+ * Desacoplado do Kaboom.js, com tipagem estrita e zero any.
+ */
+
 import { accessibilitySystem } from "../../systems/accessibilitySystem";
-import { attachButtonHoverEffect } from "../animationUtils";
+import {
+  attachButtonHoverEffect,
+  type AnimationEngineContext,
+  type AnimationUiObject,
+} from "../animationUtils";
 import type { FocusableItem } from "../keyboardNav";
+import type { LegacyOptionsEngineContext, LegacyOptionsUiObject } from "./optionsTypes";
 
 export interface OptionsHeaderResult {
-  card: GameObj;
+  card: AnimationUiObject;
   closeBtnFocusItem: FocusableItem;
 }
 
 export function renderOptionsHeader(
-  k: KaboomCtx,
+  k: LegacyOptionsEngineContext,
   cX: number,
   cardTop: number,
   cardW: number,
   cardH: number,
-  elements: GameObj[],
+  elements: Array<{ destroy?: () => void } | object>,
   onClose: () => void,
   canInteract: () => boolean
 ): OptionsHeaderResult {
@@ -93,19 +103,25 @@ export function renderOptionsHeader(
     ])
   );
 
-  attachButtonHoverEffect(k, btnX, {
-    baseColor: [22, 50, 90],
-    hoverColor: [180, 50, 50],
-    baseScale: 1.0,
-    hoverScale: 1.06,
-    canInteract,
-  });
-
-  btnX.onClick(() => {
-    if (canInteract()) {
-      onClose();
+  attachButtonHoverEffect(
+    k as unknown as AnimationEngineContext,
+    btnX as unknown as AnimationUiObject,
+    {
+      baseColor: [22, 50, 90],
+      hoverColor: [180, 50, 50],
+      baseScale: 1.0,
+      hoverScale: 1.06,
+      canInteract,
     }
-  });
+  );
+
+  if (typeof (btnX as LegacyOptionsUiObject).onClick === "function") {
+    (btnX as LegacyOptionsUiObject).onClick(() => {
+      if (canInteract()) {
+        onClose();
+      }
+    });
+  }
 
   const closeBtnFocusItem: FocusableItem = {
     pos: btnXPos,
@@ -114,15 +130,15 @@ export function renderOptionsHeader(
     onActivate: onClose,
   };
 
-  return { card, closeBtnFocusItem };
+  return { card: card as unknown as AnimationUiObject, closeBtnFocusItem };
 }
 
 export function renderColumnTitles(
-  k: KaboomCtx,
+  k: LegacyOptionsEngineContext,
   col0X: number,
   col1X: number,
   headerY: number,
-  elements: GameObj[]
+  elements: Array<{ destroy?: () => void } | object>
 ): void {
   // Cabeçalho Coluna 0: ÁUDIO & VÍDEO
   elements.push(

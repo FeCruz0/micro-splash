@@ -1,26 +1,51 @@
-import type { GameObj, KaboomCtx, Vec2 } from "kaboom";
 import { GAME_CONFIG } from "../../config";
-import { createWaterSplash, createBreachReentrySplash } from "../../systems/breachSystem";
+import {
+  createWaterSplash,
+  createBreachReentrySplash,
+  type BreachSplashEngineContext,
+} from "../../systems/breachSystem";
 import { audioSystem } from "../../systems/audioSystem";
 import { accessibilitySystem } from "../../systems/accessibilitySystem";
+import type { PlayerGameObject, PlayerVector2D, StrictPlayerVector2D } from "./types";
+
+export interface PlayerPhysicsEngineContext extends BreachSplashEngineContext<
+  unknown,
+  unknown,
+  StrictPlayerVector2D
+> {
+  vec2(x: number, y: number): StrictPlayerVector2D;
+  deg2rad(deg: number): number;
+  rad2deg(rad: number): number;
+  clamp(val: number, min: number, max: number): number;
+  lerp(a: number, b: number, t: number): number;
+  height?(): number;
+  shake?(intensity: number): void;
+}
 
 export class PlayerPhysicsManager {
-  private k: KaboomCtx;
-  private currentSpeed: Vec2;
+  private k: PlayerPhysicsEngineContext;
+  private currentSpeed: StrictPlayerVector2D;
   private strokeTimer = 0;
   private wasInAir = false;
 
-  constructor(k: KaboomCtx) {
+  constructor(k: PlayerPhysicsEngineContext) {
     this.k = k;
     this.currentSpeed = k.vec2(0, 0);
   }
 
-  public getSpeed(): Vec2 {
+  public getSpeed(): StrictPlayerVector2D {
     return this.currentSpeed;
   }
 
-  public setSpeed(newSpeed: Vec2): void {
-    this.currentSpeed = newSpeed;
+  public setSpeed(newSpeed: StrictPlayerVector2D | PlayerVector2D): void {
+    if (
+      typeof (newSpeed as StrictPlayerVector2D).len === "function" &&
+      typeof (newSpeed as StrictPlayerVector2D).scale === "function"
+    ) {
+      this.currentSpeed = newSpeed as StrictPlayerVector2D;
+    } else {
+      this.currentSpeed = this.k.vec2(newSpeed.x, newSpeed.y);
+    }
   }
 
   public getStrokeTimer(): number {
@@ -63,7 +88,7 @@ export class PlayerPhysicsManager {
 
   public updateMovement(
     dt: number,
-    baleia: GameObj,
+    baleia: PlayerGameObject,
     facingRight: boolean,
     angle: number,
     isBreaching: boolean
@@ -77,7 +102,7 @@ export class PlayerPhysicsManager {
       this.currentSpeed.y += gravity * dt;
       const airDragFactor = Math.pow(0.998, dt * 60);
       this.currentSpeed.x = this.currentSpeed.x * airDragFactor;
-      baleia.move(this.currentSpeed.x, this.currentSpeed.y);
+      baleia.move?.(this.currentSpeed.x, this.currentSpeed.y);
 
       if (this.currentSpeed.len() > 20) {
         const trajectoryAngle = this.k.clamp(
@@ -97,10 +122,10 @@ export class PlayerPhysicsManager {
         if (this.currentSpeed.x < 260) {
           this.currentSpeed.x = 260;
         }
-        baleia.move(this.currentSpeed.x, this.currentSpeed.y);
+        baleia.move?.(this.currentSpeed.x, this.currentSpeed.y);
       } else {
         // Nado hidrodinâmico na água
-        baleia.move(this.currentSpeed.x, this.currentSpeed.y + GAME_CONFIG.SINK_RATE);
+        baleia.move?.(this.currentSpeed.x, this.currentSpeed.y + GAME_CONFIG.SINK_RATE);
         const waterDragFactor = Math.pow(GAME_CONFIG.WATER_DRAG, dt * 60);
         this.currentSpeed = this.currentSpeed.scale(waterDragFactor);
       }
@@ -128,7 +153,7 @@ export class PlayerPhysicsManager {
     return { inAir, newAngle };
   }
 
-  private handleSeabedAndFailSafe(baleia: GameObj, facingRight: boolean): void {
+  private handleSeabedAndFailSafe(baleia: PlayerGameObject, facingRight: boolean): void {
     const screenHeight = typeof this.k.height === "function" ? this.k.height() : 720;
     const seabedLimit = screenHeight - 55;
     if (baleia.pos.y > seabedLimit) {

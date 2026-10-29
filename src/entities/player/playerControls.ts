@@ -1,7 +1,15 @@
-import type { GameObj, KaboomCtx } from "kaboom";
 import { GAME_CONFIG } from "../../config";
 import type { TouchControlsState } from "../../ui/touchControls";
 import { gamepadSystem } from "../../systems/gamepadSystem";
+import type { PlayerGameObject } from "./types";
+
+export interface PlayerControlsEngineContext {
+  clamp(val: number, min: number, max: number): number;
+  lerp(a: number, b: number, t: number): number;
+  isKeyDown(key?: string): boolean;
+  isKeyPressed(key?: string): boolean;
+  isKeyReleased(key?: string): boolean;
+}
 
 export interface PlayerInputSnapshot {
   isStrokePressed: boolean;
@@ -15,7 +23,7 @@ export interface PlayerInputSnapshot {
 }
 
 export class PlayerControlsManager {
-  private k: KaboomCtx;
+  private k: PlayerControlsEngineContext;
   private touchState?: TouchControlsState;
   private facingRight = true;
   private targetCamOffset = 200;
@@ -24,7 +32,7 @@ export class PlayerControlsManager {
   private pitchAngularVelocity = 0;
   private spineCurvature = 0;
 
-  constructor(k: KaboomCtx, touchState?: TouchControlsState) {
+  constructor(k: PlayerControlsEngineContext, touchState?: TouchControlsState) {
     this.k = k;
     this.touchState = touchState;
   }
@@ -123,7 +131,7 @@ export class PlayerControlsManager {
 
   public updateOrientation(
     dt: number,
-    baleia: GameObj,
+    baleia: PlayerGameObject,
     inputs: PlayerInputSnapshot,
     isTrapped: boolean,
     inAir: boolean = false

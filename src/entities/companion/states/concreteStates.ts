@@ -1,6 +1,6 @@
-import type { GameObj } from "kaboom";
 import { COMPANION_CONFIG, GAME_CONFIG } from "../../../config";
 import { getNearestIceGap, isPositionInIceGap } from "../../../systems/iceSurface";
+import type { CompanionGameObject } from "../types";
 import type {
   CompanionStateContext,
   CompanionStateNode,
@@ -46,13 +46,14 @@ export class CruiseState implements CompanionStateNode {
     ctx: CompanionStateContext,
     _dt: number,
     _playerX?: number,
-    targetKrill?: GameObj | null
+    targetKrill?: unknown | null
   ): CompanionStateUpdateResult {
     const { k, companion, stateTimer } = ctx;
+    const krill = targetKrill as CompanionGameObject | null | undefined;
 
-    if (targetKrill && (!targetKrill.exists || targetKrill.exists())) {
-      const deltaY = targetKrill.pos.y - companion.pos.y;
-      const deltaX = Math.max(40, targetKrill.pos.x - companion.pos.x);
+    if (krill && (!krill.exists || krill.exists())) {
+      const deltaY = krill.pos.y - companion.pos.y;
+      const deltaX = Math.max(40, krill.pos.x - companion.pos.x);
       return {
         targetAngle: k.clamp(k.rad2deg(Math.atan2(deltaY, deltaX)), -30, 30),
       };
@@ -174,10 +175,12 @@ export class IndependentCruiseState implements CompanionStateNode {
     ctx: CompanionStateContext,
     _dt: number,
     _playerX?: number,
-    targetKrill?: GameObj | null,
-    targetHazard?: GameObj | null
+    targetKrill?: unknown | null,
+    targetHazard?: unknown | null
   ): CompanionStateUpdateResult {
     const { k, companion, stateTimer } = ctx;
+    const hazard = targetHazard as CompanionGameObject | null | undefined;
+    const krill = targetKrill as CompanionGameObject | null | undefined;
 
     // 1. Checagem de chegada ao santuário final (30.000m - Abrolhos)
     if (companion.pos.x >= GAME_CONFIG.ROUTE_TOTAL_DISTANCE - 400) {
@@ -188,7 +191,7 @@ export class IndependentCruiseState implements CompanionStateNode {
     }
 
     // 2. Evasão de perigo detectado à frente
-    if (targetHazard && (!targetHazard.exists || targetHazard.exists())) {
+    if (hazard && (!hazard.exists || hazard.exists())) {
       return {
         targetAngle: companion.pos.y < 220 ? 25 : -25,
         nextState: "AVOID_OBSTACLE",
@@ -196,9 +199,9 @@ export class IndependentCruiseState implements CompanionStateNode {
     }
 
     // 3. Busca por alimento (Krill)
-    if (targetKrill && (!targetKrill.exists || targetKrill.exists())) {
-      const deltaY = targetKrill.pos.y - companion.pos.y;
-      const deltaX = Math.max(40, targetKrill.pos.x - companion.pos.x);
+    if (krill && (!krill.exists || krill.exists())) {
+      const deltaY = krill.pos.y - companion.pos.y;
+      const deltaX = Math.max(40, krill.pos.x - companion.pos.x);
       return {
         targetAngle: k.clamp(k.rad2deg(Math.atan2(deltaY, deltaX)), -28, 28),
       };
@@ -228,15 +231,13 @@ export class AvoidObstacleState implements CompanionStateNode {
     ctx: CompanionStateContext,
     dt: number,
     _playerX?: number,
-    _targetKrill?: GameObj | null,
-    targetHazard?: GameObj | null
+    _targetKrill?: unknown | null,
+    targetHazard?: unknown | null
   ): CompanionStateUpdateResult {
     this.avoidanceTimer += dt;
+    const hazard = targetHazard as CompanionGameObject | null | undefined;
 
-    if (
-      this.avoidanceTimer > 1.8 &&
-      (!targetHazard || (targetHazard.exists && !targetHazard.exists()))
-    ) {
+    if (this.avoidanceTimer > 1.8 && (!hazard || (hazard.exists && !hazard.exists()))) {
       const isPostTutorial = ctx.companion.pos.x >= COMPANION_CONFIG.FAREWELL_TARGET_X - 180;
       return {
         targetAngle: 0,

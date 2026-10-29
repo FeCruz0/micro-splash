@@ -1,9 +1,44 @@
-import type { KaboomCtx, GameObj } from "kaboom";
 import { TAGS } from "../config";
 import type { PlayerController } from "../entities/player";
 import { audioSystem } from "./audioSystem";
 import { safeShake } from "../utils/camera";
 import { getRandomFloat } from "../utils/random";
+
+export interface OceanCurrentVector2D {
+  x: number;
+  y: number;
+}
+
+export interface OceanCurrentGameObject {
+  pos: OceanCurrentVector2D;
+  opacity?: number;
+  add: (components: unknown[]) => OceanCurrentGameObject;
+  onUpdate: (cb: () => void) => void;
+}
+
+export interface OceanCurrentsEngineContext<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = OceanCurrentVector2D,
+> {
+  add: (components: unknown[]) => unknown;
+  destroy: (obj: TDestroyable) => void;
+  dt: () => number;
+  time: () => number;
+  onUpdate: (cb: () => void) => void;
+  rect: (w: number, h: number, opt?: { radius?: number }) => unknown;
+  circle: (r: number) => unknown;
+  pos: (x: number, y: number) => unknown;
+  color: (r: number | TColor, g?: number, b?: number) => unknown;
+  opacity: (o: number) => unknown;
+  outline?: (w: number, col: TColor) => unknown;
+  z: (v: number) => unknown;
+  rand: (min: number, max: number) => number;
+  choose: <T>(arr: T[]) => T;
+  rgb: (r: number, g: number, b: number) => TColor;
+  vec2: (x: number, y: number) => TVec;
+  shake?: (amount: number) => void;
+}
 
 /**
  * Interface que modela uma zona delimitada de correnteza oceânica.
@@ -36,15 +71,19 @@ export const DEFAULT_OCEAN_CURRENTS: CurrentZone[] = [
  * Cria linhas de traço horizontais indicando a direção do fluxo vetorial (Fase 35.4).
  * Semelhante a setas de correntes em cartas náuticas oceanográficas.
  */
-export function createCurrentVectorLines(
-  k: KaboomCtx,
-  currentBox: GameObj,
+export function createCurrentVectorLines<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = OceanCurrentVector2D,
+>(
+  k: OceanCurrentsEngineContext<TDestroyable, TColor, TVec>,
+  currentBox: OceanCurrentGameObject,
   zoneWidth: number,
   zoneHeight: number,
   isFavorable: boolean
-): GameObj[] {
+): OceanCurrentGameObject[] {
   const lineCount = 5;
-  const vectorLines: GameObj[] = [];
+  const vectorLines: OceanCurrentGameObject[] = [];
   const lineSpacing = zoneHeight / (lineCount + 1);
 
   for (let lineIndex = 0; lineIndex < lineCount; lineIndex++) {
@@ -59,7 +98,7 @@ export function createCurrentVectorLines(
       k.color(100, 150, 200),
       k.opacity(0.25),
       "ocean_current_vector_line",
-    ]);
+    ]) as OceanCurrentGameObject;
 
     // Direção da corrente: favorável move para a direita (+X), contrária move para a esquerda (-X)
     const flowSpeed = isFavorable ? 220 : -180;
@@ -88,12 +127,16 @@ export function createCurrentVectorLines(
  * - Modulação do consumo de oxigênio (Fase 18.1): nadar contra o fluxo intensifica o esforço (+35% dreno),
  *   enquanto nadar a favor da esteira hidrodinâmica alivia a respiração (-35% dreno).
  *
- * @param k - Instância do contexto Kaboom.js.
+ * @param k - Instância do contexto agnóstico do motor.
  * @param playerController - Controlador físico da baleia-jubarte.
  * @param zones - Vetor de zonas de correnteza a serem geradas no mundo.
  */
-export function setupOceanCurrentsSystem(
-  k: KaboomCtx,
+export function setupOceanCurrentsSystem<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = OceanCurrentVector2D,
+>(
+  k: OceanCurrentsEngineContext<TDestroyable, TColor, TVec>,
   playerController: PlayerController,
   zones: CurrentZone[] = DEFAULT_OCEAN_CURRENTS
 ) {
@@ -109,7 +152,7 @@ export function setupOceanCurrentsSystem(
       k.z(2),
       isFavorable ? TAGS.FAVORABLE_CURRENT : TAGS.OPPOSING_CURRENT,
       "ocean_current",
-    ]);
+    ]) as OceanCurrentGameObject;
 
     // 2. Linhas vetoriais oceanográficas de fluxo visível (Fase 35.4)
     createCurrentVectorLines(k, currentBox, width, zone.height, isFavorable);
@@ -164,13 +207,16 @@ export function setupOceanCurrentsSystem(
         const vortexX = (v + 0.5) * (width / vortexCount);
         const vortexY = zone.height * 0.5 + getRandomFloat(-12.5, 12.5);
 
-        const vortex = currentBox.add([
+        const vortexComponents: unknown[] = [
           k.circle(k.rand(6, 12)),
           k.pos(vortexX, vortexY),
           k.color(180, 210, 245),
           k.opacity(0.25),
-          k.outline(1.5, k.rgb(230, 240, 255)),
-        ]);
+        ];
+        if (k.outline) {
+          vortexComponents.push(k.outline(1.5, k.rgb(230, 240, 255)));
+        }
+        const vortex = currentBox.add(vortexComponents) as OceanCurrentGameObject;
 
         let vortexAngle = getRandomFloat(0, 10);
         vortex.onUpdate(() => {
@@ -207,7 +253,11 @@ export function setupOceanCurrentsSystem(
 
         if (isFavorable) {
           // Acelera a jubarte para a frente (+X) com empuxo hidrodinâmico
-          playerController.setSpeed(k.vec2(currentSpeed.x + zone.force * dt, currentSpeed.y));
+          playerController.setSpeed(
+            k.vec2(currentSpeed.x + zone.force * dt, currentSpeed.y) as unknown as Parameters<
+              PlayerController["setSpeed"]
+            >[0]
+          );
 
           // Áudio de impulso favorável com debounce
           const now = k.time();
@@ -225,16 +275,22 @@ export function setupOceanCurrentsSystem(
               k.color(255, 235, 140),
               k.opacity(0.8),
               k.z(15),
-            ]);
+            ]) as OceanCurrentGameObject;
             particle.onUpdate(() => {
               particle.pos.x += 180 * k.dt();
-              particle.opacity -= k.dt() * 2.8;
-              if (particle.opacity <= 0) k.destroy(particle);
+              if (particle.opacity !== undefined) {
+                particle.opacity -= k.dt() * 2.8;
+                if (particle.opacity <= 0) k.destroy(particle as unknown as TDestroyable);
+              }
             });
           }
         } else {
           // Empurra a jubarte para trás (-X)
-          playerController.setSpeed(k.vec2(currentSpeed.x - zone.force * dt, currentSpeed.y));
+          playerController.setSpeed(
+            k.vec2(currentSpeed.x - zone.force * dt, currentSpeed.y) as unknown as Parameters<
+              PlayerController["setSpeed"]
+            >[0]
+          );
 
           // Leve turbulência visual na tela com guarda de movimento reduzido
           const normalizedDeltaTime = dt * 60;
@@ -252,12 +308,14 @@ export function setupOceanCurrentsSystem(
             k.color(200, 230, 255),
             k.opacity(0.65),
             k.z(14),
-          ]);
+          ]) as OceanCurrentGameObject;
           bubble.onUpdate(() => {
             bubble.pos.x -= currentDir * 110 * k.dt();
             bubble.pos.y -= 20 * k.dt();
-            bubble.opacity -= k.dt() * 2.2;
-            if (bubble.opacity <= 0) k.destroy(bubble);
+            if (bubble.opacity !== undefined) {
+              bubble.opacity -= k.dt() * 2.2;
+              if (bubble.opacity <= 0) k.destroy(bubble as unknown as TDestroyable);
+            }
           });
         }
       }

@@ -1,6 +1,23 @@
-import type { KaboomCtx, GameObj } from "kaboom";
+/**
+ * Sistema de Escuridão Progressiva com Profundidade (Fase 30.5) — Micro Splash
+ *
+ * Refatorado para o Adapter Pattern (PixiJS v8 / Micro Splash Engine).
+ * Desacoplado do Kaboom.js, com tipagem estrita de IRenderEngine e IRenderNode.
+ */
+
 import { GAME_CONFIG } from "../config";
 import type { PlayerController } from "../entities/player";
+import type { IRenderEngine, IRenderNode } from "../engine/contracts/INTERFACE_CONTRACTS";
+import {
+  isRenderEngine,
+  LegacyRenderNodeAdapter,
+  type LegacyEngineBridge,
+} from "../engine/adapters/LegacyBridge";
+
+export interface DepthDarknessHandle {
+  destroy: () => void;
+  getOverlay: () => IRenderNode;
+}
 
 /**
  * Função pura que calcula a opacidade do filtro de escuridão com base na profundidade Y da baleia (Fase 30.5).
@@ -35,41 +52,103 @@ export function calculateDepthDarknessOpacity(
  * Sobrepõe um filtro ótico abissal proporcional à profundidade do mergulho da jubarte.
  */
 export function setupDepthDarknessSystem(
-  k: KaboomCtx,
+  engineOrContext: IRenderEngine | LegacyEngineBridge,
   playerController: PlayerController
-): {
-  destroy: () => void;
-  getOverlay: () => GameObj;
-} {
-  const overlay = k.add([
-    k.rect(k.width(), k.height()),
-    k.pos(0, 0),
-    k.fixed(),
-    k.color(0, 10, 25), // Tom azul-abissal profundo
-    k.opacity(0),
-    k.z(8), // Acima da baleia e cenário marítimo, mas estritamente abaixo do HUD (z >= 100)
-    "depth_darkness_overlay",
-  ]);
+): DepthDarknessHandle {
+  const isPixi = isRenderEngine(engineOrContext);
 
-  const updateEvt = k.onUpdate(() => {
+  if (isPixi) {
+    const { width, height } = engineOrContext.getDimensions();
+    const overlay = engineOrContext.createGraphics("depth_darkness_overlay");
+    overlay.drawRect(0, 0, width, height, {
+      fill: { color: [0, 10, 25], alpha: 1 },
+    });
+    overlay.setOpacity(0);
+    overlay.setZIndex(8);
+    engineOrContext.getStageRoot().addChild(overlay);
+
+    const unregister = engineOrContext.getTicker().add((dt: number) => {
+      const playerObj = playerController.gameObj;
+      if (!playerObj) return;
+
+      const targetOpacity = calculateDepthDarknessOpacity(
+        playerObj.pos.y,
+        GAME_CONFIG.SEA_LEVEL,
+        height
+      );
+
+      const currentOpacity = overlay.getOpacity();
+      const newOpacity = currentOpacity + (targetOpacity - currentOpacity) * Math.min(1, dt * 5.0);
+      overlay.setOpacity(newOpacity);
+    });
+
+    return {
+      destroy: () => {
+        unregister();
+        overlay.destroy();
+      },
+      getOverlay: () => overlay,
+    };
+  }
+
+  const legacyCtx = engineOrContext as LegacyEngineBridge & {
+    rect(w: number, h: number): unknown;
+    pos(x: number, y: number): unknown;
+    fixed(): unknown;
+    color(r: number, g: number, b: number): unknown;
+    opacity(o: number): unknown;
+    z(layer: number): unknown;
+    width(): number;
+    height(): number;
+    lerp(a: number, b: number, t: number): number;
+    dt(): number;
+    destroy(obj: unknown): void;
+  };
+
+  const overlayObj = legacyCtx.add([
+    legacyCtx.rect(legacyCtx.width(), legacyCtx.height()),
+    legacyCtx.pos(0, 0),
+    typeof legacyCtx.fixed === "function" ? legacyCtx.fixed() : null,
+    legacyCtx.color(0, 10, 25),
+    legacyCtx.opacity(0),
+    legacyCtx.z(8),
+    "depth_darkness_overlay",
+  ]) as { opacity: number; destroy?: () => void };
+
+  const unregisterUpdate = legacyCtx.onUpdate(() => {
     const playerObj = playerController.gameObj;
     if (!playerObj) return;
 
     const targetOpacity = calculateDepthDarknessOpacity(
       playerObj.pos.y,
       GAME_CONFIG.SEA_LEVEL,
-      k.height()
+      legacyCtx.height()
     );
 
-    // Interpolação suave para transições fluidas de iluminação
-    overlay.opacity = k.lerp(overlay.opacity, targetOpacity, k.dt() * 5.0);
+    const lerpFn =
+      typeof legacyCtx.lerp === "function"
+        ? legacyCtx.lerp
+        : (a: number, b: number, t: number) => a + (b - a) * Math.min(1, t);
+    const dt = typeof legacyCtx.dt === "function" ? legacyCtx.dt() : 0.016;
+    overlayObj.opacity = lerpFn(overlayObj.opacity, targetOpacity, dt * 5.0);
   });
+
+  const adaptedOverlay = new LegacyRenderNodeAdapter(overlayObj, "depth_darkness_overlay");
 
   return {
     destroy: () => {
-      updateEvt.cancel();
-      k.destroy(overlay);
+      if (typeof unregisterUpdate === "function") {
+        (unregisterUpdate as () => void)();
+      } else if (
+        unregisterUpdate &&
+        typeof (unregisterUpdate as { cancel?: () => void }).cancel === "function"
+      ) {
+        (unregisterUpdate as { cancel: () => void }).cancel();
+      }
+      if (typeof legacyCtx.destroy === "function") {
+        legacyCtx.destroy(overlayObj);
+      }
     },
-    getOverlay: () => overlay,
+    getOverlay: () => adaptedOverlay,
   };
 }

@@ -1,12 +1,61 @@
-import type { KaboomCtx, GameObj } from "kaboom";
 import { GAME_CONFIG, TAGS } from "../config";
 import { createKrill } from "../entities/krill";
 import type { PlayerController } from "../entities/player";
 import { safeShake } from "../utils/camera";
 import { getRandomFloat } from "../utils/random";
 
-export function createUpwellingStream(
-  k: KaboomCtx,
+export interface UpwellingVector2D {
+  x: number;
+  y: number;
+}
+
+export interface UpwellingGameObject<TColor = unknown> {
+  pos: UpwellingVector2D;
+  opacity?: number;
+  add: (components: unknown[]) => UpwellingGameObject<TColor>;
+  onUpdate: (cb: () => void) => void;
+}
+
+export interface UpwellingEngineContext<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = UpwellingVector2D,
+> {
+  add: (components: unknown[]) => unknown;
+  destroy: (obj: TDestroyable) => void;
+  dt: () => number;
+  height: () => number;
+  onUpdate: (cb: () => void) => void;
+  onCollideUpdate: (
+    tag1: string,
+    tag2: string,
+    cb: (obj1: unknown, obj2: unknown) => void
+  ) => unknown;
+  rect: (w: number, h: number, opt?: { radius?: number }) => unknown;
+  circle: (r: number) => unknown;
+  scale: (s: number | UpwellingVector2D) => unknown;
+  pos: (x: number | UpwellingVector2D, y?: number) => unknown;
+  color: (r: number | TColor, g?: number, b?: number) => unknown;
+  opacity: (o: number) => unknown;
+  outline: (w: number, col: TColor) => unknown;
+  rotate: (angle: number) => unknown;
+  area: (opt?: { scale?: TVec }) => unknown;
+  anchor: (a: "center") => unknown;
+  z: (v: number) => unknown;
+  rand: (min: number, max: number) => number;
+  choose: <T>(arr: T[]) => T;
+  rgb: (r: number, g: number, b: number) => TColor;
+  vec2: (x: number, y: number) => TVec;
+  clamp: (val: number, min: number, max: number) => number;
+  shake?: (amount: number) => void;
+}
+
+export function createUpwellingStream<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = UpwellingVector2D,
+>(
+  k: UpwellingEngineContext<TDestroyable, TColor, TVec>,
   spawnXPosition: number,
   spawnYPosition: number
 ) {
@@ -21,9 +70,9 @@ export function createUpwellingStream(
     k.z(-1),
     TAGS.UPWELLING_STREAM,
     "upwelling_stream_parent",
-  ]);
+  ]) as UpwellingGameObject<TColor>;
 
-  const strands: GameObj[] = [];
+  const strands: UpwellingGameObject<TColor>[] = [];
   const strandCount = 6;
   for (let strandIndex = 0; strandIndex < strandCount; strandIndex++) {
     const strandOffsetX = (strandIndex - (strandCount - 1) / 2) * 5.5;
@@ -74,17 +123,24 @@ export function createUpwellingStream(
 
     streamLifetime -= deltaTime * 0.25;
     for (let strandIndex = 0; strandIndex < strands.length; strandIndex++) {
-      strands[strandIndex].opacity = Math.max(0, strands[strandIndex].opacity - deltaTime * 0.12);
+      const strand = strands[strandIndex];
+      if (strand.opacity !== undefined) {
+        strand.opacity = Math.max(0, strand.opacity - deltaTime * 0.12);
+      }
     }
     if (upwellingStream.pos.y <= -50 || streamLifetime <= 0) {
-      k.destroy(upwellingStream);
+      k.destroy(upwellingStream as unknown as TDestroyable);
     }
   });
 
   return { upwellingStream, strands };
 }
 
-export function setupUpwellingSystem(k: KaboomCtx, playerController: PlayerController) {
+export function setupUpwellingSystem<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = UpwellingVector2D,
+>(k: UpwellingEngineContext<TDestroyable, TColor, TVec>, playerController: PlayerController) {
   let upwellingTimer = 0;
   let isUpwellingActive = false;
   let upwellingEventTimer = 0;
@@ -149,7 +205,7 @@ export function setupUpwellingSystem(k: KaboomCtx, playerController: PlayerContr
       k.vec2(
         k.clamp(currentVelocity.x + 10, -GAME_CONFIG.MAX_SPEED, GAME_CONFIG.MAX_SPEED),
         k.clamp(currentVelocity.y - 14, -GAME_CONFIG.MAX_SPEED, GAME_CONFIG.MAX_SPEED)
-      )
+      ) as unknown as Parameters<PlayerController["setSpeed"]>[0]
     );
   });
 }

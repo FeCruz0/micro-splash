@@ -1,4 +1,12 @@
-import type { KaboomCtx } from "kaboom";
+/**
+ * Gerenciador de Ciclo de Vida Geográfico dos Módulos e Biomas — Micro Splash
+ *
+ * Refatorado para o Adapter Pattern (PixiJS v8 / Micro Splash Engine).
+ * Desacoplado do Kaboom.js, com tipagem estrita de IRenderEngine e IRenderNode.
+ */
+
+import type { IRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import type { LegacyEngineBridge } from "../engine/adapters/LegacyBridge";
 
 /**
  * Interface que define um módulo de subsistema atrelado a faixas geográficas da migração.
@@ -33,11 +41,8 @@ export class BiomeLifecycleManager {
 
   /**
    * Construtor do gerenciador de ciclo de vida.
-   *
-   * @param _k - Instância do motor Kaboom.js.
-   * @param hysteresis - Margem de tolerância em metros além de minX e maxX para evitar oscilações.
    */
-  constructor(_k?: KaboomCtx, hysteresis = 500) {
+  constructor(_engineOrContext?: IRenderEngine | LegacyEngineBridge | unknown, hysteresis = 500) {
     this.hysteresis = hysteresis;
   }
 
@@ -91,8 +96,11 @@ export class BiomeLifecycleManager {
 
 let activeBiomeManager: BiomeLifecycleManager | null = null;
 
-export function initBiomeLifecycleManager(k: KaboomCtx, hysteresis = 500): BiomeLifecycleManager {
-  activeBiomeManager = new BiomeLifecycleManager(k, hysteresis);
+export function initBiomeLifecycleManager(
+  engineOrContext?: IRenderEngine | LegacyEngineBridge | unknown,
+  hysteresis = 500
+): BiomeLifecycleManager {
+  activeBiomeManager = new BiomeLifecycleManager(engineOrContext, hysteresis);
   return activeBiomeManager;
 }
 

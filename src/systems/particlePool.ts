@@ -1,22 +1,52 @@
-import type { KaboomCtx, Vec2, Color, GameObj } from "kaboom";
+/**
+ * Gerenciador de Piscina de Partículas (Object Pooling) — Micro Splash
+ *
+ * Refatorado para o Adapter Pattern (PixiJS v8 / Micro Splash Engine).
+ * Desacoplado do Kaboom.js, com tipagem estrita de IRenderEngine e IRenderNode.
+ */
+
 import { getRandomFloat } from "../utils/random";
+import type { IRenderEngine, IGraphicsNode } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { isRenderEngine, type LegacyEngineBridge } from "../engine/adapters/LegacyBridge";
+
+export interface ParticleVec2 {
+  x: number;
+  y: number;
+}
+
+export interface ParticleColor {
+  r: number;
+  g: number;
+  b: number;
+}
+
+export interface ParticleRenderObject {
+  pos: { x: number; y: number };
+  radius?: number;
+  width?: number;
+  height?: number;
+  color?: unknown;
+  opacity: number;
+  z?: number;
+  hidden?: boolean;
+}
 
 /**
  * Parâmetros de configuração para emitir uma partícula circular a partir do pool.
  */
 export interface SpawnCircleOptions {
   /** Posição inicial no mundo (x, y) */
-  pos: Vec2;
+  pos: ParticleVec2;
   /** Raio da partícula circular em pixels */
   radius: number;
   /** Cor RGB da partícula */
-  color: Color;
+  color: ParticleColor | unknown;
   /** Opacidade inicial (0.0 a 1.0, padrão 1.0) */
   opacity?: number;
   /** Profundidade Z na camada de renderização (padrão 15) */
   z?: number;
   /** Vetor de velocidade inicial em px/s */
-  vel?: Vec2;
+  vel?: ParticleVec2;
   /** Aceleração gravitacional vertical em px/s² */
   gravityY?: number;
   /** Taxa de crescimento ou encolhimento do raio em px/s */
@@ -34,7 +64,7 @@ export interface SpawnCircleOptions {
   /** Critério de validação do limite: reciclado se y for maior ou menor que boundaryY */
   boundaryYMode?: "greater" | "less";
   /** Posição alvo para atração magnética direcionada */
-  targetPos?: Vec2;
+  targetPos?: ParticleVec2;
   /** Velocidade de deslocamento na direção do alvo */
   targetSpeed?: number;
 }
@@ -44,19 +74,19 @@ export interface SpawnCircleOptions {
  */
 export interface SpawnRectOptions {
   /** Posição inicial no mundo (x, y) */
-  pos: Vec2;
+  pos: ParticleVec2;
   /** Largura da partícula em pixels */
   width: number;
   /** Altura da partícula em pixels */
   height: number;
   /** Cor RGB da partícula */
-  color: Color;
+  color: ParticleColor | unknown;
   /** Opacidade inicial (0.0 a 1.0) */
   opacity?: number;
   /** Camada Z de renderização */
   z?: number;
   /** Vetor de velocidade em px/s */
-  vel?: Vec2;
+  vel?: ParticleVec2;
   /** Taxa de esmaecimento por segundo */
   fadeRate?: number;
   /** Tempo de vida máximo em segundos */
@@ -64,14 +94,14 @@ export interface SpawnRectOptions {
 }
 
 interface PooledCircle {
-  obj: GameObj;
+  obj: ParticleRenderObject;
   active: boolean;
   poolIndex: number;
   activeListIndex: number;
   life: number;
   maxLife: number;
   initialOpacity: number;
-  vel: Vec2;
+  vel: ParticleVec2;
   gravityY: number;
   growthRate: number;
   swayFreq: number;
@@ -80,33 +110,141 @@ interface PooledCircle {
   fadeRate: number;
   boundaryY: number | null;
   boundaryYMode: "greater" | "less" | null;
-  targetPos: Vec2 | null;
+  targetPos: ParticleVec2 | null;
   targetSpeed: number;
 }
 
 interface PooledRect {
-  obj: GameObj;
+  obj: ParticleRenderObject;
   active: boolean;
   poolIndex: number;
   activeListIndex: number;
   life: number;
   maxLife: number;
   initialOpacity: number;
-  vel: Vec2;
+  vel: ParticleVec2;
   fadeRate: number;
+}
+
+class PixiPooledParticleProxy implements ParticleRenderObject {
+  private readonly node: IGraphicsNode;
+  private currentX: number = -9999;
+  private currentY: number = -9999;
+  private currentRadius: number = 2;
+  private currentWidth: number = 10;
+  private currentHeight: number = 2;
+  private currentColor: [number, number, number] = [255, 255, 255];
+  private isCircle: boolean;
+
+  constructor(node: IGraphicsNode, isCircle: boolean) {
+    this.node = node;
+    this.isCircle = isCircle;
+  }
+
+  get pos(): { x: number; y: number } {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const self = this;
+    const nodeRef = this.node;
+    return {
+      get x() {
+        return self.currentX;
+      },
+      set x(val: number) {
+        self.currentX = val;
+        nodeRef.setPosition(val, self.currentY);
+      },
+      get y() {
+        return self.currentY;
+      },
+      set y(val: number) {
+        self.currentY = val;
+        nodeRef.setPosition(self.currentX, val);
+      },
+    };
+  }
+  set pos(val: { x: number; y: number }) {
+    this.currentX = val.x;
+    this.currentY = val.y;
+    this.node.setPosition(val.x, val.y);
+  }
+
+  get radius(): number {
+    return this.currentRadius;
+  }
+  set radius(val: number) {
+    this.currentRadius = val;
+    this.redraw();
+  }
+
+  get width(): number {
+    return this.currentWidth;
+  }
+  set width(val: number) {
+    this.currentWidth = val;
+    this.redraw();
+  }
+
+  get height(): number {
+    return this.currentHeight;
+  }
+  set height(val: number) {
+    this.currentHeight = val;
+    this.redraw();
+  }
+
+  get color(): unknown {
+    return { r: this.currentColor[0], g: this.currentColor[1], b: this.currentColor[2] };
+  }
+  set color(c: unknown) {
+    if (Array.isArray(c)) {
+      this.currentColor = [c[0], c[1], c[2]];
+    } else if (c && typeof c === "object" && "r" in c) {
+      const rgb = c as { r: number; g: number; b: number };
+      this.currentColor = [rgb.r, rgb.g, rgb.b];
+    }
+    this.redraw();
+  }
+
+  get opacity(): number {
+    return this.node.getOpacity();
+  }
+  set opacity(val: number) {
+    this.node.setOpacity(val);
+  }
+
+  get z(): number {
+    return this.node.getZIndex();
+  }
+  set z(val: number) {
+    this.node.setZIndex(val);
+  }
+
+  get hidden(): boolean {
+    return !this.node.isVisible();
+  }
+  set hidden(val: boolean) {
+    this.node.setVisible(!val);
+  }
+
+  private redraw(): void {
+    this.node.clear();
+    if (this.isCircle) {
+      this.node.drawCircle(0, 0, this.currentRadius, {
+        fill: { color: this.currentColor, alpha: 1 },
+      });
+    } else {
+      this.node.drawRect(0, 0, this.currentWidth, this.currentHeight, {
+        fill: { color: this.currentColor, alpha: 1 },
+      });
+    }
+  }
 }
 
 /**
  * Gerenciador de Piscina de Partículas (Object Pooling) de alta performance.
- *
- * Elimina completamente a alocação e destruição contínua de entidades no garbage collector:
- * - Pré-aloca buffers fixos de partículas circulares e retangulares fora da tela.
- * - Utiliza estratégia híbrida de busca livre e fila circular (Ring Buffer / LRU).
- * - Lista ativa densa indexada por swap-and-pop para atualização O(ativas) em vez de O(total) (Fase 53).
- * - Suporta física hidrodinâmica com matemática escalar sem alocações no loop.
  */
 export class ParticlePool {
-  private k: KaboomCtx;
+  private engineOrContext: IRenderEngine | LegacyEngineBridge;
   private circlePool: PooledCircle[] = [];
   private rectPool: PooledRect[] = [];
   private activeCircleIndices: number[] = [];
@@ -114,83 +252,146 @@ export class ParticlePool {
   private circleIndex = 0;
   private rectIndex = 0;
 
-  /**
-   * Inicializa o pool de partículas pré-alocando os buffers no motor Kaboom.
-   *
-   * @param k - Instância do contexto Kaboom.js.
-   * @param circleCount - Quantidade máxima de partículas circulares pré-alocadas (padrão: 140).
-   * @param rectCount - Quantidade máxima de partículas retangulares pré-alocadas (padrão: 30).
-   */
-  constructor(k: KaboomCtx, circleCount = 140, rectCount = 30) {
-    this.k = k;
+  constructor(
+    engineOrContext: IRenderEngine | LegacyEngineBridge,
+    circleCount = 140,
+    rectCount = 30
+  ) {
+    this.engineOrContext = engineOrContext;
     this.initPools(circleCount, rectCount);
   }
 
   private initPools(circleCount: number, rectCount: number): void {
-    // 1. Pre-aloca partículas circulares
-    for (let i = 0; i < circleCount; i++) {
-      const obj = this.k.add([
-        this.k.circle(2),
-        this.k.pos(-9999, -9999),
-        this.k.color(255, 255, 255),
-        this.k.opacity(0),
-        this.k.z(15),
-        "pooled_particle",
-      ]);
-      obj.hidden = true;
+    if (isRenderEngine(this.engineOrContext)) {
+      const stageRoot = this.engineOrContext.getStageRoot();
 
-      this.circlePool.push({
-        obj,
-        active: false,
-        poolIndex: i,
-        activeListIndex: -1,
-        life: 0,
-        maxLife: 1,
-        initialOpacity: 1,
-        vel: this.k.vec2(0, 0),
-        gravityY: 0,
-        growthRate: 0,
-        swayFreq: 0,
-        swayAmp: 0,
-        swayTimer: 0,
-        fadeRate: 0,
-        boundaryY: null,
-        boundaryYMode: null,
-        targetPos: null,
-        targetSpeed: 0,
-      });
-    }
+      for (let i = 0; i < circleCount; i++) {
+        const g = this.engineOrContext.createGraphics("pooled_particle");
+        g.drawCircle(0, 0, 2, { fill: { color: [255, 255, 255], alpha: 1 } });
+        g.setPosition(-9999, -9999);
+        g.setOpacity(0);
+        g.setZIndex(15);
+        g.setVisible(false);
+        stageRoot.addChild(g);
 
-    // 2. Pre-aloca partículas retangulares (rastros, fitas de esteira)
-    for (let i = 0; i < rectCount; i++) {
-      const obj = this.k.add([
-        this.k.rect(10, 2),
-        this.k.pos(-9999, -9999),
-        this.k.color(255, 255, 255),
-        this.k.opacity(0),
-        this.k.z(12),
-        "pooled_rect_particle",
-      ]);
-      obj.hidden = true;
+        const proxy = new PixiPooledParticleProxy(g, true);
+        this.circlePool.push({
+          obj: proxy,
+          active: false,
+          poolIndex: i,
+          activeListIndex: -1,
+          life: 0,
+          maxLife: 1,
+          initialOpacity: 1,
+          vel: { x: 0, y: 0 },
+          gravityY: 0,
+          growthRate: 0,
+          swayFreq: 0,
+          swayAmp: 0,
+          swayTimer: 0,
+          fadeRate: 0,
+          boundaryY: null,
+          boundaryYMode: null,
+          targetPos: null,
+          targetSpeed: 0,
+        });
+      }
 
-      this.rectPool.push({
-        obj,
-        active: false,
-        poolIndex: i,
-        activeListIndex: -1,
-        life: 0,
-        maxLife: 1,
-        initialOpacity: 1,
-        vel: this.k.vec2(0, 0),
-        fadeRate: 0,
-      });
+      for (let i = 0; i < rectCount; i++) {
+        const g = this.engineOrContext.createGraphics("pooled_rect_particle");
+        g.drawRect(0, 0, 10, 2, { fill: { color: [255, 255, 255], alpha: 1 } });
+        g.setPosition(-9999, -9999);
+        g.setOpacity(0);
+        g.setZIndex(12);
+        g.setVisible(false);
+        stageRoot.addChild(g);
+
+        const proxy = new PixiPooledParticleProxy(g, false);
+        this.rectPool.push({
+          obj: proxy,
+          active: false,
+          poolIndex: i,
+          activeListIndex: -1,
+          life: 0,
+          maxLife: 1,
+          initialOpacity: 1,
+          vel: { x: 0, y: 0 },
+          fadeRate: 0,
+        });
+      }
+    } else {
+      const legacyCtx = this.engineOrContext as LegacyEngineBridge & {
+        circle(r: number): unknown;
+        rect(w: number, h: number): unknown;
+        pos(x: number, y: number): unknown;
+        color(r: number, g: number, b: number): unknown;
+        opacity(o: number): unknown;
+        z(layer: number): unknown;
+        vec2(x: number, y: number): ParticleVec2;
+      };
+
+      for (let i = 0; i < circleCount; i++) {
+        const obj = legacyCtx.add([
+          legacyCtx.circle(2),
+          legacyCtx.pos(-9999, -9999),
+          legacyCtx.color(255, 255, 255),
+          legacyCtx.opacity(0),
+          legacyCtx.z(15),
+          "pooled_particle",
+        ]) as ParticleRenderObject;
+        obj.hidden = true;
+
+        this.circlePool.push({
+          obj,
+          active: false,
+          poolIndex: i,
+          activeListIndex: -1,
+          life: 0,
+          maxLife: 1,
+          initialOpacity: 1,
+          vel: { x: 0, y: 0 },
+          gravityY: 0,
+          growthRate: 0,
+          swayFreq: 0,
+          swayAmp: 0,
+          swayTimer: 0,
+          fadeRate: 0,
+          boundaryY: null,
+          boundaryYMode: null,
+          targetPos: null,
+          targetSpeed: 0,
+        });
+      }
+
+      for (let i = 0; i < rectCount; i++) {
+        const obj = legacyCtx.add([
+          legacyCtx.rect(10, 2),
+          legacyCtx.pos(-9999, -9999),
+          legacyCtx.color(255, 255, 255),
+          legacyCtx.opacity(0),
+          legacyCtx.z(12),
+          "pooled_rect_particle",
+        ]) as ParticleRenderObject;
+        obj.hidden = true;
+
+        this.rectPool.push({
+          obj,
+          active: false,
+          poolIndex: i,
+          activeListIndex: -1,
+          life: 0,
+          maxLife: 1,
+          initialOpacity: 1,
+          vel: { x: 0, y: 0 },
+          fadeRate: 0,
+        });
+      }
     }
   }
 
-  public spawnCircle(opts: SpawnCircleOptions): GameObj | null {
+  public spawnCircle(opts: SpawnCircleOptions): ParticleRenderObject | null {
     if (this.circlePool.length === 0) return null;
 
-    // Busca próxima partícula inativa ou reutiliza a mais antiga (Ring Buffer / LRU)
     let candidate: PooledCircle | null = null;
     const total = this.circlePool.length;
 
@@ -203,7 +404,6 @@ export class ParticlePool {
       }
     }
 
-    // Se todas estiverem ativas, substitui a atual da fila circular
     if (!candidate) {
       candidate = this.circlePool[this.circleIndex];
       this.circleIndex = (this.circleIndex + 1) % total;
@@ -221,7 +421,7 @@ export class ParticlePool {
     candidate.life = maxLife;
     candidate.maxLife = maxLife;
     candidate.initialOpacity = initialOpacity;
-    candidate.vel = opts.vel ? this.k.vec2(opts.vel.x, opts.vel.y) : this.k.vec2(0, 0);
+    candidate.vel = opts.vel ? { x: opts.vel.x, y: opts.vel.y } : { x: 0, y: 0 };
     candidate.gravityY = opts.gravityY ?? 0;
     candidate.growthRate = opts.growthRate ?? 0;
     candidate.swayFreq = opts.swayFreq ?? 0;
@@ -230,10 +430,9 @@ export class ParticlePool {
     candidate.fadeRate = opts.fadeRate ?? 0;
     candidate.boundaryY = opts.boundaryY ?? null;
     candidate.boundaryYMode = opts.boundaryYMode ?? null;
-    candidate.targetPos = opts.targetPos ? this.k.vec2(opts.targetPos.x, opts.targetPos.y) : null;
+    candidate.targetPos = opts.targetPos ? { x: opts.targetPos.x, y: opts.targetPos.y } : null;
     candidate.targetSpeed = opts.targetSpeed ?? 0;
 
-    // Atualiza propriedades do GameObj
     const p = candidate.obj;
     p.hidden = false;
     p.pos.x = opts.pos.x;
@@ -246,7 +445,7 @@ export class ParticlePool {
     return p;
   }
 
-  public spawnRect(opts: SpawnRectOptions): GameObj | null {
+  public spawnRect(opts: SpawnRectOptions): ParticleRenderObject | null {
     if (this.rectPool.length === 0) return null;
 
     let candidate: PooledRect | null = null;
@@ -278,7 +477,7 @@ export class ParticlePool {
     candidate.life = maxLife;
     candidate.maxLife = maxLife;
     candidate.initialOpacity = initialOpacity;
-    candidate.vel = opts.vel ? this.k.vec2(opts.vel.x, opts.vel.y) : this.k.vec2(0, 0);
+    candidate.vel = opts.vel ? { x: opts.vel.x, y: opts.vel.y } : { x: 0, y: 0 };
     candidate.fadeRate = opts.fadeRate ?? 0;
 
     const p = candidate.obj;
@@ -303,12 +502,10 @@ export class ParticlePool {
 
       p.life -= dt;
 
-      // Movimento balístico / gravidade
       if (p.gravityY !== 0) {
         p.vel.y += p.gravityY * dt;
       }
 
-      // Atração em direção a um alvo com matemática escalar pura (zero alocações)
       if (p.targetPos) {
         const dx = p.targetPos.x - p.obj.pos.x;
         const dy = p.targetPos.y - p.obj.pos.y;
@@ -325,25 +522,21 @@ export class ParticlePool {
         p.obj.pos.y += p.vel.y * dt;
       }
 
-      // Ondulação senoidal (sway)
       if (p.swayAmp > 0 && p.swayFreq > 0) {
         p.swayTimer += dt * p.swayFreq;
         p.obj.pos.x += Math.sin(p.swayTimer) * p.swayAmp * dt;
       }
 
-      // Expansão do raio
-      if (p.growthRate !== 0) {
+      if (p.growthRate !== 0 && typeof p.obj.radius === "number") {
         p.obj.radius += p.growthRate * dt;
       }
 
-      // Opacidade
       if (p.fadeRate > 0) {
         p.obj.opacity -= p.fadeRate * dt;
       } else if (p.maxLife > 0) {
         p.obj.opacity = Math.max(0, (p.life / p.maxLife) * p.initialOpacity);
       }
 
-      // Condições de término
       const isDead = p.life <= 0 || p.obj.opacity <= 0;
       let hitBoundary = false;
       if (p.boundaryY !== null && p.boundaryYMode !== null) {
@@ -452,8 +645,12 @@ export class ParticlePool {
 
 let activeParticlePool: ParticlePool | null = null;
 
-export function initParticlePool(k: KaboomCtx, circleCount = 140, rectCount = 30): ParticlePool {
-  activeParticlePool = new ParticlePool(k, circleCount, rectCount);
+export function initParticlePool(
+  engineOrContext: IRenderEngine | LegacyEngineBridge,
+  circleCount = 140,
+  rectCount = 30
+): ParticlePool {
+  activeParticlePool = new ParticlePool(engineOrContext, circleCount, rectCount);
   return activeParticlePool;
 }
 

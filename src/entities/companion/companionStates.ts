@@ -1,18 +1,22 @@
-import type { GameObj, KaboomCtx } from "kaboom";
 import { COMPANION_CONFIG, GAME_CONFIG } from "../../config";
 import { audioSystem } from "../../systems/audioSystem";
 import { getParticlePool } from "../../systems/particlePool";
 import { markCompanionTutorialSeen } from "../../systems/companionTutorialSettings";
 import type { RandomNumberGenerator } from "../../utils/random";
-import type { CompanionOptions, CompanionState } from "./types";
+import type {
+  CompanionGameObject,
+  CompanionOptions,
+  CompanionState,
+  CompanionVector2D,
+} from "./types";
 import { CompanionStateMachine } from "./companionStateMachine";
-import type { CompanionStateContext } from "./states/types";
+import type { CompanionEngineContext, CompanionStateContext } from "./states/types";
 
 export * from "./states/types";
 export * from "./states/concreteStates";
 export * from "./companionStateMachine";
 
-export interface CompanionStates {
+export interface CompanionStates<TGameObj = CompanionGameObject> {
   getState: () => CompanionState;
   forceState: (state: CompanionState) => void;
   getOxygen: () => number;
@@ -20,7 +24,7 @@ export interface CompanionStates {
   restoreOxygen: (amount: number) => void;
   drainOxygen: (amount: number) => void;
   getKrillsEaten: () => number;
-  consumeKrill: (krillObj: GameObj) => void;
+  consumeKrill: (krillObj: TGameObj) => void;
   isDeparted: () => boolean;
   isFainted: () => boolean;
   shouldStopUpdate: () => boolean;
@@ -28,17 +32,28 @@ export interface CompanionStates {
   update: (
     deltaTime: number,
     playerX?: number,
-    targetKrill?: GameObj | null,
-    targetHazard?: GameObj | null,
+    targetKrill?: TGameObj | null,
+    targetHazard?: TGameObj | null,
     onResetVerticalSpeed?: () => void
   ) => number;
 }
 
-export interface CompanionStatesOptions {
-  k: KaboomCtx;
-  companion: GameObj;
-  options: CompanionOptions;
+export interface CompanionStatesOptions<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = CompanionVector2D,
+  TGameObj = CompanionGameObject,
+> {
+  k: CompanionEngineContext<TDestroyable, TColor, TVec>;
+  companion: CompanionGameObject;
+  options: CompanionOptions<TGameObj>;
   prng: RandomNumberGenerator;
+}
+
+export interface SteamParticleObject {
+  pos: { x: number; y: number };
+  opacity: number;
+  onUpdate: (cb: () => void) => void;
 }
 
 /**
@@ -46,7 +61,14 @@ export interface CompanionStatesOptions {
  * Utiliza o State Pattern hierárquico com contratos formais (onEnter, onUpdate, onExit),
  * ciclo biológico de oxigênio pulmonar, co-migração de longo curso e partículas com PRNG determinístico.
  */
-export function createCompanionStates(statesOptions: CompanionStatesOptions): CompanionStates {
+export function createCompanionStates<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = CompanionVector2D,
+  TGameObj = CompanionGameObject,
+>(
+  statesOptions: CompanionStatesOptions<TDestroyable, TColor, TVec, TGameObj>
+): CompanionStates<TGameObj> {
   const { k, companion, options, prng } = statesOptions;
 
   const stateMachine = new CompanionStateMachine("INTRO", options.onStateChange);
@@ -85,7 +107,7 @@ export function createCompanionStates(statesOptions: CompanionStatesOptions): Co
             k.color(220, 245, 255),
             k.opacity(0.85),
             k.z(22),
-          ]);
+          ]) as SteamParticleObject;
           let lifeTime = 0.85;
           steamParticle.onUpdate(() => {
             const dt = k.dt();
@@ -93,7 +115,7 @@ export function createCompanionStates(statesOptions: CompanionStatesOptions): Co
             steamParticle.pos.x += (prng() - 0.5) * dt * 20;
             lifeTime -= dt;
             steamParticle.opacity = lifeTime;
-            if (lifeTime <= 0) k.destroy(steamParticle);
+            if (lifeTime <= 0) k.destroy(steamParticle as unknown as TDestroyable);
           });
         }
       }
@@ -107,9 +129,9 @@ export function createCompanionStates(statesOptions: CompanionStatesOptions): Co
   };
 
   const getContext = (onResetVerticalSpeed?: () => void): CompanionStateContext => ({
-    k,
+    k: k as unknown as CompanionEngineContext,
     companion,
-    options,
+    options: options as CompanionOptions,
     prng,
     getOxygen: () => currentOxygen,
     restoreOxygen: (amount: number) => {
@@ -126,22 +148,23 @@ export function createCompanionStates(statesOptions: CompanionStatesOptions): Co
     stateTimer,
   });
 
-  const consumeKrill = (krillObj: GameObj): void => {
-    if (krillObj && (!krillObj.exists || krillObj.exists())) {
-      k.destroy(krillObj);
+  const consumeKrill = (krillObj: TGameObj): void => {
+    const krill = krillObj as unknown as CompanionGameObject;
+    if (krill && (!krill.exists || krill.exists())) {
+      k.destroy(krillObj as unknown as TDestroyable);
     }
     krillsEatenCount++;
     currentOxygen = Math.min(maxOxygen, currentOxygen + GAME_CONFIG.KRILL_OXYGEN_RESTORE);
     feedActionTimer = 0.75;
     if (typeof companion.play === "function") companion.play("feed");
-    audioSystem.playKrillGulp(krillObj?.pos?.x, companion.pos.x);
+    audioSystem.playKrillGulp(krill?.pos?.x, companion.pos.x);
   };
 
   const update = (
     deltaTime: number,
     playerX?: number,
-    targetKrill: GameObj | null = null,
-    targetHazard: GameObj | null = null,
+    targetKrill: TGameObj | null = null,
+    targetHazard: TGameObj | null = null,
     onResetVerticalSpeed?: () => void
   ): number => {
     stateTimer += deltaTime;
@@ -171,7 +194,13 @@ export function createCompanionStates(statesOptions: CompanionStatesOptions): Co
       context.stateTimer = 0;
       stateMachine.transitionTo("FAINTED", context);
       audioSystem.playWhaleSong(0.6, 0.8);
-      return stateMachine.update(context, deltaTime, playerX, targetKrill, targetHazard);
+      return stateMachine.update(
+        context,
+        deltaTime,
+        playerX,
+        targetKrill as unknown as CompanionGameObject,
+        targetHazard as unknown as CompanionGameObject
+      );
     }
 
     // 3. Animação de alimentação
@@ -228,7 +257,13 @@ export function createCompanionStates(statesOptions: CompanionStatesOptions): Co
     }
 
     // 6. Atualização da FSM Formal com perigos detectados
-    return stateMachine.update(context, deltaTime, playerX, targetKrill, targetHazard);
+    return stateMachine.update(
+      context,
+      deltaTime,
+      playerX,
+      targetKrill as unknown as CompanionGameObject,
+      targetHazard as unknown as CompanionGameObject
+    );
   };
 
   return {
@@ -262,7 +297,7 @@ export function createCompanionStates(statesOptions: CompanionStatesOptions): Co
     destroy: () => {
       isDepartedFlag = true;
       if (companion && (!companion.exists || companion.exists())) {
-        k.destroy(companion);
+        k.destroy(companion as unknown as TDestroyable);
       }
     },
     update,

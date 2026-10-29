@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { CompanionStateMachine } from "../../../src/entities/companion/companionStateMachine";
-import type { GameObj } from "kaboom";
+import type { CompanionGameObject } from "../../../src/entities/companion/types";
 import type {
   CompanionStateContext,
   CompanionStateNode,
@@ -96,7 +96,7 @@ describe("CompanionStateMachine — FSM Formal com State Pattern (Fase 59)", () 
 
     const mockKrill = {
       pos: { x: 200, y: 260 }, // krill abaixo e à frente da baleia (100, 200)
-    } as unknown as GameObj;
+    } as unknown as CompanionGameObject;
 
     const angle = fsm.update(ctx, 0.016, 100, mockKrill);
     expect(angle).toBeGreaterThan(0); // ângulo positivo (mergulho para baixo)

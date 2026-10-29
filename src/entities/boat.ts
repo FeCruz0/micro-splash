@@ -1,13 +1,47 @@
-import type { KaboomCtx, Vec2 } from "kaboom";
 import { GAME_CONFIG } from "../config";
 import { getRandomFloat } from "../utils/random";
+
+export interface BoatVector2D {
+  x: number;
+  y: number;
+}
+
+export interface BoatGameObject {
+  pos: BoatVector2D;
+  color?: unknown;
+  angle?: number;
+  opacity?: number;
+  hidden?: boolean;
+  add: (components: unknown[]) => BoatGameObject;
+  onUpdate: (cb: () => void) => void;
+}
+
+export interface BoatEngineContext<TColor = unknown> {
+  add: (components: unknown[]) => unknown;
+  dt: () => number;
+  rect: (w: number, h: number, opt?: { radius?: number }) => unknown;
+  circle: (r: number) => unknown;
+  pos: (x: number, y: number) => unknown;
+  color: (r: number | TColor, g?: number, b?: number) => unknown;
+  outline: (w: number, col: TColor) => unknown;
+  anchor: (a: "botleft" | "center" | "topleft") => unknown;
+  z: (v: number) => unknown;
+  rotate: (a: number) => unknown;
+  opacity: (o: number) => unknown;
+  lifespan?: (time: number, opt?: { fade?: number }) => unknown;
+  rgb: (r: number, g: number, b: number) => TColor;
+  rand: (min: number, max: number) => number;
+}
 
 /**
  * Cria o barco de resgate da Guarda Marítima / Instituto Baleia Jubarte (Fase 34.3).
  * Conta com mastro vertical, flâmula oscilante, faixa de salvamento laranja,
  * cabine com vigias e esteira de espuma d'água (scia) durante o deslocamento.
  */
-export function createRescueBoat(k: KaboomCtx, targetPos: Vec2) {
+export function createRescueBoat<TColor = unknown>(
+  k: BoatEngineContext<TColor>,
+  targetPos: BoatVector2D
+): BoatGameObject {
   // Barco da Guarda Marítima navegando na linha d'água
   const boat = k.add([
     k.rect(94, 30, { radius: 5 }),
@@ -16,13 +50,23 @@ export function createRescueBoat(k: KaboomCtx, targetPos: Vec2) {
     k.outline(2.5, k.rgb(30, 60, 110)), // Borda azul marinho de proteção
     k.anchor("botleft"),
     k.z(50),
-  ]);
+  ]) as BoatGameObject;
 
   // Faixa diagonal de salvamento laranja de alta visibilidade (Guarda Marítima / Salvamento)
-  boat.add([k.rect(14, 26, { radius: 2 }), k.pos(60, -28), k.color(249, 115, 22), k.rotate(-18)]);
+  boat.add([
+    k.rect(14, 26, { radius: 2 }),
+    k.pos(60, -28),
+    k.color(249, 115, 22),
+    ...(typeof k.rotate === "function" ? [k.rotate(-18)] : []),
+  ]);
 
   // Segunda faixa fina de contraste azul
-  boat.add([k.rect(5, 26, { radius: 1 }), k.pos(74, -28), k.color(30, 64, 175), k.rotate(-18)]);
+  boat.add([
+    k.rect(5, 26, { radius: 1 }),
+    k.pos(74, -28),
+    k.color(30, 64, 175),
+    ...(typeof k.rotate === "function" ? [k.rotate(-18)] : []),
+  ]);
 
   // Cabine do barco de salvamento
   const cabin = boat.add([
@@ -30,11 +74,21 @@ export function createRescueBoat(k: KaboomCtx, targetPos: Vec2) {
     k.pos(18, -30),
     k.color(210, 220, 235),
     k.outline(2, k.rgb(40, 55, 80)),
-  ]);
+  ]) as BoatGameObject;
 
   // Vigias / Janelas de vidro com reflexo turquesa
-  cabin.add([k.rect(7, 7, { radius: 1 }), k.pos(5, 4), k.color(125, 211, 252), k.opacity(0.85)]);
-  cabin.add([k.rect(7, 7, { radius: 1 }), k.pos(15, 4), k.color(125, 211, 252), k.opacity(0.85)]);
+  cabin.add([
+    k.rect(7, 7, { radius: 1 }),
+    k.pos(5, 4),
+    k.color(125, 211, 252),
+    ...(typeof k.opacity === "function" ? [k.opacity(0.85)] : []),
+  ]);
+  cabin.add([
+    k.rect(7, 7, { radius: 1 }),
+    k.pos(15, 4),
+    k.color(125, 211, 252),
+    ...(typeof k.opacity === "function" ? [k.opacity(0.85)] : []),
+  ]);
 
   // Mastro vertical naval (Fase 34.3)
   boat.add([
@@ -49,8 +103,8 @@ export function createRescueBoat(k: KaboomCtx, targetPos: Vec2) {
     k.rect(14, 9, { radius: 1 }),
     k.pos(36, -68),
     k.color(34, 197, 94), // Verde floresta / brasileiro
-    k.rotate(0),
-  ]);
+    ...(typeof k.rotate === "function" ? [k.rotate(0)] : []),
+  ]) as BoatGameObject;
 
   boat.add([
     k.rect(5, 4),
@@ -59,7 +113,7 @@ export function createRescueBoat(k: KaboomCtx, targetPos: Vec2) {
   ]);
 
   // Luz do sinalizador de emergência (Estroboscópio Vermelho / Azul Marinho)
-  const beacon = cabin.add([k.circle(5), k.pos(17, -8), k.color(255, 0, 0)]);
+  const beacon = cabin.add([k.circle(5), k.pos(17, -8), k.color(255, 0, 0)]) as BoatGameObject;
 
   let time = 0;
   let wakeTimer = 0;
@@ -89,8 +143,8 @@ export function createRescueBoat(k: KaboomCtx, targetPos: Vec2) {
           k.circle(k.rand(2, 4.5)),
           k.pos(boat.pos.x - 4, boat.pos.y - 6),
           k.color(240, 248, 255),
-          k.opacity(0.85),
-          k.lifespan(0.4, { fade: 0.2 }),
+          ...(typeof k.opacity === "function" ? [k.opacity(0.85)] : []),
+          ...(typeof k.lifespan === "function" ? [k.lifespan(0.4, { fade: 0.2 })] : []),
           k.z(48),
         ]);
       }
@@ -108,7 +162,10 @@ export function createRescueBoat(k: KaboomCtx, targetPos: Vec2) {
  * Dimensão compacta de 60×20px, cabine de comando, mastro com guincho e rede visível
  * sendo lançada na popa, conferindo contexto narrativo à presença das redes fantasmas no setor.
  */
-export function createFishingTrawler(k: KaboomCtx, positionX: number) {
+export function createFishingTrawler<TColor = unknown>(
+  k: BoatEngineContext<TColor>,
+  positionX: number
+): BoatGameObject {
   const baseWaterY = GAME_CONFIG.SEA_LEVEL + 6;
 
   // Casco rústico de traineira pesqueira (60×20px)
@@ -120,7 +177,7 @@ export function createFishingTrawler(k: KaboomCtx, positionX: number) {
     k.anchor("botleft"),
     k.z(-2),
     "fishing_trawler",
-  ]);
+  ]) as BoatGameObject;
 
   // Faixa de linha d'água no casco
   trawler.add([

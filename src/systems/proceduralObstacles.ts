@@ -1,10 +1,41 @@
-import type { KaboomCtx } from "kaboom";
 import { createTrash } from "../entities/trash";
 import { createKrill } from "../entities/krill";
 import { createGhostNet } from "../entities/net";
 import { createBubbleVent } from "../entities/bubbleVent";
 import type { CurrentZone } from "./oceanCurrentsSystem";
 import { getRandomInteger } from "../utils/random";
+import { getSpatialCullingManager, type CullableTargetObject } from "./spatialCullingSystem";
+
+export interface ProceduralVector2D {
+  x: number;
+  y: number;
+}
+
+export interface ProceduralEngineContext<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = ProceduralVector2D,
+> {
+  height: () => number;
+  vec2: (x: number, y: number) => TVec;
+  add: (components: unknown[]) => unknown;
+  destroy: (obj: TDestroyable) => void;
+  dt: () => number;
+  rect: (w: number, h: number, opt?: { radius?: number }) => unknown;
+  circle: (r: number) => unknown;
+  pos: (x: number | { x: number; y: number }, y?: number) => unknown;
+  color: (r: number | TColor, g?: number, b?: number) => unknown;
+  opacity: (o: number) => unknown;
+  outline: (w: number, col: TColor) => unknown;
+  rotate: (angle: number) => unknown;
+  scale: (s: number | { x: number; y: number }) => unknown;
+  area: (opt?: unknown) => unknown;
+  anchor: (a: "center" | "bot" | "topleft" | "botleft") => unknown;
+  z: (v: number) => unknown;
+  rand: (min: number, max: number) => number;
+  choose: <T>(arr: T[]) => T;
+  rgb: (r: number, g: number, b: number) => TColor;
+}
 
 export interface ProceduralObstacleData {
   trashPositions: Array<{ x: number; y: number }>;
@@ -290,13 +321,15 @@ export function generateProceduralLayout(
  *
  * Cria os componentes de lixo plástico, cardumes de krill, redes fantasmas e colunas de bolhas hidrotermais.
  *
- * @param k - Instância do contexto Kaboom.js.
+ * @param k - Instância do contexto agnóstico do motor.
  * @param seed - Semente opcional de inicialização (se omitida, gera aleatória).
  * @returns Objeto com os metadados das posições geradas.
  */
-import { getSpatialCullingManager } from "./spatialCullingSystem";
-
-export function spawnProceduralLevel(k: KaboomCtx, seed?: number): ProceduralObstacleData {
+export function spawnProceduralLevel<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = ProceduralVector2D,
+>(k: ProceduralEngineContext<TDestroyable, TColor, TVec>, seed?: number): ProceduralObstacleData {
   const actualSeed = seed ?? getRandomInteger(0, 999999);
   const layout = generateProceduralLayout(actualSeed, k.height());
   const cullingManager = getSpatialCullingManager();
@@ -321,7 +354,11 @@ export function spawnProceduralLevel(k: KaboomCtx, seed?: number): ProceduralObs
 
   // Instancia Colunas de Bolhas Naturais (Bolsões de Ar)
   layout.bubbleVentPositions.forEach((vent) => {
-    const ventObj = createBubbleVent(k, k.vec2(vent.x, vent.y), vent.height ?? 220);
+    const ventObj = createBubbleVent(
+      k,
+      k.vec2(vent.x, vent.y),
+      vent.height ?? 220
+    ) as CullableTargetObject;
     cullingManager?.registerEntity(ventObj, () => vent.x);
   });
 

@@ -1,4 +1,3 @@
-import type { GameObj, Vec2 } from "kaboom";
 import type { RandomNumberGenerator } from "../../utils/random";
 import type { SpatialHashGrid } from "../../systems/spatialHashGrid";
 
@@ -19,12 +18,34 @@ export type CompanionState =
 
 export type CompanionAutonomyMode = "guided" | "autonomous";
 
-export interface CompanionOptions {
+export interface CompanionVector2D {
+  x: number;
+  y: number;
+  scale?: (factor: number) => CompanionVector2D;
+  add?: (other: CompanionVector2D) => CompanionVector2D;
+  unit?: () => CompanionVector2D;
+  len: () => number;
+}
+
+export interface CompanionGameObject {
+  pos: CompanionVector2D;
+  angle: number;
+  comps: Array<{ type?: string; [key: string]: unknown }>;
+  _triggerUpdate: () => void;
+  _destroyed?: boolean;
+  play?: (anim: string) => void;
+  move?: (x: number, y: number) => void;
+  exists?: () => boolean;
+  onUpdate?: (cb: () => void) => void;
+  is?: (tag: string) => boolean;
+}
+
+export interface CompanionOptions<TGameObj = unknown> {
   initialX?: number;
   initialY?: number;
   seed?: number;
   prng?: RandomNumberGenerator;
-  spatialGrid?: SpatialHashGrid<GameObj>;
+  spatialGrid?: SpatialHashGrid<TGameObj>;
   mode?: string;
   isCoMigration?: boolean;
   autonomyMode?: CompanionAutonomyMode;
@@ -35,30 +56,34 @@ export interface CompanionOptions {
   onVictoryBreach?: () => void;
 }
 
-export interface CompanionWhaleController {
-  gameObj: GameObj;
+export interface CompanionWhaleController<
+  TGameObj = CompanionGameObject,
+  TVec extends { x: number; y: number } = CompanionVector2D,
+> {
+  gameObj: TGameObj;
   getState: () => CompanionState;
   forceState: (state: CompanionState) => void;
   getOxygen: () => number;
   getMaxOxygen: () => number;
   restoreOxygen: (amount: number) => void;
   getKrillsEaten: () => number;
-  consumeKrill: (krill: GameObj) => void;
+  consumeKrill: (krill: TGameObj) => void;
   triggerSonar: () => void;
-  getSpeed: () => Vec2;
+  getSpeed: () => TVec;
   isDeparted: () => boolean;
   isFainted: () => boolean;
   destroy: () => void;
 }
 
-export interface CompanionCollidable {
-  consumeKrill: (krill: GameObj) => void;
-  handleIceCollision: (iceBlock: GameObj) => void;
-  handleObstacleCollision: (obstacle: GameObj) => void;
-  handleNetCollision?: (net: GameObj) => void;
+export interface CompanionCollidable<TGameObj = unknown> {
+  consumeKrill: (krill: TGameObj) => void;
+  handleIceCollision: (iceBlock: TGameObj) => void;
+  handleObstacleCollision: (obstacle: TGameObj) => void;
+  handleNetCollision?: (net: TGameObj) => void;
+  pos?: { x?: number; y?: number };
 }
 
-export function isCompanionCollidable(entity: unknown): entity is GameObj & CompanionCollidable {
+export function isCompanionCollidable(entity: unknown): entity is CompanionCollidable {
   if (!entity || typeof entity !== "object") return false;
   const candidate = entity as Partial<CompanionCollidable>;
   return (

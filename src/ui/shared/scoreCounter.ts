@@ -1,10 +1,15 @@
-import type { GameObj, KaboomCtx } from "kaboom";
-import { accessibilitySystem } from "../../systems/accessibilitySystem";
-
 /**
  * Contador Numérico Progressivo (Score Counter) — Micro Splash
  * Fase 65: Polimento Visual, Dinâmica Oceânica e Acessibilidade (Motion & Juice)
+ *
+ * Refatorado para o Adapter Pattern (PixiJS v8 / Micro Splash Engine).
+ * Desacoplado do Kaboom.js, com tipagem estrita de IRenderEngine e Tween.
  */
+
+import { accessibilitySystem } from "../../systems/accessibilitySystem";
+import type { IRenderEngine } from "../../engine/contracts/INTERFACE_CONTRACTS";
+import { isRenderEngine } from "../../engine/adapters/LegacyBridge";
+import { createTween, Easings } from "../../engine/utils/Tween";
 
 export interface ScoreCounterOptions {
   duration?: number;
@@ -20,13 +25,34 @@ export interface ScoreCounterHandle {
   stop: () => void;
 }
 
+export type ScoreCounterTarget =
+  | {
+      text?: string;
+      setText?(content: string): void;
+    }
+  | object;
+
+export interface LegacyScoreCounterContext {
+  tween?(
+    from: number,
+    to: number,
+    duration: number,
+    setter: (value: number) => void,
+    ease?: unknown
+  ): { then(callback: () => void): void };
+  easings?: {
+    easeOutQuad?: unknown;
+    [key: string]: unknown;
+  };
+}
+
 /**
- * Anima a contagem progressiva de pontuação numérica em um GameObj de texto.
+ * Anexa a animação de contagem progressiva de pontuação numérica em um nó de texto.
  * Interpola suavemente de startValue até targetScore respeitando o modo de movimento reduzido.
  */
 export function animateScoreCounter(
-  k: KaboomCtx,
-  textObj: GameObj,
+  engineOrContext: IRenderEngine | LegacyScoreCounterContext,
+  textObj: ScoreCounterTarget,
   targetScore: number,
   options: ScoreCounterOptions = {}
 ): ScoreCounterHandle {
@@ -43,10 +69,20 @@ export function animateScoreCounter(
     return accessibilitySystem.isReducedMotion();
   };
 
+  const updateText = (val: number) => {
+    const formatted = `${prefix}${format(val)}${suffix}`;
+    const target = textObj as { text?: string; setText?(content: string): void };
+    if (typeof target.setText === "function") {
+      target.setText(formatted);
+    } else {
+      try {
+        target.text = formatted;
+      } catch {}
+    }
+  };
+
   const setFinalText = () => {
-    try {
-      textObj.text = `${prefix}${format(targetScore)}${suffix}`;
-    } catch {}
+    updateText(targetScore);
   };
 
   if (!textObj) {
@@ -54,7 +90,7 @@ export function animateScoreCounter(
     return { stop: () => {} };
   }
 
-  if (checkReducedMotion() || typeof k.tween !== "function") {
+  if (checkReducedMotion()) {
     setFinalText();
     options.onComplete?.();
     return { stop: () => {} };
@@ -62,17 +98,54 @@ export function animateScoreCounter(
 
   let isCancelled = false;
 
-  const tweenPromise = k.tween(
+  if (isRenderEngine(engineOrContext)) {
+    const tween = createTween(
+      startValue,
+      targetScore,
+      duration,
+      (currentValue) => {
+        if (!isCancelled) {
+          updateText(currentValue);
+        }
+      },
+      Easings.easeOutQuad,
+      engineOrContext.getTicker()
+    );
+
+    tween.promise.then(() => {
+      if (!isCancelled) {
+        setFinalText();
+        options.onComplete?.();
+      }
+    });
+
+    return {
+      stop: () => {
+        isCancelled = true;
+        tween.cancel();
+        setFinalText();
+      },
+    };
+  }
+
+  // Fallback para contexto legado
+  const legacyContext = engineOrContext as LegacyScoreCounterContext;
+
+  if (typeof legacyContext.tween !== "function") {
+    setFinalText();
+    options.onComplete?.();
+    return { stop: () => {} };
+  }
+
+  const tweenPromise = legacyContext.tween(
     startValue,
     targetScore,
     duration,
-    (currentValue) => {
+    (currentValue: number) => {
       if (isCancelled) return;
-      try {
-        textObj.text = `${prefix}${format(currentValue)}${suffix}`;
-      } catch {}
+      updateText(currentValue);
     },
-    k.easings?.easeOutQuad ?? ((progress: number) => progress)
+    legacyContext.easings?.easeOutQuad ?? ((progress: number) => progress)
   );
 
   if (tweenPromise && typeof tweenPromise.then === "function") {

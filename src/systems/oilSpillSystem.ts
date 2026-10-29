@@ -1,9 +1,43 @@
-import type { GameObj, KaboomCtx } from "kaboom";
 import { GAME_CONFIG } from "../config";
 import type { PlayerController } from "../entities/player";
 import { getParticlePool } from "./particlePool";
 import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 import { getRandomFloat } from "../utils/random";
+
+export interface OilSpillVector2D {
+  x: number;
+  y: number;
+}
+
+export interface OilSpillGameObject<TColor = unknown> {
+  pos: OilSpillVector2D;
+  color?: TColor;
+  hidden?: boolean;
+  opacity?: number;
+  add: (components: unknown[]) => OilSpillGameObject<TColor>;
+  onUpdate: (cb: () => void) => void;
+}
+
+export interface OilSpillEngineContext<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = OilSpillVector2D,
+> {
+  add: (components: unknown[]) => unknown;
+  destroy: (obj: TDestroyable) => void;
+  dt: () => number;
+  onUpdate: (cb: () => void) => void;
+  rect: (w: number, h: number, opt?: { radius?: number }) => unknown;
+  circle: (r: number) => unknown;
+  pos: (x: number | TVec, y?: number) => unknown;
+  color: (r: number | TColor, g?: number, b?: number) => unknown;
+  opacity: (o: number) => unknown;
+  outline?: (w: number, col: TColor) => unknown;
+  anchor: (a: "bot" | "center") => unknown;
+  z: (v: number) => unknown;
+  rgb: (r: number, g: number, b: number) => TColor;
+  vec2: (x: number, y: number) => TVec;
+}
 
 /**
  * Sistema de Mancha de Óleo Pré-Arraial (Fase 9.1)
@@ -39,21 +73,28 @@ export function calculateIridescentOilColor(
  *
  * Simula um derramamento industrial de hidrocarbonetos na superfície com 3 camadas físicas.
  */
-export function setupOilSpillSystem(k: KaboomCtx, playerController: PlayerController) {
+export function setupOilSpillSystem<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = OilSpillVector2D,
+>(k: OilSpillEngineContext<TDestroyable, TColor, TVec>, playerController: PlayerController) {
   let isSystemActive = true;
   const SPILL_START = 17400;
   const SPILL_END = 18900;
   const PATCH_WIDTH = 180;
 
   // Boia de alerta ecológico no início do derramamento
-  const buoy = k.add([
+  const buoyComponents: unknown[] = [
     k.rect(24, 30, { radius: 3 }),
     k.pos(SPILL_START + 20, GAME_CONFIG.SEA_LEVEL - 5),
     k.color(255, 140, 0), // Laranja de segurança
-    k.outline(2, k.rgb(30, 30, 30)),
     k.anchor("bot"),
     k.z(25),
-  ]);
+  ];
+  if (k.outline) {
+    buoyComponents.push(k.outline(2, k.rgb(30, 30, 30)));
+  }
+  const buoy = k.add(buoyComponents) as OilSpillGameObject<TColor>;
 
   // Luz piscante de perigo na boia
   const buoyLight = buoy.add([k.circle(4), k.pos(0, -32), k.color(255, 40, 40)]);
@@ -69,9 +110,9 @@ export function setupOilSpillSystem(k: KaboomCtx, playerController: PlayerContro
 
   // Gera manchas sequenciais de óleo viscoso com 3 camadas realistas (Fase 30.7)
   const patches: Array<{
-    slick: GameObj;
-    film: GameObj;
-    foamDrops: GameObj[];
+    slick: OilSpillGameObject<TColor>;
+    film: OilSpillGameObject<TColor>;
+    foamDrops: OilSpillGameObject<TColor>[];
     baseX: number;
   }> = [];
   for (let x = SPILL_START; x < SPILL_END; x += PATCH_WIDTH - 20) {
@@ -83,7 +124,7 @@ export function setupOilSpillSystem(k: KaboomCtx, playerController: PlayerContro
       k.opacity(0.9),
       k.z(18),
       "oil_spill",
-    ]);
+    ]) as OilSpillGameObject<TColor>;
 
     // Camada 2: Película iridescente central (furta-cor com shimmer)
     const film = slick.add([
@@ -165,11 +206,13 @@ export function setupOilSpillSystem(k: KaboomCtx, playerController: PlayerContro
               k.color(24, 16, 12),
               k.opacity(0.85),
               k.z(20),
-            ]);
+            ]) as OilSpillGameObject<TColor>;
             drop.onUpdate(() => {
               drop.pos.y += k.dt() * 40;
-              drop.opacity -= k.dt() * 2.0;
-              if (drop.opacity <= 0) k.destroy(drop);
+              if (drop.opacity !== undefined) {
+                drop.opacity -= k.dt() * 2.0;
+                if (drop.opacity <= 0) k.destroy(drop as unknown as TDestroyable);
+              }
             });
           }
         }

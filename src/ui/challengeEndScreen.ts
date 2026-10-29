@@ -1,47 +1,101 @@
-import type { EventController, GameObj, KaboomCtx } from "kaboom";
 import { audioSystem } from "../systems/audioSystem";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
 import type { GameState } from "../systems/state";
 import { isTop10Score } from "../systems/leaderboard";
 import { showInitialsInputModal } from "./initialsInputModal";
-import { attachButtonHoverEffect } from "./animationUtils";
-import { animateScoreCounter, attachPulseEffect } from "./shared";
+import {
+  attachButtonHoverEffect,
+  type AnimationEngineContext,
+  type AnimationUiObject,
+} from "./animationUtils";
+import {
+  animateScoreCounter,
+  attachPulseEffect,
+  type MotionTargetObject,
+  type LegacyScoreCounterContext,
+} from "./shared";
+
+export interface ShowChallengeEndEngineContext {
+  width(): number;
+  height(): number;
+  add(components?: unknown): unknown;
+}
+
+export interface LegacyChallengeEndUiObject {
+  hidden?: boolean;
+  color?: unknown;
+  scale?: { x: number; y: number } | unknown;
+  width?: number;
+  height?: number;
+  text?: string;
+  outline?: { color?: unknown; width?: number };
+  opacity?: number;
+  destroy?(): void;
+  onHoverUpdate(callback: () => void): unknown;
+  onHoverEnd(callback: () => void): unknown;
+  onClick(callback: () => void): unknown;
+}
+
+export interface LegacyChallengeEndEngineContext {
+  width(): number;
+  height(): number;
+  add(components?: unknown): LegacyChallengeEndUiObject;
+  rect(width: number, height: number, options?: unknown): unknown;
+  pos(x: number, y: number): unknown;
+  pos(position: { x: number; y: number }): unknown;
+  color(...args: unknown[]): unknown;
+  rgb(red: number, green: number, blue: number): unknown;
+  outline(width: number, color: unknown): unknown;
+  opacity(alpha: number): unknown;
+  anchor(anchorPoint: "center" | "topleft" | "left" | "right" | "top"): unknown;
+  fixed(): unknown;
+  z(zIndex: number): unknown;
+  area(): unknown;
+  scale(factor: number): unknown;
+  scale(factor: { x: number; y: number }): unknown;
+  text(content: string, options?: unknown): unknown;
+  destroy(target: unknown): void;
+  vec2(x: number, y: number): { x: number; y: number };
+  wait(duration: number, callback: () => void): void;
+  onKeyPress(key: string, callback: () => void): { cancel: () => void };
+}
 
 export function showChallengeEndScreen(
-  k: KaboomCtx,
+  k: ShowChallengeEndEngineContext,
   gameState: GameState,
   onPlayAgain: () => void,
   onReturnMenu: () => void
 ) {
+  const engine = k as unknown as LegacyChallengeEndEngineContext;
   const score = gameState.calculateFinalScore();
   const distance = gameState.getDistance();
   const mode = gameState.getMode();
 
   if (isTop10Score(score) || mode === "weekly") {
     showInitialsInputModal(
-      k,
+      engine as unknown as Parameters<typeof showInitialsInputModal>[0],
       score,
       distance,
       mode,
       () => {
-        renderChallengeEndContent(k, gameState, onPlayAgain, onReturnMenu);
+        renderChallengeEndContent(engine, gameState, onPlayAgain, onReturnMenu);
       },
       gameState.getWeekKey()
     );
   } else {
-    renderChallengeEndContent(k, gameState, onPlayAgain, onReturnMenu);
+    renderChallengeEndContent(engine, gameState, onPlayAgain, onReturnMenu);
   }
 }
 
 function renderChallengeEndContent(
-  k: KaboomCtx,
+  k: LegacyChallengeEndEngineContext,
   gameState: GameState,
   onPlayAgain: () => void,
   onReturnMenu: () => void
 ) {
   audioSystem.playVictoryFanfare();
 
-  const elements: GameObj[] = [];
+  const elements: Array<{ destroy?: () => void } | object> = [];
   let isModalOpen = false;
 
   // Fundo escuro com partículas douradas
@@ -169,14 +223,14 @@ function renderChallengeEndContent(
   ]);
   elements.push(scoreTextObj);
 
-  animateScoreCounter(k, scoreTextObj, initialFinalScore, {
+  animateScoreCounter(k as unknown as LegacyScoreCounterContext, scoreTextObj, initialFinalScore, {
     prefix: initialQuizBonus > 0 ? "⭐ Eco-Pontuação: " : "⭐ Eco-Pontuação da Rodada: ",
     suffix: initialQuizBonus > 0 ? ` pts (+${initialQuizBonus} Bônus Quiz)` : " pts",
   });
 
   // Botão 1: Desafio Ecológico (Quiz)
   let quizCompleted = gameState.getQuizScore() > 0;
-  const keyListeners: EventController[] = [];
+  const keyListeners: Array<{ cancel: () => void }> = [];
   let canInteract = false;
   k.wait(0.35, () => {
     canInteract = true;
@@ -212,27 +266,33 @@ function renderChallengeEndContent(
   ]);
   elements.push(btnQuizLabel);
 
-  attachButtonHoverEffect(k, btnQuiz, {
-    baseColor: [25, 125, 185],
-    hoverColor: [35, 150, 220],
-    canInteract: () => !quizCompleted && !isModalOpen,
-  });
+  attachButtonHoverEffect(
+    k as unknown as AnimationEngineContext,
+    btnQuiz as unknown as AnimationUiObject,
+    {
+      baseColor: [25, 125, 185],
+      hoverColor: [35, 150, 220],
+      canInteract: () => !quizCompleted && !isModalOpen,
+    }
+  );
 
   const openQuiz = async () => {
     if (quizCompleted || isModalOpen) return;
     isModalOpen = true;
     const { showQuizModal } = await import("./quizModal");
     showQuizModal(
-      k,
+      k as unknown as Parameters<typeof showQuizModal>[0],
       gameState,
       (scoreGained, correctCount) => {
         isModalOpen = false;
         quizCompleted = true;
         btnQuiz.color = k.rgb(18, 95, 60);
-        btnQuiz.outline.color = k.rgb(90, 240, 160);
+        if (btnQuiz.outline) {
+          btnQuiz.outline.color = k.rgb(90, 240, 160);
+        }
         btnQuizLabel.text = `Quiz Concluído! +${scoreGained} pts (${correctCount}/3) ✓`;
         const updatedScore = gameState.calculateFinalScore();
-        animateScoreCounter(k, scoreTextObj, updatedScore, {
+        animateScoreCounter(k as unknown as LegacyScoreCounterContext, scoreTextObj, updatedScore, {
           startValue: initialFinalScore,
           prefix: "⭐ Eco-Pontuação: ",
           suffix: ` pts (+${gameState.getQuizScore()} Bônus Quiz)`,
@@ -274,11 +334,15 @@ function renderChallengeEndContent(
     ])
   );
 
-  attachButtonHoverEffect(k, btnShare, {
-    baseColor: [18, 105, 120],
-    hoverColor: [25, 140, 155],
-    canInteract: () => !isModalOpen,
-  });
+  attachButtonHoverEffect(
+    k as unknown as AnimationEngineContext,
+    btnShare as unknown as AnimationUiObject,
+    {
+      baseColor: [18, 105, 120],
+      hoverColor: [25, 140, 155],
+      canInteract: () => !isModalOpen,
+    }
+  );
 
   btnShare.onClick(async () => {
     if (isModalOpen) return;
@@ -288,7 +352,7 @@ function renderChallengeEndContent(
       import("./shareModal"),
     ]);
     const cardData = extractVictoryCardData(gameState, "Navegador Rápido");
-    showShareModal(k, cardData, () => {
+    showShareModal(k as unknown as Parameters<typeof showShareModal>[0], cardData, () => {
       isModalOpen = false;
     });
   });
@@ -305,7 +369,11 @@ function renderChallengeEndContent(
         if (l && typeof l.cancel === "function") l.cancel();
       } catch {}
     });
-    elements.forEach((el) => k.destroy(el));
+    elements.forEach((el) => {
+      try {
+        k.destroy(el);
+      } catch {}
+    });
   };
 
   // Botão 3: Jogar Novamente
@@ -341,12 +409,16 @@ function renderChallengeEndContent(
     onPlayAgain();
   };
 
-  attachButtonHoverEffect(k, btnAgain, {
-    baseColor: [20, 120, 180],
-    hoverColor: [30, 140, 210],
-    canInteract: () => canInteract && !isModalOpen,
-  });
-  pulseHandle = attachPulseEffect(k, btnAgain, {
+  attachButtonHoverEffect(
+    k as unknown as AnimationEngineContext,
+    btnAgain as unknown as AnimationUiObject,
+    {
+      baseColor: [20, 120, 180],
+      hoverColor: [30, 140, 210],
+      canInteract: () => canInteract && !isModalOpen,
+    }
+  );
+  pulseHandle = attachPulseEffect(k, btnAgain as unknown as MotionTargetObject, {
     canInteract: () => canInteract && !isModalOpen,
   });
   btnAgain.onClick(handlePlayAgain);
@@ -385,11 +457,15 @@ function renderChallengeEndContent(
     onReturnMenu();
   };
 
-  attachButtonHoverEffect(k, btnMenu, {
-    baseColor: [30, 60, 100],
-    hoverColor: [45, 80, 130],
-    canInteract: () => canInteract && !isModalOpen,
-  });
+  attachButtonHoverEffect(
+    k as unknown as AnimationEngineContext,
+    btnMenu as unknown as AnimationUiObject,
+    {
+      baseColor: [30, 60, 100],
+      hoverColor: [45, 80, 130],
+      canInteract: () => canInteract && !isModalOpen,
+    }
+  );
   btnMenu.onClick(handleReturnMenu);
 
   const handleEnter = () => {

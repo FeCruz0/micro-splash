@@ -1,16 +1,70 @@
-import type { Color, GameObj, KaboomCtx, Vec2 } from "kaboom";
 import { GAME_CONFIG, TAGS } from "../config";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
 import { getRandomFloat, getRandomInteger } from "../utils/random";
 import { getActivePlayerObject } from "./player";
 
-interface BoidMember {
-  obj: GameObj;
+export interface KrillVector2D {
+  x: number;
+  y: number;
+}
+
+export interface KrillColor {
+  r: number;
+  g: number;
+  b: number;
+  lerp?: (other: KrillColor, t: number) => KrillColor;
+}
+
+export interface KrillGameObject {
+  pos: KrillVector2D;
+  opacity: number;
+  hidden?: boolean;
+  angle?: number;
+  color?: KrillColor | unknown;
+  scale?: KrillVector2D | { x: number; y: number } | number | unknown;
+  radius?: number;
+  exists: () => boolean;
+  onUpdate: (cb: () => void) => void;
+  onDestroy: (cb: () => void) => void;
+  reveal?: () => void;
+  isRevealed?: () => boolean;
+  is?: (tag: string) => boolean;
+}
+
+export interface KrillClusterObject extends KrillGameObject {
+  reveal: () => void;
+  isRevealed: () => boolean;
+  is: (tag: string) => boolean;
+}
+
+export interface KrillEngineContext<TDestroyable = unknown, TColor = unknown> {
+  add: (components: unknown[]) => unknown;
+  destroy: (obj: TDestroyable) => void;
+  dt: () => number;
+  rect: (w: number, h: number, opt?: { radius?: number }) => unknown;
+  circle: (r: number) => unknown;
+  pos: (x: number | KrillVector2D, y?: number) => unknown;
+  opacity: (o: number) => unknown;
+  area: () => unknown;
+  anchor: (a: "center") => unknown;
+  rotate: (a: number) => unknown;
+  color: (r: number | TColor, g?: number, b?: number) => unknown;
+  outline: (w: number, col: TColor) => unknown;
+  scale: (s: number | KrillVector2D) => unknown;
+  z: (v: number) => unknown;
+  rgb: (r: number, g: number, b: number) => TColor;
+  rand: (min: number, max: number) => number;
+  choose: <T>(arr: T[]) => T;
+  vec2: (x: number, y: number) => KrillVector2D;
+}
+
+interface BoidMember<TColor = unknown> {
+  obj: KrillGameObject;
   relX: number;
   relY: number;
   phase: number;
   speed: number;
-  baseColor: Color;
+  baseColor: TColor;
 }
 
 /**
@@ -19,10 +73,13 @@ interface BoidMember {
  * dispersão assustada na proximidade da baleia e destaque vibrante (halo e cintilação)
  * ao ser iluminado pelo Biosonar 360°.
  */
-export function createKrill(k: KaboomCtx, position: Vec2): GameObj {
+export function createKrill<TDestroyable = unknown, TColor = unknown>(
+  k: KrillEngineContext<TDestroyable, TColor>,
+  position: KrillVector2D
+): KrillClusterObject {
   let revealTimer = 0;
-  let haloCircle: GameObj | null = null;
-  let haloInner: GameObj | null = null;
+  let haloCircle: KrillGameObject | null = null;
+  let haloInner: KrillGameObject | null = null;
 
   // Entidade central com colisor para TAGS.KRILL
   const krillCluster = k.add([
@@ -42,10 +99,10 @@ export function createKrill(k: KaboomCtx, position: Vec2): GameObj {
         return revealTimer > 0;
       },
     },
-  ]);
+  ]) as KrillClusterObject;
 
   const boidCount = 9;
-  const boids: BoidMember[] = [];
+  const boids: BoidMember<TColor>[] = [];
 
   for (let i = 0; i < boidCount; i++) {
     const angle = (i / boidCount) * Math.PI * 2 + getRandomFloat(-0.2, 0.2);
@@ -70,7 +127,7 @@ export function createKrill(k: KaboomCtx, position: Vec2): GameObj {
         k.scale(1),
         k.z(11),
       ].filter(Boolean)
-    );
+    ) as KrillGameObject;
 
     boids.push({
       obj: boidObj,
@@ -93,7 +150,7 @@ export function createKrill(k: KaboomCtx, position: Vec2): GameObj {
         k.opacity(0.4),
         k.anchor("center"),
         k.z(9),
-      ]);
+      ]) as KrillGameObject;
     }
 
     // 2. Halo pulsante interno
@@ -105,7 +162,7 @@ export function createKrill(k: KaboomCtx, position: Vec2): GameObj {
         k.opacity(0.3),
         k.anchor("center"),
         k.z(10),
-      ]);
+      ]) as KrillGameObject;
     }
 
     // Partículas de explosão de bioluminescência
@@ -116,12 +173,13 @@ export function createKrill(k: KaboomCtx, position: Vec2): GameObj {
         k.color(k.choose([k.rgb(255, 235, 120), k.rgb(100, 255, 220)])),
         k.opacity(0.9),
         k.z(13),
-      ]);
+      ]) as KrillGameObject;
       const dir = k.vec2(k.rand(-35, 35), k.rand(-35, 35));
       spark.onUpdate(() => {
-        spark.pos = spark.pos.add(dir.scale(k.dt()));
+        spark.pos.x += dir.x * k.dt();
+        spark.pos.y += dir.y * k.dt();
         spark.opacity -= k.dt() * 2.2;
-        if (spark.opacity <= 0) k.destroy(spark);
+        if (spark.opacity <= 0) k.destroy(spark as unknown as TDestroyable);
       });
     }
   };
@@ -179,11 +237,11 @@ export function createKrill(k: KaboomCtx, position: Vec2): GameObj {
       }
     } else {
       if (haloCircle) {
-        k.destroy(haloCircle);
+        k.destroy(haloCircle as unknown as TDestroyable);
         haloCircle = null;
       }
       if (haloInner) {
-        k.destroy(haloInner);
+        k.destroy(haloInner as unknown as TDestroyable);
         haloInner = null;
       }
     }
@@ -216,9 +274,22 @@ export function createKrill(k: KaboomCtx, position: Vec2): GameObj {
       if (revealTimer > 0) {
         // Iluminação de alta intensidade, dourado-esmeralda com brilho cintilante
         const revealFactor = Math.min(1, revealTimer / 1.2);
-        b.obj.color = b.baseColor.lerp(k.rgb(255, 240, 130), revealFactor);
-        b.obj.scale.x = 1.35;
-        b.obj.scale.y = 1.35;
+        const targetColor = k.rgb(255, 240, 130);
+        const baseCol = b.baseColor as unknown as KrillColor;
+        const targetCol = targetColor as unknown as KrillColor;
+        b.obj.color = baseCol.lerp
+          ? baseCol.lerp(targetCol, revealFactor)
+          : k.rgb(
+              baseCol.r + (targetCol.r - baseCol.r) * revealFactor,
+              baseCol.g + (targetCol.g - baseCol.g) * revealFactor,
+              baseCol.b + (targetCol.b - baseCol.b) * revealFactor
+            );
+        if (typeof b.obj.scale === "object" && b.obj.scale !== null && "x" in b.obj.scale) {
+          (b.obj.scale as { x: number; y: number }).x = 1.35;
+          (b.obj.scale as { x: number; y: number }).y = 1.35;
+        } else {
+          b.obj.scale = k.vec2(1.35, 1.35);
+        }
         b.obj.opacity = 0.95;
 
         // Micro-cintilação biológica
@@ -229,11 +300,11 @@ export function createKrill(k: KaboomCtx, position: Vec2): GameObj {
             k.color(255, 235, 130),
             k.opacity(0.8),
             k.z(12),
-          ]);
+          ]) as KrillGameObject;
           glint.onUpdate(() => {
             glint.opacity -= dt * 2.5;
             glint.pos.y -= dt * 12;
-            if (glint.opacity <= 0) k.destroy(glint);
+            if (glint.opacity <= 0) k.destroy(glint as unknown as TDestroyable);
           });
         }
       } else {
@@ -248,19 +319,19 @@ export function createKrill(k: KaboomCtx, position: Vec2): GameObj {
   krillCluster.onDestroy(() => {
     if (haloCircle) {
       try {
-        k.destroy(haloCircle);
+        k.destroy(haloCircle as unknown as TDestroyable);
       } catch {}
     }
     if (haloInner) {
       try {
-        k.destroy(haloInner);
+        k.destroy(haloInner as unknown as TDestroyable);
       } catch {}
     }
 
     // Destrói todos os boids filhos
     for (const b of boids) {
       if (b.obj.exists()) {
-        k.destroy(b.obj);
+        k.destroy(b.obj as unknown as TDestroyable);
       }
     }
 
@@ -275,12 +346,13 @@ export function createKrill(k: KaboomCtx, position: Vec2): GameObj {
         k.color(255, 215, 120),
         k.opacity(0.85),
         k.z(12),
-      ]);
+      ]) as KrillGameObject;
       const dir = k.vec2(getRandomFloat(-35, 35), getRandomFloat(-35, 35));
       p.onUpdate(() => {
-        p.pos = p.pos.add(dir.scale(k.dt()));
+        p.pos.x += dir.x * k.dt();
+        p.pos.y += dir.y * k.dt();
         p.opacity -= k.dt() * 3.2;
-        if (p.opacity <= 0) k.destroy(p);
+        if (p.opacity <= 0) k.destroy(p as unknown as TDestroyable);
       });
     }
   });

@@ -1,10 +1,18 @@
-import type { KaboomCtx } from "kaboom";
-import type { CanyonConfig, CanyonGeometryResult, AnemoneItem } from "./canyonTypes";
+import type {
+  CanyonConfig,
+  CanyonGeometryResult,
+  AnemoneItem,
+  CanyonEngineContext,
+  CanyonVector2D,
+} from "./canyonTypes";
 
-export function setupCanyonCurrents(
-  k: KaboomCtx,
-  geometry: CanyonGeometryResult,
-  anemones: AnemoneItem[],
+export function setupCanyonCurrents<
+  TColor = unknown,
+  TVec extends { x: number; y: number } = CanyonVector2D,
+>(
+  k: CanyonEngineContext<TColor, TVec>,
+  geometry: CanyonGeometryResult<TColor>,
+  anemones: AnemoneItem<TColor>[],
   config: CanyonConfig
 ): void {
   const { lighthouseX } = config;

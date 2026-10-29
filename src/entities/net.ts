@@ -1,7 +1,39 @@
-import type { GameObj, KaboomCtx, Vec2 } from "kaboom";
 import { GAME_CONFIG, TAGS } from "../config";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
 import { getRandomFloat } from "../utils/random";
+
+export interface NetVector2D {
+  x: number;
+  y: number;
+}
+
+export interface NetGameObject {
+  pos: NetVector2D;
+  opacity: number;
+  hidden: boolean;
+  add: (components: unknown[]) => NetGameObject;
+  onUpdate: (cb: () => void) => void;
+  reveal?: () => void;
+}
+
+export interface GhostNetObject extends NetGameObject {
+  reveal: () => void;
+}
+
+export interface NetEngineContext<TColor = unknown> {
+  add: (components: unknown[]) => unknown;
+  dt: () => number;
+  rect: (w: number, h: number, opt?: { radius?: number }) => unknown;
+  circle?: (r: number) => unknown;
+  pos: (x: number | NetVector2D, y?: number) => unknown;
+  color: (r: number | TColor, g?: number, b?: number) => unknown;
+  outline: (w: number, col: TColor) => unknown;
+  opacity: (o: number) => unknown;
+  area: () => unknown;
+  anchor: (a: "center") => unknown;
+  rgb: (r: number, g: number, b: number) => TColor;
+  lerp?: (a: number, b: number, t: number) => number;
+}
 
 export interface BiomeNetPalette {
   mesh: [number, number, number];
@@ -53,7 +85,10 @@ export function getBiomeNetPalette(posX: number, isHighContrast = false): BiomeN
   };
 }
 
-export function createGhostNet(k: KaboomCtx, position: Vec2) {
+export function createGhostNet<TColor = unknown>(
+  k: NetEngineContext<TColor>,
+  position: NetVector2D
+): GhostNetObject {
   let revealTimer = 0;
   const isHighContrast = accessibilitySystem.isHighContrast();
   // Totalmente invisível a olho nu sem sonar (rede fantasma), mantendo acessibilidade em alto contraste
@@ -79,7 +114,7 @@ export function createGhostNet(k: KaboomCtx, position: Vec2) {
         net.hidden = false;
       },
     },
-  ]);
+  ]) as GhostNetObject;
 
   net.hidden = !isHighContrast;
 
@@ -88,7 +123,7 @@ export function createGhostNet(k: KaboomCtx, position: Vec2) {
   const netH = 52;
   const lineColor = k.rgb(palette.mesh[0], palette.mesh[1], palette.mesh[2]);
   const floatColor = k.rgb(palette.floats[0], palette.floats[1], palette.floats[2]);
-  const gridLines: GameObj[] = [];
+  const gridLines: NetGameObject[] = [];
 
   // 1. Cabo superior de sustentação (floatline)
   const topCable = net.add([
@@ -97,7 +132,7 @@ export function createGhostNet(k: KaboomCtx, position: Vec2) {
     k.color(lineColor),
     k.opacity(baseOpacity),
     k.anchor("center"),
-  ]);
+  ]) as NetGameObject;
   gridLines.push(topCable);
 
   // 2. Pequenas boias de flutuação no topo da rede fantasma
@@ -108,7 +143,7 @@ export function createGhostNet(k: KaboomCtx, position: Vec2) {
       k.color(floatColor),
       k.opacity(baseOpacity),
       k.anchor("center"),
-    ]);
+    ]) as NetGameObject;
     gridLines.push(floatObj);
   }
 
@@ -120,7 +155,7 @@ export function createGhostNet(k: KaboomCtx, position: Vec2) {
       k.color(lineColor),
       k.opacity(baseOpacity),
       k.anchor("center"),
-    ]);
+    ]) as NetGameObject;
     gridLines.push(line);
   }
 
@@ -132,20 +167,21 @@ export function createGhostNet(k: KaboomCtx, position: Vec2) {
       k.color(lineColor),
       k.opacity(baseOpacity),
       k.anchor("center"),
-    ]);
+    ]) as NetGameObject;
     gridLines.push(line);
   }
 
   // 5. Nós de cruzamento da malha monofilamento
   for (let v = 1; v <= 3; v++) {
     for (let h = 1; h <= 5; h++) {
+      const knotComp = typeof k.circle === "function" ? k.circle(0.9) : k.rect(1.8, 1.8);
       const knot = net.add([
-        k.circle ? k.circle(0.9) : k.rect(1.8, 1.8),
+        knotComp,
         k.pos(-netW / 2 + v * (netW / 4), -netH / 2 + h * (netH / 6)),
         k.color(lineColor),
         k.opacity(baseOpacity),
         k.anchor("center"),
-      ]);
+      ]) as NetGameObject;
       gridLines.push(knot);
     }
   }
@@ -160,7 +196,11 @@ export function createGhostNet(k: KaboomCtx, position: Vec2) {
     if (revealTimer > 0) {
       revealTimer -= k.dt();
       net.hidden = false;
-      const currentOpacity = k.lerp(baseOpacity, 0.88, Math.min(1, revealTimer / 1.5));
+      const revealProgress = Math.min(1, revealTimer / 1.5);
+      const currentOpacity =
+        typeof k.lerp === "function"
+          ? k.lerp(baseOpacity, 0.88, revealProgress)
+          : baseOpacity + (0.88 - baseOpacity) * revealProgress;
       net.opacity = currentOpacity;
       for (const line of gridLines) {
         line.opacity = currentOpacity;

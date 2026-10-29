@@ -1,11 +1,30 @@
-import type { KaboomCtx, GameObj } from "kaboom";
+/**
+ * Sistema de Bioluminescência Procedural (Noctiluca scintillans) — Micro Splash
+ *
+ * Refatorado para o Adapter Pattern (PixiJS v8 / Micro Splash Engine).
+ * Desacoplado do Kaboom.js, com tipagem estrita de IRenderEngine e IRenderNode.
+ */
+
 import { GAME_CONFIG } from "../config";
 import type { PlayerController } from "../entities/player";
 import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 import { getRandomFloat } from "../utils/random";
+import type {
+  IRenderEngine,
+  IRenderNode,
+  IGraphicsNode,
+} from "../engine/contracts/INTERFACE_CONTRACTS";
+import {
+  isRenderEngine,
+  resolveCameraX,
+  LegacyRenderNodeAdapter,
+  type LegacyEngineBridge,
+} from "../engine/adapters/LegacyBridge";
 
 export interface BioluminescentParticle {
-  gameObj: GameObj;
+  gameObj?: unknown;
+  node: IRenderNode;
+  size: number;
   active: boolean;
   life: number;
   maxLife: number;
@@ -14,6 +33,15 @@ export interface BioluminescentParticle {
   driftSpeed: number;
   swayFrequency: number;
   swayTimer: number;
+}
+
+export interface AmbientPlanktonParticle {
+  gameObj?: unknown;
+  node: IRenderNode;
+  relX: number;
+  relY: number;
+  phase: number;
+  baseOpacity: number;
 }
 
 /**
@@ -71,7 +99,7 @@ export function calculateBioluminescentColor(phase: number): [number, number, nu
  * Inicializa a esteira de bioluminescência procedural na Costa Urbana.
  */
 export function setupBioluminescenceSystem(
-  k: KaboomCtx,
+  engineOrContext: IRenderEngine | LegacyEngineBridge,
   playerController: PlayerController
 ): {
   destroy: () => void;
@@ -83,21 +111,40 @@ export function setupBioluminescenceSystem(
   let spawnCooldownTimer = 0;
   let colorCyclePhase = 0;
 
-  // Pre-aloca o pool de partículas para manter 60 FPS estáveis sem alocação contínua
+  const isPixi = isRenderEngine(engineOrContext);
+
+  // Pré-aloca o pool de partículas para manter 60 FPS sem alocação contínua
   for (let index = 0; index < particleCount; index++) {
-    const size = typeof k.rand === "function" ? k.rand(1.5, 3.2) : 2.5;
-    const gameObj = k.add([
-      k.circle(size),
-      k.pos(-9999, -9999),
-      k.color(40, 240, 210),
-      k.opacity(0),
-      k.z(14), // Logo atrás da baleia (z: 15-20)
-      "bioluminescence_particle",
-    ]);
-    gameObj.hidden = true;
+    const size = getRandomFloat(1.5, 3.2);
+    let node: IRenderNode;
+    let legacyRaw: unknown = undefined;
+
+    if (isPixi) {
+      const gfx = engineOrContext.createGraphics(`biolum_particle_${index}`);
+      gfx.drawCircle(0, 0, size, { fill: { color: [40, 240, 210], alpha: 0 } });
+      gfx.setPosition(-9999, -9999);
+      gfx.setZIndex(14);
+      gfx.setVisible(false);
+      engineOrContext.getStageRoot().addChild(gfx);
+      node = gfx;
+    } else {
+      const rawObj = engineOrContext.add([
+        engineOrContext.circle(size),
+        engineOrContext.pos(-9999, -9999),
+        engineOrContext.color(40, 240, 210),
+        engineOrContext.opacity(0),
+        engineOrContext.z(14),
+        "bioluminescence_particle",
+      ]);
+      legacyRaw = rawObj;
+      node = new LegacyRenderNodeAdapter(rawObj, `biolum_particle_${index}`);
+      node.setVisible(false);
+    }
 
     particles.push({
-      gameObj,
+      gameObj: legacyRaw,
+      node,
+      size,
       active: false,
       life: 0,
       maxLife: 2.5,
@@ -109,40 +156,55 @@ export function setupBioluminescenceSystem(
     });
   }
 
-  // Pre-aloca 24 pontos estáticos discretos de dinoflagelados de ambiente (Fase 31.3)
+  // Pré-aloca 24 pontos discretos de dinoflagelados de ambiente
   const ambientCount = 24;
-  const ambientPlankton: {
-    gameObj: GameObj;
-    relX: number;
-    relY: number;
-    phase: number;
-    baseOpacity: number;
-  }[] = [];
-  const screenW = typeof k.width === "function" ? k.width() : 640;
-  const screenH = typeof k.height === "function" ? k.height() : 360;
+  const ambientPlankton: AmbientPlanktonParticle[] = [];
+
+  const screenDimensions = isPixi
+    ? engineOrContext.getDimensions()
+    : { width: engineOrContext.width(), height: engineOrContext.height() };
+
+  const screenW = screenDimensions.width || 640;
+  const screenH = screenDimensions.height || 360;
   let totalAmbientTime = 0;
 
   for (let index = 0; index < ambientCount; index++) {
-    const size = typeof k.rand === "function" ? k.rand(1.2, 2.2) : 1.6;
-    const gameObj = k.add([
-      k.circle(size),
-      k.pos(-9999, -9999),
-      k.color(60, 230, 215),
-      k.opacity(0),
-      k.z(13),
-      "ambient_plankton",
-    ]);
-    gameObj.hidden = true;
+    const size = getRandomFloat(1.2, 2.2);
+    let node: IRenderNode;
+    let legacyRaw: unknown = undefined;
+
+    if (isPixi) {
+      const gfx = engineOrContext.createGraphics(`ambient_plankton_${index}`);
+      gfx.drawCircle(0, 0, size, { fill: { color: [60, 230, 215], alpha: 0 } });
+      gfx.setPosition(-9999, -9999);
+      gfx.setZIndex(13);
+      gfx.setVisible(false);
+      engineOrContext.getStageRoot().addChild(gfx);
+      node = gfx;
+    } else {
+      const rawObj = engineOrContext.add([
+        engineOrContext.circle(size),
+        engineOrContext.pos(-9999, -9999),
+        engineOrContext.color(60, 230, 215),
+        engineOrContext.opacity(0),
+        engineOrContext.z(13),
+        "ambient_plankton",
+      ]);
+      legacyRaw = rawObj;
+      node = new LegacyRenderNodeAdapter(rawObj, `ambient_plankton_${index}`);
+      node.setVisible(false);
+    }
 
     ambientPlankton.push({
-      gameObj,
+      gameObj: legacyRaw,
+      node,
       relX: getRandomFloat(0, screenW),
       relY:
         GAME_CONFIG.SEA_LEVEL +
         25 +
         getRandomFloat(0, Math.max(80, screenH - GAME_CONFIG.SEA_LEVEL - 50)),
       phase: getRandomFloat(0, Math.PI * 2),
-      baseOpacity: typeof k.rand === "function" ? k.rand(0.25, 0.45) : 0.35,
+      baseOpacity: getRandomFloat(0.25, 0.45),
     });
   }
 
@@ -159,13 +221,12 @@ export function setupBioluminescenceSystem(
       },
       deactivate: () => {
         isModuleActive = false;
-        // Desativa partículas suavemente ao deixar a Costa Urbana
         for (let index = 0; index < particles.length; index++) {
           const particle = particles[index];
           if (particle.active) {
             particle.active = false;
-            particle.gameObj.hidden = true;
-            particle.gameObj.opacity = 0;
+            particle.node.setVisible(false);
+            particle.node.setOpacity(0);
           }
         }
       },
@@ -177,7 +238,6 @@ export function setupBioluminescenceSystem(
     spawnPosition: { x: number; y: number },
     whaleVelocity: { x: number; y: number }
   ): void {
-    // Procura a primeira partícula inativa disponível no pool
     let chosenParticle: BioluminescentParticle | null = null;
     for (let index = 0; index < particles.length; index++) {
       if (!particles[index].active) {
@@ -192,37 +252,47 @@ export function setupBioluminescenceSystem(
     const [r, g, b] = calculateBioluminescentColor(colorCyclePhase);
 
     chosenParticle.active = true;
-    chosenParticle.gameObj.hidden = false;
-    chosenParticle.life = typeof k.rand === "function" ? k.rand(2.0, 3.0) : 2.5;
+    chosenParticle.node.setVisible(true);
+    chosenParticle.life = getRandomFloat(2.0, 3.0);
     chosenParticle.maxLife = chosenParticle.life;
-    chosenParticle.initialOpacity = typeof k.rand === "function" ? k.rand(0.65, 0.95) : 0.8;
-    chosenParticle.gameObj.opacity = chosenParticle.initialOpacity;
-    chosenParticle.gameObj.color = k.rgb(r, g, b);
+    chosenParticle.initialOpacity = getRandomFloat(0.65, 0.95);
+    chosenParticle.node.setOpacity(chosenParticle.initialOpacity);
 
-    // Variação orgânica no ponto de emissão da cauda
-    const spreadX = typeof k.rand === "function" ? k.rand(-8, 8) : 0;
-    const spreadY = typeof k.rand === "function" ? k.rand(-10, 10) : 0;
-    chosenParticle.gameObj.pos.x = spawnPosition.x + spreadX;
-    chosenParticle.gameObj.pos.y = spawnPosition.y + spreadY;
+    // Atualiza a cor se for um IGraphicsNode
+    if (
+      "clear" in chosenParticle.node &&
+      typeof (chosenParticle.node as IGraphicsNode).clear === "function"
+    ) {
+      const gfx = chosenParticle.node as IGraphicsNode;
+      gfx.clear();
+      gfx.drawCircle(0, 0, chosenParticle.size, {
+        fill: { color: [r, g, b], alpha: chosenParticle.initialOpacity },
+      });
+    }
 
-    // Velocidade de inércia reversa (deriva suave após a passagem da cauda)
+    const spreadX = getRandomFloat(-8, 8);
+    const spreadY = getRandomFloat(-10, 10);
+    chosenParticle.node.setPosition(spawnPosition.x + spreadX, spawnPosition.y + spreadY);
+
     chosenParticle.velocity = {
-      x: -whaleVelocity.x * 0.12 + (typeof k.rand === "function" ? k.rand(-15, 15) : 0),
-      y: -whaleVelocity.y * 0.12 + (typeof k.rand === "function" ? k.rand(-8, 8) : 0),
+      x: -whaleVelocity.x * 0.12 + getRandomFloat(-15, 15),
+      y: -whaleVelocity.y * 0.12 + getRandomFloat(-8, 8),
     };
-    chosenParticle.swayFrequency = typeof k.rand === "function" ? k.rand(2.0, 4.0) : 3.0;
+    chosenParticle.swayFrequency = getRandomFloat(2.0, 4.0);
   }
 
-  const updateHandler = k.onUpdate(() => {
-    const deltaTime = k.dt();
-    const baleia = playerController.gameObj;
+  const stepUpdate = (deltaTime: number): void => {
+    const baleia = playerController?.gameObj as
+      { pos?: { x: number; y: number }; angle?: number } | undefined;
     if (!baleia || !baleia.pos) return;
 
-    const whaleSpeed = playerController.getSpeed();
+    const whaleSpeed =
+      typeof playerController.getSpeed === "function"
+        ? playerController.getSpeed()
+        : { x: 0, y: 0 };
     const speedMagnitude = Math.sqrt(whaleSpeed.x * whaleSpeed.x + whaleSpeed.y * whaleSpeed.y);
     const isActive = isBioluminescenceActive(baleia.pos.x, baleia.pos.y, speedMagnitude);
 
-    // Emissão contínua de partículas bioluminescentes ao nadar
     if (isActive) {
       spawnCooldownTimer -= deltaTime;
       const spawnInterval = Math.max(0.04, 0.12 - (speedMagnitude / GAME_CONFIG.MAX_SPEED) * 0.08);
@@ -235,9 +305,9 @@ export function setupBioluminescenceSystem(
             ? playerController.isFacingRight()
             : true;
 
-        // Posição de emissão alinhada à cauda da jubarte
         const tailOffsetX = isFacingRight ? -52 : 52;
-        const tailAngleInRadians = typeof k.deg2rad === "function" ? k.deg2rad(baleia.angle) : 0;
+        const tailAngleInRadians =
+          typeof baleia.angle === "number" ? (baleia.angle * Math.PI) / 180 : 0;
         const rotatedOffsetX = tailOffsetX * Math.cos(tailAngleInRadians);
         const rotatedOffsetY = tailOffsetX * Math.sin(tailAngleInRadians);
 
@@ -250,7 +320,6 @@ export function setupBioluminescenceSystem(
       }
     }
 
-    // Atualiza partículas ativas (movimento, ondulação e fade-out persistente de 2-3s)
     for (let index = 0; index < particles.length; index++) {
       const particle = particles[index];
       if (!particle.active) continue;
@@ -258,68 +327,82 @@ export function setupBioluminescenceSystem(
       particle.life -= deltaTime;
       if (particle.life <= 0) {
         particle.active = false;
-        particle.gameObj.hidden = true;
-        particle.gameObj.opacity = 0;
-        particle.gameObj.pos.x = -9999;
-        particle.gameObj.pos.y = -9999;
+        particle.node.setVisible(false);
+        particle.node.setOpacity(0);
+        particle.node.setPosition(-9999, -9999);
         continue;
       }
 
       particle.swayTimer += deltaTime * particle.swayFrequency;
       const swayOffset = Math.sin(particle.swayTimer) * 8 * deltaTime;
 
-      particle.gameObj.pos.x += particle.velocity.x * deltaTime;
-      particle.gameObj.pos.y += particle.velocity.y * deltaTime + swayOffset;
+      const currentPos = particle.node.getPosition();
+      particle.node.setPosition(
+        currentPos.x + particle.velocity.x * deltaTime,
+        currentPos.y + particle.velocity.y * deltaTime + swayOffset
+      );
 
-      // Desvanecimento suave ao longo de 2 a 3 segundos
       const lifeProgress = particle.life / particle.maxLife;
-      particle.gameObj.opacity = particle.initialOpacity * lifeProgress;
+      particle.node.setOpacity(particle.initialOpacity * lifeProgress);
     }
 
-    // Atualiza plâncton bioluminescente estático ambiente (12.000m a 25.000m - Fase 31.3)
     totalAmbientTime += deltaTime;
     const ambientActive = isAmbientPlanktonActive(baleia.pos.x);
-    const camX =
-      typeof k.camPos === "function" ? (k.camPos().x ?? baleia.pos.x) : baleia.pos.x || 0;
+    const camX = resolveCameraX(engineOrContext) || baleia.pos.x || 0;
 
     for (let index = 0; index < ambientPlankton.length; index++) {
       const p = ambientPlankton[index];
       if (!ambientActive) {
-        if (!p.gameObj.hidden) {
-          p.gameObj.hidden = true;
-          p.gameObj.opacity = 0;
+        if (p.node.isVisible()) {
+          p.node.setVisible(false);
+          p.node.setOpacity(0);
         }
         continue;
       }
 
-      // Distribuição estática ancorada à área de visão da câmera
       const worldX = camX - screenW / 2 + p.relX;
-      p.gameObj.pos.x = worldX;
-      p.gameObj.pos.y = p.relY;
+      p.node.setPosition(worldX, p.relY);
 
-      // Micro-deriva sutil de suspensão aquática
       p.relX = (p.relX + 2.5 * deltaTime) % screenW;
 
       const op = calculateAmbientPlanktonOpacity(totalAmbientTime, p.phase, p.baseOpacity);
-      p.gameObj.opacity = op;
-      p.gameObj.hidden = false;
+      p.node.setOpacity(op);
+      p.node.setVisible(true);
     }
-  });
+  };
+
+  let unregisterTicker: () => void;
+
+  if (isPixi) {
+    unregisterTicker = engineOrContext.getTicker().add((deltaTime) => {
+      stepUpdate(deltaTime);
+    });
+  } else {
+    const handle = engineOrContext.onUpdate(() => {
+      stepUpdate(engineOrContext.dt());
+    });
+    unregisterTicker = () => {
+      if (typeof handle === "function") {
+        handle();
+      } else if (
+        handle &&
+        typeof handle === "object" &&
+        "cancel" in handle &&
+        typeof (handle as { cancel: () => void }).cancel === "function"
+      ) {
+        (handle as { cancel: () => void }).cancel();
+      }
+    };
+  }
 
   return {
     destroy: () => {
-      if (typeof updateHandler?.cancel === "function") {
-        updateHandler.cancel();
-      }
+      unregisterTicker();
       for (let index = 0; index < particles.length; index++) {
-        if (typeof k.destroy === "function") {
-          k.destroy(particles[index].gameObj);
-        }
+        particles[index].node.destroy();
       }
       for (let index = 0; index < ambientPlankton.length; index++) {
-        if (typeof k.destroy === "function") {
-          k.destroy(ambientPlankton[index].gameObj);
-        }
+        ambientPlankton[index].node.destroy();
       }
     },
     getActiveParticleCount: () => {

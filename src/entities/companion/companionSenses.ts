@@ -1,15 +1,15 @@
-import type { GameObj, KaboomCtx } from "kaboom";
 import { COMPANION_CONFIG, GAME_CONFIG, TAGS } from "../../config";
 import { audioSystem } from "../../systems/audioSystem";
 import { revealEntitiesInSonarRadius } from "../player/playerSonar";
 import type { RandomNumberGenerator } from "../../utils/random";
 import type { SpatialHashGrid } from "../../systems/spatialHashGrid";
-import type { CompanionState } from "./types";
+import type { CompanionGameObject, CompanionState, CompanionVector2D } from "./types";
+import type { CompanionEngineContext } from "./states/types";
 
-export interface CompanionSenses {
-  getTargetKrill: () => GameObj | null;
+export interface CompanionSenses<TGameObj = CompanionGameObject> {
+  getTargetKrill: () => TGameObj | null;
   clearTargetKrill: () => void;
-  getTargetHazard: () => GameObj | null;
+  getTargetHazard: () => TGameObj | null;
   clearTargetHazard: () => void;
   triggerSonar: () => void;
   update: (
@@ -20,26 +20,44 @@ export interface CompanionSenses {
   ) => void;
 }
 
-export interface CompanionSensesOptions {
-  k: KaboomCtx;
-  companion: GameObj;
+export interface CompanionSensesOptions<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = CompanionVector2D,
+  TGameObj = CompanionGameObject,
+> {
+  k: CompanionEngineContext<TDestroyable, TColor, TVec>;
+  companion: CompanionGameObject;
   prng: RandomNumberGenerator;
-  spatialGrid?: SpatialHashGrid<GameObj>;
+  spatialGrid?: SpatialHashGrid<TGameObj>;
   autonomyMode?: "guided" | "autonomous";
   isCoMigration?: boolean;
+}
+
+export interface SonarRingObject {
+  radius?: number;
+  opacity?: number;
+  onUpdate: (cb: () => void) => void;
 }
 
 /**
  * Módulo de Percepção Sensorial e Biosonar da Baleia-Guia.
  * Utiliza PRNG determinístico para intervalos de sonar e grade espacial O(1) para varredura de krill e perigos.
  */
-export function createCompanionSenses(options: CompanionSensesOptions): CompanionSenses {
+export function createCompanionSenses<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = CompanionVector2D,
+  TGameObj = CompanionGameObject,
+>(
+  options: CompanionSensesOptions<TDestroyable, TColor, TVec, TGameObj>
+): CompanionSenses<TGameObj> {
   const { k, companion, prng, spatialGrid } = options;
 
   let perceptionCooldownTimer = 0;
   let sonarCooldownTimer = 10.0;
-  let targetKrillEntity: GameObj | null = null;
-  let targetHazardEntity: GameObj | null = null;
+  let targetKrillEntity: TGameObj | null = null;
+  let targetHazardEntity: TGameObj | null = null;
 
   const triggerSonar = (): void => {
     const headX = companion.pos.x + 40;
@@ -48,14 +66,18 @@ export function createCompanionSenses(options: CompanionSensesOptions): Companio
 
     // Ondas concêntricas visuais
     for (let waveIndex = 0; waveIndex < 3; waveIndex++) {
-      const ring = k.add([
+      const ringComponents: unknown[] = [
         k.circle(10),
         k.pos(headX, headY),
         k.color(100, 240, 255),
         k.opacity(0.85),
-        k.outline(2, k.rgb(180, 250, 255)),
         k.z(21),
-      ]);
+      ];
+      if (k.outline) {
+        ringComponents.push(k.outline(2, k.rgb(180, 250, 255)));
+      }
+
+      const ring = k.add(ringComponents) as SonarRingObject;
 
       let expansionRadius = 10 + waveIndex * 12;
       let ringOpacity = 0.85;
@@ -66,14 +88,20 @@ export function createCompanionSenses(options: CompanionSensesOptions): Companio
         ring.radius = expansionRadius;
         ring.opacity = Math.max(0, ringOpacity);
         if (ringOpacity <= 0) {
-          k.destroy(ring);
+          k.destroy(ring as unknown as TDestroyable);
         }
       });
     }
 
     // Varredura acústica real: revela entidades no mapa
     const headPosition = k.vec2(headX, headY);
-    revealEntitiesInSonarRadius(k, headPosition, GAME_CONFIG.SONAR_RANGE);
+    if (typeof revealEntitiesInSonarRadius === "function") {
+      revealEntitiesInSonarRadius(
+        k as unknown as Parameters<typeof revealEntitiesInSonarRadius>[0],
+        headPosition as unknown as Parameters<typeof revealEntitiesInSonarRadius>[1],
+        GAME_CONFIG.SONAR_RANGE
+      );
+    }
   };
 
   const update = (
@@ -104,7 +132,7 @@ export function createCompanionSenses(options: CompanionSensesOptions): Companio
       const hazardAheadRange = COMPANION_CONFIG.HAZARD_AVOID_RANGE;
       const hazardVertRange = COMPANION_CONFIG.HAZARD_VERTICAL_CLEARANCE;
 
-      const candidates = spatialGrid
+      const candidates: TGameObj[] = spatialGrid
         ? spatialGrid.queryAABB({
             minX: companion.pos.x + 20,
             minY: companion.pos.y - hazardVertRange,
@@ -112,17 +140,17 @@ export function createCompanionSenses(options: CompanionSensesOptions): Companio
             maxY: companion.pos.y + hazardVertRange,
           })
         : [
-            ...(typeof k.get === "function" ? k.get(TAGS.NET) : []),
-            ...(typeof k.get === "function" ? k.get(TAGS.OBSTACLE) : []),
-            ...(typeof k.get === "function" ? k.get(TAGS.TRASH) : []),
-            ...(typeof k.get === "function" ? k.get("ice_block") : []),
+            ...(typeof k.get === "function" ? (k.get(TAGS.NET) as unknown as TGameObj[]) : []),
+            ...(typeof k.get === "function" ? (k.get(TAGS.OBSTACLE) as unknown as TGameObj[]) : []),
+            ...(typeof k.get === "function" ? (k.get(TAGS.TRASH) as unknown as TGameObj[]) : []),
+            ...(typeof k.get === "function" ? (k.get("ice_block") as unknown as TGameObj[]) : []),
           ];
 
-      let closestHazard: GameObj | null = null;
+      let closestHazard: TGameObj | null = null;
       let shortestHazardDist: number = hazardAheadRange;
 
       for (let i = 0; i < candidates.length; i++) {
-        const item = candidates[i];
+        const item = candidates[i] as unknown as CompanionGameObject;
         if (!item || !item.pos) continue;
         const isHazard =
           typeof item.is === "function"
@@ -139,7 +167,7 @@ export function createCompanionSenses(options: CompanionSensesOptions): Companio
         const deltaY = Math.abs(item.pos.y - companion.pos.y);
         if (deltaX > 20 && deltaX < shortestHazardDist && deltaY < hazardVertRange) {
           shortestHazardDist = deltaX;
-          closestHazard = item;
+          closestHazard = candidates[i];
         }
       }
       targetHazardEntity = closestHazard;
@@ -159,7 +187,7 @@ export function createCompanionSenses(options: CompanionSensesOptions): Companio
       const aheadRange = COMPANION_CONFIG.RADAR_AHEAD_RANGE;
       const vertRange = COMPANION_CONFIG.RADAR_VERTICAL_RANGE;
 
-      const availableKrills = spatialGrid
+      const availableKrills: TGameObj[] = spatialGrid
         ? spatialGrid.queryAABB({
             minX: companion.pos.x + 20,
             minY: companion.pos.y - vertRange,
@@ -167,13 +195,13 @@ export function createCompanionSenses(options: CompanionSensesOptions): Companio
             maxY: companion.pos.y + vertRange,
           })
         : typeof k.get === "function"
-          ? k.get(TAGS.KRILL)
+          ? (k.get(TAGS.KRILL) as unknown as TGameObj[])
           : [];
-      let bestTarget: GameObj | null = null;
+      let bestTarget: TGameObj | null = null;
       let shortestDist: number = aheadRange;
 
       for (let i = 0; i < availableKrills.length; i++) {
-        const krill = availableKrills[i];
+        const krill = availableKrills[i] as unknown as CompanionGameObject;
         if (!krill.pos) continue;
         const deltaX = krill.pos.x - companion.pos.x;
 
@@ -192,7 +220,7 @@ export function createCompanionSenses(options: CompanionSensesOptions): Companio
             }
           }
           shortestDist = deltaX;
-          bestTarget = krill;
+          bestTarget = availableKrills[i];
         }
       }
       targetKrillEntity = bestTarget;

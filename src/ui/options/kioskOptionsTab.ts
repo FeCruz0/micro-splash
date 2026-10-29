@@ -1,4 +1,3 @@
-import type { GameObj } from "kaboom";
 import { audioSystem } from "../../systems/audioSystem";
 import { accessibilitySystem } from "../../systems/accessibilitySystem";
 import { showOnboardingModal } from "../onboardingModal";
@@ -215,8 +214,10 @@ export function renderGraphicsOptions(context: OptionsScreenContext): void {
 
   const handleFs = () => {
     audioSystem.playUiClick();
-    k.setFullscreen(!k.isFullscreen());
-    fsText.text = k.isFullscreen() ? "Janela 🗗" : "Tela Cheia ⛶";
+    if (typeof k.setFullscreen === "function" && typeof k.isFullscreen === "function") {
+      k.setFullscreen(!k.isFullscreen());
+      fsText.text = k.isFullscreen() ? "Janela 🗗" : "Tela Cheia ⛶";
+    }
   };
 
   btnFs.onHoverUpdate(() => {
@@ -240,7 +241,7 @@ export function showLgpdConfirmationModal(context: OptionsScreenContext): void {
   if (isClosed() || isModalOpen()) return;
   setIsModalOpen(true);
   audioSystem.playUiClick();
-  const confElements: GameObj[] = [];
+  const confElements: Array<{ destroy?: () => void } | object> = [];
 
   const confBackdrop = k.add([
     k.rect(k.width(), k.height()),

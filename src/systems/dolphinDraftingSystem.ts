@@ -1,10 +1,48 @@
-import type { GameObj, KaboomCtx } from "kaboom";
 import { GAME_CONFIG } from "../config";
 import { audioSystem } from "./audioSystem";
 import type { PlayerController } from "../entities/player";
 import { getParticlePool } from "./particlePool";
 import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 import { getRandomFloat } from "../utils/random";
+
+export interface DolphinVector2D {
+  x: number;
+  y: number;
+  dist?: (other: DolphinVector2D) => number;
+}
+
+export interface DolphinGameObject {
+  pos: DolphinVector2D;
+  scale: { x: number; y: number } | number | unknown;
+  angle?: number;
+  opacity?: number;
+  hidden?: boolean;
+  add: (components: unknown[]) => DolphinGameObject;
+  onUpdate?: (cb: () => void) => void;
+}
+
+export interface DolphinEngineContext<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = DolphinVector2D,
+> {
+  add: (components: unknown[]) => unknown;
+  destroy: (obj: TDestroyable) => void;
+  dt: () => number;
+  time: () => number;
+  onUpdate: (cb: () => void) => void;
+  rect: (w: number, h: number, opt?: { radius?: number }) => unknown;
+  circle: (r: number) => unknown;
+  polygon: (pts: TVec[]) => unknown;
+  pos: (x: number, y: number) => unknown;
+  color: (r: number | TColor, g?: number, b?: number) => unknown;
+  scale: (s: TVec | number) => unknown;
+  anchor: (a: "center") => unknown;
+  opacity: (o: number) => unknown;
+  z: (v: number) => unknown;
+  rgb?: (r: number, g: number, b: number) => TColor;
+  vec2: (x: number, y: number) => TVec;
+}
 
 /**
  * Sistema de Cardumes Residentes de Golfinhos-Rotadores (*Stenella longirostris*) e Vácuo Hidrodinâmico (Drafting).
@@ -15,12 +53,16 @@ import { getRandomFloat } from "../utils/random";
  * 3. Dinâmica de Vácuo Hidrodinâmico (*Drafting*): ao nadar emparelhado com o cardume (raio < 120px),
  *    a esteira de vórtices gerada pelos golfinhos concede bônus de velocidade (+18%) e reduz o esforço metabólico da jubarte.
  *
- * @param k - Instância do contexto Kaboom.js.
+ * @param k - Instância do contexto agnóstico do motor.
  * @param playerController - Controlador físico da baleia do jogador.
  */
-export function setupDolphinDraftingSystem(k: KaboomCtx, playerController: PlayerController) {
+export function setupDolphinDraftingSystem<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = DolphinVector2D,
+>(k: DolphinEngineContext<TDestroyable, TColor, TVec>, playerController: PlayerController) {
   let isSystemActive = true;
-  const allDolphinBodies: GameObj[] = [];
+  const allDolphinBodies: DolphinGameObject[] = [];
 
   const POD_ROUTES = [
     {
@@ -56,8 +98,8 @@ export function setupDolphinDraftingSystem(k: KaboomCtx, playerController: Playe
 
   POD_ROUTES.forEach((route, podIndex) => {
     const dolphins: Array<{
-      obj: GameObj;
-      tail: GameObj;
+      obj: DolphinGameObject;
+      tail: DolphinGameObject;
       offset: { x: number; y: number };
       index: number;
     }> = [];
@@ -78,7 +120,7 @@ export function setupDolphinDraftingSystem(k: KaboomCtx, playerController: Playe
         k.scale(k.vec2(route.initialDir, 1)),
         k.z(11),
         "dolphin",
-      ]);
+      ]) as DolphinGameObject;
 
       allDolphinBodies.push(dolphin);
 
@@ -117,7 +159,7 @@ export function setupDolphinDraftingSystem(k: KaboomCtx, playerController: Playe
         k.polygon([k.vec2(0, 0), k.vec2(-5, -5), k.vec2(-5, 5)]),
         k.pos(-14, 0),
         k.color(52, 88, 124),
-      ]);
+      ]) as DolphinGameObject;
 
       dolphins.push({ obj: dolphin, tail, offset: off, index: i });
     });
@@ -235,7 +277,10 @@ export function setupDolphinDraftingSystem(k: KaboomCtx, playerController: Playe
                   pool.spawnCircle({
                     pos: splashPos,
                     radius: 1.8,
-                    color: k.rgb(210, 240, 255),
+                    color:
+                      typeof k.rgb === "function"
+                        ? k.rgb(210, 240, 255)
+                        : { r: 210, g: 240, b: 255 },
                     opacity: 0.85,
                     z: 14,
                     vel: k.vec2(0, -25),
@@ -245,15 +290,20 @@ export function setupDolphinDraftingSystem(k: KaboomCtx, playerController: Playe
                 } else {
                   const splash = k.add([
                     k.circle(1.8),
-                    k.pos(splashPos),
+                    k.pos(splashPos.x, splashPos.y),
                     k.color(210, 240, 255),
                     k.opacity(0.85),
                     k.z(14),
-                  ]);
-                  splash.onUpdate(() => {
-                    splash.pos.y -= dt * 25;
-                    splash.opacity -= dt * 3.5;
-                    if (splash.opacity <= 0) k.destroy(splash);
+                  ]) as DolphinGameObject;
+                  splash.onUpdate = (cb: () => void) => {
+                    cb();
+                  };
+                  k.onUpdate(() => {
+                    if (splash.opacity !== undefined) {
+                      splash.pos.y -= dt * 25;
+                      splash.opacity -= dt * 3.5;
+                      if (splash.opacity <= 0) k.destroy(splash as unknown as TDestroyable);
+                    }
                   });
                 }
               }
@@ -275,7 +325,9 @@ export function setupDolphinDraftingSystem(k: KaboomCtx, playerController: Playe
 
         d.obj.pos.x = podX + d.offset.x * formationFactor;
         d.obj.pos.y = targetY;
-        d.obj.scale.x = effectiveScaleX;
+        if (typeof d.obj.scale === "object" && d.obj.scale !== null && "x" in d.obj.scale) {
+          (d.obj.scale as { x: number; y: number }).x = effectiveScaleX;
+        }
         d.tail.angle = Math.sin(time * 8 + i * 1.2) * 16;
 
         if (isLeaping) {
@@ -291,7 +343,12 @@ export function setupDolphinDraftingSystem(k: KaboomCtx, playerController: Playe
       if (!player) return;
 
       const leadDolphin = dolphins[0].obj;
-      const distToPod = player.pos.dist(leadDolphin.pos);
+      const dx = player.pos.x - leadDolphin.pos.x;
+      const dy = player.pos.y - leadDolphin.pos.y;
+      const distToPod =
+        typeof player.pos.dist === "function"
+          ? player.pos.dist(leadDolphin.pos)
+          : Math.hypot(dx, dy);
 
       const isAlignedWithPod =
         dir === 1

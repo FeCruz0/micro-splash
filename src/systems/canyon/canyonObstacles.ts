@@ -1,8 +1,16 @@
-import type { KaboomCtx } from "kaboom";
 import { TAGS } from "../../config";
-import type { CanyonConfig, AnemoneItem } from "./canyonTypes";
+import type {
+  CanyonConfig,
+  AnemoneItem,
+  CanyonEngineContext,
+  CanyonVector2D,
+  CanyonGameObject,
+} from "./canyonTypes";
 
-export function setupCanyonObstacles(k: KaboomCtx, config: CanyonConfig): AnemoneItem[] {
+export function setupCanyonObstacles<
+  TColor = unknown,
+  TVec extends { x: number; y: number } = CanyonVector2D,
+>(k: CanyonEngineContext<TColor, TVec>, config: CanyonConfig): AnemoneItem<TColor>[] {
   const { rampUpEndX, shallowRockTopY } = config;
 
   // 1. Costões rochosos escarpados de granito com silhueta serrilhada orgânica
@@ -109,7 +117,7 @@ export function setupCanyonObstacles(k: KaboomCtx, config: CanyonConfig): Anemon
   }
 
   // 5. Bioincrustações: Tufos de Anêmonas Vivas (oscilam suavemente com a ressurgência)
-  const anemones: AnemoneItem[] = [];
+  const anemones: AnemoneItem<TColor>[] = [];
   const anemonePositions = [
     { x: rampUpEndX + 110, y: shallowRockTopY - 4, col: [230, 110, 85] },
     { x: rampUpEndX + 320, y: shallowRockTopY - 6, col: [75, 195, 155] },
@@ -141,7 +149,7 @@ export function setupCanyonObstacles(k: KaboomCtx, config: CanyonConfig): Anemon
         k.opacity(0.85),
         k.z(4),
         "boqueirao_anemone",
-      ]);
+      ]) as CanyonGameObject<TColor>;
       anemones.push({ obj: tentacle, baseAngle: t * 12, phase: a * 1.3 + t * 0.5 });
     }
   }

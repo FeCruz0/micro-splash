@@ -1,4 +1,3 @@
-import type { GameObj } from "kaboom";
 import type { CompanionState } from "./types";
 import type { CompanionStateContext, CompanionStateNode } from "./states/types";
 import {
@@ -86,8 +85,8 @@ export class CompanionStateMachine {
     ctx: CompanionStateContext,
     dt: number,
     playerX?: number,
-    targetKrill?: GameObj | null,
-    targetHazard?: GameObj | null
+    targetKrill?: unknown | null,
+    targetHazard?: unknown | null
   ): number {
     const result = this.currentStateNode.onUpdate(ctx, dt, playerX, targetKrill, targetHazard);
 

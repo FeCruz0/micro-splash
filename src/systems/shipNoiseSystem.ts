@@ -1,4 +1,3 @@
-import kaboom, { type GameObj } from "kaboom";
 import { GAME_CONFIG, TAGS } from "../config";
 import type { PlayerController } from "../entities/player";
 import { createFishingTrawler } from "../entities/boat";
@@ -7,12 +6,53 @@ import { audioSystem } from "./audioSystem";
 import { safeShake } from "../utils/camera";
 import { getRandomFloat, getRandomInteger } from "../utils/random";
 
-export function setupShipNoiseSystem(
-  k: ReturnType<typeof kaboom>,
-  playerController: PlayerController
-) {
+export interface ShipVector2D {
+  x: number;
+  y: number;
+}
+
+export interface ShipGameObject<TColor = unknown> {
+  pos: ShipVector2D;
+  hidden?: boolean;
+  opacity?: number;
+  radius?: number;
+  add: (components: unknown[]) => ShipGameObject<TColor>;
+  onUpdate: (cb: () => void) => void;
+}
+
+export interface ShipNoiseEngineContext<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = ShipVector2D,
+> {
+  add: (components: unknown[]) => unknown;
+  destroy: (obj: TDestroyable) => void;
+  dt: () => number;
+  height: () => number;
+  rect: (w: number, h: number, opt?: { radius?: number }) => unknown;
+  circle: (r: number) => unknown;
+  pos: (x: number, y: number) => unknown;
+  color: (r: number | TColor, g?: number, b?: number) => unknown;
+  opacity: (o: number) => unknown;
+  outline: (w: number, col: TColor) => unknown;
+  rotate: (angle: number) => unknown;
+  area: () => unknown;
+  anchor: (a: "center" | "bot" | "topleft" | "botleft") => unknown;
+  z: (v: number) => unknown;
+  rand: (min: number, max: number) => number;
+  rgb: (r: number, g: number, b: number) => TColor;
+  vec2: (x: number, y: number) => TVec;
+  clamp: (val: number, min: number, max: number) => number;
+  shake?: (amount: number) => void;
+}
+
+export function setupShipNoiseSystem<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = ShipVector2D,
+>(k: ShipNoiseEngineContext<TDestroyable, TColor, TVec>, playerController: PlayerController) {
   let isSystemActive = true;
-  const allShipBodies: GameObj[] = [];
+  const allShipBodies: { pos: { x: number; y: number }; hidden?: boolean }[] = [];
 
   // Traineiras de pesca artesanal estacionadas com redes na Costa Urbana (Fase 35.5)
   const fishingTrawlerPositions = [13800, 16200];
@@ -29,15 +69,19 @@ export function setupShipNoiseSystem(
 
   ships.forEach((shipData) => {
     // Casco do Navio Cargueiro (Proporção industrial imponente: 280×50px)
-    const ship = k.add([
+    const shipComponents: unknown[] = [
       k.rect(280, 50, { radius: 12 }),
       k.pos(shipData.initialXPosition, GAME_CONFIG.SEA_LEVEL),
       k.color(60, 65, 80),
-      k.outline(2.5, k.rgb(180, 50, 50)),
       k.opacity(0.88),
       k.anchor("center"),
       k.z(-2),
-    ]);
+    ];
+    if (k.outline) {
+      shipComponents.push(k.outline(2.5, k.rgb(180, 50, 50)));
+    }
+
+    const ship = k.add(shipComponents) as ShipGameObject<TColor>;
 
     allShipBodies.push(ship);
 
@@ -93,36 +137,43 @@ export function setupShipNoiseSystem(
           k.anchor("center"),
           k.z(8),
           "noise_ring",
-        ]);
+        ]) as ShipGameObject<TColor>;
 
         let ringRadius = 20;
 
         noiseRing.onUpdate(() => {
           ringRadius += k.dt() * 120;
           noiseRing.radius = ringRadius;
-          noiseRing.opacity -= k.dt() * 0.25;
+          if (noiseRing.opacity !== undefined) {
+            noiseRing.opacity -= k.dt() * 0.25;
 
-          // Se a baleia estiver dentro do raio da onda de ruído, causa desorientação e a empurra para o fundo
-          const distToPlayer = noiseRing.pos.dist(playerController.gameObj.pos);
-          if (distToPlayer <= ringRadius && noiseRing.opacity > 0.2) {
-            safeShake(k, 1.5);
-            const speed = playerController.getSpeed();
-            const downwardForce = 400 * k.dt();
+            // Se a baleia estiver dentro do raio da onda de ruído, causa desorientação e a empurra para o fundo
+            const playerPos = playerController.gameObj.pos;
+            const dist = Math.hypot(noiseRing.pos.x - playerPos.x, noiseRing.pos.y - playerPos.y);
+            if (dist <= ringRadius && noiseRing.opacity > 0.2) {
+              safeShake(k, 1.5);
+              const speed = playerController.getSpeed();
+              const downwardForce = 400 * k.dt();
 
-            playerController.setSpeed(
-              k.vec2(speed.x + getRandomFloat(-10, 10), k.clamp(speed.y + downwardForce, -300, 300))
-            );
-          }
+              playerController.setSpeed(
+                k.vec2(
+                  speed.x + getRandomFloat(-10, 10),
+                  k.clamp(speed.y + downwardForce, -300, 300)
+                ) as unknown as Parameters<PlayerController["setSpeed"]>[0]
+              );
+            }
 
-          if (noiseRing.opacity <= 0) {
-            k.destroy(noiseRing);
+            if (noiseRing.opacity <= 0) {
+              k.destroy(noiseRing as unknown as TDestroyable);
+            }
           }
         });
       }
 
       // 2. Descarte ativo de resíduos industriais pela esteira da popa (Fase 9.2)
       trashEjectTimer += k.dt();
-      const distToPlayer = playerController.gameObj.pos.dist(ship.pos);
+      const playerPos = playerController.gameObj.pos;
+      const distToPlayer = Math.hypot(playerPos.x - ship.pos.x, playerPos.y - ship.pos.y);
 
       if (trashEjectTimer >= 8.5 && distToPlayer < 1600) {
         trashEjectTimer = 0;
@@ -131,7 +182,7 @@ export function setupShipNoiseSystem(
         const ejectY = ship.pos.y + 24;
         const trashType = getRandomInteger(0, 2);
 
-        let trashItem: GameObj;
+        let trashItem: ShipGameObject<TColor>;
         let sinkSpeed = getRandomFloat(28, 42);
         const swaySpeed = getRandomFloat(1.5, 2.5);
         const swayAmp = getRandomFloat(10, 18);
@@ -139,46 +190,55 @@ export function setupShipNoiseSystem(
 
         if (trashType === 0) {
           // Tambor de óleo corrosivo / resíduo químico
-          trashItem = k.add([
+          const trashComponents: unknown[] = [
             k.rect(18, 24, { radius: 3 }),
             k.pos(ejectX, ejectY),
             k.color(150, 70, 40),
-            k.outline(1.5, k.rgb(40, 20, 15)),
             k.area(),
             k.anchor("center"),
             k.z(14),
             TAGS.TRASH,
             "ship_ejected_trash",
-          ]);
+          ];
+          if (k.outline) {
+            trashComponents.push(k.outline(1.5, k.rgb(40, 20, 15)));
+          }
+          trashItem = k.add(trashComponents) as ShipGameObject<TColor>;
           trashItem.add([k.rect(18, 6), k.pos(0, 0), k.color(240, 200, 30), k.anchor("center")]);
           sinkSpeed = 36;
         } else if (trashType === 1) {
           // Engradado de madeira industrial
-          trashItem = k.add([
+          const trashComponents: unknown[] = [
             k.rect(22, 18, { radius: 2 }),
             k.pos(ejectX, ejectY),
             k.color(120, 85, 55),
-            k.outline(1.5, k.rgb(60, 40, 25)),
             k.area(),
             k.anchor("center"),
             k.z(14),
             TAGS.TRASH,
             "ship_ejected_trash",
-          ]);
+          ];
+          if (k.outline) {
+            trashComponents.push(k.outline(1.5, k.rgb(60, 40, 25)));
+          }
+          trashItem = k.add(trashComponents) as ShipGameObject<TColor>;
           sinkSpeed = 22;
         } else {
           // Saco plástico de resíduo
-          trashItem = k.add([
+          const trashComponents: unknown[] = [
             k.rect(20, 15, { radius: 5 }),
             k.pos(ejectX, ejectY),
             k.color(55, 65, 75),
-            k.outline(1.5, k.rgb(25, 30, 40)),
             k.area(),
             k.anchor("center"),
             k.z(14),
             TAGS.TRASH,
             "ship_ejected_trash",
-          ]);
+          ];
+          if (k.outline) {
+            trashComponents.push(k.outline(1.5, k.rgb(25, 30, 40)));
+          }
+          trashItem = k.add(trashComponents) as ShipGameObject<TColor>;
           sinkSpeed = 26;
         }
 
@@ -193,7 +253,7 @@ export function setupShipNoiseSystem(
             trashItem.pos.y > k.height() - 40 ||
             trashItem.pos.x < playerController.gameObj.pos.x - 1200
           ) {
-            k.destroy(trashItem);
+            k.destroy(trashItem as unknown as TDestroyable);
           }
         });
       }

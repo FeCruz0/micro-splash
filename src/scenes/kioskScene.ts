@@ -1,7 +1,11 @@
-import type { KaboomCtx } from "kaboom";
-import { createKioskScene } from "../systems/kioskMode";
+import { createKioskScene, type ShowKioskEngineContext } from "../systems/kioskMode";
 
-export function registerKioskScene(k: KaboomCtx): void {
+export interface KioskSceneEngineContext extends ShowKioskEngineContext {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+  scene(id: string, action: Function): unknown;
+}
+
+export function registerKioskScene(k: KioskSceneEngineContext): void {
   k.scene("kiosk", () => {
     createKioskScene(k);
   });

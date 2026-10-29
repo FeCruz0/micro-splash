@@ -1,4 +1,3 @@
-import type { GameObj, Vec2 } from "kaboom";
 import type { WhaleSliceData } from "./playerSliceRenderer";
 import type { DualPectoralFinsData } from "./playerPectoralFin";
 import type { PuppetRigTransforms } from "./playerPuppetRig";
@@ -6,10 +5,52 @@ import type { WhaleAnimationState } from "./playerAnimation";
 import type { WhaleRenderPipelineSnapshot } from "./playerRenderPipeline";
 import type { WhaleColorPalette } from "./playerBreathPalette";
 
-export interface PlayerController {
-  gameObj: GameObj;
-  getSpeed: () => Vec2;
-  setSpeed: (newSpeed: Vec2) => void;
+export interface PlayerVector2D {
+  x: number;
+  y: number;
+  scale?(s: number, sy?: number): PlayerVector2D;
+  scale?(p: unknown): PlayerVector2D;
+  add?(v: PlayerVector2D): PlayerVector2D;
+  sub?(v: PlayerVector2D): PlayerVector2D;
+  len?(): number;
+  unit?(): PlayerVector2D;
+  dist?(v: PlayerVector2D): number;
+}
+
+export interface StrictPlayerVector2D extends PlayerVector2D {
+  scale(s: number, sy?: number): StrictPlayerVector2D;
+  scale(p: unknown): StrictPlayerVector2D;
+  add(v: StrictPlayerVector2D | PlayerVector2D): StrictPlayerVector2D;
+  sub(v: StrictPlayerVector2D | PlayerVector2D): StrictPlayerVector2D;
+  len(): number;
+  unit(): StrictPlayerVector2D;
+  dist(v: StrictPlayerVector2D | PlayerVector2D): number;
+}
+
+export interface PlayerGameObject {
+  pos: StrictPlayerVector2D;
+  angle: number;
+  scale?: PlayerVector2D | { x: number; y: number };
+  flipX?: boolean;
+  color?: unknown;
+  opacity?: number;
+  z?: number;
+  move: (x: number, y: number) => void;
+  play?: (anim: string) => void;
+  onUpdate: (cb: () => void) => void;
+  onDestroy?: (cb: () => void) => void;
+  exists?: () => boolean;
+  is?: (tag: string) => boolean;
+  comps?: unknown[];
+  _triggerUpdate?: () => void;
+  _destroyed?: boolean;
+  [key: string]: unknown;
+}
+
+export interface PlayerController<TGameObj = PlayerGameObject, TVector2 = StrictPlayerVector2D> {
+  gameObj: TGameObj;
+  getSpeed: () => TVector2;
+  setSpeed: (newSpeed: TVector2) => void;
   getOxygen: () => number;
   getMaxOxygen: () => number;
   getMaxSpeed: () => number;

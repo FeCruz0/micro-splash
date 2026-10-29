@@ -1,23 +1,24 @@
-import type { GameObj, KaboomCtx, Vec2 } from "kaboom";
+import type { Vector2D } from "../../engine/contracts/INTERFACE_CONTRACTS";
 import { audioSystem } from "../../systems/audioSystem";
 import { accessibilitySystem } from "../../systems/accessibilitySystem";
 import { createGameState } from "../../systems/state";
+import type { CodexTabId, LegacyCodexEngineContext, LegacyCodexUiObject } from "./codexTypes";
 
-export type CodexTabId = "species" | "route" | "conservation";
+export type { CodexTabId };
 
 export interface CodexTabEntity {
-  btn: GameObj;
-  label: GameObj;
+  btn: LegacyCodexUiObject;
+  label: LegacyCodexUiObject;
   id: CodexTabId;
 }
 
 export interface CodexNavigationOptions {
-  k: KaboomCtx;
+  k: LegacyCodexEngineContext;
   cX: number;
   cY: number;
   cardW: number;
   cardH: number;
-  elements: GameObj[];
+  elements: Array<{ destroy?: () => void } | object>;
   getActiveTab: () => CodexTabId;
   setActiveTab: (tab: CodexTabId) => void;
   isModalOpen: () => boolean;
@@ -27,13 +28,13 @@ export interface CodexNavigationOptions {
 }
 
 export function renderCodexHeader(
-  k: KaboomCtx,
+  k: LegacyCodexEngineContext,
   cX: number,
   cY: number,
   cardW: number,
   cardH: number,
-  elements: GameObj[]
-): GameObj {
+  elements: Array<{ destroy?: () => void } | object>
+): LegacyCodexUiObject {
   const card = k.add([
     k.rect(cardW, cardH, { radius: 16 }),
     k.pos(cX, cY),
@@ -177,9 +178,9 @@ export function renderCodexTabs(options: CodexNavigationOptions): {
 }
 
 export interface CodexFooterResult {
-  btnBackPos: Vec2;
-  btnTutorialPos: Vec2;
-  btnQuizPos: Vec2;
+  btnBackPos: Vector2D;
+  btnTutorialPos: Vector2D;
+  btnQuizPos: Vector2D;
   bottomBtnW: number;
   bottomBtnH: number;
 }
@@ -220,17 +221,17 @@ export function renderCodexFooter(options: CodexNavigationOptions): CodexFooterR
     ])
   );
 
-  btnBack.onHoverUpdate(() => {
+  btnBack.onHoverUpdate?.(() => {
     if (!isModalOpen()) {
       btnBack.color = k.rgb(28, 110, 185);
       btnBack.scale = k.vec2(1.02, 1.02);
     }
   });
-  btnBack.onHoverEnd(() => {
+  btnBack.onHoverEnd?.(() => {
     btnBack.color = k.rgb(20, 80, 140);
     btnBack.scale = k.vec2(1, 1);
   });
-  btnBack.onClick(onClose);
+  btnBack.onClick?.(onClose);
 
   // Botão 2: Tutorial / Guia
   const btnTutorialPos = k.vec2(cX, bottomBtnY);
@@ -261,22 +262,22 @@ export function renderCodexFooter(options: CodexNavigationOptions): CodexFooterR
     ])
   );
 
-  btnTutorial.onHoverUpdate(() => {
+  btnTutorial.onHoverUpdate?.(() => {
     if (!isModalOpen()) {
       btnTutorial.color = k.rgb(30, 125, 200);
       btnTutorial.scale = k.vec2(1.02, 1.02);
     }
   });
-  btnTutorial.onHoverEnd(() => {
+  btnTutorial.onHoverEnd?.(() => {
     btnTutorial.color = k.rgb(22, 90, 150);
     btnTutorial.scale = k.vec2(1, 1);
   });
 
-  btnTutorial.onClick(async () => {
+  btnTutorial.onClick?.(async () => {
     if (isModalOpen()) return;
     setModalOpen(true);
     const { showOnboardingModal } = await import("../onboardingModal");
-    showOnboardingModal(k, () => {
+    showOnboardingModal(k as unknown as Parameters<typeof showOnboardingModal>[0], () => {
       setModalOpen(false);
     });
   });
@@ -310,24 +311,24 @@ export function renderCodexFooter(options: CodexNavigationOptions): CodexFooterR
     ])
   );
 
-  btnQuiz.onHoverUpdate(() => {
+  btnQuiz.onHoverUpdate?.(() => {
     if (!isModalOpen()) {
       btnQuiz.color = k.rgb(25, 155, 100);
       btnQuiz.scale = k.vec2(1.02, 1.02);
     }
   });
-  btnQuiz.onHoverEnd(() => {
+  btnQuiz.onHoverEnd?.(() => {
     btnQuiz.color = k.rgb(18, 125, 80);
     btnQuiz.scale = k.vec2(1, 1);
   });
 
-  btnQuiz.onClick(async () => {
+  btnQuiz.onClick?.(async () => {
     if (isModalOpen()) return;
     setModalOpen(true);
     const testState = createGameState();
     const { showQuizModal } = await import("../quizModal");
     showQuizModal(
-      k,
+      k as unknown as Parameters<typeof showQuizModal>[0],
       testState,
       () => {
         setModalOpen(false);

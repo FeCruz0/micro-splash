@@ -1,12 +1,16 @@
-import type { GameObj, KaboomCtx, Vec2 } from "kaboom";
 import { GAME_CONFIG, TAGS, PLAYER_ANIMATION_CONFIG } from "../config";
 import { getRandomFloat } from "../utils/random";
 import { audioSystem } from "../systems/audioSystem";
 import type { TouchControlsState } from "../ui/touchControls";
-import type { PlayerController } from "./player/types";
+import type {
+  PlayerController,
+  PlayerGameObject,
+  PlayerVector2D,
+  StrictPlayerVector2D,
+} from "./player/types";
 import { PlayerOxygenManager } from "./player/playerOxygen";
 import { PlayerPhysicsManager } from "./player/playerPhysics";
-import { PlayerSonarManager } from "./player/playerSonar";
+import { PlayerSonarManager, type RevealableTarget } from "./player/playerSonar";
 import { PlayerControlsManager } from "./player/playerControls";
 import {
   spawnBaleenSuction,
@@ -29,38 +33,84 @@ import { calculateOceanIdleDrift } from "./player/playerDrift";
 import { setupPlayerCaustics } from "./player/playerCaustics";
 import { PlayerTrapManager } from "./player/playerCollision";
 
-export type { PlayerController } from "./player/types";
+export type {
+  PlayerController,
+  PlayerGameObject,
+  PlayerVector2D,
+  StrictPlayerVector2D,
+} from "./player/types";
 export { calculateOceanIdleDrift };
 
-let activePlayerObject: GameObj | null = null;
+export interface PlayerEngineContext {
+  vec2(x: number, y: number): StrictPlayerVector2D;
+  rgb(r: number, g: number, b: number): unknown;
+  circle(radius: number): unknown;
+  rect(w: number, h: number, opt?: { radius?: number }): unknown;
+  pos(x: number | PlayerVector2D, y?: number): unknown;
+  color(r: number | unknown, g?: number, b?: number): unknown;
+  opacity(val: number): unknown;
+  outline(width?: number, color?: unknown): unknown;
+  z(layer: number): unknown;
+  scale(x: number, y?: number): unknown;
+  anchor(anc: "center" | "bot" | "topleft" | "botleft" | unknown): unknown;
+  rotate(angle: number): unknown;
+  sprite(name: string, opt?: { anim?: string }): unknown;
+  area(opt?: unknown): unknown;
+  body(): unknown;
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+  Rect: Function | { new (...args: never[]): unknown };
+  add(comps: unknown[]): unknown;
+  destroy(obj?: unknown): void;
+  dt(): number;
+  time(): number;
+  camPos(x?: number | PlayerVector2D, y?: number): PlayerVector2D;
+  deg2rad(deg: number): number;
+  rad2deg(rad: number): number;
+  clamp(val: number, min: number, max: number): number;
+  lerp(a: number, b: number, t: number): number;
+  rand(min: number, max: number): number;
+  shake(intensity: number): void;
+  isKeyDown(
+    key?:
+      "left" | "right" | "up" | "down" | "space" | "a" | "d" | "w" | "s" | "shift" | "e" | string
+  ): boolean;
+  isKeyPressed(key?: "space" | "enter" | string): boolean;
+  isKeyReleased(key?: "space" | string): boolean;
+  wait(time: number, cb: () => void): void;
+  get(tag: string): RevealableTarget[];
+  height?(): number;
+}
 
-export function setActivePlayerObject(playerObject: GameObj | null): void {
+let activePlayerObject: PlayerGameObject | null = null;
+
+export function setActivePlayerObject(playerObject: PlayerGameObject | null): void {
   activePlayerObject = playerObject;
 }
 
-export function getActivePlayerObject(): GameObj | null {
+export function getActivePlayerObject(): PlayerGameObject | null {
   return activePlayerObject && (!activePlayerObject.exists || activePlayerObject.exists())
     ? activePlayerObject
     : null;
 }
 
 export function createPlayer(
-  k: KaboomCtx,
+  k: PlayerEngineContext,
   initialX: number = 120,
   isSereneMode: boolean = false,
   touchState?: TouchControlsState
 ): PlayerController {
+  const RectShape = k.Rect as new (pos: unknown, w: number, h: number) => unknown;
   const baleia = k.add([
     k.sprite("baleia", { anim: "idle_swim" }),
     k.pos(initialX, 200),
-    k.area({ shape: new k.Rect(k.vec2(-54, -19), 108, 42) }),
+    k.area({ shape: new RectShape(k.vec2(-54, -19), 108, 42) }),
     k.body(),
     k.rotate(0),
     k.color(255, 255, 255),
     k.anchor("center"),
     TAGS.PLAYER,
     ...(typeof k.scale === "function" ? [k.scale(1, 1)] : []),
-  ]);
+  ]) as PlayerGameObject;
   activePlayerObject = baleia;
 
   const oxygenMgr = new PlayerOxygenManager(k);
@@ -113,7 +163,7 @@ export function createPlayer(
       if (causticsSystem.whaleVentralFlash) causticsSystem.whaleVentralFlash.opacity = 0;
       if (animState !== "glide") {
         animState = "glide";
-        baleia.play("glide");
+        baleia.play?.("glide");
       }
       return;
     }
@@ -134,10 +184,12 @@ export function createPlayer(
           k.color(255, 220, 80),
           k.opacity(0.8),
           k.z(19),
-        ]);
+        ]) as PlayerGameObject;
         p.onUpdate(() => {
-          p.opacity -= k.dt() * 2.5;
-          if (p.opacity <= 0) k.destroy(p);
+          if (typeof p.opacity === "number") {
+            p.opacity -= k.dt() * 2.5;
+            if (p.opacity <= 0) k.destroy(p);
+          }
         });
       }
     }
@@ -246,7 +298,7 @@ export function createPlayer(
       feedTimer -= dt;
       if (animState !== "feed") {
         animState = "feed";
-        baleia.play("feed");
+        baleia.play?.("feed");
       }
     } else {
       if (isStrokeInMotion && !trapMgr.isTrapped() && !oxygenMgr.isFaintingState()) {
@@ -257,7 +309,7 @@ export function createPlayer(
             : "stroke_up";
         if (animState !== targetAnim) {
           animState = targetAnim;
-          baleia.play(targetAnim);
+          baleia.play?.(targetAnim);
         }
       } else {
         const inWater = baleia.pos.y >= GAME_CONFIG.SEA_LEVEL;
@@ -276,18 +328,18 @@ export function createPlayer(
           if (pitchAngleDeg < -14 || spineCurvatureDeg < -5) {
             if (animState !== "stroke_up") {
               animState = "stroke_up";
-              baleia.play("stroke_up");
+              baleia.play?.("stroke_up");
             }
           } else {
             // Quando em repouso ou planeio nivelado, a jubarte executa movimento de nado calmo contínuo
             if (animState !== "idle_swim") {
               animState = "idle_swim";
-              baleia.play("idle_swim");
+              baleia.play?.("idle_swim");
             }
           }
         } else if (animState !== "glide") {
           animState = "glide";
-          baleia.play("glide");
+          baleia.play?.("glide");
         }
       }
     }
@@ -513,7 +565,7 @@ export function createPlayer(
   return {
     gameObj: baleia,
     getSpeed: () => physicsMgr.getSpeed(),
-    setSpeed: (newSpeed: Vec2) => {
+    setSpeed: (newSpeed: StrictPlayerVector2D | PlayerVector2D) => {
       physicsMgr.setSpeed(newSpeed);
     },
     getOxygen: () => oxygenMgr.getOxygen(),
@@ -528,7 +580,7 @@ export function createPlayer(
       physicsMgr.setSpeed(physicsMgr.getSpeed().scale(GAME_CONFIG.KRILL_BOOST));
       feedTimer = PLAYER_ANIMATION_CONFIG.FEED_TIMER_DURATION;
       animState = "feed";
-      baleia.play("feed");
+      baleia.play?.("feed");
       spawnBaleenSuction(k, baleia.pos, controlsMgr.isFacingRight());
     },
 
@@ -582,7 +634,7 @@ export function createPlayer(
       trapMgr.freeze();
       if (animState !== "glide") {
         animState = "glide";
-        baleia.play("glide");
+        baleia.play?.("glide");
       }
     },
     unfreeze: () => {

@@ -1,13 +1,61 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import type { GameObj, KaboomCtx, Vec2 } from "kaboom";
 import { attachPulseEffect, staggerElementsEntrance } from "../../src/ui/shared/motion";
 import { animateScoreCounter } from "../../src/ui/shared/scoreCounter";
 import { UI_FONTS, UI_TYPOGRAPHY_SCALE } from "../../src/ui/theme";
 import { calculateBiomeTransitionFactor } from "../../src/systems/biomeTransitionSystem";
 import { checkBiomeVignetteTrigger, BIOME_MILESTONES } from "../../src/systems/biomeVignetteSystem";
 
+interface MockVec2 {
+  x: number;
+  y: number;
+  clone(): MockVec2;
+  add(): MockVec2;
+  sub(): MockVec2;
+  scale(): MockVec2;
+  dist(): number;
+  len(): number;
+  unit(): MockVec2;
+  normal(): MockVec2;
+  dot(): number;
+  angle(): number;
+  lerp(): MockVec2;
+  isZero(): boolean;
+  toFixed(): string;
+  eq(): boolean;
+}
+
+interface MockGameObj {
+  pos: MockVec2;
+  scale: MockVec2;
+  opacity: number;
+  color: { r: number; g: number; b: number };
+  text: string;
+  isHoveringState: boolean;
+  onUpdate(cb: () => void): { cancel: () => void };
+  onHoverUpdate(cb: () => void): { cancel: () => void };
+  onHoverEnd(cb: () => void): { cancel: () => void };
+  isHovering(): boolean;
+  _triggerUpdate(): void;
+  [key: string]: unknown;
+}
+
+interface MockKaboomCtx {
+  vec2(x: number, y: number): MockVec2;
+  rgb(r: number, g: number, b: number): unknown;
+  dt(): number;
+  wait(delay: number, cb: () => void): { cancel: () => void; paused: boolean };
+  tween(from: number, to: number, dur: number, setValue: (val: number) => void): Promise<void>;
+  easings: {
+    easeOutQuad: (t: number) => number;
+    easeInQuad: (t: number) => number;
+    linear: (t: number) => number;
+  };
+  destroy: ReturnType<typeof vi.fn>;
+  [key: string]: unknown;
+}
+
 // Helper para mock de Vec2
-function createMockVec2(x: number, y: number): Vec2 {
+function createMockVec2(x: number, y: number): MockVec2 {
   return {
     x,
     y,
@@ -25,11 +73,11 @@ function createMockVec2(x: number, y: number): Vec2 {
     isZero: () => x === 0 && y === 0,
     toFixed: () => `(${x}, ${y})`,
     eq: () => false,
-  } as unknown as Vec2;
+  } as unknown as MockVec2;
 }
 
 // Helper para criar mock de GameObj
-function createMockGameObj(initialProps: Record<string, unknown> = {}): GameObj {
+function createMockGameObj(initialProps: Record<string, unknown> = {}): MockGameObj {
   const updateCallbacks: Array<() => void> = [];
   const hoverUpdateCallbacks: Array<() => void> = [];
   const hoverEndCallbacks: Array<() => void> = [];
@@ -65,17 +113,16 @@ function createMockGameObj(initialProps: Record<string, unknown> = {}): GameObj 
     ...initialProps,
   };
 
-  return obj as unknown as GameObj;
+  return obj as unknown as MockGameObj;
 }
 
 // Helper para criar mock de KaboomCtx
-function createMockKaboom(overrides: Record<string, unknown> = {}): KaboomCtx {
+function createMockKaboom(overrides: Record<string, unknown> = {}): MockKaboomCtx {
   const timers: Array<{ delay: number; cb: () => void }> = [];
 
   const mockKaboom: Record<string, unknown> = {
     vec2: (x: number, y: number) => createMockVec2(x, y),
-    rgb: (r: number, g: number, b: number) =>
-      ({ r, g, b, isRgb: true }) as unknown as ReturnType<KaboomCtx["rgb"]>,
+    rgb: (r: number, g: number, b: number) => ({ r, g, b, isRgb: true }) as unknown,
     dt: () => 0.016,
     wait: (delay: number, cb: () => void) => {
       timers.push({ delay, cb });
@@ -100,7 +147,7 @@ function createMockKaboom(overrides: Record<string, unknown> = {}): KaboomCtx {
     ...overrides,
   };
 
-  return mockKaboom as unknown as KaboomCtx;
+  return mockKaboom as unknown as MockKaboomCtx;
 }
 
 describe("Fase 65: Polimento Visual, Micro-Interações & Dinâmica Oceânica (Motion & Juice)", () => {

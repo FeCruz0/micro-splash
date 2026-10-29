@@ -1,7 +1,22 @@
-import type { KaboomCtx } from "kaboom";
-import { createMainMenu } from "../ui/mainMenu";
+import { createMainMenu, type ShowMainMenuEngineContext } from "../ui/mainMenu";
+import type { ShowModeSelectEngineContext } from "../ui/modeSelectScreen";
+import type { ShowOptionsEngineContext } from "../ui/optionsScreen";
+import type { ShowCodexEngineContext } from "../ui/codexScreen";
+import type { ShowLeaderboardEngineContext } from "../ui/leaderboardScreen";
 
-export function registerMenuScene(k: KaboomCtx): void {
+export interface MenuSceneEngineContext
+  extends
+    ShowMainMenuEngineContext,
+    ShowModeSelectEngineContext,
+    ShowOptionsEngineContext,
+    ShowCodexEngineContext,
+    ShowLeaderboardEngineContext {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+  scene(id: string, action: Function): unknown;
+  go(id: string, ...args: unknown[]): unknown;
+}
+
+export function registerMenuScene(k: MenuSceneEngineContext): void {
   k.scene("menu", () => {
     createMainMenu(
       k,

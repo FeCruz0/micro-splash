@@ -1,6 +1,3 @@
-import type { GameObj, KaboomCtx, Vec2 } from "kaboom";
-import { accessibilitySystem } from "../../systems/accessibilitySystem";
-
 /**
  * Módulo Cinemático de Hidroplanos Peitorais Independentes da Jubarte (Megaptera novaeangliae).
  *
@@ -10,7 +7,12 @@ import { accessibilitySystem } from "../../systems/accessibilitySystem";
  * 2. Enflechamento hidrodinâmico (sweep angle para trás proporcional ao fluxo de velocidade).
  * 3. Ondulação pendular de maré em repouso e planeio.
  * 4. Rastreamento da ponta da asa para emissão precisa de micro-vórtices.
+ *
+ * Desacoplado do Kaboom.js com tipagem estrita e zero any.
  */
+
+import { accessibilitySystem } from "../../systems/accessibilitySystem";
+import type { Vector2D } from "../../engine/contracts/INTERFACE_CONTRACTS";
 
 export interface PectoralFinTransform {
   /** Posição da base de inserção no tórax (relativa ao centro da baleia em px) */
@@ -59,6 +61,19 @@ export interface PectoralFinComputationParameters {
   isReducedMotion?: boolean;
 }
 
+export interface PectoralFinContext {
+  vec2?(x: number, y: number): unknown;
+}
+
+export interface PectoralFinTargetWhale<TVec2 = Vector2D> {
+  pos: TVec2 & {
+    x: number;
+    y: number;
+    add?(...args: unknown[]): unknown;
+  };
+  angle?: number;
+}
+
 /** Comprimento físico da nadadeira peitoral da jubarte no jogo (em pixels) */
 export const PECTORAL_FIN_LENGTH = 34;
 
@@ -67,7 +82,9 @@ export const PECTORAL_FIN_LENGTH = 34;
  *
  * @returns Array de vértices poligonais relativos à base de inserção no tórax (0, 0).
  */
-export function getPectoralFinPolygonVertices(k?: KaboomCtx): Vec2[] {
+export function getPectoralFinPolygonVertices<TVec2 = Vector2D>(
+  engineContext?: PectoralFinContext
+): TVec2[] {
   const points = [
     { x: 0, y: 0 }, // Inserção torácica anterior
     { x: -5, y: 3 }, // Borda de fuga proximal
@@ -79,10 +96,10 @@ export function getPectoralFinPolygonVertices(k?: KaboomCtx): Vec2[] {
     { x: -8, y: 9 }, // Tubérculo 1 da borda de ataque
   ];
 
-  if (k && typeof k.vec2 === "function") {
-    return points.map((p) => k.vec2(p.x, p.y));
+  if (engineContext && typeof engineContext.vec2 === "function") {
+    return points.map((p) => engineContext.vec2!(p.x, p.y) as unknown as TVec2);
   }
-  return points as unknown as Vec2[];
+  return points as unknown as TVec2[];
 }
 
 /**
@@ -207,28 +224,36 @@ export function calculatePectoralFinTransforms(
  * Como o sprite original da jubarte já contém ambas as nadadeiras ilustradas em pixel art,
  * este módulo gerencia as coordenadas cinemáticas dinâmicas sem sobreposição poligonal intrusiva.
  *
- * @param k - Instância do contexto Kaboom.js.
- * @param baleia - GameObj representativo da baleia protagonista.
+ * @param engineContext - Instância do contexto da engine.
+ * @param baleia - Objeto representativo da baleia protagonista.
  * @returns Controlador cinemático das nadadeiras peitorais.
  */
-export function setupPectoralFins(
-  k: KaboomCtx,
-  baleia: GameObj
+export function setupPectoralFins<TVec2 = Vector2D>(
+  engineContext: PectoralFinContext,
+  baleia: PectoralFinTargetWhale<TVec2>
 ): {
   update: (transforms: DualPectoralFinsData, isFacingRight: boolean) => void;
   destroy: () => void;
-  getNearTipWorldPos: () => Vec2;
+  getNearTipWorldPos: () => TVec2;
 } {
-  let currentNearTipWorldPos = baleia.pos;
+  let currentNearTipWorldPos: TVec2 = baleia.pos;
 
   function update(transforms: DualPectoralFinsData, _isFacingRight: boolean): void {
     const { nearFin } = transforms;
 
+    const tipOffset =
+      typeof engineContext.vec2 === "function"
+        ? engineContext.vec2(nearFin.tipLocalOffset.x, nearFin.tipLocalOffset.y)
+        : { x: nearFin.tipLocalOffset.x, y: nearFin.tipLocalOffset.y };
+
     // Calcula posição no mundo da ponta da asa para ancoragem de micro-vórtices
     if (baleia.pos && typeof baleia.pos.add === "function") {
-      currentNearTipWorldPos = baleia.pos.add(
-        k.vec2(nearFin.tipLocalOffset.x, nearFin.tipLocalOffset.y)
-      );
+      currentNearTipWorldPos = baleia.pos.add(tipOffset) as unknown as TVec2;
+    } else if (baleia.pos) {
+      currentNearTipWorldPos = {
+        x: baleia.pos.x + nearFin.tipLocalOffset.x,
+        y: baleia.pos.y + nearFin.tipLocalOffset.y,
+      } as unknown as TVec2;
     }
   }
 
@@ -239,6 +264,6 @@ export function setupPectoralFins(
   return {
     update,
     destroy,
-    getNearTipWorldPos: () => currentNearTipWorldPos,
+    getNearTipWorldPos: (): TVec2 => currentNearTipWorldPos,
   };
 }

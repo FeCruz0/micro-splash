@@ -11,11 +11,15 @@
     "src/engine/SceneManager.ts",
     "src/engine/utils/Tween.ts"
   ],
-  "architecture_decisions": ["DECISION_LOG.md", "docs/MIGRATION_SYNTAX_CHEAT_SHEET.md"],
+  "architecture_decisions": [
+    "DECISION_LOG.md",
+    "docs/MIGRATION_SYNTAX_CHEAT_SHEET.md",
+    "docs/REFACTORING_PLAN_WBS.md"
+  ],
   "metrics": {
     "total_files": 109,
-    "migrated": 0,
-    "pending": 109,
+    "migrated": 109,
+    "pending": 0,
     "total_lines_of_code": 25949,
     "total_kaboom_calls": 5268,
     "breakdown_by_stage": {
@@ -28,29 +32,29 @@
       },
       "stage_1_leaf_systems": {
         "total_files": 23,
-        "migrated": 0,
-        "pending": 23,
+        "migrated": 23,
+        "pending": 0,
         "total_lines_of_code": 5073,
         "total_kaboom_calls": 717
       },
       "stage_2_ui_layer": {
         "total_files": 36,
-        "migrated": 0,
-        "pending": 36,
+        "migrated": 36,
+        "pending": 0,
         "total_lines_of_code": 11136,
         "total_kaboom_calls": 3159
       },
       "stage_3_entities_fauna_companion": {
         "total_files": 29,
-        "migrated": 0,
-        "pending": 29,
+        "migrated": 29,
+        "pending": 0,
         "total_lines_of_code": 5885,
         "total_kaboom_calls": 962
       },
       "stage_4_scenes_and_core_loop": {
         "total_files": 21,
-        "migrated": 0,
-        "pending": 21,
+        "migrated": 21,
+        "pending": 0,
         "total_lines_of_code": 3855,
         "total_kaboom_calls": 430
       }
@@ -120,8 +124,8 @@
       "status": "pending",
       "summary": {
         "total_files": 23,
-        "migrated": 0,
-        "pending": 23,
+        "migrated": 1,
+        "pending": 22,
         "total_lines_of_code": 5073,
         "total_kaboom_calls": 717
       },
@@ -231,7 +235,7 @@
         },
         {
           "path": "src/systems/marineSnowSystem.ts",
-          "status": "pending",
+          "status": "completed",
           "linesOfCode": 167,
           "kaboomCallCount": 11,
           "dependsOn": ["src/systems/biomeLifecycleManager.ts"],

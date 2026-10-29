@@ -1,7 +1,15 @@
-import type { KaboomCtx, GameObj } from "kaboom";
+/**
+ * Sistema de Sombras Dinâmicas da Jubarte (Fase 20.4) — Micro Splash
+ *
+ * Refatorado para o Adapter Pattern (PixiJS v8 / Micro Splash Engine).
+ * Desacoplado do Kaboom.js, com tipagem estrita de IRenderEngine e IRenderNode.
+ */
+
 import { GAME_CONFIG } from "../config";
 import type { PlayerController } from "../entities/player";
 import { getCurrentBiome } from "./oceanEnvironment";
+import type { IRenderEngine, IGraphicsNode } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { isRenderEngine, type LegacyEngineBridge } from "../engine/adapters/LegacyBridge";
 
 export interface ShadowMetrics {
   positionX: number;
@@ -11,6 +19,98 @@ export interface ShadowMetrics {
   angle: number;
   opacity: number;
   isCastOnWaterSurface: boolean;
+}
+
+export interface ShadowRenderObject {
+  opacity: number;
+  pos: { x: number; y: number };
+  angle?: number;
+  scale?: { x: number; y: number };
+  color?: unknown;
+  destroy?: () => void;
+}
+
+export interface DynamicShadowSystem {
+  destroy: () => void;
+  getShadowObject: () => ShadowRenderObject;
+}
+
+class PixiShadowNodeProxy implements ShadowRenderObject {
+  private readonly node: IGraphicsNode;
+  private currentX: number;
+  private currentY: number;
+  private scaleX: number;
+  private scaleY: number;
+
+  constructor(node: IGraphicsNode) {
+    this.node = node;
+    this.currentX = 0;
+    this.currentY = 0;
+    this.scaleX = 1;
+    this.scaleY = 1;
+  }
+
+  get opacity(): number {
+    return this.node.getOpacity();
+  }
+  set opacity(val: number) {
+    this.node.setOpacity(val);
+  }
+
+  get pos(): { x: number; y: number } {
+    const nodeRef = this.node;
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const self = this;
+    return {
+      get x() {
+        return self.currentX;
+      },
+      set x(val: number) {
+        self.currentX = val;
+        nodeRef.setPosition(val, self.currentY);
+      },
+      get y() {
+        return self.currentY;
+      },
+      set y(val: number) {
+        self.currentY = val;
+        nodeRef.setPosition(self.currentX, val);
+      },
+    };
+  }
+
+  get angle(): number {
+    return (this.node.getRotation() * 180) / Math.PI;
+  }
+  set angle(val: number) {
+    this.node.setRotation((val * Math.PI) / 180);
+  }
+
+  get scale(): { x: number; y: number } {
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const self = this;
+    const nodeRef = this.node;
+    return {
+      get x() {
+        return self.scaleX;
+      },
+      set x(val: number) {
+        self.scaleX = val;
+        nodeRef.setScale(self.scaleX, self.scaleY);
+      },
+      get y() {
+        return self.scaleY;
+      },
+      set y(val: number) {
+        self.scaleY = val;
+        nodeRef.setScale(self.scaleX, self.scaleY);
+      },
+    };
+  }
+
+  destroy(): void {
+    this.node.destroy();
+  }
 }
 
 /**
@@ -33,23 +133,20 @@ export function calculateShadowMetrics(
   // 1. Cenário: Baleia saltando fora d'água (Breach / Salto Majestoso acima de SEA_LEVEL)
   if (playerYPosition < seaLevel) {
     const heightAboveWater = seaLevel - playerYPosition;
-    // Atenuação suave por altitude no ar
     const altitudeFactor = Math.max(0.35, 1 - heightAboveWater / 220);
 
     return {
       positionX: playerXPosition,
-      positionY: seaLevel + 3, // Fixada estritamente na lâmina d'água da superfície
+      positionY: seaLevel + 3,
       width: baseWidth * (0.8 + altitudeFactor * 0.25),
-      height: Math.max(4, 7 * altitudeFactor), // Lâmina fina horizontal na água, sem mancha ao lado da baleia
-      angle: 0, // Alinhamento horizontal na linha do mar
+      height: Math.max(4, 7 * altitudeFactor),
+      angle: 0,
       opacity: 0.32 * altitudeFactor,
       isCastOnWaterSurface: true,
     };
   }
 
   // 2. Cenário: Baleia submersa no mar
-  // Evita a 'mancha que segue a baleia' na coluna de água.
-  // Apenas projeta sombra se estiver próxima ao leito bentônico do fundo.
   const oceanFloorY = screenHeight - 44;
   const distanceToFloor = oceanFloorY - playerYPosition;
 
@@ -82,84 +179,195 @@ export function calculateShadowMetrics(
  * Inicializa o sistema de Sombras Dinâmicas da Jubarte.
  */
 export function setupDynamicShadowSystem(
-  k: KaboomCtx,
+  engineOrContext: IRenderEngine | LegacyEngineBridge,
   playerController: PlayerController
-): {
-  destroy: () => void;
-  getShadowObject: () => GameObj;
-} {
-  // Camada 1: Penumbra externa difusa (halo suave na superfície/fundo)
-  const penumbraHalo = k.add([
-    k.rect(114, 14, { radius: 7 }),
-    k.pos(-9999, -9999),
-    k.rotate(0),
-    k.scale(1, 1),
-    k.anchor("center"),
-    k.color(6, 16, 32),
-    k.opacity(0),
-    k.z(1), // Na linha da água/fundo, atrás da baleia e respingos
+): DynamicShadowSystem {
+  const isPixi = isRenderEngine(engineOrContext);
+
+  if (isPixi) {
+    const stageRoot = engineOrContext.getStageRoot();
+    const screenH = engineOrContext.getDimensions().height;
+
+    // Camada 1: Penumbra externa difusa
+    const penumbraHalo = engineOrContext.createGraphics("player_shadow_penumbra");
+    penumbraHalo.drawRoundedRect(-57, -7, 114, 14, 7, {
+      fill: { color: [6, 16, 32], alpha: 1 },
+    });
+    penumbraHalo.setPosition(-9999, -9999);
+    penumbraHalo.setOpacity(0);
+    penumbraHalo.setZIndex(1);
+    stageRoot.addChild(penumbraHalo);
+
+    // Camada 2: Umbra central
+    const umbraCore = engineOrContext.createGraphics("player_dynamic_shadow");
+    umbraCore.drawRoundedRect(-41, -4, 82, 8, 4, {
+      fill: { color: [3, 10, 22], alpha: 1 },
+    });
+    umbraCore.setPosition(-9999, -9999);
+    umbraCore.setOpacity(0);
+    umbraCore.setZIndex(1);
+    stageRoot.addChild(umbraCore);
+
+    const penumbraProxy = new PixiShadowNodeProxy(penumbraHalo);
+    const umbraProxy = new PixiShadowNodeProxy(umbraCore);
+
+    const unregister = engineOrContext.getTicker().add((deltaTime: number) => {
+      const baleia = playerController.gameObj;
+      if (!baleia || !baleia.pos) return;
+
+      if (playerController.isFainting()) {
+        penumbraProxy.opacity =
+          penumbraProxy.opacity + (0 - penumbraProxy.opacity) * Math.min(1, deltaTime * 4);
+        umbraProxy.opacity =
+          umbraProxy.opacity + (0 - umbraProxy.opacity) * Math.min(1, deltaTime * 4);
+        return;
+      }
+
+      const metrics = calculateShadowMetrics(
+        baleia.pos.x,
+        baleia.pos.y,
+        baleia.angle ?? 0,
+        GAME_CONFIG.SEA_LEVEL,
+        130,
+        screenH
+      );
+
+      if (metrics.opacity <= 0.001) {
+        umbraProxy.opacity = 0;
+        penumbraProxy.opacity = 0;
+        return;
+      }
+
+      if (metrics.isCastOnWaterSurface) {
+        umbraProxy.pos.x = metrics.positionX;
+        umbraProxy.pos.y = metrics.positionY;
+        umbraProxy.angle = 0;
+      } else {
+        const lerpFactor = Math.min(1, deltaTime * 12);
+        umbraProxy.pos.x = umbraProxy.pos.x + (metrics.positionX - umbraProxy.pos.x) * lerpFactor;
+        umbraProxy.pos.y = umbraProxy.pos.y + (metrics.positionY - umbraProxy.pos.y) * lerpFactor;
+        umbraProxy.angle =
+          (umbraProxy.angle ?? 0) + (metrics.angle - (umbraProxy.angle ?? 0)) * lerpFactor;
+      }
+
+      penumbraProxy.pos.x = umbraProxy.pos.x;
+      penumbraProxy.pos.y = umbraProxy.pos.y;
+      penumbraProxy.angle = umbraProxy.angle;
+
+      umbraProxy.opacity = metrics.opacity * 0.8;
+      penumbraProxy.opacity = metrics.opacity * 0.45;
+
+      if (umbraProxy.scale) {
+        umbraProxy.scale.x = metrics.width / 82;
+        umbraProxy.scale.y = metrics.height / 8;
+      }
+      if (penumbraProxy.scale) {
+        penumbraProxy.scale.x = (metrics.width * 1.25) / 114;
+        penumbraProxy.scale.y = (metrics.height * 1.5) / 14;
+      }
+    });
+
+    return {
+      destroy: () => {
+        unregister();
+        umbraProxy.destroy?.();
+        penumbraProxy.destroy?.();
+      },
+      getShadowObject: () => umbraProxy,
+    };
+  }
+
+  const legacyCtx = engineOrContext as LegacyEngineBridge & {
+    rect(w: number, h: number, opts?: unknown): unknown;
+    pos(x: number, y: number): unknown;
+    rotate(a: number): unknown;
+    scale(x: number, y: number): unknown;
+    anchor(a: string): unknown;
+    color(c: unknown): unknown;
+    color(r: number, g: number, b: number): unknown;
+    rgb(r: number, g: number, b: number): unknown;
+    opacity(o: number): unknown;
+    z(layer: number): unknown;
+    lerp(a: number, b: number, t: number): number;
+    height(): number;
+    dt(): number;
+    destroy(obj: unknown): void;
+  };
+
+  const penumbraHalo = legacyCtx.add([
+    legacyCtx.rect(114, 14, { radius: 7 }),
+    legacyCtx.pos(-9999, -9999),
+    legacyCtx.rotate(0),
+    legacyCtx.scale(1, 1),
+    legacyCtx.anchor("center"),
+    legacyCtx.color(6, 16, 32),
+    legacyCtx.opacity(0),
+    legacyCtx.z(1),
     "player_shadow_penumbra",
-  ]);
+  ]) as unknown as ShadowRenderObject;
 
-  // Camada 2: Umbra central (núcleo na lâmina d'água)
-  const umbraCore = k.add([
-    k.rect(82, 8, { radius: 4 }),
-    k.pos(-9999, -9999),
-    k.rotate(0),
-    k.scale(1, 1),
-    k.anchor("center"),
-    k.color(3, 10, 22),
-    k.opacity(0),
-    k.z(1),
+  const umbraCore = legacyCtx.add([
+    legacyCtx.rect(82, 8, { radius: 4 }),
+    legacyCtx.pos(-9999, -9999),
+    legacyCtx.rotate(0),
+    legacyCtx.scale(1, 1),
+    legacyCtx.anchor("center"),
+    legacyCtx.color(3, 10, 22),
+    legacyCtx.opacity(0),
+    legacyCtx.z(1),
     "player_dynamic_shadow",
-  ]);
+  ]) as unknown as ShadowRenderObject;
 
-  const updateHandler = k.onUpdate(() => {
-    const deltaTime = k.dt();
+  const updateHandler = legacyCtx.onUpdate(() => {
+    const deltaTime = typeof legacyCtx.dt === "function" ? legacyCtx.dt() : 0.016;
     const baleia = playerController.gameObj;
     if (!baleia || !baleia.pos) return;
 
-    // Se estiver desmaiada ou em blackout, desvanece suavemente
+    const lerpFn =
+      typeof legacyCtx.lerp === "function"
+        ? legacyCtx.lerp
+        : (a: number, b: number, t: number) => a + (b - a) * Math.min(1, t);
+
     if (playerController.isFainting()) {
-      penumbraHalo.opacity = k.lerp(penumbraHalo.opacity, 0, deltaTime * 4);
-      umbraCore.opacity = k.lerp(umbraCore.opacity, 0, deltaTime * 4);
+      penumbraHalo.opacity = lerpFn(penumbraHalo.opacity, 0, deltaTime * 4);
+      umbraCore.opacity = lerpFn(umbraCore.opacity, 0, deltaTime * 4);
       return;
     }
 
     const metrics = calculateShadowMetrics(
       baleia.pos.x,
       baleia.pos.y,
-      baleia.angle,
+      baleia.angle ?? 0,
       GAME_CONFIG.SEA_LEVEL,
       130,
-      k.height()
+      typeof legacyCtx.height === "function" ? legacyCtx.height() : 360
     );
 
-    // Se a sombra estiver com opacidade 0 (meia-água), oculta imediatamente sem manchas
     if (metrics.opacity <= 0.001) {
       umbraCore.opacity = 0;
       penumbraHalo.opacity = 0;
       return;
     }
 
-    // Harmoniza o tom da sombra com o bioma atual
     const currentBiome = getCurrentBiome(baleia.pos.x);
     const floorColor = currentBiome.floorColor || [10, 24, 38];
     const shadowR = Math.max(2, Math.round(floorColor[0] * 0.45));
     const shadowG = Math.max(6, Math.round(floorColor[1] * 0.45));
     const shadowB = Math.max(16, Math.round(floorColor[2] * 0.45));
-    const shadowColor = k.rgb(shadowR, shadowG, shadowB);
+    const shadowColor =
+      typeof legacyCtx.rgb === "function"
+        ? legacyCtx.rgb(shadowR, shadowG, shadowB)
+        : [shadowR, shadowG, shadowB];
 
-    // Quando na superfície d'água durante salto, posiciona imediatamente em Y para não flutuar no ar
     if (metrics.isCastOnWaterSurface) {
       umbraCore.pos.x = metrics.positionX;
       umbraCore.pos.y = metrics.positionY;
       umbraCore.angle = 0;
     } else {
       const lerpFactor = Math.min(1, deltaTime * 12);
-      umbraCore.pos.x = k.lerp(umbraCore.pos.x, metrics.positionX, lerpFactor);
-      umbraCore.pos.y = k.lerp(umbraCore.pos.y, metrics.positionY, lerpFactor);
-      umbraCore.angle = k.lerp(umbraCore.angle, metrics.angle, lerpFactor);
+      umbraCore.pos.x = lerpFn(umbraCore.pos.x, metrics.positionX, lerpFactor);
+      umbraCore.pos.y = lerpFn(umbraCore.pos.y, metrics.positionY, lerpFactor);
+      umbraCore.angle = lerpFn(umbraCore.angle ?? 0, metrics.angle, lerpFactor);
     }
 
     penumbraHalo.pos.x = umbraCore.pos.x;
@@ -184,12 +392,19 @@ export function setupDynamicShadowSystem(
 
   return {
     destroy: () => {
-      if (typeof updateHandler?.cancel === "function") {
-        updateHandler.cancel();
+      if (
+        updateHandler &&
+        typeof updateHandler === "object" &&
+        "cancel" in updateHandler &&
+        typeof (updateHandler as { cancel: () => void }).cancel === "function"
+      ) {
+        (updateHandler as { cancel: () => void }).cancel();
+      } else if (typeof updateHandler === "function") {
+        (updateHandler as () => void)();
       }
-      if (typeof k.destroy === "function") {
-        k.destroy(umbraCore);
-        k.destroy(penumbraHalo);
+      if (typeof legacyCtx.destroy === "function") {
+        legacyCtx.destroy(umbraCore);
+        legacyCtx.destroy(penumbraHalo);
       }
     },
     getShadowObject: () => umbraCore,

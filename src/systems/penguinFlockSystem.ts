@@ -1,10 +1,46 @@
-import type { GameObj, KaboomCtx } from "kaboom";
 import { GAME_CONFIG } from "../config";
 import { audioSystem } from "./audioSystem";
 import { getParticlePool } from "./particlePool";
 import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 import { getActivePlayerObject } from "../entities/player";
 import { getRandomFloat } from "../utils/random";
+
+export interface PenguinVector2D {
+  x: number;
+  y: number;
+}
+
+export interface PenguinGameObject {
+  pos: PenguinVector2D;
+  scale: { x: number; y: number } | number | unknown;
+  angle?: number;
+  opacity?: number;
+  hidden?: boolean;
+  add: (components: unknown[]) => PenguinGameObject;
+  onUpdate?: (cb: () => void) => void;
+}
+
+export interface PenguinEngineContext<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = PenguinVector2D,
+> {
+  add: (components: unknown[]) => unknown;
+  destroy: (obj: TDestroyable) => void;
+  dt: () => number;
+  onUpdate: (cb: () => void) => void;
+  rect: (w: number, h: number, opt?: { radius?: number }) => unknown;
+  circle: (r: number) => unknown;
+  polygon: (pts: TVec[]) => unknown;
+  pos: (x: number, y: number) => unknown;
+  color: (r: number | TColor, g?: number, b?: number) => unknown;
+  scale: (s: TVec | number) => unknown;
+  anchor: (a: "center") => unknown;
+  opacity: (o: number) => unknown;
+  z: (v: number) => unknown;
+  rgb?: (r: number, g: number, b: number) => TColor;
+  vec2: (x: number, y: number) => TVec;
+}
 
 /**
  * Sistema de Colônias Residentes de Pinguins-de-Magalhães (*Spheniscus magellanicus*) em Loop Contínuo.
@@ -16,11 +52,15 @@ import { getRandomFloat } from "../utils/random";
  * 3. Inteligência de Bando (Flocking/Boid): os indivíduos mantêm espaçamento elástico,
  *    curvas em U sincronizadas e emissão de micro-bolhas de mergulho.
  *
- * @param k - Instância do contexto Kaboom.js.
+ * @param k - Instância do contexto agnóstico do motor.
  */
-export function setupPenguinFlockSystem(k: KaboomCtx) {
+export function setupPenguinFlockSystem<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = PenguinVector2D,
+>(k: PenguinEngineContext<TDestroyable, TColor, TVec>) {
   let isSystemActive = true;
-  const allPenguinBodies: GameObj[] = [];
+  const allPenguinBodies: PenguinGameObject[] = [];
 
   const COLONIES = [
     {
@@ -67,8 +107,8 @@ export function setupPenguinFlockSystem(k: KaboomCtx) {
 
   COLONIES.forEach((colony) => {
     const penguins: Array<{
-      obj: GameObj;
-      wing: GameObj;
+      obj: PenguinGameObject;
+      wing: PenguinGameObject;
       baseOffsetX: number;
       baseOffsetY: number;
       swimPhase: number;
@@ -90,7 +130,7 @@ export function setupPenguinFlockSystem(k: KaboomCtx) {
         k.scale(k.vec2(colony.initialDir, 1)),
         k.z(13),
         "penguin",
-      ]);
+      ]) as PenguinGameObject;
 
       // Ventre branco brilhante
       pBody.add([
@@ -116,7 +156,7 @@ export function setupPenguinFlockSystem(k: KaboomCtx) {
         k.polygon([k.vec2(0, 0), k.vec2(-2.5, 4), k.vec2(-5, 0.8)]),
         k.pos(0.5, 0.5),
         k.color(10, 12, 16),
-      ]);
+      ]) as PenguinGameObject;
 
       // Patas
       pBody.add([k.rect(2.5, 1.5), k.pos(-7, 1.2), k.color(215, 120, 45), k.anchor("center")]);
@@ -253,7 +293,10 @@ export function setupPenguinFlockSystem(k: KaboomCtx) {
                     pool.spawnCircle({
                       pos: splashPos,
                       radius: 1.2,
-                      color: k.rgb(220, 240, 255),
+                      color:
+                        typeof k.rgb === "function"
+                          ? k.rgb(220, 240, 255)
+                          : { r: 220, g: 240, b: 255 },
                       opacity: 0.8,
                       z: 14,
                       vel: k.vec2(0, -25),
@@ -263,15 +306,17 @@ export function setupPenguinFlockSystem(k: KaboomCtx) {
                   } else {
                     const splash = k.add([
                       k.circle(1.2),
-                      k.pos(splashPos),
+                      k.pos(splashPos.x, splashPos.y),
                       k.color(220, 240, 255),
                       k.opacity(0.8),
                       k.z(14),
-                    ]);
-                    splash.onUpdate(() => {
-                      splash.pos.y -= dt * 25;
-                      splash.opacity -= dt * 3.0;
-                      if (splash.opacity <= 0) k.destroy(splash);
+                    ]) as PenguinGameObject;
+                    k.onUpdate(() => {
+                      if (splash.opacity !== undefined) {
+                        splash.pos.y -= dt * 25;
+                        splash.opacity -= dt * 3.0;
+                        if (splash.opacity <= 0) k.destroy(splash as unknown as TDestroyable);
+                      }
                     });
                   }
                 }
@@ -289,7 +334,13 @@ export function setupPenguinFlockSystem(k: KaboomCtx) {
         penguin.obj.pos.y =
           GAME_CONFIG.SEA_LEVEL + colony.depth + penguin.baseOffsetY + waveY + leapY + turnYOffset;
 
-        penguin.obj.scale.x = effectiveScaleX;
+        if (
+          typeof penguin.obj.scale === "object" &&
+          penguin.obj.scale !== null &&
+          "x" in penguin.obj.scale
+        ) {
+          (penguin.obj.scale as { x: number; y: number }).x = effectiveScaleX;
+        }
 
         if (penguin.isLeaping && penguin.leapProgress >= 0) {
           penguin.obj.angle = -dir * leapPitch;
@@ -311,7 +362,8 @@ export function setupPenguinFlockSystem(k: KaboomCtx) {
               pool.spawnCircle({
                 pos: bubblePos,
                 radius: 1.0,
-                color: k.rgb(210, 240, 255),
+                color:
+                  typeof k.rgb === "function" ? k.rgb(210, 240, 255) : { r: 210, g: 240, b: 255 },
                 opacity: 0.65,
                 z: 11,
                 vel: k.vec2(-currentFacing * 20, -15),
@@ -321,16 +373,18 @@ export function setupPenguinFlockSystem(k: KaboomCtx) {
             } else {
               const bubble = k.add([
                 k.circle(1.0),
-                k.pos(bubblePos),
+                k.pos(bubblePos.x, bubblePos.y),
                 k.color(210, 240, 255),
                 k.opacity(0.65),
                 k.z(11),
-              ]);
-              bubble.onUpdate(() => {
-                bubble.pos.x -= currentFacing * dt * 20;
-                bubble.pos.y -= dt * 15;
-                bubble.opacity -= dt * 2.5;
-                if (bubble.opacity <= 0) k.destroy(bubble);
+              ]) as PenguinGameObject;
+              k.onUpdate(() => {
+                if (bubble.opacity !== undefined) {
+                  bubble.pos.x -= currentFacing * dt * 20;
+                  bubble.pos.y -= dt * 15;
+                  bubble.opacity -= dt * 2.5;
+                  if (bubble.opacity <= 0) k.destroy(bubble as unknown as TDestroyable);
+                }
               });
             }
           }

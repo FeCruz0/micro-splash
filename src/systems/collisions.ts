@@ -1,4 +1,3 @@
-import type { GameObj, KaboomCtx } from "kaboom";
 import { TAGS, GAME_CONFIG } from "../config";
 import { audioSystem } from "./audioSystem";
 import { hapticsSystem } from "./hapticsSystem";
@@ -8,31 +7,58 @@ import type { GameState } from "./state";
 import { getSereneInsightsManager } from "./sereneMigrationInsights";
 import { isCompanionCollidable } from "../entities/companion/types";
 
-interface AirVentEntity extends GameObj {
+export interface CollisionVector2D {
+  x: number;
+  y: number;
+}
+
+export interface CollisionGameObject {
+  pos?: { x?: number; y?: number };
+}
+
+export interface AirVentEntity extends CollisionGameObject {
   collectAir?: () => boolean;
 }
 
-interface IceBlockEntity extends GameObj {
+export interface IceBlockEntity extends CollisionGameObject {
+  pos: { y: number; x?: number };
   breakIce?: () => void;
 }
 
-export function setupCollisions(
-  k: KaboomCtx,
+export interface CompanionCollisionGameObject extends CollisionGameObject {
+  consumeKrill?: (krill: unknown) => void;
+  handleIceCollision?: (iceBlock: unknown) => void;
+  handleObstacleCollision?: (obstacle: unknown) => void;
+  handleNetCollision?: (net: unknown) => void;
+}
+
+export interface CollisionsEngineContext<TDestroyable = unknown> {
+  onCollide: (tag1: string, tag2: string, cb: (obj1: unknown, obj2: unknown) => void) => unknown;
+  destroy: (obj: TDestroyable) => void;
+  time: () => number;
+  shake?: (amount: number) => void;
+}
+
+export function setupCollisions<TDestroyable = unknown>(
+  k: CollisionsEngineContext<TDestroyable>,
   playerController: PlayerController,
   gameState: GameState
 ) {
   // colisão com lixo
-  k.onCollide(TAGS.PLAYER, TAGS.TRASH, (_player, trash) => {
+  k.onCollide(TAGS.PLAYER, TAGS.TRASH, (playerObj, trashObj) => {
     if (playerController.isFrozen()) return;
 
+    const trash = trashObj as CollisionGameObject;
+    const player = playerObj as CollisionGameObject;
+
     // Destrói o lixo plástico colidido
-    k.destroy(trash);
+    k.destroy(trashObj as unknown as TDestroyable);
 
     gameState.addTrash();
     getSereneInsightsManager()?.trigger("ocean_trash_threat");
 
     // Som de impacto no plástico e vibração tátil
-    audioSystem.playTrashThud(trash.pos?.x, _player.pos?.x);
+    audioSystem.playTrashThud(trash.pos?.x, player.pos?.x);
     hapticsSystem.triggerCollision();
 
     // Aplica desaceleração instantânea (perde 50% da velocidade)
@@ -47,38 +73,47 @@ export function setupCollisions(
   });
 
   // Interação com Bolsão de Ar Natural (coluna de micro-bolhas de oxigênio)
-  k.onCollide(TAGS.PLAYER, TAGS.AIR_POCKET, (_player, vent: AirVentEntity) => {
+  k.onCollide(TAGS.PLAYER, TAGS.AIR_POCKET, (playerObj, ventObj) => {
     if (playerController.isFrozen()) return;
 
+    const vent = ventObj as AirVentEntity;
+    const player = playerObj as CollisionGameObject;
+
     if (vent.collectAir && vent.collectAir()) {
-      audioSystem.playPowerupCollect(vent.pos?.x, _player.pos?.x);
+      audioSystem.playPowerupCollect(vent.pos?.x, player.pos?.x);
       playerController.restoreOxygen(playerController.getMaxOxygen() * 0.35);
       accessibilitySystem.triggerShake(k, 1.5);
     }
   });
 
   // colisão com krill (Fase 3: Progressão Nutricional)
-  k.onCollide(TAGS.PLAYER, TAGS.KRILL, (_player, krill) => {
+  k.onCollide(TAGS.PLAYER, TAGS.KRILL, (playerObj, krillObj) => {
     if (playerController.isFrozen()) return;
 
-    k.destroy(krill);
+    const krill = krillObj as CollisionGameObject;
+    const player = playerObj as CollisionGameObject;
+
+    k.destroy(krillObj as unknown as TDestroyable);
     gameState.addKrill();
     getSereneInsightsManager()?.trigger("krill_feeding");
 
     // Som biológico de sucção e deglutição de krill com espacialização estéreo (Fase 5/34)
-    audioSystem.playKrillGulp(krill.pos?.x, _player.pos?.x);
+    audioSystem.playKrillGulp(krill.pos?.x, player.pos?.x);
 
     // Aplica impulso, restaura fôlego e evolui +1% em velocidade máx e oxigênio máx permanente
     playerController.consumeKrill();
   });
 
   // colisao com rede fantasma
-  k.onCollide(TAGS.PLAYER, TAGS.NET, (_player, net) => {
+  k.onCollide(TAGS.PLAYER, TAGS.NET, (playerObj, netObj) => {
     if (playerController.isFrozen()) return;
 
-    k.destroy(net); // remove rede do mapa
+    const net = netObj as CollisionGameObject;
+    const player = playerObj as CollisionGameObject;
+
+    k.destroy(netObj as unknown as TDestroyable); // remove rede do mapa
     getSereneInsightsManager()?.trigger("ghost_net_entanglement");
-    audioSystem.playNetTangle(net.pos?.x, _player.pos?.x);
+    audioSystem.playNetTangle(net.pos?.x, player.pos?.x);
     hapticsSystem.triggerCollision();
 
     if (!playerController.isTrapped()) {
@@ -92,11 +127,19 @@ export function setupCollisions(
   });
 
   // Colisão com blocos de gelo: quebra apenas quando atingido por cima ao cair do salto
-  k.onCollide(TAGS.PLAYER, "ice_block", (player, iceBlock: IceBlockEntity) => {
+  k.onCollide(TAGS.PLAYER, "ice_block", (playerObj, iceBlockObj) => {
     if (playerController.isFrozen()) return;
 
+    const player = playerObj as CollisionGameObject;
+    const iceBlock = iceBlockObj as IceBlockEntity;
+
     const vel = playerController.getSpeed();
-    if (player.pos.y <= iceBlock.pos.y + 8 && vel.y >= 0) {
+    if (
+      player.pos &&
+      player.pos.y !== undefined &&
+      player.pos.y <= iceBlock.pos.y + 8 &&
+      vel.y >= 0
+    ) {
       if (iceBlock.breakIce) {
         hapticsSystem.triggerIceBreach();
         iceBlock.breakIce();
@@ -122,36 +165,42 @@ export function setupCollisions(
   // =========================================================================
 
   // Alimentação por filtração autônoma: consome krill real do mapa
-  k.onCollide("companion_whale", TAGS.KRILL, (companion: GameObj, krill: GameObj) => {
+  k.onCollide("companion_whale", TAGS.KRILL, (companionObj, krillObj) => {
+    const companion = companionObj as CompanionCollisionGameObject;
+    const krill = krillObj as CollisionGameObject;
+
     if (isCompanionCollidable(companion) && typeof companion.consumeKrill === "function") {
-      companion.consumeKrill(krill);
+      companion.consumeKrill(krillObj);
     } else {
-      k.destroy(krill);
+      k.destroy(krillObj as unknown as TDestroyable);
       audioSystem.playKrillGulp(krill.pos?.x, companion.pos?.x);
     }
   });
 
   // Reação a blocos de gelo: impede travessia sólida da banquisa polar por baixo
-  k.onCollide("companion_whale", "ice_block", (companion: GameObj, iceBlock: GameObj) => {
+  k.onCollide("companion_whale", "ice_block", (companionObj, iceBlockObj) => {
+    const companion = companionObj as CompanionCollisionGameObject;
     if (isCompanionCollidable(companion) && typeof companion.handleIceCollision === "function") {
-      companion.handleIceCollision(iceBlock);
+      companion.handleIceCollision(iceBlockObj);
     }
   });
 
   // Reação a obstáculos rochosos
-  k.onCollide("companion_whale", TAGS.OBSTACLE, (companion: GameObj, obstacle: GameObj) => {
+  k.onCollide("companion_whale", TAGS.OBSTACLE, (companionObj, obstacleObj) => {
+    const companion = companionObj as CompanionCollisionGameObject;
     if (
       isCompanionCollidable(companion) &&
       typeof companion.handleObstacleCollision === "function"
     ) {
-      companion.handleObstacleCollision(obstacle);
+      companion.handleObstacleCollision(obstacleObj);
     }
   });
 
   // Reação a redes fantasmas (Fase 60)
-  k.onCollide("companion_whale", TAGS.NET, (companion: GameObj, net: GameObj) => {
+  k.onCollide("companion_whale", TAGS.NET, (companionObj, netObj) => {
+    const companion = companionObj as CompanionCollisionGameObject;
     if (isCompanionCollidable(companion) && typeof companion.handleNetCollision === "function") {
-      companion.handleNetCollision(net);
+      companion.handleNetCollision(netObj);
     }
   });
 }

@@ -1,13 +1,21 @@
-import type { GameObj, KaboomCtx } from "kaboom";
 import { audioSystem } from "../systems/audioSystem";
 import { createGameState } from "../systems/state";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
-import { createFocusGroup, type FocusableItem } from "./keyboardNav";
-import { animateModalEntrance, attachButtonHoverEffect } from "./animationUtils";
+import { createFocusGroup, type FocusableItem, type LegacyKeyboardNavContext } from "./keyboardNav";
+import {
+  animateModalEntrance,
+  attachButtonHoverEffect,
+  type AnimationEngineContext,
+  type AnimationUiObject,
+} from "./animationUtils";
 import { readLocalStorageWithSchema } from "../utils/storage";
 import { UnlockedFactsArraySchema } from "../schemas/storageSchemas";
 import { getCodexBiomeInfo } from "./codex/codexUtils";
-import type { CodexTabContext } from "./codex/codexTypes";
+import type {
+  CodexTabContext,
+  LegacyCodexEngineContext,
+  ShowCodexEngineContext,
+} from "./codex/codexTypes";
 import { renderSpeciesTab } from "./codex/codexSpeciesTab";
 import { renderRouteTab } from "./codex/codexRouteTab";
 import { renderConservationTab } from "./codex/codexConservationTab";
@@ -17,101 +25,110 @@ import {
   renderCodexFooter,
   type CodexTabId,
 } from "./codex/codexNavigation";
+import type { Vector2D } from "../engine/contracts/INTERFACE_CONTRACTS";
 
 export { getCodexBiomeInfo };
+export type { ShowCodexEngineContext };
 
-export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
+export function showCodexScreen(k: ShowCodexEngineContext, onBack: () => void) {
+  const engine = k as unknown as LegacyCodexEngineContext;
   audioSystem.playUiClick();
 
-  const elements: GameObj[] = [];
+  const elements: Array<{ destroy?: () => void } | object> = [];
   let isClosed = false;
   let isModalOpen = false;
 
   // Fundo escuro semitransparente bloqueando cliques fora do modal
-  const backdrop = k.add([
-    k.rect(k.width(), k.height()),
-    k.pos(0, 0),
-    k.color(4, 14, 32),
-    k.opacity(0.95),
-    k.area(),
-    k.fixed(),
-    k.z(300),
-  ]);
-  elements.push(backdrop);
+  elements.push(
+    engine.add([
+      engine.rect(engine.width(), engine.height()),
+      engine.pos(0, 0),
+      engine.color(4, 14, 32),
+      engine.opacity(0.95),
+      engine.area(),
+      engine.fixed(),
+      engine.z(300),
+    ])
+  );
 
   // Card do Diário de Bordo (Codex) com geometria adaptativa expandida (Fase 34.1)
-  const cardW = Math.min(1000, k.width() - 24);
-  const cardH = Math.min(660, k.height() - 20);
-  const cX = k.width() / 2;
-  const cY = k.height() / 2;
+  const cardW = Math.min(1000, engine.width() - 24);
+  const cardH = Math.min(660, engine.height() - 20);
+  const cX = engine.width() / 2;
+  const cY = engine.height() / 2;
 
-  const card = renderCodexHeader(k, cX, cY, cardW, cardH, elements);
-  animateModalEntrance(k, card);
+  const card = renderCodexHeader(engine, cX, cY, cardW, cardH, elements);
+  animateModalEntrance(
+    engine as unknown as AnimationEngineContext,
+    card as unknown as AnimationUiObject
+  );
 
-  let contentElements: GameObj[] = [];
+  let contentElements: Array<{ destroy?: () => void } | object> = [];
   let focusGroup: { destroy: () => void } | null = null;
 
   // Botão fechar [X] no canto superior direito
-  const btnXPos = k.vec2(cX + cardW / 2 - 32, cY - cardH / 2 + 32);
-  const btnX = k.add([
-    k.rect(38, 38, { radius: 8 }),
-    k.pos(btnXPos),
-    k.color(22, 50, 90),
-    k.outline(1, k.rgb(100, 200, 255)),
-    k.scale(1),
-    k.anchor("center"),
-    k.area(),
-    k.fixed(),
-    k.z(305),
+  const btnXPos = engine.vec2(cX + cardW / 2 - 32, cY - cardH / 2 + 32);
+  const btnX = engine.add([
+    engine.rect(38, 38, { radius: 8 }),
+    engine.pos(btnXPos),
+    engine.color(22, 50, 90),
+    engine.outline(1, engine.rgb(100, 200, 255)),
+    engine.scale(1),
+    engine.anchor("center"),
+    engine.area(),
+    engine.fixed(),
+    engine.z(305),
   ]);
   elements.push(btnX);
 
   elements.push(
-    k.add([
-      k.text("✕", {
+    engine.add([
+      engine.text("✕", {
         size: accessibilitySystem.scaleFont(20),
         font: "Outfit",
       }),
-      k.pos(btnXPos),
-      k.color(255, 255, 255),
-      k.anchor("center"),
-      k.fixed(),
-      k.z(306),
+      engine.pos(btnXPos),
+      engine.color(255, 255, 255),
+      engine.anchor("center"),
+      engine.fixed(),
+      engine.z(306),
     ])
   );
+
+  const destroyAll = (list: Array<{ destroy?: () => void } | object>) => {
+    list.forEach((el) => {
+      try {
+        engine.destroy(el);
+      } catch {}
+    });
+  };
 
   const close = () => {
     if (isClosed || isModalOpen) return;
     isClosed = true;
     audioSystem.playUiClick();
-    if (focusGroup) {
-      focusGroup.destroy();
-      focusGroup = null;
-    }
+    focusGroup?.destroy();
+    focusGroup = null;
     if (typeof window !== "undefined") {
       window.removeEventListener("keydown", keyHandler);
     }
-    elements.forEach((el) => {
-      try {
-        k.destroy(el);
-      } catch {}
-    });
-    contentElements.forEach((el) => {
-      try {
-        k.destroy(el);
-      } catch {}
-    });
+    destroyAll(elements);
+    destroyAll(contentElements);
     onBack();
   };
 
-  attachButtonHoverEffect(k, btnX, {
-    baseColor: [22, 50, 90],
-    hoverColor: [180, 50, 50],
-    baseScale: 1.0,
-    hoverScale: 1.06,
-    canInteract: () => !isClosed && !isModalOpen,
-  });
-  btnX.onClick(close);
+  attachButtonHoverEffect(
+    engine as unknown as AnimationEngineContext,
+    btnX as unknown as AnimationUiObject,
+    {
+      baseColor: [22, 50, 90],
+      hoverColor: [180, 50, 50],
+      baseScale: 1.0,
+      hoverScale: 1.06,
+      canInteract: () => !isClosed && !isModalOpen,
+    }
+  );
+  btnX.onClick?.(close);
 
   // Tecla ESC para fechar
   const keyHandler = (e: KeyboardEvent) => {
@@ -140,7 +157,7 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
   const contentBoxH = contentBoxBottom - contentBoxTop;
 
   const navOptions = {
-    k,
+    k: engine,
     cX,
     cY,
     cardW,
@@ -163,10 +180,8 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
 
   // Atualização do grupo de foco acessível
   const setupKeyboardFocus = (dynamicItems: FocusableItem[] = []) => {
-    if (focusGroup) {
-      focusGroup.destroy();
-      focusGroup = null;
-    }
+    focusGroup?.destroy();
+    focusGroup = null;
 
     const items: FocusableItem[] = [
       {
@@ -176,7 +191,7 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
         onActivate: close,
       },
       ...tabEntities.map((t) => ({
-        pos: t.btn.pos,
+        pos: (t.btn as unknown as { pos: Vector2D }).pos,
         width: tabW,
         height: tabH,
         onActivate: () => {
@@ -203,9 +218,13 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
           if (!isModalOpen) {
             isModalOpen = true;
             const { showOnboardingModal } = await import("./onboardingModal");
-            showOnboardingModal(k, () => {
+            const onDone = () => {
               isModalOpen = false;
-            });
+            };
+            showOnboardingModal(
+              engine as unknown as Parameters<typeof showOnboardingModal>[0],
+              onDone
+            );
           }
         },
       },
@@ -218,22 +237,21 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
             isModalOpen = true;
             const testState = createGameState();
             const { showQuizModal } = await import("./quizModal");
+            const onDone = () => {
+              isModalOpen = false;
+            };
             showQuizModal(
-              k,
+              engine as unknown as Parameters<typeof showQuizModal>[0],
               testState,
-              () => {
-                isModalOpen = false;
-              },
-              () => {
-                isModalOpen = false;
-              }
+              onDone,
+              onDone
             );
           }
         },
       },
     ];
 
-    focusGroup = createFocusGroup(k, {
+    focusGroup = createFocusGroup(engine as unknown as LegacyKeyboardNavContext, {
       items,
       initialIndex: 4, // Foca no primeiro botão de ação por padrão
       isEnabled: () => !isClosed && !isModalOpen,
@@ -241,17 +259,13 @@ export function showCodexScreen(k: KaboomCtx, onBack: () => void) {
   };
 
   const renderTabContent = () => {
-    contentElements.forEach((el) => {
-      try {
-        k.destroy(el);
-      } catch {}
-    });
+    destroyAll(contentElements);
     contentElements = [];
 
     const dynamicFocusItems: FocusableItem[] = [];
 
     const context: CodexTabContext = {
-      k,
+      k: engine,
       cX,
       cY,
       cardW,

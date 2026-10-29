@@ -1,8 +1,18 @@
-import type { GameObj, KaboomCtx } from "kaboom";
 import { GAME_CONFIG, TAGS } from "../../config";
-import type { CanyonConfig, CanyonGeometryResult, CanyonFoamParticle } from "./canyonTypes";
+import type {
+  CanyonConfig,
+  CanyonGeometryResult,
+  CanyonFoamParticle,
+  CanyonEngineContext,
+  CanyonVector2D,
+  CanyonGameObject,
+  CanyonOutlinedGameObject,
+} from "./canyonTypes";
 
-export function setupCanyonGeometry(k: KaboomCtx, config: CanyonConfig): CanyonGeometryResult {
+export function setupCanyonGeometry<
+  TColor = unknown,
+  TVec extends { x: number; y: number } = CanyonVector2D,
+>(k: CanyonEngineContext<TColor, TVec>, config: CanyonConfig): CanyonGeometryResult<TColor> {
   const {
     surfaceY,
     deepFloorY,
@@ -49,7 +59,7 @@ export function setupCanyonGeometry(k: KaboomCtx, config: CanyonConfig): CanyonG
         revealTimer = GAME_CONFIG.SONAR_REVEAL_DURATION;
       },
     },
-  ]);
+  ]) as CanyonOutlinedGameObject<TColor>;
 
   // Colisores Físicos Sólidos da Rampa de Subida
   const upSegments = 4;
@@ -106,7 +116,7 @@ export function setupCanyonGeometry(k: KaboomCtx, config: CanyonConfig): CanyonG
         revealTimer = GAME_CONFIG.SONAR_REVEAL_DURATION;
       },
     },
-  ]);
+  ]) as CanyonOutlinedGameObject<TColor>;
 
   // C. Rampa de Descida Orgânica (26.900m a 27.300m)
   const rampDownWidth = boqueiraoEndX - plateauEndX;
@@ -132,7 +142,7 @@ export function setupCanyonGeometry(k: KaboomCtx, config: CanyonConfig): CanyonG
         revealTimer = GAME_CONFIG.SONAR_REVEAL_DURATION;
       },
     },
-  ]);
+  ]) as CanyonOutlinedGameObject<TColor>;
 
   // Colisores Físicos Sólidos da Rampa de Descida
   const downSegments = 4;
@@ -220,7 +230,7 @@ export function setupCanyonGeometry(k: KaboomCtx, config: CanyonConfig): CanyonG
         revealTimer = GAME_CONFIG.SONAR_REVEAL_DURATION;
       },
     },
-  ]);
+  ]) as CanyonOutlinedGameObject<TColor>;
 
   // Cobertura de vegetação de restinga e matas costeiras no topo da ilha
   k.add([
@@ -373,7 +383,7 @@ export function setupCanyonGeometry(k: KaboomCtx, config: CanyonConfig): CanyonG
     k.opacity(0.9),
     k.anchor("center"),
     k.z(-3),
-  ]);
+  ]) as CanyonGameObject<TColor>;
 
   // Feixe cônico de luz do Farol
   const lighthouseBeam = k.add([
@@ -384,10 +394,10 @@ export function setupCanyonGeometry(k: KaboomCtx, config: CanyonConfig): CanyonG
     k.rotate(0),
     k.z(-3),
     "lighthouse_beam",
-  ]);
+  ]) as CanyonGameObject<TColor>;
 
   // E. Reflexo difuso do farol na superfície da água
-  const reflectionSegments: GameObj[] = [];
+  const reflectionSegments: CanyonGameObject<TColor>[] = [];
   for (let r = 0; r < 4; r++) {
     reflectionSegments.push(
       k.add([
@@ -398,12 +408,12 @@ export function setupCanyonGeometry(k: KaboomCtx, config: CanyonConfig): CanyonG
         k.anchor("center"),
         k.z(-2),
         "lighthouse_reflection",
-      ])
+      ]) as CanyonGameObject<TColor>
     );
   }
 
   // F. Espuma costeira animada na base da ilha
-  const foamParticles: CanyonFoamParticle[] = [];
+  const foamParticles: CanyonFoamParticle<TColor>[] = [];
   for (let f = 0; f < 8; f++) {
     const foamBaseX = islandStartX + 60 + Math.round((f * (islandEndX - islandStartX - 120)) / 7);
     foamParticles.push({
@@ -414,7 +424,7 @@ export function setupCanyonGeometry(k: KaboomCtx, config: CanyonConfig): CanyonG
         k.opacity(0.3),
         k.z(-2),
         "island_foam",
-      ]),
+      ]) as CanyonGameObject<TColor>,
       baseX: foamBaseX,
       speed: 14 + (f % 3) * 5,
       phase: f * 0.85,

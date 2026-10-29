@@ -1,5 +1,9 @@
-import type { KaboomCtx } from "kaboom";
+import type { PlayerVector2D } from "./types";
 import type { PlayerPhysicsManager } from "./playerPhysics";
+
+export interface PlayerCollisionEngineContext {
+  vec2(x: number, y: number): PlayerVector2D;
+}
 
 export class PlayerTrapManager {
   private isTrappedState = false;
@@ -8,9 +12,9 @@ export class PlayerTrapManager {
   private isDraftingState = false;
   private isFrozenState = false;
   private physicsMgr: PlayerPhysicsManager;
-  private k: KaboomCtx;
+  private k: PlayerCollisionEngineContext;
 
-  constructor(k: KaboomCtx, physicsMgr: PlayerPhysicsManager) {
+  constructor(k: PlayerCollisionEngineContext, physicsMgr: PlayerPhysicsManager) {
     this.k = k;
     this.physicsMgr = physicsMgr;
   }

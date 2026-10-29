@@ -1,100 +1,160 @@
-import type { GameObj, KaboomCtx } from "kaboom";
 import type { GameState } from "../systems/state";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
 import { formatDualDistance } from "../utils/navigation";
-import { addShadowedText } from "./textUtils";
-import { animateModalEntrance, attachButtonHoverEffect } from "./animationUtils";
+import { addShadowedText, type LegacyShadowedTextContext } from "./textUtils";
+import {
+  animateModalEntrance,
+  attachButtonHoverEffect,
+  type AnimationEngineContext,
+  type AnimationUiObject,
+} from "./animationUtils";
 
-export function showRescueScreen(k: KaboomCtx, gameState: GameState, onRestart: () => void) {
+export interface ShowRescueEngineContext {
+  width(): number;
+  height(): number;
+  add(components?: unknown): unknown;
+}
+
+export interface LegacyRescueUiObject {
+  hidden?: boolean;
+  color?: unknown;
+  scale?: { x: number; y: number } | unknown;
+  width?: number;
+  height?: number;
+  text?: string;
+  outline?: { color?: unknown; width?: number };
+  opacity?: number;
+  destroy?(): void;
+  onHoverUpdate(callback: () => void): unknown;
+  onHoverEnd(callback: () => void): unknown;
+  onClick(callback: () => void): unknown;
+}
+
+export interface LegacyRescueEngineContext {
+  width(): number;
+  height(): number;
+  add(components?: unknown): LegacyRescueUiObject;
+  rect(width: number, height: number, options?: unknown): unknown;
+  pos(x: number, y: number): unknown;
+  pos(position: { x: number; y: number }): unknown;
+  color(...args: unknown[]): unknown;
+  rgb(red: number, green: number, blue: number): unknown;
+  outline(width: number, color: unknown): unknown;
+  opacity(alpha: number): unknown;
+  anchor(anchorPoint: "center" | "topleft" | "left" | "right" | "top"): unknown;
+  fixed(): unknown;
+  z(zIndex: number): unknown;
+  area(): unknown;
+  scale(factor: number): unknown;
+  scale(factor: { x: number; y: number }): unknown;
+  text(content: string, options?: unknown): unknown;
+  destroy(target: unknown): void;
+  vec2(x: number, y: number): { x: number; y: number };
+  onKeyPress(key: string, callback: () => void): { cancel: () => void };
+}
+
+export function showRescueScreen(
+  k: ShowRescueEngineContext,
+  gameState: GameState,
+  onRestart: () => void
+) {
+  const engine = k as unknown as LegacyRescueEngineContext;
   const finalScore = gameState.calculateFinalScore();
   const highScore = gameState.getHighScore();
   const distance = gameState.getDistance();
   const dualDistStr = formatDualDistance(distance);
-  const elementsToDestroy: Array<GameObj | { destroy: () => void }> = [];
+  const elementsToDestroy: Array<{ destroy?: () => void } | object> = [];
 
   // Fundo escuro cinematográfico com transparência suave
-  const backdrop = k.add([
-    k.rect(k.width(), k.height()),
-    k.pos(0, 0),
-    k.color(6, 16, 36),
-    k.opacity(0.94),
-    k.fixed(),
-    k.z(200),
+  const backdrop = engine.add([
+    engine.rect(engine.width(), engine.height()),
+    engine.pos(0, 0),
+    engine.color(6, 16, 36),
+    engine.opacity(0.94),
+    engine.fixed(),
+    engine.z(200),
   ]);
   elementsToDestroy.push(backdrop);
 
   // Dimensões compactas e limpas (sem caixa de texto narrativa)
-  const cardW = Math.min(800, k.width() - 32);
-  const cardH = Math.min(340, k.height() - 24);
-  const centerX = k.width() / 2;
-  const centerY = k.height() / 2;
+  const cardW = Math.min(800, engine.width() - 32);
+  const cardH = Math.min(340, engine.height() - 24);
+  const centerX = engine.width() / 2;
+  const centerY = engine.height() / 2;
   const cardTop = centerY - cardH / 2;
 
   // Card do Relatório de Resgate
-  const card = k.add([
-    k.rect(cardW, cardH, { radius: 16 }),
-    k.pos(centerX, centerY),
-    k.color(10, 26, 54),
-    k.outline(2.5, k.rgb(0, 210, 255)),
-    k.anchor("center"),
-    k.scale(1),
-    k.fixed(),
-    k.z(201),
+  const card = engine.add([
+    engine.rect(cardW, cardH, { radius: 16 }),
+    engine.pos(centerX, centerY),
+    engine.color(10, 26, 54),
+    engine.outline(2.5, engine.rgb(0, 210, 255)),
+    engine.anchor("center"),
+    engine.scale(1),
+    engine.fixed(),
+    engine.z(201),
   ]);
   elementsToDestroy.push(card);
-  animateModalEntrance(k, card);
+  animateModalEntrance(
+    engine as unknown as AnimationEngineContext,
+    card as unknown as AnimationUiObject
+  );
 
   // ==========================================
   // ZONA 1: CABEÇALHO DO RESGATE
   // ==========================================
   const badgeY = cardTop + 28;
-  const badgeBg = k.add([
-    k.rect(220, 22, { radius: 11 }),
-    k.pos(centerX, badgeY),
-    k.color(36, 18, 12),
-    k.outline(1.5, k.rgb(249, 115, 22)),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(202),
+  const badgeBg = engine.add([
+    engine.rect(220, 22, { radius: 11 }),
+    engine.pos(centerX, badgeY),
+    engine.color(36, 18, 12),
+    engine.outline(1.5, engine.rgb(249, 115, 22)),
+    engine.anchor("center"),
+    engine.fixed(),
+    engine.z(202),
   ]);
   elementsToDestroy.push(badgeBg);
 
-  const badgeText = k.add([
-    k.text("🚨 OPERAÇÃO DE SALVAMENTO", {
+  const badgeText = engine.add([
+    engine.text("🚨 OPERAÇÃO DE SALVAMENTO", {
       size: accessibilitySystem.scaleFont(11),
       font: "Outfit",
     }),
-    k.pos(centerX, badgeY),
-    k.color(255, 185, 90),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(203),
+    engine.pos(centerX, badgeY),
+    engine.color(255, 185, 90),
+    engine.anchor("center"),
+    engine.fixed(),
+    engine.z(203),
   ]);
   elementsToDestroy.push(badgeText);
 
   const titleY = cardTop + 58;
-  const titleShadowHandle = addShadowedText(k, "RESGATE DA GUARDA MARÍTIMA", {
-    pos: k.vec2(centerX, titleY),
-    size: accessibilitySystem.scaleFont(22.5),
-    font: "Outfit",
-    color: k.rgb(255, 222, 50),
-    shadowColor: k.rgb(2, 10, 24),
-    anchor: "center",
-    z: 203,
-  });
+  const titleShadowHandle = addShadowedText(
+    engine as unknown as LegacyShadowedTextContext,
+    "RESGATE DA GUARDA MARÍTIMA",
+    {
+      pos: engine.vec2(centerX, titleY),
+      size: accessibilitySystem.scaleFont(22.5),
+      font: "Outfit",
+      color: engine.rgb(255, 222, 50),
+      shadowColor: engine.rgb(2, 10, 24),
+      anchor: "center",
+      z: 203,
+    }
+  );
   elementsToDestroy.push(titleShadowHandle);
 
   const subTitleY = cardTop + 86;
-  const subTitle = k.add([
-    k.text("Cuidados Veterinários & Estabilização", {
+  const subTitle = engine.add([
+    engine.text("Cuidados Veterinários & Estabilização", {
       size: accessibilitySystem.scaleFont(13.5),
       font: "Inter",
     }),
-    k.pos(centerX, subTitleY),
-    k.color(160, 225, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(203),
+    engine.pos(centerX, subTitleY),
+    engine.color(160, 225, 255),
+    engine.anchor("center"),
+    engine.fixed(),
+    engine.z(203),
   ]);
   elementsToDestroy.push(subTitle);
 
@@ -117,9 +177,9 @@ export function showRescueScreen(k: KaboomCtx, gameState: GameState, onRestart: 
       sub: `${percentRoute}% da rota`,
       x: centerX - (statW * 1.5 + statGap * 1.5),
       bg: [11, 30, 62] as [number, number, number],
-      outline: k.rgb(56, 189, 248),
-      valColor: k.rgb(255, 255, 255),
-      labelColor: k.rgb(160, 215, 255),
+      outline: engine.rgb(56, 189, 248),
+      valColor: engine.rgb(255, 255, 255),
+      labelColor: engine.rgb(160, 215, 255),
     },
     {
       label: "⭐ PONTUAÇÃO",
@@ -127,9 +187,9 @@ export function showRescueScreen(k: KaboomCtx, gameState: GameState, onRestart: 
       sub: finalScore >= highScore && highScore > 0 ? "Novo Recorde! 🎉" : "Desempenho",
       x: centerX - (statW * 0.5 + statGap * 0.5),
       bg: [11, 30, 62] as [number, number, number],
-      outline: k.rgb(250, 204, 21),
-      valColor: k.rgb(255, 225, 90),
-      labelColor: k.rgb(255, 220, 100),
+      outline: engine.rgb(250, 204, 21),
+      valColor: engine.rgb(255, 225, 90),
+      labelColor: engine.rgb(255, 220, 100),
     },
     {
       label: "🏆 RECORDE",
@@ -137,9 +197,9 @@ export function showRescueScreen(k: KaboomCtx, gameState: GameState, onRestart: 
       sub: "Melhor histórico",
       x: centerX + (statW * 0.5 + statGap * 0.5),
       bg: [18, 38, 72] as [number, number, number],
-      outline: k.rgb(234, 179, 8),
-      valColor: k.rgb(255, 235, 120),
-      labelColor: k.rgb(255, 220, 130),
+      outline: engine.rgb(234, 179, 8),
+      valColor: engine.rgb(255, 235, 120),
+      labelColor: engine.rgb(255, 220, 130),
     },
     {
       label: "🦐 KRILL & TEMPO",
@@ -147,60 +207,60 @@ export function showRescueScreen(k: KaboomCtx, gameState: GameState, onRestart: 
       sub: `${gameState.getTrashCount()} lixo evitado`,
       x: centerX + (statW * 1.5 + statGap * 1.5),
       bg: [11, 30, 62] as [number, number, number],
-      outline: k.rgb(52, 211, 153),
-      valColor: k.rgb(210, 250, 230),
-      labelColor: k.rgb(150, 240, 200),
+      outline: engine.rgb(52, 211, 153),
+      valColor: engine.rgb(210, 250, 230),
+      labelColor: engine.rgb(150, 240, 200),
     },
   ];
 
   statConfigs.forEach((sc) => {
-    const sBox = k.add([
-      k.rect(statW, statH, { radius: 9 }),
-      k.pos(sc.x, statY),
-      k.color(sc.bg[0], sc.bg[1], sc.bg[2]),
-      k.outline(1.5, sc.outline),
-      k.anchor("center"),
-      k.fixed(),
-      k.z(202),
+    const sBox = engine.add([
+      engine.rect(statW, statH, { radius: 9 }),
+      engine.pos(sc.x, statY),
+      engine.color(sc.bg[0], sc.bg[1], sc.bg[2]),
+      engine.outline(1.5, sc.outline),
+      engine.anchor("center"),
+      engine.fixed(),
+      engine.z(202),
     ]);
     elementsToDestroy.push(sBox);
 
-    const sLabel = k.add([
-      k.text(sc.label, {
+    const sLabel = engine.add([
+      engine.text(sc.label, {
         size: accessibilitySystem.scaleFont(11),
         font: "Outfit",
       }),
-      k.pos(sc.x, statY - 20),
-      k.color(sc.labelColor),
-      k.anchor("center"),
-      k.fixed(),
-      k.z(203),
+      engine.pos(sc.x, statY - 20),
+      engine.color(sc.labelColor),
+      engine.anchor("center"),
+      engine.fixed(),
+      engine.z(203),
     ]);
     elementsToDestroy.push(sLabel);
 
-    const sVal = k.add([
-      k.text(sc.value, {
+    const sVal = engine.add([
+      engine.text(sc.value, {
         size: accessibilitySystem.scaleFont(15.5),
         font: "Outfit",
       }),
-      k.pos(sc.x, statY + 2),
-      k.color(sc.valColor),
-      k.anchor("center"),
-      k.fixed(),
-      k.z(203),
+      engine.pos(sc.x, statY + 2),
+      engine.color(sc.valColor),
+      engine.anchor("center"),
+      engine.fixed(),
+      engine.z(203),
     ]);
     elementsToDestroy.push(sVal);
 
-    const sSub = k.add([
-      k.text(sc.sub, {
+    const sSub = engine.add([
+      engine.text(sc.sub, {
         size: accessibilitySystem.scaleFont(10.5),
         font: "Inter",
       }),
-      k.pos(sc.x, statY + 22),
-      k.color(140, 175, 215),
-      k.anchor("center"),
-      k.fixed(),
-      k.z(203),
+      engine.pos(sc.x, statY + 22),
+      engine.color(140, 175, 215),
+      engine.anchor("center"),
+      engine.fixed(),
+      engine.z(203),
     ]);
     elementsToDestroy.push(sSub);
   });
@@ -212,42 +272,42 @@ export function showRescueScreen(k: KaboomCtx, gameState: GameState, onRestart: 
   const btnH = 48;
   const btnY = cardTop + 250;
 
-  const restartButton = k.add([
-    k.rect(btnW, btnH, { radius: 11 }),
-    k.pos(centerX, btnY),
-    k.color(20, 115, 185),
-    k.outline(2, k.rgb(0, 230, 255)),
-    k.scale(1),
-    k.anchor("center"),
-    k.area(),
-    k.fixed(),
-    k.z(204),
+  const restartButton = engine.add([
+    engine.rect(btnW, btnH, { radius: 11 }),
+    engine.pos(centerX, btnY),
+    engine.color(20, 115, 185),
+    engine.outline(2, engine.rgb(0, 230, 255)),
+    engine.scale(1),
+    engine.anchor("center"),
+    engine.area(),
+    engine.fixed(),
+    engine.z(204),
   ]);
   elementsToDestroy.push(restartButton);
 
-  const btnLabel = k.add([
-    k.text("Tentar Novamente  [ ENTER ]  🔄", {
+  const btnLabel = engine.add([
+    engine.text("Tentar Novamente  [ ENTER ]  🔄", {
       size: accessibilitySystem.scaleFont(16),
       font: "Outfit",
     }),
-    k.pos(centerX, btnY),
-    k.color(255, 255, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(205),
+    engine.pos(centerX, btnY),
+    engine.color(255, 255, 255),
+    engine.anchor("center"),
+    engine.fixed(),
+    engine.z(205),
   ]);
   elementsToDestroy.push(btnLabel);
 
-  const hintLabel = k.add([
-    k.text("Pressione [ENTER] ou [ESPAÇO] para iniciar nova migração", {
+  const hintLabel = engine.add([
+    engine.text("Pressione [ENTER] ou [ESPAÇO] para iniciar nova migração", {
       size: accessibilitySystem.scaleFont(11.5),
       font: "Inter",
     }),
-    k.pos(centerX, btnY + 34),
-    k.color(140, 185, 225),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(205),
+    engine.pos(centerX, btnY + 34),
+    engine.color(140, 185, 225),
+    engine.anchor("center"),
+    engine.fixed(),
+    engine.z(205),
   ]);
   elementsToDestroy.push(hintLabel);
 
@@ -261,23 +321,27 @@ export function showRescueScreen(k: KaboomCtx, gameState: GameState, onRestart: 
       try {
         if ("destroy" in item && typeof item.destroy === "function") {
           item.destroy();
-        } else if (typeof k.destroy === "function") {
-          k.destroy(item as unknown as GameObj);
+        } else if (typeof engine.destroy === "function") {
+          engine.destroy(item);
         }
       } catch {}
     });
     onRestart();
   };
 
-  attachButtonHoverEffect(k, restartButton, {
-    baseColor: [20, 115, 185],
-    hoverColor: [32, 150, 235],
-    baseScale: 1.0,
-    hoverScale: 1.035,
-  });
+  attachButtonHoverEffect(
+    engine as unknown as AnimationEngineContext,
+    restartButton as unknown as AnimationUiObject,
+    {
+      baseColor: [20, 115, 185],
+      hoverColor: [32, 150, 235],
+      baseScale: 1.0,
+      hoverScale: 1.035,
+    }
+  );
   restartButton.onClick(triggerRestart);
 
   // Gatilhos de teclado: Enter e Espaço
-  const cancelKeyPress = k.onKeyPress("enter", triggerRestart);
-  const cancelSpacePress = k.onKeyPress("space", triggerRestart);
+  const cancelKeyPress = engine.onKeyPress("enter", triggerRestart);
+  const cancelSpacePress = engine.onKeyPress("space", triggerRestart);
 }

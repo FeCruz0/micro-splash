@@ -1,5 +1,32 @@
-import type { EventController, KaboomCtx } from "kaboom";
 import type { PlayerController } from "../entities/player";
+
+export interface CinematicCancelable {
+  cancel: () => void;
+}
+
+export interface CinematicTweenResult {
+  then: (cb: () => void) => unknown;
+}
+
+export interface CinematicCameraEngineContext<
+  TVec extends { x: number; y: number } = { x: number; y: number },
+> {
+  onUpdate: (cb: () => void) => CinematicCancelable | unknown;
+  camScale?: (scale: TVec | number) => unknown;
+  vec2?: (x: number, y: number) => TVec;
+  wait: (secs: number, cb: () => void) => CinematicCancelable | unknown;
+  tween?: (
+    from: number,
+    to: number,
+    duration: number,
+    onUpdate: (val: number) => void,
+    ease?: (t: number) => number
+  ) => CinematicTweenResult;
+  easings?: {
+    easeInOutQuad?: (t: number) => number;
+    [key: string]: unknown;
+  };
+}
 
 export interface CinematicEvent {
   id: string;
@@ -69,8 +96,10 @@ export function checkCinematicEvent(
 /**
  * Inicializa o sistema de Zoom Cinematográfico da Câmera.
  */
-export function setupCinematicCameraSystem(
-  k: KaboomCtx,
+export function setupCinematicCameraSystem<
+  TVec extends { x: number; y: number } = { x: number; y: number },
+>(
+  k: CinematicCameraEngineContext<TVec>,
   playerController: PlayerController
 ): {
   destroy: () => void;
@@ -80,7 +109,7 @@ export function setupCinematicCameraSystem(
 } {
   const triggeredEvents = new Set<string>();
   let isZooming = false;
-  let activeHoldTimer: EventController | { cancel: () => void } | null = null;
+  let activeHoldTimer: CinematicCancelable | null = null;
 
   function executeZoom(event: CinematicEvent): void {
     // Verifica preferência de redução de movimento do usuário
@@ -124,26 +153,31 @@ export function setupCinematicCameraSystem(
         // Sustenta o enquadramento dramático
         activeHoldTimer = k.wait(event.holdDuration, () => {
           // Zoom Out retornando ao padrão
-          k.tween(
-            targetScale,
-            initialScale,
-            event.restoreDuration,
-            (restoreValue) => {
-              applyCameraScale(restoreValue);
-            },
-            k.easings.easeInOutQuad
-          ).then(() => {
+          if (typeof k.tween === "function" && k.easings?.easeInOutQuad) {
+            k.tween(
+              targetScale,
+              initialScale,
+              event.restoreDuration,
+              (restoreValue) => {
+                applyCameraScale(restoreValue);
+              },
+              k.easings.easeInOutQuad
+            ).then(() => {
+              applyCameraScale(1.0);
+              isZooming = false;
+            });
+          } else {
             applyCameraScale(1.0);
             isZooming = false;
-          });
-        });
+          }
+        }) as CinematicCancelable;
       });
     } else {
       applyCameraScale(targetScale);
       activeHoldTimer = k.wait(event.holdDuration, () => {
         applyCameraScale(1.0);
         isZooming = false;
-      });
+      }) as CinematicCancelable;
     }
   }
 
@@ -158,14 +192,14 @@ export function setupCinematicCameraSystem(
     if (event) {
       executeZoom(event);
     }
-  });
+  }) as CinematicCancelable;
 
   return {
     destroy: () => {
       if (typeof updateHandler?.cancel === "function") {
         updateHandler.cancel();
       }
-      if (activeHoldTimer?.cancel) {
+      if (activeHoldTimer && typeof activeHoldTimer.cancel === "function") {
         activeHoldTimer.cancel();
       }
       if (typeof k.camScale === "function") {

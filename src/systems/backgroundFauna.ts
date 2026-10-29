@@ -1,11 +1,49 @@
-import type { GameObj } from "kaboom";
-import kaboom from "kaboom";
 import { audioSystem } from "./audioSystem";
 import { getActivePlayerObject } from "../entities/player";
 import { getParticlePool } from "./particlePool";
 import { getSpatialCullingManager } from "./spatialCullingSystem";
 import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 import { getRandomFloat } from "../utils/random";
+
+export interface BackgroundFaunaVector2D {
+  x: number;
+  y: number;
+  dist?: (other: BackgroundFaunaVector2D) => number;
+}
+
+export interface BackgroundFaunaGameObject {
+  pos: BackgroundFaunaVector2D;
+  scale?: number | { x: number; y: number } | unknown;
+  angle?: number;
+  radius?: number;
+  opacity?: number;
+  height?: number;
+  hidden?: boolean;
+  onUpdate: (cb: () => void) => void;
+}
+
+export interface BackgroundFaunaEngineContext<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = BackgroundFaunaVector2D,
+> {
+  add: (components: unknown[]) => unknown;
+  destroy: (obj: TDestroyable) => void;
+  dt: () => number;
+  sprite: (name: string, opt?: { anim?: string }) => unknown;
+  rect: (w: number, h: number, opt?: { radius?: number }) => unknown;
+  circle: (r: number) => unknown;
+  pos: (x: number, y: number) => unknown;
+  scale: (s: number) => unknown;
+  rotate: (a: number) => unknown;
+  opacity: (o: number) => unknown;
+  anchor: (a: "center") => unknown;
+  z: (v: number) => unknown;
+  color: (r: number | TColor, g?: number, b?: number) => unknown;
+  rgb?: (r: number, g: number, b: number) => TColor;
+  vec2: (x: number, y: number) => TVec;
+  wait: (time: number, cb: () => void) => void;
+}
 
 /**
  * Cria elementos estéticos de fauna marinha de fundo com sprites e comportamentos enriquecidos:
@@ -14,7 +52,11 @@ import { getRandomFloat } from "../utils/random";
  * - Berçário acolhedor de Mãe e Filhote no Santuário (25.000m - 27.000m)
  * - Cachalote Abissal com cliques ultrassônicos do espermacete (8.000m - 10.800m)
  */
-export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
+export function setupBackgroundFaunaSystem<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = BackgroundFaunaVector2D,
+>(k: BackgroundFaunaEngineContext<TDestroyable, TColor, TVec>) {
   // ===========================================================================
   // 1. PODS FAMILIARES DE ORCAS NA ANTÁRTIDA (0m - 5.000m)
   // Orcas vivem e caçam em formações matrilineares coordenadas
@@ -56,7 +98,7 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
   ];
 
   const cullingManager = getSpatialCullingManager();
-  const orcaObjects: GameObj[] = [];
+  const orcaObjects: BackgroundFaunaGameObject[] = [];
 
   orcaPods.forEach((pod) => {
     pod.members.forEach((m) => {
@@ -68,7 +110,7 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
         k.opacity(0.72),
         k.anchor("center"),
         k.z(-5),
-      ]);
+      ]) as BackgroundFaunaGameObject;
       orcaObjects.push(orca);
       cullingManager?.registerEntity(orca, () => pod.basePos.x + m.offsetX);
 
@@ -96,7 +138,8 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
             pool.spawnCircle({
               pos: bubblePos,
               radius: 1.5 * m.scale,
-              color: k.rgb(200, 235, 255),
+              color:
+                typeof k.rgb === "function" ? k.rgb(200, 235, 255) : { r: 200, g: 235, b: 255 },
               opacity: 0.45,
               z: -4,
               vel: k.vec2(0, -24),
@@ -119,7 +162,7 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
     { x: 10800, y: 320 },
   ];
 
-  const passingWhaleObjects: GameObj[] = [];
+  const passingWhaleObjects: BackgroundFaunaGameObject[] = [];
 
   passingWhalePositions.forEach((pos) => {
     const whaleBg = k.add([
@@ -129,7 +172,7 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
       k.opacity(0.75),
       k.anchor("center"),
       k.z(-4),
-    ]);
+    ]) as BackgroundFaunaGameObject;
     passingWhaleObjects.push(whaleBg);
     cullingManager?.registerEntity(whaleBg, () => pos.x);
 
@@ -154,18 +197,22 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
         // 1. Anel de sonar expansivo
         const ring = k.add([
           k.circle(16),
-          k.pos(whaleBg.pos),
+          k.pos(whaleBg.pos.x, whaleBg.pos.y),
           k.color(0, 190, 255),
           k.opacity(0.52),
           k.anchor("center"),
           k.z(-3),
-        ]);
+        ]) as BackgroundFaunaGameObject;
 
         ring.onUpdate(() => {
-          ring.radius += k.dt() * 145;
-          ring.opacity -= k.dt() * 0.32;
-          if (ring.opacity <= 0) {
-            k.destroy(ring);
+          if (ring.radius !== undefined) {
+            ring.radius += k.dt() * 145;
+          }
+          if (ring.opacity !== undefined) {
+            ring.opacity -= k.dt() * 0.32;
+            if (ring.opacity <= 0) {
+              k.destroy(ring as unknown as TDestroyable);
+            }
           }
         });
 
@@ -182,21 +229,31 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
             k.opacity(0.6),
             k.anchor("center"),
             k.z(-3),
-          ]);
+          ]) as BackgroundFaunaGameObject;
 
           const upwardSpeed = getRandomFloat(35, 60);
           bubble.onUpdate(() => {
             bubble.pos.y -= k.dt() * upwardSpeed;
             bubble.pos.x += Math.sin(bubble.pos.y * 0.08) * 0.6;
-            bubble.opacity -= k.dt() * 0.38;
-            if (bubble.opacity <= 0) k.destroy(bubble);
+            if (bubble.opacity !== undefined) {
+              bubble.opacity -= k.dt() * 0.38;
+              if (bubble.opacity <= 0) k.destroy(bubble as unknown as TDestroyable);
+            }
           });
         }
 
         // 3. Canto da baleia distante se o jogador estiver em alcance auditivo (< 1500px)
         const player = getActivePlayerObject();
-        if (player && player.pos.dist(whaleBg.pos) < 1500) {
-          audioSystem.playWhaleSong(0.42, 0.88);
+        if (player) {
+          const dx = player.pos.x - whaleBg.pos.x;
+          const dy = player.pos.y - whaleBg.pos.y;
+          const dist =
+            typeof player.pos.dist === "function"
+              ? player.pos.dist(whaleBg.pos)
+              : Math.hypot(dx, dy);
+          if (dist < 1500) {
+            audioSystem.playWhaleSong(0.42, 0.88);
+          }
         }
       }
     });
@@ -214,7 +271,7 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
     k.opacity(0.85),
     k.anchor("center"),
     k.z(-4),
-  ]);
+  ]) as BackgroundFaunaGameObject;
 
   const calfWhale = k.add([
     k.sprite("jubarte_bg", { anim: "swim" }),
@@ -224,7 +281,7 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
     k.opacity(0.85),
     k.anchor("center"),
     k.z(-4),
-  ]);
+  ]) as BackgroundFaunaGameObject;
 
   cullingManager?.registerEntity(motherWhale, () => 25800);
   cullingManager?.registerEntity(calfWhale, () => 25848);
@@ -250,41 +307,55 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
     if (motherPulseTimer >= 8.5) {
       motherPulseTimer = 0;
       const player = getActivePlayerObject();
-      if (player && player.pos.dist(motherWhale.pos) < 1800) {
-        // Anel de sonar ciano-dourado acolhedor
-        const ring = k.add([
-          k.circle(20),
-          k.pos(motherWhale.pos),
-          k.color(100, 240, 255),
-          k.opacity(0.6),
-          k.anchor("center"),
-          k.z(-3),
-        ]);
-
-        ring.onUpdate(() => {
-          ring.radius += k.dt() * 125;
-          ring.opacity -= k.dt() * 0.28;
-          if (ring.opacity <= 0) k.destroy(ring);
-        });
-
-        // Bolhinhas lúdicas do filhote
-        for (let cb = 0; cb < 4; cb++) {
-          const cBubble = k.add([
-            k.circle(1.4),
-            k.pos(calfWhale.pos.x + (cb - 2) * 3, calfWhale.pos.y - 4),
-            k.color(210, 248, 255),
-            k.opacity(0.65),
+      if (player) {
+        const dx = player.pos.x - motherWhale.pos.x;
+        const dy = player.pos.y - motherWhale.pos.y;
+        const dist =
+          typeof player.pos.dist === "function"
+            ? player.pos.dist(motherWhale.pos)
+            : Math.hypot(dx, dy);
+        if (dist < 1800) {
+          // Anel de sonar ciano-dourado acolhedor
+          const ring = k.add([
+            k.circle(20),
+            k.pos(motherWhale.pos.x, motherWhale.pos.y),
+            k.color(100, 240, 255),
+            k.opacity(0.6),
             k.anchor("center"),
             k.z(-3),
-          ]);
-          cBubble.onUpdate(() => {
-            cBubble.pos.y -= k.dt() * 32;
-            cBubble.opacity -= k.dt() * 0.4;
-            if (cBubble.opacity <= 0) k.destroy(cBubble);
-          });
-        }
+          ]) as BackgroundFaunaGameObject;
 
-        audioSystem.playWhaleSong(0.52, 0.95);
+          ring.onUpdate(() => {
+            if (ring.radius !== undefined) {
+              ring.radius += k.dt() * 125;
+            }
+            if (ring.opacity !== undefined) {
+              ring.opacity -= k.dt() * 0.28;
+              if (ring.opacity <= 0) k.destroy(ring as unknown as TDestroyable);
+            }
+          });
+
+          // Bolhinhas lúdicas do filhote
+          for (let cb = 0; cb < 4; cb++) {
+            const cBubble = k.add([
+              k.circle(1.4),
+              k.pos(calfWhale.pos.x + (cb - 2) * 3, calfWhale.pos.y - 4),
+              k.color(210, 248, 255),
+              k.opacity(0.65),
+              k.anchor("center"),
+              k.z(-3),
+            ]) as BackgroundFaunaGameObject;
+            cBubble.onUpdate(() => {
+              cBubble.pos.y -= k.dt() * 32;
+              if (cBubble.opacity !== undefined) {
+                cBubble.opacity -= k.dt() * 0.4;
+                if (cBubble.opacity <= 0) k.destroy(cBubble as unknown as TDestroyable);
+              }
+            });
+          }
+
+          audioSystem.playWhaleSong(0.52, 0.95);
+        }
       }
     }
   });
@@ -301,7 +372,7 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
     k.opacity(0.65),
     k.anchor("center"),
     k.z(-7), // Plano mais distante de fundo abissal
-  ]);
+  ]) as BackgroundFaunaGameObject;
 
   cullingManager?.registerEntity(leviathan, () => leviathan.pos.x);
 
@@ -328,42 +399,58 @@ export function setupBackgroundFaunaSystem(k: ReturnType<typeof kaboom>) {
     if (levCallTimer >= 11.5) {
       levCallTimer = 0;
       const player = getActivePlayerObject();
-      if (player && player.pos.dist(leviathan.pos) < 1700) {
-        audioSystem.playAbyssalWhaleCall();
+      if (player) {
+        const dx = player.pos.x - leviathan.pos.x;
+        const dy = player.pos.y - leviathan.pos.y;
+        const dist =
+          typeof player.pos.dist === "function"
+            ? player.pos.dist(leviathan.pos)
+            : Math.hypot(dx, dy);
+        if (dist < 1700) {
+          audioSystem.playAbyssalWhaleCall();
 
-        // 1. Onda esférica de baixa frequência
-        const pulse = k.add([
-          k.circle(30),
-          k.pos(leviathan.pos),
-          k.color(65, 185, 245),
-          k.opacity(0.48),
-          k.anchor("center"),
-          k.z(-6),
-        ]);
-        pulse.onUpdate(() => {
-          pulse.radius += k.dt() * 105;
-          pulse.opacity -= k.dt() * 0.16;
-          if (pulse.opacity <= 0) k.destroy(pulse);
-        });
-
-        // 2. Feixe de cliques direcionais do espermacete (projetados para a frente da cabeça quadrada)
-        for (let c = 0; c < 3; c++) {
-          k.wait(c * 0.12, () => {
-            const clickRing = k.add([
-              k.rect(5, 26, { radius: 2 }),
-              k.pos(leviathan.pos.x + 84, leviathan.pos.y - 2),
-              k.color(100, 220, 255),
-              k.opacity(0.65),
-              k.anchor("center"),
-              k.z(-6),
-            ]);
-            clickRing.onUpdate(() => {
-              clickRing.pos.x += k.dt() * 180;
-              clickRing.height += k.dt() * 60;
-              clickRing.opacity -= k.dt() * 0.7;
-              if (clickRing.opacity <= 0) k.destroy(clickRing);
-            });
+          // 1. Onda esférica de baixa frequência
+          const pulse = k.add([
+            k.circle(30),
+            k.pos(leviathan.pos.x, leviathan.pos.y),
+            k.color(65, 185, 245),
+            k.opacity(0.48),
+            k.anchor("center"),
+            k.z(-6),
+          ]) as BackgroundFaunaGameObject;
+          pulse.onUpdate(() => {
+            if (pulse.radius !== undefined) {
+              pulse.radius += k.dt() * 105;
+            }
+            if (pulse.opacity !== undefined) {
+              pulse.opacity -= k.dt() * 0.16;
+              if (pulse.opacity <= 0) k.destroy(pulse as unknown as TDestroyable);
+            }
           });
+
+          // 2. Feixe de cliques direcionais do espermacete (projetados para a frente da cabeça quadrada)
+          for (let c = 0; c < 3; c++) {
+            k.wait(c * 0.12, () => {
+              const clickRing = k.add([
+                k.rect(5, 26, { radius: 2 }),
+                k.pos(leviathan.pos.x + 84, leviathan.pos.y - 2),
+                k.color(100, 220, 255),
+                k.opacity(0.65),
+                k.anchor("center"),
+                k.z(-6),
+              ]) as BackgroundFaunaGameObject;
+              clickRing.onUpdate(() => {
+                clickRing.pos.x += k.dt() * 180;
+                if (clickRing.height !== undefined) {
+                  clickRing.height += k.dt() * 60;
+                }
+                if (clickRing.opacity !== undefined) {
+                  clickRing.opacity -= k.dt() * 0.7;
+                  if (clickRing.opacity <= 0) k.destroy(clickRing as unknown as TDestroyable);
+                }
+              });
+            });
+          }
         }
       }
     }

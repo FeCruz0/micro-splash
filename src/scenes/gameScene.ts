@@ -1,4 +1,3 @@
-import type { GameObj, KaboomCtx } from "kaboom";
 import { GAME_CONFIG, TAGS } from "../config";
 import { createPlayer } from "../entities/player";
 import { createRescueBoat } from "../entities/boat";
@@ -52,7 +51,102 @@ import { SystemRunner } from "../systems/systemRunner";
 import { SpatialHashGrid } from "../systems/spatialHashGrid";
 import { FrameBudgetMonitor } from "../systems/frameBudgetMonitor";
 
-export function registerGameScene(k: KaboomCtx): void {
+export interface GameSceneUiObject {
+  pos: { x: number; y: number };
+  color?: unknown;
+  text?: string;
+  opacity?: number;
+  destroy?(): void;
+}
+
+export interface GameSceneEngineContext {
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+  scene(id: string, action: Function): unknown;
+  setGravity(gravity: number): unknown;
+  add(components?: unknown): unknown;
+  rect(width: number, height: number, options?: unknown): unknown;
+  pos(x: number, y: number): unknown;
+  pos(position: { x: number; y: number }): unknown;
+  color(...args: unknown[]): unknown;
+  opacity(alpha: number): unknown;
+  fixed(): unknown;
+  z(zIndex: number): unknown;
+  tween(
+    from: number,
+    to: number,
+    duration: number,
+    setter: (val: number) => void,
+    ease?: unknown
+  ): { then(callback: () => void): void };
+  easings: {
+    easeOutQuad?: unknown;
+    easeInQuad?: unknown;
+  };
+  destroy(target: unknown): void;
+  area(options?: unknown): unknown;
+  body(options?: unknown): unknown;
+  onSceneLeave(callback: () => void): unknown;
+  text(content: string, options?: unknown): unknown;
+  onKeyPress(callback: () => void): unknown;
+  onKeyPress(key: string, callback: () => void): unknown;
+  onMousePress(callback: () => void): unknown;
+  isMousePressed(): boolean;
+  onUpdate(callback: () => void): unknown;
+  wait(duration: number, callback: () => void): unknown;
+  camPos(): { x: number; y: number };
+  vec2(x: number, y: number): { x: number; y: number };
+  width(): number;
+  height(): number;
+  rgb(r: number, g: number, b: number): unknown;
+  go(scene: string, ...args: unknown[]): unknown;
+  get(tag: string): unknown[];
+  dt?(): number;
+  debug?: { paused?: boolean };
+}
+
+type GameSceneSubsystemEngine = Parameters<typeof createPlayer>[0] &
+  Parameters<typeof createRescueBoat>[0] &
+  Parameters<typeof setupCollisions>[0] &
+  Parameters<typeof setupUpwellingSystem>[0] &
+  Parameters<typeof loadLevelLayout>[0] &
+  Parameters<typeof showVictoryScreen>[0] &
+  Parameters<typeof showRescueScreen>[0] &
+  Parameters<typeof showChallengeEndScreen>[0] &
+  Parameters<typeof updateOceanColors>[0] &
+  Parameters<typeof createDebugDistanceUI>[0] &
+  Parameters<typeof showFactPopup>[0] &
+  Parameters<typeof setupIceSurfaceSystem>[0] &
+  Parameters<typeof setupBackgroundFaunaSystem>[0] &
+  Parameters<typeof setupShipNoiseSystem>[0] &
+  Parameters<typeof setupCanyonSystem>[0] &
+  Parameters<typeof setupOceanCurrentsSystem>[0] &
+  Parameters<typeof setupLightRaysSystem>[0] &
+  Parameters<typeof setupParallaxSkySystem>[0] &
+  Parameters<typeof setupBenthicFloorSystem>[0] &
+  Parameters<typeof setupOceanFloorSystem>[0] &
+  Parameters<typeof setupOilSpillSystem>[0] &
+  Parameters<typeof setupDolphinDraftingSystem>[0] &
+  Parameters<typeof setupPenguinFlockSystem>[0] &
+  Parameters<typeof setupWeatherSystem>[0] &
+  Parameters<typeof setupBioluminescenceSystem>[0] &
+  Parameters<typeof setupBiomeVignetteSystem>[0] &
+  Parameters<typeof setupCinematicCameraSystem>[0] &
+  Parameters<typeof setupDynamicShadowSystem>[0] &
+  Parameters<typeof createWaterSurfaceSystem>[0] &
+  Parameters<typeof setupAuroraSystem>[0] &
+  Parameters<typeof setupAbyssalFogSystem>[0] &
+  Parameters<typeof setupCoastalSurfSystem>[0] &
+  Parameters<typeof setupMarineSnowSystem>[0] &
+  Parameters<typeof setupDepthDarknessSystem>[0] &
+  Parameters<typeof setupTouchControls>[0] &
+  Parameters<typeof initParticlePool>[0] &
+  Parameters<typeof initPresentationMode>[0] &
+  Parameters<typeof setupSereneInsightsSystem>[0] &
+  Parameters<typeof createCompanionWhale>[0] &
+  GameSceneEngineContext;
+
+export function registerGameScene(rawK: GameSceneEngineContext): void {
+  const k = rawK as unknown as GameSceneSubsystemEngine;
   k.scene("game", (options: GameOptions = { mode: "standard" }) => {
     let isGameFinished = false;
     k.setGravity(GAME_CONFIG.GRAVITY);
@@ -75,7 +169,7 @@ export function registerGameScene(k: KaboomCtx): void {
       k.opacity(1),
       k.fixed(),
       k.z(100),
-    ]);
+    ]) as GameSceneUiObject;
 
     k.tween(
       1,
@@ -96,7 +190,7 @@ export function registerGameScene(k: KaboomCtx): void {
       k.area(),
       k.body({ isStatic: true }),
       k.color(20, 50, 120),
-    ]);
+    ]) as GameSceneUiObject;
 
     // Área do céu acima do nível do mar (0px a 80px)
     const skyBand = k.add([
@@ -105,7 +199,7 @@ export function registerGameScene(k: KaboomCtx): void {
       k.color(120, 190, 245),
       k.z(-10),
       "sky",
-    ]);
+    ]) as GameSceneUiObject;
 
     // Tag da superfície posicionada no nível do mar (80px) - Sistema Ondulado Orgânico (Fase 29.1)
     const waterSurface = createWaterSurfaceSystem(k);
@@ -137,7 +231,7 @@ export function registerGameScene(k: KaboomCtx): void {
     }
 
     // HUD adicional de modo no topo direito
-    let timerUI: GameObj | null = null;
+    let timerUI: GameSceneUiObject | null = null;
     if (options.mode === "quick_challenge") {
       timerUI = k.add([
         k.text("⏱️ 60s", { size: 16.5, font: "Outfit" }),
@@ -145,7 +239,7 @@ export function registerGameScene(k: KaboomCtx): void {
         k.color(255, 220, 80),
         k.fixed(),
         k.z(150),
-      ]);
+      ]) as GameSceneUiObject;
     } else if (options.mode === "serene") {
       k.add([
         k.text("🌸 Migração Serena (∞)", { size: 14.5, font: "Outfit" }),
@@ -202,7 +296,7 @@ export function registerGameScene(k: KaboomCtx): void {
     const biomeManager = initBiomeLifecycleManager(k);
     const spatialCulling = initSpatialCullingManager(k);
     const presentationMode = initPresentationMode(k, playerController);
-    const spatialGrid = new SpatialHashGrid<GameObj>({ cellSize: 200 });
+    const spatialGrid = new SpatialHashGrid<unknown>({ cellSize: 200 });
     k.onSceneLeave(() => {
       spatialGrid.clear();
     });
@@ -299,7 +393,7 @@ export function registerGameScene(k: KaboomCtx): void {
     setupUpwellingSystem(k, playerController);
 
     setupBreachSystem({
-      k,
+      k: k as unknown as Parameters<typeof setupBreachSystem>[0]["k"],
       playerController,
       gameState,
       showPrompt: options.mode === "serene",

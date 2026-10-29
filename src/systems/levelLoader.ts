@@ -1,9 +1,13 @@
-import type { KaboomCtx } from "kaboom";
 import levelLayout from "../../data/level_layout.json";
 import { createTrash } from "../entities/trash";
 import { createKrill } from "../entities/krill";
 import { createGhostNet } from "../entities/net";
-import { spawnProceduralLevel } from "./proceduralObstacles";
+import {
+  spawnProceduralLevel,
+  type ProceduralEngineContext,
+  type ProceduralVector2D,
+  type ProceduralObstacleData,
+} from "./proceduralObstacles";
 
 export interface LevelLayoutData {
   urbanTrash: Array<{ x: number; y: number }>;
@@ -11,7 +15,11 @@ export interface LevelLayoutData {
   ghostNets: Array<{ x: number; layer: "floor" | "mid1" | "mid2" }>;
 }
 
-export function loadStaticLevelLayout(k: KaboomCtx): void {
+export function loadStaticLevelLayout<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = ProceduralVector2D,
+>(k: ProceduralEngineContext<TDestroyable, TColor, TVec>): void {
   const data = levelLayout as LevelLayoutData;
 
   const minY = 120;
@@ -48,10 +56,12 @@ export function loadStaticLevelLayout(k: KaboomCtx): void {
   });
 }
 
-import type { ProceduralObstacleData } from "./proceduralObstacles";
-
-export function loadLevelLayout(
-  k: KaboomCtx,
+export function loadLevelLayout<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = ProceduralVector2D,
+>(
+  k: ProceduralEngineContext<TDestroyable, TColor, TVec>,
   useProcedural: boolean = true,
   seed?: number
 ): ProceduralObstacleData | void {

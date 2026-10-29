@@ -1,7 +1,16 @@
-import type { KaboomCtx, GameObj } from "kaboom";
+export interface SpatialCullingEngineContext {
+  width: () => number;
+}
+
+export interface CullableTargetObject {
+  pos?: { x: number; y: number };
+  hidden?: boolean;
+  paused?: boolean;
+  exists?: () => boolean;
+}
 
 export interface CullableEntity {
-  targetObject: GameObj;
+  targetObject: CullableTargetObject;
   getXPosition: () => number;
   width?: number;
 }
@@ -38,13 +47,13 @@ export function isEntityInFrustum(
 export class SpatialCullingManager {
   private cullableEntities: CullableEntity[] = [];
   private cullableSubsystems: CullableSubsystem[] = [];
-  private kaboomContext: KaboomCtx;
+  private engineContext: SpatialCullingEngineContext;
   private safetyMargin: number;
   private lastVisibleCount: number = 0;
   private lastHiddenCount: number = 0;
 
-  constructor(kaboomContext: KaboomCtx, safetyMargin: number = 320) {
-    this.kaboomContext = kaboomContext;
+  constructor(engineContext: SpatialCullingEngineContext, safetyMargin: number = 320) {
+    this.engineContext = engineContext;
     this.safetyMargin = safetyMargin;
   }
 
@@ -56,7 +65,10 @@ export class SpatialCullingManager {
     return this.cullableSubsystems;
   }
 
-  public registerEntity(targetObject: GameObj, getCustomXPosition?: number | (() => number)): void {
+  public registerEntity(
+    targetObject: CullableTargetObject,
+    getCustomXPosition?: number | (() => number)
+  ): void {
     const resolveXPosition: () => number =
       typeof getCustomXPosition === "function"
         ? getCustomXPosition
@@ -70,7 +82,7 @@ export class SpatialCullingManager {
     });
   }
 
-  public registerEntities(targetObjects: GameObj[]): void {
+  public registerEntities(targetObjects: CullableTargetObject[]): void {
     for (let index = 0; index < targetObjects.length; index++) {
       this.registerEntity(targetObjects[index]);
     }
@@ -78,7 +90,7 @@ export class SpatialCullingManager {
 
   public update(cameraXPosition: number): { visibleCount: number; hiddenCount: number } {
     const viewportWidth =
-      typeof this.kaboomContext.width === "function" ? this.kaboomContext.width() : 1280;
+      typeof this.engineContext.width === "function" ? this.engineContext.width() : 1280;
 
     let visibleCount = 0;
     let hiddenCount = 0;
@@ -168,10 +180,10 @@ export class SpatialCullingManager {
 let activeSpatialCullingManager: SpatialCullingManager | null = null;
 
 export function initSpatialCullingManager(
-  kaboomContext: KaboomCtx,
+  engineContext: SpatialCullingEngineContext,
   safetyMargin: number = 320
 ): SpatialCullingManager {
-  activeSpatialCullingManager = new SpatialCullingManager(kaboomContext, safetyMargin);
+  activeSpatialCullingManager = new SpatialCullingManager(engineContext, safetyMargin);
   return activeSpatialCullingManager;
 }
 

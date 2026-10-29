@@ -1,4 +1,3 @@
-import type { GameObj, KaboomCtx } from "kaboom";
 import { FONT_TITLE, FONT_BODY } from "../config";
 import { ttsSystem } from "./ttsSystem";
 import { accessibilitySystem } from "./accessibilitySystem";
@@ -11,6 +10,50 @@ export interface SereneInsight {
   title: string;
   text: string;
   category: InsightCategory;
+}
+
+export interface SereneInsightsUiObject {
+  hidden?: boolean;
+  color?: unknown;
+  scale?: { x: number; y: number } | unknown;
+  width?: number;
+  height?: number;
+  text?: string;
+  outline?: { color?: unknown; width?: number };
+  opacity?: number;
+  pos?: { x: number; y: number };
+  destroy?(): void;
+}
+
+export interface SereneInsightsEngineContext {
+  width?(): number;
+  height?(): number;
+  add(components?: unknown): SereneInsightsUiObject;
+  rect(width: number, height: number, options?: unknown): unknown;
+  pos(x: number, y: number): unknown;
+  pos(position: { x: number; y: number }): unknown;
+  color(...args: unknown[]): unknown;
+  rgb(red: number, green: number, blue: number): unknown;
+  outline(width: number, color: unknown): unknown;
+  opacity(alpha: number): unknown;
+  anchor(anchorPoint: "center" | "topleft" | "left" | "right" | "top"): unknown;
+  fixed(): unknown;
+  z(zIndex: number): unknown;
+  text(content: string, options?: unknown): unknown;
+  destroy(target: unknown): void;
+  tween(
+    from: number,
+    to: number,
+    duration: number,
+    setter: (value: number) => void,
+    ease?: unknown
+  ): { then(callback: () => void): void };
+  wait(duration: number, callback: () => void): void;
+  easings: {
+    easeOutQuad: unknown;
+    easeInQuad: unknown;
+    [key: string]: unknown;
+  };
 }
 
 /**
@@ -90,19 +133,19 @@ export const SERENE_MIGRATION_INSIGHTS: Record<string, SereneInsight> = {
 };
 
 export class SereneInsightsManager {
-  private k: KaboomCtx;
+  private k: SereneInsightsEngineContext;
   private triggeredInsightIds = new Set<string>();
   private queue: SereneInsight[] = [];
   private isShowing = false;
   private cooldownTimer = 0;
   private isEnabled = true;
 
-  // Nós gráficos ativos no Kaboom
-  private currentPanelObj: GameObj | null = null;
-  private currentTitleObj: GameObj | null = null;
-  private currentTextObj: GameObj | null = null;
+  // Nós gráficos ativos
+  private currentPanelObj: SereneInsightsUiObject | null = null;
+  private currentTitleObj: SereneInsightsUiObject | null = null;
+  private currentTextObj: SereneInsightsUiObject | null = null;
 
-  constructor(k: KaboomCtx, enabled: boolean = true) {
+  constructor(k: SereneInsightsEngineContext, enabled: boolean = true) {
     this.k = k;
     this.isEnabled = enabled;
   }
@@ -242,7 +285,7 @@ export class SereneInsightsManager {
       k.wait(5.5, () => {
         // Animação de saída
         k.tween(
-          panel.pos.y,
+          panel.pos?.y ?? startY,
           startY,
           transitionDuration,
           (currentY) => {
@@ -290,7 +333,7 @@ export function getSereneInsightsManager(): SereneInsightsManager | null {
 }
 
 export function setupSereneInsightsSystem(
-  k: KaboomCtx,
+  k: SereneInsightsEngineContext,
   enabled: boolean = true
 ): SereneInsightsManager | null {
   if (activeSereneInsightsManager) {

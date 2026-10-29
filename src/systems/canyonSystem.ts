@@ -1,6 +1,5 @@
-import type { KaboomCtx } from "kaboom";
 import { GAME_CONFIG } from "../config";
-import type { CanyonConfig } from "./canyon/canyonTypes";
+import type { CanyonConfig, CanyonEngineContext, CanyonVector2D } from "./canyon/canyonTypes";
 import { setupCanyonGeometry } from "./canyon/canyonGeometry";
 import { setupCanyonObstacles } from "./canyon/canyonObstacles";
 import { setupCanyonCurrents } from "./canyon/canyonCurrents";
@@ -16,9 +15,12 @@ import { setupCanyonCurrents } from "./canyon/canyonCurrents";
  * 4. Reverberação de Biosonar: toda a formação rochosa responde com contornos fluorescentes e retorno de eco
  *    ao ser atingida pelos pulsos de ecolocalização da jubarte.
  *
- * @param k - Instância do contexto Kaboom.js.
+ * @param k - Instância do contexto agnóstico do motor.
  */
-export function setupCanyonSystem(k: KaboomCtx) {
+export function setupCanyonSystem<
+  TColor = unknown,
+  TVec extends { x: number; y: number } = CanyonVector2D,
+>(k: CanyonEngineContext<TColor, TVec>) {
   const surfaceY = GAME_CONFIG.SEA_LEVEL; // 80px (nível do mar)
   const deepFloorY = k.height() - 40; // Leito oceânico profundo padrão (~320px em 360p)
 

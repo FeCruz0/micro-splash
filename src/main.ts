@@ -6,6 +6,7 @@ import { initPwaManager } from "./utils/pwaManager";
 import { reportInformation, reportWarning } from "./utils/errorReporter";
 import { setupLetterboxBorders } from "./systems/letterboxSystem";
 import { registerAllScenes, loadAllGameAssets } from "./scenes";
+import { RenderEngineAdapter } from "./engine/adapters/RenderEngineAdapter";
 
 // Inicializa observabilidade e proteção contra exceções em totens (Fase 27)
 errorReporter.setupGlobalHandlers();
@@ -14,6 +15,22 @@ initPwaManager();
 const resolution = getSavedResolution();
 const displayMode = getSavedDisplayMode();
 const isLetterbox = displayMode === "letterbox";
+
+// Inicializa o RenderEngineAdapter (PixiJS v8) em coexistência (ADR 004 / WBS 4.21)
+export const renderEngine = new RenderEngineAdapter();
+if (typeof document !== "undefined") {
+  const container = document.getElementById("app") || document.body;
+  renderEngine
+    .init({
+      width: resolution.width,
+      height: resolution.height,
+      containerElement: container,
+      backgroundColor: 0x06122a,
+    })
+    .catch((err: unknown) => {
+      reportWarning("[PixiEngine] Falha ao inicializar RenderEngineAdapter:", undefined, err);
+    });
+}
 
 const k = kaboom({
   width: resolution.width,

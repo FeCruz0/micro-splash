@@ -1,7 +1,37 @@
-import type { GameObj, KaboomCtx, Vec2 } from "kaboom";
 import { GAME_CONFIG, TAGS, ACCESSIBILITY_VISUAL_CONFIG } from "../config";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
 import { getRandomFloat, getRandomInteger } from "../utils/random";
+
+export interface TrashVector2D {
+  x: number;
+  y: number;
+}
+
+export interface TrashGameObject {
+  pos: TrashVector2D;
+  opacity: number;
+  add: (components: unknown[]) => TrashGameObject;
+  onUpdate: (cb: () => void) => void;
+  reveal?: () => void;
+}
+
+export interface TrashEngineContext<TColor = unknown, TVec = TrashVector2D> {
+  add: (components: unknown[]) => unknown;
+  dt: () => number;
+  rect: (w: number, h: number, opt?: { radius?: number }) => unknown;
+  circle: (r: number) => unknown;
+  pos: (x: number | TrashVector2D, y?: number) => unknown;
+  color: (r: number | TColor, g?: number, b?: number) => unknown;
+  outline: (w: number, col: TColor) => unknown;
+  area: (opt?: { shape?: unknown }) => unknown;
+  anchor: (a: "center") => unknown;
+  opacity: (o: number) => unknown;
+  rotate: (a: number) => unknown;
+  rgb: (r: number, g: number, b: number) => TColor;
+  vec2: (x: number, y: number) => TVec;
+  lerp?: (a: number, b: number, t: number) => number;
+  Rect?: new (pos: TVec, w: number, h: number) => unknown;
+}
 
 export interface BiomeTrashPalette {
   body: [number, number, number];
@@ -59,7 +89,10 @@ export function getBiomeTrashPalette(posX: number, isHighContrast = false): Biom
   };
 }
 
-export function createTrash(k: KaboomCtx, position: Vec2) {
+export function createTrash<TColor = unknown, TVec = TrashVector2D>(
+  k: TrashEngineContext<TColor, TVec>,
+  position: TrashVector2D
+): TrashGameObject {
   let revealTimer = 0;
   const isHighContrast = accessibilitySystem.isHighContrast();
   const baseOpacity = isHighContrast
@@ -69,10 +102,12 @@ export function createTrash(k: KaboomCtx, position: Vec2) {
 
   // 3 tipos procedurais de lixo plástico intercalados
   const trashType = getRandomInteger(0, 2);
-  let trash: GameObj;
+  let trash: TrashGameObject;
 
   if (trashType === 0) {
     // 1. Garrafa PET — corpo vertical com gargalo estreito e tampa calibrada
+    const shapeArea =
+      typeof k.Rect === "function" ? { shape: new k.Rect(k.vec2(-5.5, -14), 11, 26) } : undefined;
     trash = k.add([
       k.rect(11, 22, { radius: 3 }),
       k.pos(position),
@@ -81,7 +116,7 @@ export function createTrash(k: KaboomCtx, position: Vec2) {
         isHighContrast ? 2.5 : 1.5,
         k.rgb(palette.outline[0], palette.outline[1], palette.outline[2])
       ),
-      k.area({ shape: new k.Rect(k.vec2(-5.5, -14), 11, 26) }),
+      k.area(shapeArea),
       k.anchor("center"),
       k.opacity(baseOpacity),
       TAGS.TRASH,
@@ -90,7 +125,7 @@ export function createTrash(k: KaboomCtx, position: Vec2) {
           revealTimer = GAME_CONFIG.SONAR_REVEAL_DURATION;
         },
       },
-    ]);
+    ]) as TrashGameObject;
     // Gargalo e tampa estreita da garrafa (proporção autêntica)
     const capColor = palette.cap || palette.outline;
     trash.add([
@@ -109,6 +144,8 @@ export function createTrash(k: KaboomCtx, position: Vec2) {
     ]);
   } else if (trashType === 1) {
     // 2. Sacola plástica — corpo flutuante arredondado com alças superiores
+    const shapeArea =
+      typeof k.Rect === "function" ? { shape: new k.Rect(k.vec2(-10, -10), 20, 19) } : undefined;
     trash = k.add([
       k.rect(20, 17, { radius: 6 }),
       k.pos(position),
@@ -117,7 +154,7 @@ export function createTrash(k: KaboomCtx, position: Vec2) {
         isHighContrast ? 2.5 : 1.5,
         k.rgb(palette.outline[0], palette.outline[1], palette.outline[2])
       ),
-      k.area({ shape: new k.Rect(k.vec2(-10, -10), 20, 19) }),
+      k.area(shapeArea),
       k.anchor("center"),
       k.opacity(
         isHighContrast
@@ -130,7 +167,7 @@ export function createTrash(k: KaboomCtx, position: Vec2) {
           revealTimer = GAME_CONFIG.SONAR_REVEAL_DURATION;
         },
       },
-    ]);
+    ]) as TrashGameObject;
     // Alças superiores da sacola plástica
     trash.add([
       k.rect(14, 4, { radius: 2 }),
@@ -158,7 +195,7 @@ export function createTrash(k: KaboomCtx, position: Vec2) {
           revealTimer = GAME_CONFIG.SONAR_REVEAL_DURATION;
         },
       },
-    ]);
+    ]) as TrashGameObject;
     // Vinco de amassamento plástico
     trash.add([
       k.rect(8, 3, { radius: 1 }),
@@ -179,7 +216,11 @@ export function createTrash(k: KaboomCtx, position: Vec2) {
 
     if (revealTimer > 0) {
       revealTimer -= k.dt();
-      trash.opacity = k.lerp(baseOpacity, 1, Math.min(1, revealTimer / 1.5));
+      const revealProgress = Math.min(1, revealTimer / 1.5);
+      trash.opacity =
+        typeof k.lerp === "function"
+          ? k.lerp(baseOpacity, 1, revealProgress)
+          : baseOpacity + (1 - baseOpacity) * revealProgress;
     } else {
       trash.opacity = baseOpacity;
     }

@@ -1,9 +1,30 @@
-import type { KaboomCtx } from "kaboom";
+export interface FontLoadOptions {
+  size?: number;
+  filter?: "linear" | "nearest" | string;
+}
+
+export interface SpriteAnimOptions {
+  from: number;
+  to: number;
+  loop?: boolean;
+  speed?: number;
+}
+
+export interface SpriteLoadOptions {
+  sliceX?: number;
+  sliceY?: number;
+  anims?: Record<string, number | SpriteAnimOptions>;
+}
+
+export interface AssetLoaderEngineContext {
+  loadFont(name: string, src: string, opt?: FontLoadOptions): unknown;
+  loadSprite(name: string, src: string, opt?: SpriteLoadOptions): unknown;
+}
 
 /**
  * Carrega e configura todas as tipografias vetoriais do jogo.
  */
-export function loadGameFonts(k: KaboomCtx): void {
+export function loadGameFonts(k: AssetLoaderEngineContext): void {
   k.loadFont("Inter", "/fonts/Inter-SemiBold.ttf", { size: 64, filter: "linear" });
   k.loadFont("Outfit", "/fonts/Outfit-Bold.ttf", { size: 64, filter: "linear" });
   k.loadFont("Orbitron", "/fonts/Orbitron-Bold.ttf", { size: 64, filter: "linear" });
@@ -12,7 +33,7 @@ export function loadGameFonts(k: KaboomCtx): void {
 /**
  * Carrega e registra as spritesheets da baleia-jubarte e da fauna oceânica de fundo.
  */
-export function loadGameSprites(k: KaboomCtx): void {
+export function loadGameSprites(k: AssetLoaderEngineContext): void {
   // Baleia Principal - 16 quadros de animação (Fase 44)
   k.loadSprite("baleia", "/sprites/whale.png", {
     sliceX: 16,
@@ -56,7 +77,7 @@ export function loadGameSprites(k: KaboomCtx): void {
 /**
  * Agregador para carregamento síncrono de todos os assets gráficos e fontes.
  */
-export function loadAllGameAssets(k: KaboomCtx): void {
+export function loadAllGameAssets(k: AssetLoaderEngineContext): void {
   loadGameFonts(k);
   loadGameSprites(k);
 }

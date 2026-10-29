@@ -1,4 +1,3 @@
-import type { KaboomCtx } from "kaboom";
 import {
   readLocalStorageWithSchema,
   writeLocalStorage,
@@ -9,6 +8,10 @@ import {
   ReducedMotionModeSchema,
   FontScaleKeySchema,
 } from "../schemas/storageSchemas";
+
+export interface ShakeEngineContext {
+  shake?: (intensity: number) => void;
+}
 
 /**
  * Sistema de Acessibilidade Universal, Filtros Daltonismo, Movimento Reduzido e Fontes Dinâmicas
@@ -239,10 +242,12 @@ export class AccessibilitySystem {
   /**
    * Dispara um tremor de tela (screen shake) respeitando a preferência de movimento reduzido
    */
-  public triggerShake(k: KaboomCtx, intensity: number): void {
+  public triggerShake(k: ShakeEngineContext, intensity: number): void {
     if (this.isReducedMotion()) return;
     try {
-      k.shake(intensity);
+      if (typeof k.shake === "function") {
+        k.shake(intensity);
+      }
     } catch {}
   }
 
