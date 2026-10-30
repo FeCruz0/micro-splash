@@ -319,31 +319,27 @@ export function setupOceanFloorSystem(engineOrContext: IRenderEngine | LegacyEng
     const capPoints: Vector2D[] = generateReliefCapPolygonPoints(relief, floorBaseY);
 
     if (isPixi) {
+      type CullingTarget = Parameters<NonNullable<typeof cullingManager>["registerEntity"]>[0];
+
+      // Relevo Geológico Unificado em nó único consolidado
+      const reliefGfx = engineOrContext.createGraphics(`ocean_relief_${relief.startX}`);
+
       // 1. Corpo Geológico Poligonal do Relevo
-      const shapeGfx = engineOrContext.createGraphics("ocean_relief");
-      shapeGfx.drawPolygon(bodyPoints, {
+      reliefGfx.drawPolygon(bodyPoints, {
         fill: { color: bodyColor },
         stroke: { color: outlineColor, width: 2 },
       });
-      shapeGfx.setPosition(relief.startX, 0);
-      shapeGfx.setZIndex(1);
-      engineOrContext.getStageRoot().addChild(shapeGfx);
 
       // 2. Camada de Cobertura Superficial
-      const capGfx = engineOrContext.createGraphics("ocean_relief_cap");
-      capGfx.drawPolygon(capPoints, {
+      reliefGfx.drawPolygon(capPoints, {
         fill: { color: capColor },
       });
-      capGfx.setPosition(relief.startX, 0);
-      capGfx.setZIndex(2);
-      engineOrContext.getStageRoot().addChild(capGfx);
 
-      // 3. Detalhes Geológicos
+      // 3. Detalhes Geológicos em coordenadas locais relativas
       for (let d = 0; d < 3; d++) {
-        const dx = relief.startX + relief.width * (0.32 + d * 0.16);
-        const dy = peakY + 12 + d * 6;
-        const detailGfx = engineOrContext.createGraphics("ocean_relief_detail");
-        detailGfx.drawRoundedRect(0, 0, 14 + d * 6, 2.5, 1, {
+        const localX = relief.width * (0.32 + d * 0.16);
+        const localY = peakY + 12 + d * 6;
+        reliefGfx.drawRoundedRect(localX, localY, 14 + d * 6, 2.5, 1, {
           fill: {
             color: [
               Math.min(255, capColor[0] * 1.3),
@@ -353,10 +349,15 @@ export function setupOceanFloorSystem(engineOrContext: IRenderEngine | LegacyEng
             alpha: 0.6,
           },
         });
-        detailGfx.setPosition(dx, dy);
-        detailGfx.setZIndex(2);
-        engineOrContext.getStageRoot().addChild(detailGfx);
       }
+
+      reliefGfx.setPosition(relief.startX, 0);
+      reliefGfx.setZIndex(1);
+      if (typeof reliefGfx.freeze === "function") {
+        reliefGfx.freeze(true);
+      }
+      engineOrContext.getStageRoot().addChild(reliefGfx);
+      cullingManager?.registerEntity(reliefGfx as unknown as CullingTarget, () => relief.startX);
     } else {
       // Legacy Kaboom engine
       const legacyCtx = engineOrContext as LegacyEngineBridge & {

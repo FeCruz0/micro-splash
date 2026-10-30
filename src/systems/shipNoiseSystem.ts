@@ -5,6 +5,7 @@ import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 import { audioSystem } from "./audioSystem";
 import { safeShake } from "../utils/camera";
 import { getRandomFloat, getRandomInteger } from "../utils/random";
+import { getSpatialCullingManager, type CullableTargetObject } from "./spatialCullingSystem";
 
 export interface ShipVector2D {
   x: number;
@@ -53,12 +54,14 @@ export function setupShipNoiseSystem<
 >(k: ShipNoiseEngineContext<TDestroyable, TColor, TVec>, playerController: PlayerController) {
   let isSystemActive = true;
   const allShipBodies: { pos: { x: number; y: number }; hidden?: boolean }[] = [];
+  const cullingManager = getSpatialCullingManager();
 
   // Traineiras de pesca artesanal estacionadas com redes na Costa Urbana (Fase 35.5)
   const fishingTrawlerPositions = [13800, 16200];
   fishingTrawlerPositions.forEach((positionX) => {
     const trawler = createFishingTrawler(k, positionX);
     allShipBodies.push(trawler);
+    cullingManager?.registerEntity(trawler as unknown as CullableTargetObject, () => positionX);
   });
 
   const ships = [
@@ -84,6 +87,7 @@ export function setupShipNoiseSystem<
     const ship = k.add(shipComponents) as ShipGameObject<TColor>;
 
     allShipBodies.push(ship);
+    cullingManager?.registerEntity(ship as unknown as CullableTargetObject, () => ship.pos.x);
 
     // Linha de flutuação (faixa vermelha na metade inferior do casco)
     ship.add([k.rect(280, 14), k.pos(0, 16), k.color(160, 35, 35), k.anchor("center"), k.z(-2)]);
@@ -108,7 +112,7 @@ export function setupShipNoiseSystem<
     let trashEjectTimer = getRandomFloat(3.0, 7.0);
 
     ship.onUpdate(() => {
-      if (!isSystemActive) return;
+      if (!isSystemActive || ship.hidden) return;
 
       // Movimento de patrulha (ida e volta pelo setor)
       ship.pos.x += shipData.speed * shipData.movementDirection * k.dt();
@@ -123,51 +127,50 @@ export function setupShipNoiseSystem<
       if (noiseTimer >= 2.5) {
         noiseTimer = 0;
 
-        // Se o navio estiver a uma distância audível da baleia, toca o grave da buzina com panning estéreo
         const distToPlayer = Math.abs(ship.pos.x - playerController.gameObj.pos.x);
-        if (distToPlayer < 1400) {
+        if (distToPlayer <= 1400) {
           audioSystem.playShipHorn(ship.pos.x, playerController.gameObj.pos.x);
+
+          const noiseRing = k.add([
+            k.circle(20),
+            k.pos(ship.pos.x, ship.pos.y + 20),
+            k.color(255, 80, 50),
+            k.opacity(0.6),
+            k.anchor("center"),
+            k.z(8),
+            "noise_ring",
+          ]) as ShipGameObject<TColor>;
+
+          let ringRadius = 20;
+
+          noiseRing.onUpdate(() => {
+            ringRadius += k.dt() * 120;
+            noiseRing.radius = ringRadius;
+            if (noiseRing.opacity !== undefined) {
+              noiseRing.opacity -= k.dt() * 0.25;
+
+              // Se a baleia estiver dentro do raio da onda de ruído, causa desorientação e a empurra para o fundo
+              const playerPos = playerController.gameObj.pos;
+              const dist = Math.hypot(noiseRing.pos.x - playerPos.x, noiseRing.pos.y - playerPos.y);
+              if (dist <= ringRadius && noiseRing.opacity > 0.2) {
+                safeShake(k, 1.5);
+                const speed = playerController.getSpeed();
+                const downwardForce = 400 * k.dt();
+
+                playerController.setSpeed(
+                  k.vec2(
+                    speed.x + getRandomFloat(-10, 10),
+                    k.clamp(speed.y + downwardForce, -300, 300)
+                  ) as unknown as Parameters<PlayerController["setSpeed"]>[0]
+                );
+              }
+
+              if (noiseRing.opacity <= 0) {
+                k.destroy(noiseRing as unknown as TDestroyable);
+              }
+            }
+          });
         }
-
-        const noiseRing = k.add([
-          k.circle(20),
-          k.pos(ship.pos.x, ship.pos.y + 20),
-          k.color(255, 80, 50),
-          k.opacity(0.6),
-          k.anchor("center"),
-          k.z(8),
-          "noise_ring",
-        ]) as ShipGameObject<TColor>;
-
-        let ringRadius = 20;
-
-        noiseRing.onUpdate(() => {
-          ringRadius += k.dt() * 120;
-          noiseRing.radius = ringRadius;
-          if (noiseRing.opacity !== undefined) {
-            noiseRing.opacity -= k.dt() * 0.25;
-
-            // Se a baleia estiver dentro do raio da onda de ruído, causa desorientação e a empurra para o fundo
-            const playerPos = playerController.gameObj.pos;
-            const dist = Math.hypot(noiseRing.pos.x - playerPos.x, noiseRing.pos.y - playerPos.y);
-            if (dist <= ringRadius && noiseRing.opacity > 0.2) {
-              safeShake(k, 1.5);
-              const speed = playerController.getSpeed();
-              const downwardForce = 400 * k.dt();
-
-              playerController.setSpeed(
-                k.vec2(
-                  speed.x + getRandomFloat(-10, 10),
-                  k.clamp(speed.y + downwardForce, -300, 300)
-                ) as unknown as Parameters<PlayerController["setSpeed"]>[0]
-              );
-            }
-
-            if (noiseRing.opacity <= 0) {
-              k.destroy(noiseRing as unknown as TDestroyable);
-            }
-          }
-        });
       }
 
       // 2. Descarte ativo de resíduos industriais pela esteira da popa (Fase 9.2)

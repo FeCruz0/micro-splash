@@ -24,7 +24,7 @@ export interface ShowMainMenuEngineContext {
 export interface LegacyMainMenuUiObject {
   hidden?: boolean;
   color?: unknown;
-  scale?: { x: number; y: number } | unknown;
+  scale?: { x: number; y: number };
   width?: number;
   height?: number;
   text?: string;
@@ -209,7 +209,8 @@ export function createMainMenu(
           p.pos.x += Math.sin(time * 0.8) * 0.25;
           const pulse = Math.sin(time * 2.8);
           if (typeof engine.scale === "function" && p.scale) {
-            p.scale = engine.vec2(1 - pulse * 0.12, 1 + pulse * 0.22);
+            p.scale.x = 1 - pulse * 0.12;
+            p.scale.y = 1 + pulse * 0.22;
           }
           if (p.pos.y < -16) {
             p.pos.y = screenH + 15;
@@ -245,7 +246,14 @@ export function createMainMenu(
           const dt = typeof engine.dt === "function" ? engine.dt() : 0.016;
           menuWhaleTime += dt;
           const idleBreath = Math.sin(menuWhaleTime * 1.4) * 0.016;
-          menuWhale.scale = engine.vec2(1.15 * (1 - idleBreath * 0.35), 1.15 * (1 + idleBreath));
+          const targetScaleX = 1.15 * (1 - idleBreath * 0.35);
+          const targetScaleY = 1.15 * (1 + idleBreath);
+          if (menuWhale.scale) {
+            menuWhale.scale.x = targetScaleX;
+            menuWhale.scale.y = targetScaleY;
+          } else {
+            menuWhale.scale = engine.vec2(targetScaleX, targetScaleY);
+          }
           if (menuWhale.pos) {
             menuWhale.pos.y = engine.height() / 2 + 10 + Math.sin(menuWhaleTime * 0.9) * 8;
             menuWhale.pos.x = engine.width() / 2 + Math.sin(menuWhaleTime * 0.35) * 22;

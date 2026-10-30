@@ -207,6 +207,10 @@ export function createBubbleVent<TObj = BubbleVentObj>(
   // 3. Loop de animação das bolhas e cooldown
   if (typeof ventCoreObj.onUpdate === "function") {
     ventCoreObj.onUpdate(() => {
+      if (ventCoreObj.hidden) {
+        return;
+      }
+
       const dt = typeof engineContext.dt === "function" ? engineContext.dt() : 0.016;
 
       if (cooldownTimer > 0) {

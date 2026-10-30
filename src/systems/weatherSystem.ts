@@ -468,6 +468,7 @@ export function setupWeatherSystem(
         legacyCtx.z(26),
         "weather_snow",
       ]) as unknown as WeatherParticleObject;
+      obj.hidden = true;
 
       snowflakes.push({
         obj,
@@ -493,6 +494,7 @@ export function setupWeatherSystem(
         legacyCtx.z(26),
         "weather_rain",
       ]) as unknown as WeatherParticleObject;
+      obj.hidden = true;
 
       raindrops.push({
         obj,
@@ -520,6 +522,7 @@ export function setupWeatherSystem(
         legacyCtx.z(17),
         "weather_sun_glint",
       ]) as unknown as WeatherParticleObject;
+      obj.hidden = true;
 
       goldenGlints.push({
         obj,
@@ -556,12 +559,15 @@ export function setupWeatherSystem(
           wasSolarCalmActive = false;
           snowflakes.forEach((p) => {
             p.obj.opacity = 0;
+            p.obj.hidden = true;
           });
           raindrops.forEach((p) => {
             p.obj.opacity = 0;
+            p.obj.hidden = true;
           });
           goldenGlints.forEach((p) => {
             p.obj.opacity = 0;
+            p.obj.hidden = true;
           });
         },
         isActive: () => isWeatherActive,
@@ -578,18 +584,21 @@ export function setupWeatherSystem(
         if (wasBlizzardActive) {
           snowflakes.forEach((p) => {
             p.obj.opacity = 0;
+            p.obj.hidden = true;
           });
           wasBlizzardActive = false;
         }
         if (wasGaleActive) {
           raindrops.forEach((p) => {
             p.obj.opacity = 0;
+            p.obj.hidden = true;
           });
           wasGaleActive = false;
         }
         if (wasSolarCalmActive) {
           goldenGlints.forEach((p) => {
             p.obj.opacity = 0;
+            p.obj.hidden = true;
           });
           wasSolarCalmActive = false;
         }
@@ -605,6 +614,7 @@ export function setupWeatherSystem(
       if (isBlizzard) {
         wasBlizzardActive = true;
         snowflakes.forEach((p) => {
+          p.obj.hidden = false;
           p.phase += dt * p.swaySpeed;
           p.relX += p.speedX * dt;
           p.relY += p.speedY * dt;
@@ -619,6 +629,7 @@ export function setupWeatherSystem(
       } else if (wasBlizzardActive) {
         snowflakes.forEach((p) => {
           p.obj.opacity = 0;
+          p.obj.hidden = true;
         });
         wasBlizzardActive = false;
       }
@@ -629,6 +640,7 @@ export function setupWeatherSystem(
         wasGaleActive = true;
         const pool = getParticlePool();
         raindrops.forEach((p) => {
+          p.obj.hidden = false;
           p.relX += p.speedX * dt;
           p.relY += p.speedY * dt;
 
@@ -664,6 +676,7 @@ export function setupWeatherSystem(
       } else if (wasGaleActive) {
         raindrops.forEach((p) => {
           p.obj.opacity = 0;
+          p.obj.hidden = true;
         });
         wasGaleActive = false;
       }
@@ -673,6 +686,7 @@ export function setupWeatherSystem(
       if (isSolarCalm) {
         wasSolarCalmActive = true;
         goldenGlints.forEach((p) => {
+          p.obj.hidden = false;
           p.phase += dt * p.swaySpeed;
           p.relX += p.speedX * dt;
           p.relY += p.speedY * dt;
@@ -688,6 +702,7 @@ export function setupWeatherSystem(
       } else if (wasSolarCalmActive) {
         goldenGlints.forEach((p) => {
           p.obj.opacity = 0;
+          p.obj.hidden = true;
         });
         wasSolarCalmActive = false;
       }

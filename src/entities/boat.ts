@@ -244,6 +244,7 @@ export function createFishingTrawler<TColor = unknown>(
 
   let oscillationTime = getRandomFloat(0, Math.PI * 2);
   trawler.onUpdate(() => {
+    if (trawler.hidden) return;
     const deltaTime = k.dt();
     oscillationTime += deltaTime * 2.2;
     // Balanço marítimo suave na superfície

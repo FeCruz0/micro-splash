@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { createPlayer } from "../../src/entities/player";
 import {
   determineWhaleAnimationState,
   calculateWhaleAnimationPlaybackSpeed,
@@ -122,9 +123,7 @@ describe("Fase 44: Expansão do Spritesheet de Alta Fluidez e Detalhamento Biome
   });
 
   describe("44.3 Integração com PlayerController", () => {
-    it("expõe getAnimationState corretamente no ciclo do jogador", async () => {
-      const { createPlayer } = await import("../../src/entities/player");
-
+    it("expõe getAnimationState corretamente no ciclo do jogador", () => {
       let registeredUpdate: (() => void) | null = null;
 
       const mockKaboom: any = {

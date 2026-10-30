@@ -34,6 +34,8 @@ export interface LegacyEngineBridge {
   z(zIndex: number): unknown;
   onUpdate(...args: unknown[]): unknown;
   destroy?(obj: unknown): void;
+  vec2?(x: number, y: number): { x: number; y: number };
+  rgb?(red: number, green: number, blue: number): unknown;
 }
 
 export class LegacyRenderNodeAdapter implements IRenderNode {
@@ -121,6 +123,8 @@ export class LegacyRenderNodeAdapter implements IRenderNode {
       this.entity.destroy();
     }
   }
+
+  freeze(_enabled?: boolean): void {}
 
   getNativeNode<T>(): T {
     return this.entity as unknown as T;

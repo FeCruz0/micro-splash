@@ -63,6 +63,7 @@ export interface RenderEngineInitOptions {
   readonly antialias?: boolean;
   readonly containerElement?: HTMLElement;
   readonly autoDensity?: boolean;
+  readonly powerPreference?: "high-performance" | "low-power";
 }
 
 /**
@@ -95,6 +96,7 @@ export interface IRenderNode {
 
   destroy(): void;
   getNativeNode<T>(): T;
+  freeze?(enabled?: boolean): void;
 }
 
 /**

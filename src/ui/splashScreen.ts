@@ -17,7 +17,7 @@ export interface ShowSplashEngineContext {
 export interface LegacySplashUiObject {
   hidden?: boolean;
   color?: unknown;
-  scale?: { x: number; y: number } | unknown;
+  scale?: { x: number; y: number };
   width?: number;
   height?: number;
   text?: string;
@@ -313,20 +313,38 @@ export function createSplashScreen(k: ShowSplashEngineContext, onFinish: () => v
 
     // Pulsação sutil das letras do logo e da mini-baleia
     const pulse = Math.sin(elapsed * 4) * 0.04;
+    const targetScale = 1 + pulse;
     letterObjects.forEach((lo) => {
       try {
-        lo.scale = engine.vec2(1 + pulse, 1 + pulse);
+        if (lo.scale) {
+          lo.scale.x = targetScale;
+          lo.scale.y = targetScale;
+        } else {
+          lo.scale = engine.vec2(targetScale, targetScale);
+        }
       } catch {}
     });
     letterShadows.forEach((ls) => {
       try {
-        ls.scale = engine.vec2(1 + pulse, 1 + pulse);
+        if (ls.scale) {
+          ls.scale.x = targetScale;
+          ls.scale.y = targetScale;
+        } else {
+          ls.scale = engine.vec2(targetScale, targetScale);
+        }
       } catch {}
     });
 
     if (whaleObj && (typeof whaleObj.exists !== "function" || whaleObj.exists())) {
       const idleBreath = Math.sin(elapsed * 1.4) * 0.016;
-      whaleObj.scale = engine.vec2(0.85 * (1 - idleBreath * 0.35), 0.85 * (1 + idleBreath));
+      const targetWhaleX = 0.85 * (1 - idleBreath * 0.35);
+      const targetWhaleY = 0.85 * (1 + idleBreath);
+      if (whaleObj.scale) {
+        whaleObj.scale.x = targetWhaleX;
+        whaleObj.scale.y = targetWhaleY;
+      } else {
+        whaleObj.scale = engine.vec2(targetWhaleX, targetWhaleY);
+      }
       if (whaleObj.pos) {
         whaleObj.pos.y = cy - 75 + Math.sin(elapsed * 1.0) * 5;
       }

@@ -3,6 +3,7 @@ import type { PlayerController } from "../entities/player";
 import { audioSystem } from "./audioSystem";
 import { safeShake } from "../utils/camera";
 import { getRandomFloat } from "../utils/random";
+import { getSpatialCullingManager, type CullableTargetObject } from "./spatialCullingSystem";
 
 export interface OceanCurrentVector2D {
   x: number;
@@ -12,6 +13,7 @@ export interface OceanCurrentVector2D {
 export interface OceanCurrentGameObject {
   pos: OceanCurrentVector2D;
   opacity?: number;
+  hidden?: boolean;
   add: (components: unknown[]) => OceanCurrentGameObject;
   onUpdate: (cb: () => void) => void;
 }
@@ -103,6 +105,7 @@ export function createCurrentVectorLines<
     // Direção da corrente: favorável move para a direita (+X), contrária move para a esquerda (-X)
     const flowSpeed = isFavorable ? 220 : -180;
     vectorDash.onUpdate(() => {
+      if (currentBox.hidden) return;
       const deltaTime = k.dt();
       vectorDash.pos.x += flowSpeed * deltaTime;
       if (isFavorable && vectorDash.pos.x > zoneWidth + 20) {
@@ -154,6 +157,9 @@ export function setupOceanCurrentsSystem<
       "ocean_current",
     ]) as OceanCurrentGameObject;
 
+    const cullingManager = getSpatialCullingManager();
+    cullingManager?.registerEntity(currentBox as unknown as CullableTargetObject, () => zone.startX + width / 2);
+
     // 2. Linhas vetoriais oceanográficas de fluxo visível (Fase 35.4)
     createCurrentVectorLines(k, currentBox, width, zone.height, isFavorable);
 
@@ -180,6 +186,7 @@ export function setupOceanCurrentsSystem<
       let sway = getRandomFloat(0, Math.PI * 2);
 
       streamLine.onUpdate(() => {
+        if (currentBox.hidden) return;
         const deltaTime = k.dt();
         sway += deltaTime * 3;
 
@@ -220,6 +227,7 @@ export function setupOceanCurrentsSystem<
 
         let vortexAngle = getRandomFloat(0, 10);
         vortex.onUpdate(() => {
+          if (currentBox.hidden) return;
           vortexAngle -= k.dt() * 4;
           vortex.opacity = 0.18 + Math.sin(vortexAngle) * 0.12;
         });

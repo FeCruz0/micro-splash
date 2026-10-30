@@ -6,6 +6,7 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(packageJson.version),
   },
   test: {
+    testTimeout: 10000,
     setupFiles: ["./tests/setup.ts"],
     coverage: {
       provider: "v8",

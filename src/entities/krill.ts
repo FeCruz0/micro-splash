@@ -35,6 +35,7 @@ export interface KrillClusterObject extends KrillGameObject {
   reveal: () => void;
   isRevealed: () => boolean;
   is: (tag: string) => boolean;
+  setVisible?: (visible: boolean) => void;
 }
 
 export interface KrillEngineContext<TDestroyable = unknown, TColor = unknown> {
@@ -81,6 +82,9 @@ export function createKrill<TDestroyable = unknown, TColor = unknown>(
   let haloCircle: KrillGameObject | null = null;
   let haloInner: KrillGameObject | null = null;
 
+  const boidCount = 9;
+  const boids: BoidMember<TColor>[] = [];
+
   // Entidade central com colisor para TAGS.KRILL
   const krillCluster = k.add([
     k.rect(26, 26),
@@ -98,11 +102,15 @@ export function createKrill<TDestroyable = unknown, TColor = unknown>(
       isRevealed() {
         return revealTimer > 0;
       },
+      setVisible(visible: boolean) {
+        for (let i = 0; i < boids.length; i++) {
+          boids[i].obj.hidden = !visible;
+        }
+        if (haloCircle) haloCircle.hidden = !visible;
+        if (haloInner) haloInner.hidden = !visible;
+      },
     },
   ]) as KrillClusterObject;
-
-  const boidCount = 9;
-  const boids: BoidMember<TColor>[] = [];
 
   for (let i = 0; i < boidCount; i++) {
     const angle = (i / boidCount) * Math.PI * 2 + getRandomFloat(-0.2, 0.2);
@@ -188,6 +196,17 @@ export function createKrill<TDestroyable = unknown, TColor = unknown>(
   const baseY = position.y;
 
   krillCluster.onUpdate(() => {
+    // Se estiver fora da tela pelo culling espacial, pula todos os cálculos e oculta os boids
+    if (krillCluster.hidden) {
+      for (let i = 0; i < boids.length; i++) {
+        boids[i].obj.hidden = true;
+      }
+      return;
+    }
+    for (let i = 0; i < boids.length; i++) {
+      boids[i].obj.hidden = false;
+    }
+
     const dt = k.dt();
     time += dt;
 
@@ -195,11 +214,6 @@ export function createKrill<TDestroyable = unknown, TColor = unknown>(
     const currentY = baseY + Math.sin(time * 2.2) * 5;
     krillCluster.pos.y = currentY;
     krillCluster.pos.x = position.x;
-
-    // Se estiver fora da tela pelo culling espacial, pula cálculos de dispersão
-    if (krillCluster.hidden) {
-      return;
-    }
 
     // Detecção de proximidade com a baleia para dispersão reativa com matemática escalar (Fase 53)
     const player = getActivePlayerObject();

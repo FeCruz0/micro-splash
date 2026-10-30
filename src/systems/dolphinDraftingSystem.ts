@@ -4,6 +4,7 @@ import type { PlayerController } from "../entities/player";
 import { getParticlePool } from "./particlePool";
 import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 import { getRandomFloat } from "../utils/random";
+import { getSpatialCullingManager, type CullableTargetObject } from "./spatialCullingSystem";
 
 export interface DolphinVector2D {
   x: number;
@@ -161,6 +162,10 @@ export function setupDolphinDraftingSystem<
         k.color(52, 88, 124),
       ]) as DolphinGameObject;
 
+      allDolphinBodies.push(dolphin);
+      const cullingManager = getSpatialCullingManager();
+      cullingManager?.registerEntity(dolphin as unknown as CullableTargetObject, () => podX);
+
       dolphins.push({ obj: dolphin, tail, offset: off, index: i });
     });
 
@@ -186,6 +191,25 @@ export function setupDolphinDraftingSystem<
 
       const dt = k.dt();
       const player = playerController.gameObj;
+      const playerX = player ? player.pos.x : 0;
+      const isPodVisible = Math.abs(podX - playerX) < 1400;
+
+      if (!isPodVisible) {
+        if (turnState === "cruise") {
+          podX += dir * route.baseSpeed * dt;
+          if (dir === 1 && podX >= route.maxX) {
+            podX = route.maxX;
+            dir = -1;
+          } else if (dir === -1 && podX <= route.minX) {
+            podX = route.minX;
+            dir = 1;
+          }
+        }
+        dolphins.forEach((d) => {
+          if (!d.obj.hidden) d.obj.hidden = true;
+        });
+        return;
+      }
 
       // 1. Simulação do Loop Pré-Programado
       if (turnState === "cruise") {

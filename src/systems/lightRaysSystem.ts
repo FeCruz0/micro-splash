@@ -2,7 +2,7 @@
  * Sistema de Iluminação Subaquática: God Rays & Cáusticos — Micro Splash
  *
  * Refatorado para o Adapter Pattern (PixiJS v8 / Micro Splash Engine).
- * Desacoplado do Kaboom.js, com tipagem estrita de IRenderEngine e IRenderNode.
+ * Desacoplado de geometrias rígidas de 90° e normalizado para cross-browser (Chrome ANGLE vs Firefox WebRender).
  */
 
 import { GAME_CONFIG } from "../config";
@@ -13,6 +13,12 @@ import {
   resolveCameraX,
   type LegacyEngineBridge,
 } from "../engine/adapters/LegacyBridge";
+import {
+  createVolumetricRayProfile,
+  getRaySegmentPolygonVertices,
+  resolveBiomeLightColor,
+  type RayGeometryProfile,
+} from "../utils/volumetricRayGeometry";
 
 /**
  * Calcula a largura volumétrica do feixe solar (Fase 30.4: 8px a 18px).
@@ -22,15 +28,14 @@ export function calculateGodRayWidth(rayIndex: number): number {
 }
 
 interface GodRayData {
-  baseWidth: number;
-  baseXOffset: number;
-  pulseSpeed: number;
-  pulsePhase: number;
-  angleOffsetDeg: number;
+  readonly baseXOffset: number;
+  readonly pulseSpeed: number;
+  readonly pulsePhase: number;
+  readonly angleOffsetDeg: number;
 }
 
 interface CausticData {
-  index: number;
+  readonly index: number;
 }
 
 interface LegacyLightObj {
@@ -41,6 +46,36 @@ interface LegacyLightObj {
   hidden?: boolean;
 }
 
+interface LegacyRaySegment {
+  readonly obj: LegacyLightObj;
+  readonly relativeAlpha: number;
+}
+
+interface LegacyRayGroup {
+  readonly segments: readonly LegacyRaySegment[];
+  readonly baseXOffset: number;
+  readonly pulseSpeed: number;
+  readonly pulsePhase: number;
+  readonly angleOffsetDeg: number;
+}
+
+function drawVolumetricRay(
+  node: IGraphicsNode,
+  profile: RayGeometryProfile,
+  color: readonly [number, number, number]
+): void {
+  for (let index = 0; index < profile.segments.length; index++) {
+    const segment = profile.segments[index];
+    const vertices = getRaySegmentPolygonVertices(segment);
+    node.drawPolygon(vertices, {
+      fill: {
+        color,
+        alpha: segment.relativeAlpha,
+      },
+    });
+  }
+}
+
 /**
  * Sistema de Iluminação Subaquática: God Rays (Feixes Volumétricos) & Cáusticos de Superfície
  * Traz atmosfera cinematográfica e sensação de profundidade através da luz solar filtrada na água.
@@ -49,7 +84,7 @@ export function setupLightRaysSystem(engineOrContext: IRenderEngine | LegacyEngi
   const isPixi = isRenderEngine(engineOrContext);
   const rayCount = 15;
   const causticSegments = 10;
-  const screenW = isPixi
+  const screenWidth = isPixi
     ? engineOrContext.getDimensions().width
     : typeof engineOrContext.width === "function"
       ? engineOrContext.width()
@@ -59,43 +94,42 @@ export function setupLightRaysSystem(engineOrContext: IRenderEngine | LegacyEngi
 
   if (isPixi) {
     const stageRoot = engineOrContext.getStageRoot();
-    const godRays: { node: IGraphicsNode; data: GodRayData }[] = [];
+    const godRays: { node: IGraphicsNode; profile: RayGeometryProfile; data: GodRayData }[] = [];
     const caustics: { node: IGraphicsNode; data: CausticData }[] = [];
 
-    for (let i = 0; i < rayCount; i++) {
-      const baseWidth = calculateGodRayWidth(i);
-      const baseAngleDeg = -18 + i * 2.6;
+    for (let index = 0; index < rayCount; index++) {
+      const baseWidth = calculateGodRayWidth(index);
+      const baseAngleDeg = -18 + index * 2.6;
+      const profile = createVolumetricRayProfile(baseWidth);
 
-      const g = engineOrContext.createGraphics("god_ray");
-      g.drawRect(-baseWidth / 2, 0, baseWidth, 420, {
-        fill: { color: [210, 245, 255], alpha: 1 },
-      });
-      g.setPosition(0, GAME_CONFIG.SEA_LEVEL);
-      g.setRotation((baseAngleDeg * Math.PI) / 180);
-      g.setOpacity(0.05);
-      g.setZIndex(-2);
-      stageRoot.addChild(g);
+      const graphicsNode = engineOrContext.createGraphics("god_ray");
+      drawVolumetricRay(graphicsNode, profile, [120, 195, 235]);
+      graphicsNode.setPosition(0, GAME_CONFIG.SEA_LEVEL);
+      graphicsNode.setRotation((baseAngleDeg * Math.PI) / 180);
+      graphicsNode.setOpacity(0.04);
+      graphicsNode.setZIndex(-2);
+      stageRoot.addChild(graphicsNode);
 
       godRays.push({
-        node: g,
+        node: graphicsNode,
+        profile,
         data: {
-          baseWidth,
-          baseXOffset: -60 + i * (screenW / (rayCount - 1) + 10),
-          pulseSpeed: 0.6 + (i % 5) * 0.2,
-          pulsePhase: i * 0.85,
+          baseXOffset: -60 + index * (screenWidth / (rayCount - 1) + 10),
+          pulseSpeed: 0.6 + (index % 5) * 0.2,
+          pulsePhase: index * 0.85,
           angleOffsetDeg: baseAngleDeg,
         },
       });
     }
 
-    const causticWidth = screenW / causticSegments + 10;
+    const causticWidth = screenWidth / causticSegments + 10;
     for (let c = 0; c < causticSegments; c++) {
       const g = engineOrContext.createGraphics("caustic_surface");
       g.drawRoundedRect(0, 0, causticWidth, 4, 2, {
-        fill: { color: [240, 255, 255], alpha: 1 },
+        fill: { color: [220, 245, 255], alpha: 1 },
       });
-      g.setPosition(c * (screenW / causticSegments), GAME_CONFIG.SEA_LEVEL + 2);
-      g.setOpacity(0.12);
+      g.setPosition(c * (screenWidth / causticSegments), GAME_CONFIG.SEA_LEVEL + 2);
+      g.setOpacity(0.1);
       g.setZIndex(1);
       stageRoot.addChild(g);
 
@@ -109,135 +143,120 @@ export function setupLightRaysSystem(engineOrContext: IRenderEngine | LegacyEngi
         getBounds: () => ({ minX: 0, maxX: 30000 }),
         setVisible: (visible: boolean) => {
           isSystemVisible = visible;
-          godRays.forEach((r) => r.node.setVisible(visible));
-          caustics.forEach((c) => c.node.setVisible(visible));
+          for (let index = 0; index < godRays.length; index++) {
+            godRays[index].node.setVisible(visible);
+          }
+          for (let index = 0; index < caustics.length; index++) {
+            caustics[index].node.setVisible(visible);
+          }
         },
       });
     }
 
     let time = 0;
     let lastColor: readonly [number, number, number] | null = null;
-    engineOrContext.getTicker().add((dt: number) => {
+
+    engineOrContext.getTicker().add((deltaTimeInSeconds: number) => {
       if (!isSystemVisible) return;
-      time += dt;
+      time += deltaTimeInSeconds;
 
-      const camX = resolveCameraX(engineOrContext);
-      const screenLeft = camX - screenW / 2;
+      const cameraXPosition = resolveCameraX(engineOrContext);
+      const screenLeft = cameraXPosition - screenWidth / 2;
+      const atmospheric = resolveBiomeLightColor(cameraXPosition);
 
-      let biomeLightFactor = 0.05;
-      let rayColor: readonly [number, number, number] = [190, 230, 255];
-
-      if (camX < 5000) {
-        biomeLightFactor = 0.035;
-        rayColor = [160, 210, 255];
-      } else if (camX < 12000) {
-        biomeLightFactor = 0.055;
-        rayColor = [180, 230, 255];
-      } else if (camX < 19000) {
-        biomeLightFactor = 0.045;
-        rayColor = [180, 220, 210];
-      } else {
-        biomeLightFactor = 0.075;
-        rayColor = [255, 250, 210];
-      }
-
-      if (lastColor !== rayColor) {
-        lastColor = rayColor;
-        godRays.forEach(({ node, data }) => {
+      if (lastColor !== atmospheric.rayColor) {
+        lastColor = atmospheric.rayColor;
+        for (let index = 0; index < godRays.length; index++) {
+          const { node, profile } = godRays[index];
           node.clear();
-          node.drawRect(-data.baseWidth / 2, 0, data.baseWidth, 420, {
-            fill: { color: rayColor, alpha: 1 },
-          });
-        });
+          drawVolumetricRay(node, profile, atmospheric.rayColor);
+        }
       }
 
-      godRays.forEach(({ node, data }) => {
+      for (let index = 0; index < godRays.length; index++) {
+        const { node, data } = godRays[index];
         const sway = Math.sin(time * data.pulseSpeed + data.pulsePhase);
-        const angleSwayDeg = Math.cos(time * 0.6 + data.pulsePhase) * 4;
+        const angleSwayInDegrees = Math.cos(time * 0.6 + data.pulsePhase) * 4;
 
         node.setPosition(screenLeft + data.baseXOffset + sway * 25, GAME_CONFIG.SEA_LEVEL);
-        node.setRotation(((data.angleOffsetDeg + angleSwayDeg) * Math.PI) / 180);
+        node.setRotation(((data.angleOffsetDeg + angleSwayInDegrees) * Math.PI) / 180);
 
-        const pulseOpacity = (0.8 + sway * 0.2) * biomeLightFactor;
-        node.setOpacity(Math.max(0.02, Math.min(0.08, pulseOpacity)));
-      });
+        const pulseOpacity = (0.75 + sway * 0.25) * atmospheric.lightFactor;
+        node.setOpacity(Math.max(0.015, Math.min(0.06, pulseOpacity)));
+      }
 
-      caustics.forEach(({ node, data }) => {
-        const offsetC = data.index * (screenW / causticSegments);
+      for (let index = 0; index < caustics.length; index++) {
+        const { node, data } = caustics[index];
+        const offsetC = data.index * (screenWidth / causticSegments);
         const yPos = GAME_CONFIG.SEA_LEVEL + 4 + Math.sin(time * 2.5 + data.index * 1.2) * 5;
         node.setPosition(screenLeft + offsetC, yPos);
         const opacity =
-          (0.12 + Math.sin(time * 3.0 + data.index * 0.8) * 0.08) * (biomeLightFactor * 4.5);
+          (0.1 + Math.sin(time * 3.0 + data.index * 0.8) * 0.06) * (atmospheric.lightFactor * 4.0);
         node.setOpacity(opacity);
-      });
+      }
     });
   } else {
     // Modo Legacy Kaboom Bridge
-    const legacyCtx = engineOrContext as LegacyEngineBridge & {
-      rect(w: number, h: number, opts?: unknown): unknown;
-      pos(x: number, y: number): unknown;
-      rotate(a: number): unknown;
-      color(c: unknown): unknown;
-      rgb(r: number, g: number, b: number): unknown;
-      opacity(o: number): unknown;
-      anchor(a: string): unknown;
-      z(layer: number): unknown;
-      camPos?(): { x: number; y: number };
-      width(): number;
-      dt(): number;
-      onUpdate(cb: () => void): void;
-    };
+    const legacyCtx = engineOrContext;
+    const godRays: LegacyRayGroup[] = [];
 
-    const godRays: (LegacyLightObj & {
-      baseXOffset: number;
-      pulseSpeed: number;
-      pulsePhase: number;
-      angleOffset: number;
-    })[] = [];
+    for (let index = 0; index < rayCount; index++) {
+      const baseWidth = calculateGodRayWidth(index);
+      const baseAngleDeg = -18 + index * 2.6;
+      const profile = createVolumetricRayProfile(baseWidth);
+      const segmentObjects: LegacyRaySegment[] = [];
 
-    for (let i = 0; i < rayCount; i++) {
-      const baseWidth = calculateGodRayWidth(i);
-      const baseAngle = -18 + i * 2.6;
+      for (let s = 0; s < profile.segments.length; s++) {
+        const segment = profile.segments[s];
+        const rawVertices = getRaySegmentPolygonVertices(segment);
+        const points =
+          typeof legacyCtx.vec2 === "function"
+            ? rawVertices.map((vertex) => legacyCtx.vec2!(vertex.x, vertex.y))
+            : rawVertices;
 
-      const ray = legacyCtx.add([
-        legacyCtx.rect(baseWidth, 420),
-        legacyCtx.pos(0, GAME_CONFIG.SEA_LEVEL),
-        legacyCtx.rotate(baseAngle),
-        legacyCtx.color(210, 245, 255),
-        legacyCtx.opacity(0.05),
-        legacyCtx.anchor("top"),
-        legacyCtx.z(-2),
-        "god_ray",
-        {
-          baseXOffset: -60 + i * (legacyCtx.width() / (rayCount - 1) + 10),
-          pulseSpeed: 0.6 + (i % 5) * 0.2,
-          pulsePhase: i * 0.85,
-          angleOffset: baseAngle,
-        },
-      ]) as unknown as LegacyLightObj & {
-        baseXOffset: number;
-        pulseSpeed: number;
-        pulsePhase: number;
-        angleOffset: number;
-      };
+        const segmentObj = legacyCtx.add([
+          legacyCtx.polygon(points),
+          legacyCtx.pos(0, GAME_CONFIG.SEA_LEVEL),
+          legacyCtx.color(120, 195, 235),
+          legacyCtx.opacity(0.04 * segment.relativeAlpha),
+          legacyCtx.z(-2),
+          "god_ray_segment",
+        ]) as unknown as LegacyLightObj;
 
-      godRays.push(ray);
+        if (typeof segmentObj.angle === "number") {
+          segmentObj.angle = baseAngleDeg;
+        }
+
+        segmentObjects.push({
+          obj: segmentObj,
+          relativeAlpha: segment.relativeAlpha,
+        });
+      }
+
+      godRays.push({
+        segments: segmentObjects,
+        baseXOffset: -60 + index * (screenWidth / (rayCount - 1) + 10),
+        pulseSpeed: 0.6 + (index % 5) * 0.2,
+        pulsePhase: index * 0.85,
+        angleOffsetDeg: baseAngleDeg,
+      });
     }
 
-    const caustics: (LegacyLightObj & { index: number })[] = [];
+    const caustics: (LegacyLightObj & { readonly index: number })[] = [];
+    const causticWidth = screenWidth / causticSegments + 10;
 
     for (let c = 0; c < causticSegments; c++) {
       const caustic = legacyCtx.add([
-        legacyCtx.rect(legacyCtx.width() / causticSegments + 10, 4, { radius: 2 }),
-        legacyCtx.pos(c * (legacyCtx.width() / causticSegments), GAME_CONFIG.SEA_LEVEL + 2),
-        legacyCtx.color(240, 255, 255),
-        legacyCtx.opacity(0.12),
+        legacyCtx.rect(causticWidth, 4, { radius: 2 }),
+        legacyCtx.pos(c * (screenWidth / causticSegments), GAME_CONFIG.SEA_LEVEL + 2),
+        legacyCtx.color(220, 245, 255),
+        legacyCtx.opacity(0.1),
         legacyCtx.z(1),
         "caustic_surface",
         {
           index: c,
         },
-      ]) as unknown as LegacyLightObj & { index: number };
+      ]) as unknown as LegacyLightObj & { readonly index: number };
       caustics.push(caustic);
     }
 
@@ -248,64 +267,79 @@ export function setupLightRaysSystem(engineOrContext: IRenderEngine | LegacyEngi
         getBounds: () => ({ minX: 0, maxX: 30000 }),
         setVisible: (visible: boolean) => {
           isSystemVisible = visible;
-          godRays.forEach((r) => {
-            r.hidden = !visible;
-          });
-          caustics.forEach((c) => {
-            c.hidden = !visible;
-          });
+          for (let index = 0; index < godRays.length; index++) {
+            const segments = godRays[index].segments;
+            for (let s = 0; s < segments.length; s++) {
+              segments[s].obj.hidden = !visible;
+            }
+          }
+          for (let index = 0; index < caustics.length; index++) {
+            caustics[index].hidden = !visible;
+          }
         },
       });
     }
 
     let time = 0;
+    let lastRayColorKey: string | null = null;
+
     legacyCtx.onUpdate(() => {
       if (!isSystemVisible) return;
       time += legacyCtx.dt();
-      const camX = legacyCtx.camPos ? legacyCtx.camPos().x : 0;
-      const screenLeft = camX - legacyCtx.width() / 2;
+      const cameraXPosition = legacyCtx.camPos ? legacyCtx.camPos().x : 0;
+      const screenLeft = cameraXPosition - screenWidth / 2;
+      const atmospheric = resolveBiomeLightColor(cameraXPosition);
 
-      let biomeLightFactor = 0.05;
-      let rayColor =
-        typeof legacyCtx.rgb === "function" ? legacyCtx.rgb(190, 230, 255) : [190, 230, 255];
+      const colorKey = `${atmospheric.rayColor[0]}_${atmospheric.rayColor[1]}_${atmospheric.rayColor[2]}`;
+      if (colorKey !== lastRayColorKey) {
+        lastRayColorKey = colorKey;
+        const resolvedColor =
+          typeof legacyCtx.rgb === "function"
+            ? legacyCtx.rgb(
+                atmospheric.rayColor[0],
+                atmospheric.rayColor[1],
+                atmospheric.rayColor[2]
+              )
+            : atmospheric.rayColor;
 
-      if (camX < 5000) {
-        biomeLightFactor = 0.035;
-        rayColor =
-          typeof legacyCtx.rgb === "function" ? legacyCtx.rgb(160, 210, 255) : [160, 210, 255];
-      } else if (camX < 12000) {
-        biomeLightFactor = 0.055;
-        rayColor =
-          typeof legacyCtx.rgb === "function" ? legacyCtx.rgb(180, 230, 255) : [180, 230, 255];
-      } else if (camX < 19000) {
-        biomeLightFactor = 0.045;
-        rayColor =
-          typeof legacyCtx.rgb === "function" ? legacyCtx.rgb(180, 220, 210) : [180, 220, 210];
-      } else {
-        biomeLightFactor = 0.075;
-        rayColor =
-          typeof legacyCtx.rgb === "function" ? legacyCtx.rgb(255, 250, 210) : [255, 250, 210];
+        for (let index = 0; index < godRays.length; index++) {
+          const segments = godRays[index].segments;
+          for (let s = 0; s < segments.length; s++) {
+            segments[s].obj.color = resolvedColor;
+          }
+        }
+        for (let index = 0; index < caustics.length; index++) {
+          caustics[index].color = resolvedColor;
+        }
       }
 
-      godRays.forEach((ray) => {
+      for (let index = 0; index < godRays.length; index++) {
+        const ray = godRays[index];
         const sway = Math.sin(time * ray.pulseSpeed + ray.pulsePhase);
         const angleSway = Math.cos(time * 0.6 + ray.pulsePhase) * 4;
+        const currentX = screenLeft + ray.baseXOffset + sway * 25;
+        const currentAngle = ray.angleOffsetDeg + angleSway;
+        const pulseOpacity = (0.75 + sway * 0.25) * atmospheric.lightFactor;
+        const baseOpacity = Math.max(0.015, Math.min(0.06, pulseOpacity));
 
-        ray.pos.x = screenLeft + ray.baseXOffset + sway * 25;
-        ray.angle = ray.angleOffset + angleSway;
-        ray.color = rayColor;
+        const segments = ray.segments;
+        for (let s = 0; s < segments.length; s++) {
+          const seg = segments[s];
+          seg.obj.pos.x = currentX;
+          seg.obj.pos.y = GAME_CONFIG.SEA_LEVEL;
+          seg.obj.angle = currentAngle;
+          seg.obj.opacity = baseOpacity * seg.relativeAlpha;
+        }
+      }
 
-        const pulseOpacity = (0.8 + sway * 0.2) * biomeLightFactor;
-        ray.opacity = Math.max(0.02, Math.min(0.08, pulseOpacity));
-      });
-
-      caustics.forEach((c) => {
-        const offsetC = c.index * (legacyCtx.width() / causticSegments);
+      for (let index = 0; index < caustics.length; index++) {
+        const c = caustics[index];
+        const offsetC = c.index * (screenWidth / causticSegments);
         c.pos.x = screenLeft + offsetC;
         c.pos.y = GAME_CONFIG.SEA_LEVEL + 4 + Math.sin(time * 2.5 + c.index * 1.2) * 5;
-        c.opacity = (0.12 + Math.sin(time * 3.0 + c.index * 0.8) * 0.08) * (biomeLightFactor * 4.5);
-        c.color = rayColor;
-      });
+        c.opacity =
+          (0.1 + Math.sin(time * 3.0 + c.index * 0.8) * 0.06) * (atmospheric.lightFactor * 4.0);
+      }
     });
   }
 }

@@ -211,6 +211,12 @@ export function createTrash<TColor = unknown, TVec = TrashVector2D>(
   // Flutuação suave e decaimento de revelação
   let time = getRandomFloat(0, 10);
   trash.onUpdate(() => {
+    const rawTrash = trash as unknown as { hidden?: boolean; isVisible?: () => boolean };
+    const isCulled =
+      rawTrash.hidden === true ||
+      (typeof rawTrash.isVisible === "function" && !rawTrash.isVisible());
+    if (isCulled && revealTimer <= 0) return;
+
     time += k.dt();
     trash.pos.y = baseY + Math.sin(time * 2.2) * 5;
 

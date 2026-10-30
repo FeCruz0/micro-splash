@@ -224,6 +224,7 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
         stem.setPosition(xPos, floorY - (s + 1) * segHeight);
         stem.setZIndex(s % 2 === 0 ? -3 : 2);
         stageRoot.addChild(stem);
+        cullingManager?.registerEntity(stem as unknown as CullingTarget, () => xPos);
 
         const leafSide = s % 2 === 0 ? 1 : -1;
         const leafWidth = 18 + s * 2;
@@ -236,6 +237,7 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
         leaf.setRotation(leafSide * 25);
         leaf.setZIndex(-3);
         stageRoot.addChild(leaf);
+        cullingManager?.registerEntity(leaf as unknown as CullingTarget, () => xPos);
 
         const stemProxy = createBenthicNodeProxy(stem, xPos, floorY - (s + 1) * segHeight);
         const leafProxy = createBenthicNodeProxy(
@@ -925,7 +927,12 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
             const cycleTime = time * 2.5 + coral.animPhase;
             const verticalScale = 1.0 + Math.sin(cycleTime) * 0.15;
             const horizontalScale = 1.0 - Math.sin(cycleTime) * 0.08;
-            coral.obj.scale = legacyCtx.vec2(horizontalScale, verticalScale);
+            if (coral.obj.scale) {
+              coral.obj.scale.x = horizontalScale;
+              coral.obj.scale.y = verticalScale;
+            } else if (typeof legacyCtx.vec2 === "function") {
+              coral.obj.scale = legacyCtx.vec2(horizontalScale, verticalScale);
+            }
 
             if (coral.tentacles) {
               const totalTentacles = coral.tentacles.length;
@@ -933,7 +940,12 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
                 const baseAngle = (tentacleIndex - (totalTentacles - 1) / 2) * 8;
                 const angleSpread = Math.sin(cycleTime) * 6 * (baseAngle >= 0 ? 1 : -1);
                 tentacle.angle = baseAngle + angleSpread;
-                tentacle.scale = legacyCtx.vec2(1.0, verticalScale);
+                if (tentacle.scale) {
+                  tentacle.scale.x = 1.0;
+                  tentacle.scale.y = verticalScale;
+                } else if (typeof legacyCtx.vec2 === "function") {
+                  tentacle.scale = legacyCtx.vec2(1.0, verticalScale);
+                }
               });
             }
           }

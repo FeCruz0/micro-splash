@@ -172,36 +172,66 @@ class PixiPooledParticleProxy implements ParticleRenderObject {
     return this.currentRadius;
   }
   set radius(val: number) {
+    if (this.currentRadius === val) return;
     this.currentRadius = val;
-    this.redraw();
+    if (this.isCircle) {
+      this.node.setScale(val / 2, val / 2);
+    } else {
+      this.redraw();
+    }
   }
 
   get width(): number {
     return this.currentWidth;
   }
   set width(val: number) {
+    if (this.currentWidth === val) return;
     this.currentWidth = val;
-    this.redraw();
+    if (!this.isCircle) {
+      this.node.setScale(val / 10, this.currentHeight / 2);
+    } else {
+      this.redraw();
+    }
   }
 
   get height(): number {
     return this.currentHeight;
   }
   set height(val: number) {
+    if (this.currentHeight === val) return;
     this.currentHeight = val;
-    this.redraw();
+    if (!this.isCircle) {
+      this.node.setScale(this.currentWidth / 10, val / 2);
+    } else {
+      this.redraw();
+    }
   }
 
   get color(): unknown {
     return { r: this.currentColor[0], g: this.currentColor[1], b: this.currentColor[2] };
   }
   set color(c: unknown) {
+    let red = 255;
+    let green = 255;
+    let blue = 255;
     if (Array.isArray(c)) {
-      this.currentColor = [c[0], c[1], c[2]];
+      red = c[0];
+      green = c[1];
+      blue = c[2];
     } else if (c && typeof c === "object" && "r" in c) {
       const rgb = c as { r: number; g: number; b: number };
-      this.currentColor = [rgb.r, rgb.g, rgb.b];
+      red = rgb.r;
+      green = rgb.g;
+      blue = rgb.b;
     }
+    if (
+      this.currentColor[0] === red &&
+      this.currentColor[1] === green &&
+      this.currentColor[2] === blue
+    ) {
+      return;
+    }
+    this.currentColor = [red, green, blue];
     this.redraw();
   }
 
@@ -229,13 +259,15 @@ class PixiPooledParticleProxy implements ParticleRenderObject {
   private redraw(): void {
     this.node.clear();
     if (this.isCircle) {
-      this.node.drawCircle(0, 0, this.currentRadius, {
+      this.node.drawCircle(0, 0, 2, {
         fill: { color: this.currentColor, alpha: 1 },
       });
+      this.node.setScale(this.currentRadius / 2, this.currentRadius / 2);
     } else {
-      this.node.drawRect(0, 0, this.currentWidth, this.currentHeight, {
+      this.node.drawRect(0, 0, 10, 2, {
         fill: { color: this.currentColor, alpha: 1 },
       });
+      this.node.setScale(this.currentWidth / 10, this.currentHeight / 2);
     }
   }
 }

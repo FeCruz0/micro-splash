@@ -4,6 +4,7 @@ import { getParticlePool } from "./particlePool";
 import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 import { getActivePlayerObject } from "../entities/player";
 import { getRandomFloat } from "../utils/random";
+import { getSpatialCullingManager, type CullableTargetObject } from "./spatialCullingSystem";
 
 export interface PenguinVector2D {
   x: number;
@@ -162,6 +163,9 @@ export function setupPenguinFlockSystem<
       pBody.add([k.rect(2.5, 1.5), k.pos(-7, 1.2), k.color(215, 120, 45), k.anchor("center")]);
 
       allPenguinBodies.push(pBody);
+      const cullingManager = getSpatialCullingManager();
+      cullingManager?.registerEntity(pBody as unknown as CullableTargetObject, () => flockX);
+
       penguins.push({
         obj: pBody,
         wing,
@@ -192,6 +196,25 @@ export function setupPenguinFlockSystem<
 
       const dt = k.dt();
       const player = getActivePlayerObject();
+      const playerX = player ? player.pos.x : 0;
+      const isFlockVisible = Math.abs(flockX - playerX) < 1400;
+
+      if (!isFlockVisible) {
+        if (turnState === "cruise") {
+          flockX += dir * colony.speed * dt;
+          if (dir === 1 && flockX >= colony.maxX) {
+            flockX = colony.maxX;
+            dir = -1;
+          } else if (dir === -1 && flockX <= colony.minX) {
+            flockX = colony.minX;
+            dir = 1;
+          }
+        }
+        penguins.forEach((p) => {
+          if (!p.obj.hidden) p.obj.hidden = true;
+        });
+        return;
+      }
 
       // 1. Simulação do Loop Pré-Programado
       if (turnState === "cruise") {

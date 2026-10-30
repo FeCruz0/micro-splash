@@ -145,6 +145,7 @@ export function setupIceSurfaceSystem(
       segment.setPosition(x, icePosY);
       segment.setZIndex(10);
       stageRoot.addChild(segment);
+      cullingManager?.registerEntity(segment as unknown as CullingTarget, () => x);
 
       function breakIce() {
         if (isBroken) return;
@@ -568,7 +569,7 @@ export function setupIceSurfaceSystem(
     const wallWidth = 1100;
     const wallStartX = -1100;
 
-    legacyCtx.add([
+    const wallObj = legacyCtx.add([
       legacyCtx.rect(wallWidth, legacyCtx.height()),
       legacyCtx.pos(wallStartX, 0),
       typeof legacyCtx.area === "function" ? legacyCtx.area() : null,
@@ -579,12 +580,13 @@ export function setupIceSurfaceSystem(
       "iceberg_wall",
       TAGS.OBSTACLE,
     ]);
+    cullingManager?.registerEntity(wallObj as unknown as CullingTarget, () => wallStartX + wallWidth / 2);
 
     for (let x = wallStartX; x < 0; x += 75) {
       const colWidth = 65 + Math.sin(x * 0.04) * 20;
       const bumpX = x + Math.cos(x * 0.02) * 12;
 
-      legacyCtx.add([
+      const colObj = legacyCtx.add([
         legacyCtx.polygon([
           legacyCtx.vec2(bumpX, 0),
           legacyCtx.vec2(bumpX + colWidth, 0),
@@ -595,8 +597,9 @@ export function setupIceSurfaceSystem(
         legacyCtx.opacity(0.35),
         legacyCtx.z(11),
       ]);
+      cullingManager?.registerEntity(colObj as unknown as CullingTarget, () => bumpX);
 
-      legacyCtx.add([
+      const ridgeObj = legacyCtx.add([
         legacyCtx.polygon([
           legacyCtx.vec2(bumpX + 8, 0),
           legacyCtx.vec2(bumpX + colWidth * 0.45, 0),
@@ -606,6 +609,7 @@ export function setupIceSurfaceSystem(
         legacyCtx.opacity(0.55),
         legacyCtx.z(12),
       ]);
+      cullingManager?.registerEntity(ridgeObj as unknown as CullingTarget, () => bumpX);
     }
 
     const outlineCol =
@@ -625,13 +629,14 @@ export function setupIceSurfaceSystem(
       legacyCtx.vec2(-120, 0),
     ];
 
-    legacyCtx.add([
+    const cliffObj = legacyCtx.add([
       legacyCtx.polygon(cliffFacePts),
       legacyCtx.color(210, 240, 255),
       typeof legacyCtx.outline === "function" ? legacyCtx.outline(3, outlineCol) : null,
       legacyCtx.opacity(0.98),
       legacyCtx.z(14),
     ]);
+    cullingManager?.registerEntity(cliffObj as unknown as CullingTarget, () => -50);
 
     DEFAULT_ICE_GAPS.forEach((gap) => {
       if (gap.start > currentX) {

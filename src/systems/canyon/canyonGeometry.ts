@@ -8,6 +8,7 @@ import type {
   CanyonGameObject,
   CanyonOutlinedGameObject,
 } from "./canyonTypes";
+import { getSpatialCullingManager, type CullableTargetObject } from "../spatialCullingSystem";
 
 export function setupCanyonGeometry<
   TColor = unknown,
@@ -35,6 +36,8 @@ export function setupCanyonGeometry<
   // 1. FUNDO ROCHOSO DO BOQUEIRÃO (SUBMERSO - FORMAÇÃO ORGÂNICA CONTÍNUA)
   // =========================================================================
 
+  const cullingManager = getSpatialCullingManager();
+
   // A. Rampa de Subida Orgânica (25.400m a 25.800m)
   const rampUpWidth = rampUpEndX - boqueiraoStartX;
   const rampUpShape = k.add([
@@ -60,6 +63,7 @@ export function setupCanyonGeometry<
       },
     },
   ]) as CanyonOutlinedGameObject<TColor>;
+  cullingManager?.registerEntity(rampUpShape as unknown as CullableTargetObject, () => boqueiraoStartX + rampUpWidth / 2);
 
   // Colisores Físicos Sólidos da Rampa de Subida
   const upSegments = 4;
@@ -117,6 +121,7 @@ export function setupCanyonGeometry<
       },
     },
   ]) as CanyonOutlinedGameObject<TColor>;
+  cullingManager?.registerEntity(plateauObj as unknown as CullableTargetObject, () => rampUpEndX + plateauWidth / 2);
 
   // C. Rampa de Descida Orgânica (26.900m a 27.300m)
   const rampDownWidth = boqueiraoEndX - plateauEndX;
@@ -143,6 +148,7 @@ export function setupCanyonGeometry<
       },
     },
   ]) as CanyonOutlinedGameObject<TColor>;
+  cullingManager?.registerEntity(rampDownShape as unknown as CullableTargetObject, () => plateauEndX + rampDownWidth / 2);
 
   // Colisores Físicos Sólidos da Rampa de Descida
   const downSegments = 4;
@@ -224,6 +230,7 @@ export function setupCanyonGeometry<
     k.color(44, 56, 72),
     k.outline(3, k.rgb(30, 38, 50)),
     k.z(-5),
+    TAGS.OBSTACLE,
     "island_cliff_visual",
     {
       reveal() {
@@ -231,6 +238,7 @@ export function setupCanyonGeometry<
       },
     },
   ]) as CanyonOutlinedGameObject<TColor>;
+  cullingManager?.registerEntity(cliffObj as unknown as CullableTargetObject, () => islandStartX + islandWidth / 2);
 
   // Cobertura de vegetação de restinga e matas costeiras no topo da ilha
   k.add([

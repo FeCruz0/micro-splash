@@ -37,6 +37,8 @@ export class PixiRenderTicker implements IRenderTicker {
 
   constructor(app: Application, maxDeltaTime: number = 0.1) {
     this.maxDeltaTime = maxDeltaTime;
+    app.ticker.maxFPS = 60;
+    app.ticker.minFPS = 15;
 
     const onTick = (): void => {
       if (!this.isRunning) return;
@@ -129,9 +131,23 @@ export class RenderEngineAdapter implements IRenderEngine {
         ? parseColor(options.backgroundColor).toNumber()
         : 0x051226,
       resolution:
-        options.resolution ?? (typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1),
+        options.resolution ??
+        (typeof window !== "undefined" ? Math.min(window.devicePixelRatio || 1, 1.5) : 1),
       autoDensity: options.autoDensity ?? true,
-      antialias: options.antialias ?? true,
+      antialias: options.antialias ?? false,
+      preference: "webgl",
+      eventMode: "none",
+      eventFeatures: {
+        move: false,
+        globalMove: false,
+        click: true,
+        wheel: false,
+      },
+      webgl: {
+        powerPreference: options.powerPreference ?? "high-performance",
+        preferWebGLVersion: 2,
+        antialias: options.antialias ?? false,
+      },
     });
 
     this.application = app;
@@ -160,6 +176,13 @@ export class RenderEngineAdapter implements IRenderEngine {
     }
 
     this.stageRoot = new PixiContainerNode(app.stage, "stage_root");
+    const nativeStage = app.stage as unknown as {
+      eventMode?: string;
+      interactiveChildren?: boolean;
+    };
+    nativeStage.eventMode = "none";
+    nativeStage.interactiveChildren = false;
+
     this.tickerAdapter = new PixiRenderTicker(app, RenderEngineAdapter.MAX_DELTA_TIME);
     this.initialized = true;
   }
@@ -241,7 +264,10 @@ export class RenderEngineAdapter implements IRenderEngine {
 
     if (this.application) {
       try {
-        this.application.destroy({ removeView: true }, { children: true, texture: false });
+        this.application.destroy(
+          { removeView: true, releaseGlobalResources: true },
+          { children: true, texture: false }
+        );
       } catch {
         // Fallback defensivo em ambientes de teste sem WebGL
       }

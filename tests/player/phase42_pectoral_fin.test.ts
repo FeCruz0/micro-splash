@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { createPlayer } from "../../src/entities/player";
 import {
   calculatePectoralFinTransforms,
   getPectoralFinPolygonVertices,
@@ -173,9 +174,7 @@ describe("Fase 42: Nadadeiras Peitorais Independentes e Hidrodinâmica de Diedro
       expect(k.objects.every((o: any) => o.destroyed)).toBe(true);
     });
 
-    it("integra o sistema de nadadeiras ao playerController com getPectoralFinTransforms", async () => {
-      const { createPlayer } = await import("../../src/entities/player");
-
+    it("integra o sistema de nadadeiras ao playerController com getPectoralFinTransforms", () => {
       let registeredUpdate: (() => void) | null = null;
       let registeredDestroy: (() => void) | null = null;
 

@@ -7,6 +7,8 @@ export interface CullableTargetObject {
   hidden?: boolean;
   paused?: boolean;
   exists?: () => boolean;
+  setVisible?: (visible: boolean) => void;
+  getPosition?: () => { x: number; y: number };
 }
 
 export interface CullableEntity {
@@ -44,6 +46,25 @@ export function isEntityInFrustum(
   return entityXPosition >= minimumVisibleX && entityXPosition <= maximumVisibleX;
 }
 
+export function setEntityVisibilityRecursively(
+  targetObject: CullableTargetObject,
+  shouldBeHidden: boolean
+): void {
+  targetObject.hidden = shouldBeHidden;
+  if (typeof targetObject.setVisible === "function") {
+    targetObject.setVisible(!shouldBeHidden);
+  }
+  if ("paused" in targetObject) {
+    (targetObject as unknown as { paused?: boolean }).paused = shouldBeHidden;
+  }
+  const childContainer = targetObject as unknown as { children?: CullableTargetObject[] };
+  if (Array.isArray(childContainer.children)) {
+    for (let index = 0; index < childContainer.children.length; index++) {
+      setEntityVisibilityRecursively(childContainer.children[index], shouldBeHidden);
+    }
+  }
+}
+
 export class SpatialCullingManager {
   private cullableEntities: CullableEntity[] = [];
   private cullableSubsystems: CullableSubsystem[] = [];
@@ -74,7 +95,11 @@ export class SpatialCullingManager {
         ? getCustomXPosition
         : typeof getCustomXPosition === "number"
           ? () => getCustomXPosition
-          : () => (targetObject.pos ? targetObject.pos.x : 0);
+          : () => {
+              if (targetObject.pos) return targetObject.pos.x;
+              if (typeof targetObject.getPosition === "function") return targetObject.getPosition().x;
+              return 0;
+            };
 
     this.cullableEntities.push({
       targetObject,
@@ -117,9 +142,11 @@ export class SpatialCullingManager {
         this.safetyMargin
       );
 
-      targetObject.hidden = !isVisible;
-      if ("paused" in targetObject) {
-        (targetObject as unknown as { paused?: boolean }).paused = !isVisible;
+      const isCurrentlyHidden = targetObject.hidden ?? false;
+      const shouldBeHidden = !isVisible;
+
+      if (isCurrentlyHidden !== shouldBeHidden) {
+        setEntityVisibilityRecursively(targetObject, shouldBeHidden);
       }
 
       if (isVisible) {

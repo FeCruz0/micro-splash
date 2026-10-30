@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { createPlayer } from "../../src/entities/player";
 import {
   calculateWhalePuppetRig,
   calculateFlukeAngleOfAttackInDegrees,
@@ -202,9 +203,7 @@ describe("Fase 43: Articulação Multissegmentar de Cauda e Flukes (Multi-Part P
       expect(Math.abs(idleWave2)).toBeLessThanOrEqual(5);
     });
 
-    it("integra o Puppet Rig ao PlayerController via getPuppetRigTransforms", async () => {
-      const { createPlayer } = await import("../../src/entities/player");
-
+    it("integra o Puppet Rig ao PlayerController via getPuppetRigTransforms", () => {
       let registeredUpdate: (() => void) | null = null;
 
       const mockKaboom: any = {

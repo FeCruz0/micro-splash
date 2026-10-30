@@ -68,13 +68,22 @@ describe("PixiNodes Adapters", () => {
       parent.destroy();
       expect(parent.getChildren()).toHaveLength(0);
     });
+
+    it("suporta freeze() para congelamento de matrizes de nós estáticos sem erro", () => {
+      const node = new PixiContainerNode();
+      expect(() => {
+        node.freeze(true);
+        node.freeze(false);
+      }).not.toThrow();
+    });
   });
 
   describe("PixiSpriteNode", () => {
-    it("manipula âncora, tamanho, tint e textureId", () => {
+    it("manipula âncora, tamanho, tint, textureId e padroniza blendMode", () => {
       const sprite = new Sprite(Texture.EMPTY);
       const spriteNode = new PixiSpriteNode(sprite, "player_whale");
 
+      expect(sprite.blendMode).toBe("normal");
       expect(spriteNode.getTextureId()).toBe("player_whale");
 
       spriteNode.setAnchor(0.5, 0.5);

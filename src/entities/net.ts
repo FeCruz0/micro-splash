@@ -190,6 +190,12 @@ export function createGhostNet<TColor = unknown>(
 
   let time = getRandomFloat(0, 10);
   net.onUpdate(() => {
+    const rawNet = net as unknown as { hidden?: boolean; isVisible?: () => boolean };
+    const isCulled =
+      rawNet.hidden === true ||
+      (typeof rawNet.isVisible === "function" && !rawNet.isVisible());
+    if (isCulled && revealTimer <= 0) return;
+
     time += k.dt();
     net.pos.y = baseY + Math.sin(time * 1.8) * 5; // Balanço suave senoidal
 

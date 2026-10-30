@@ -406,6 +406,9 @@ export function setupHudSystem(
 
   let totalTime = 0;
   let currentUrgency: OxygenUrgencyState = "calm";
+  let lastBiomeName = "";
+  let lastDistanceFormatted = "";
+  let distanceThrottleTimer = 0;
 
   const updateHud = () => {
     const dt = typeof legacyContext.dt === "function" ? legacyContext.dt() : 0.016;
@@ -417,8 +420,20 @@ export function setupHudSystem(
         : Math.max(0, playerController.gameObj?.pos?.x || 0);
 
     const biomeInfo = getBiomeHudInfo(currentDistance);
-    distanceText.text = `${formatDualDistance(currentDistance)} • ${biomeInfo.progressPercent}%`;
-    biomeText.text = `${biomeInfo.emoji} ${biomeInfo.name}`;
+    if (biomeInfo.name !== lastBiomeName) {
+      lastBiomeName = biomeInfo.name;
+      biomeText.text = `${biomeInfo.emoji} ${biomeInfo.name}`;
+    }
+
+    distanceThrottleTimer += dt;
+    if (distanceThrottleTimer >= 0.1 || lastDistanceFormatted === "") {
+      distanceThrottleTimer = 0;
+      const formatted = `${formatDualDistance(currentDistance)} • ${biomeInfo.progressPercent}%`;
+      if (formatted !== lastDistanceFormatted) {
+        lastDistanceFormatted = formatted;
+        distanceText.text = formatted;
+      }
+    }
 
     const currentOx =
       typeof playerController.getOxygen === "function" ? playerController.getOxygen() : 100;

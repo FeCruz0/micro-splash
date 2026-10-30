@@ -50,6 +50,7 @@ import { shouldSpawnCompanionWhale } from "../systems/companionTutorialSettings"
 import { SystemRunner } from "../systems/systemRunner";
 import { SpatialHashGrid } from "../systems/spatialHashGrid";
 import { FrameBudgetMonitor } from "../systems/frameBudgetMonitor";
+import { FrameRateMonitor } from "../utils/frameRateMonitor";
 
 export interface GameSceneUiObject {
   pos: { x: number; y: number };
@@ -420,11 +421,13 @@ export function registerGameScene(rawK: GameSceneEngineContext): void {
     // 6. Orquestrador Central de Fases & Profiling (Fase 58 & 59)
     const systemRunner = new SystemRunner();
     const frameBudgetMonitor = new FrameBudgetMonitor();
+    const frameRateMonitor = new FrameRateMonitor(30);
     systemRunner.setProfiler((phase, ms) => frameBudgetMonitor.recordPhaseDuration(phase, ms));
 
     k.onSceneLeave(() => {
       systemRunner.clear();
       frameBudgetMonitor.reset();
+      frameRateMonitor.reset();
     });
 
     // Fase 1: INPUT
@@ -617,20 +620,20 @@ export function registerGameScene(rawK: GameSceneEngineContext): void {
           }
 
           const stats = particlePool.getStats();
-          const instantFps = Math.round(1 / Math.max(0.001, dt));
+          const frameMetrics = frameRateMonitor.tick();
           const activeMods = biomeManager.getActiveModules();
           const modsText = activeMods.length > 0 ? activeMods.join(", ") : "Transição";
           const cullingStats = spatialCulling.getStats();
-          const snapshot = frameBudgetMonitor.getSnapshot(dt * 1000);
+          const snapshot = frameBudgetMonitor.getSnapshot(frameMetrics.frameTimeMs);
           const budgetStatus = snapshot.isBudgetExceeded ? "⚠️ Overrun" : "Budget OK";
 
           debugDistanceUI.update(playerXPosition, {
-            fps: instantFps,
+            fps: frameMetrics.fps,
             entities: cachedEntityCount,
             activeParticles: stats.activeCircles + stats.activeRects,
             totalParticles: stats.totalCircles + stats.totalRects,
             activeModules: modsText,
-            frameTimeMs: dt * 1000,
+            frameTimeMs: frameMetrics.frameTimeMs,
             visibleEntities: cullingStats.visibleEntities,
             culledEntities: cullingStats.culledEntities,
             budgetStatus,

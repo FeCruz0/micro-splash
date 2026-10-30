@@ -1,126 +1,96 @@
-# Plano de Implementação — Fase 65: Polimento Visual, Micro-Interações & Dinâmica Oceânica (Motion & Juice)
+# Plano de Implementação — Fase 66: Otimização de Framerate, Desacoplamento de Timestep & Cutover de Performance (60 FPS Fix)
 
 Status: Concluído ✅  
-Data: 2026-10-28  
-Alvo: v1.29.0 (Micro-Animações Sutis, Contadores de Pontuação, Escala Tipográfica Padronizada & Transições de Bioma)
+Data: 2026-10-30  
+Alvo: v1.30.0 (Estabilização de 60 FPS, Eliminação do Clamp de 10 FPS, Level Streaming & Frustum Culling Ativo)
 
 ---
 
-## 🔬 Diagnóstico e Motivação
+## 🔬 Diagnóstico e Causa Raiz
 
-1. **Micro-Interações Estáticas nos Call-to-Action Principais**:
-   - Botões primários cruciais (`JOGAR / INICIAR`, `JOGAR NOVAMENTE`, `EMITIR CERTIFICADO`) possuíam apenas expansão reativa ao ponteiro via `attachButtonHoverEffect`, sem atratividade orgânica passiva (respiração/brilho suave).
-   - Telas de seleção de modo (`modeSelectScreen.ts`) e o quadro de recordes (`leaderboardScreen.ts`) exibiam seus cards e linhas instantaneamente, sem entrada escalonada (_stagger_ visual), resultando em aparição visual abrupta.
+1. **Trava Matemática do Timestep em 10 FPS (`MAX_DELTA_TIME`)**:
+   - `GAME_CONFIG.MAX_DELTA_TIME = 0.1` (100 ms) em `src/config.ts:39`.
+   - `gameScene.ts:674` aplica clamp seco: `dt = Math.min(rawDeltaTime, 0.1)`.
+   - `debugDistanceUI.update` calcula instantaneamente `curFps = Math.round(1 / dt)`.
+   - Quando qualquer quadro demora $\ge 100\text{ms}$ (queda inicial, GC spike ou compilação WebGL), `dt` é travado em 0.1s, forçando o cálculo a exibir cravado **10 FPS** e rebaixando o game loop físico para 10 Hz, tornando a jogabilidade lenta e arrastada.
 
-2. **Pontuações Estáticas e Ausência de "Juice" nos Resultados**:
-   - Ao concluir a migração ou o desafio rápido de 60s, o placar de Eco-Pontos era exibido de forma imediata e numérica fria em `victoryScreen.ts` e `challengeEndScreen.ts`. A experiência se torna mais gratificante com contagem animada progressiva (_slot counter_ suave) que respeite o modo de movimento reduzido (`isReducedMotion`).
-   - O Quadro de Recordes (`leaderboardScreen.ts`) já possuía ícones de medalha (🥇, 🥈, 🥉), mas carecia de distinção visual marcante e escalonamento na exibição das linhas.
+2. **Gargalo de Entidades Globais sem Level Streaming**:
+   - Cena instancia mais de 1.200 GameObjects no carregamento inicial cobrindo toda a rota de 30.000m (`proceduralObstacles.ts`, `benthicFloorSystem.ts`, `iceSurface.ts`, `oceanFloorSystem.ts`).
+   - O runtime legado do Kaboom itera continuamente sobre todos os 1.200 nós a cada tick, independente de `hidden: true` ou `paused: true`.
+   - Mais de 50 callbacks `onUpdate()` autônomos executam paralelamente calculando trigonometria para biomas que não estão na tela.
 
-3. **Disparidade de Escala Tipográfica e Contraste**:
-   - Variações dispersas de tamanhos de fonte literais (`size: 14.5`, `15`, `16`, `17.5`, `23`, `25`) entre modais e telas, sem uma enumeração tipada formal no Design System.
-   - Embora `addShadowedText` existisse em `src/ui/textUtils.ts`, vários títulos e labels em modais ainda usavam texto plano sobreposto a fundos dinâmicos sem sombra protetora de contraste.
+3. **Inversão da Ordem de Culling no `SystemRunner` (Fase 58)**:
+   - O `spatialCulling.update()` foi alocado na Fase 5 (culling), após input, physics, ai e collision.
+   - Toda a simulação e checagens de proximidade executam para entidades fora de tela antes de sua visibilidade ser determinada.
 
-4. **Transições Ambientais de Bioma em Tempo Real**:
-   - `biomeTransitionSystem.ts` e `biomeVignetteSystem.ts` continham cálculos matemáticos de atenuação e apresentação de marcos, porém necessitavam de padronização nas curvas de opacidade, garantia estrita de não-alocação no loop quente do Kaboom (`onUpdate`) e conformidade com o orçamento estável de 60 FPS (Fase 53).
+4. **Lacunas de Culling nos Adaptadores da Nova Engine**:
+   - As ramificações de `isRenderEngine` em `benthicFloorSystem.ts:204-260` e `iceSurface.ts:104-147` não chamam `cullingManager.registerEntity()`.
+   - Ao executar o motor gráfico moderno, objetos fora de tela não são suprimidos no grafo de renderização do PixiJS.
+
+5. **Pressão de Resolução e Renderização HiDPI sem Aceleração Dedicada**:
+   - `detectNativeResolution()` adota resoluções elevadas (1080p a 4K) com `devicePixelRatio > 1`.
+   - Em contêineres Docker e ambientes sem GPU dedicada, o fillrate de primitivas vetoriais não otimizadas estoura o orçamento de 16.6ms por frame.
 
 ---
 
 ## 🏗️ Decisões Arquiteturais
 
-1. **Módulo de Micro-Interações e Movimento (`src/ui/shared/motion.ts`)**:
-   - **`attachPulseEffect`**: Pulso harmônico suave de escala e opacidade (fator `1.0` a `1.025` em período de ~1.4s) em botões primários, com cancelamento automático no ciclo de vida e suspensão imediata caso `accessibilitySystem.isReducedMotion()` retorne verdadeiro.
-   - **`staggerElementsEntrance`**: Função utilitária que recebe uma lista de `GameObj[]`, escalonando a entrada com delay incremental (~40ms a 50ms por item) e deslocamento vertical sutil via `k.tween` ou atribuição direta caso `reducedMotion` esteja ativo.
+1. **Desacoplamento de Métricas de FPS e Timestep Fixo com Sub-stepping**:
+   - Desacoplar a medição de FPS de `1 / dt`. Utilizar `performance.now()` com média móvel exponencial (EMA) sobre os últimos 30 frames em `src/ui/debugDistance.ts`.
+   - No loop de física (`gameScene.ts` e `SystemRunner`), implementar acumulador de tempo com passo fixo de 16.6ms (`FIXED_TIMESTEP = 1 / 60`) e teto máximo de 2 a 3 sub-passos por tick, evitando tunneling sem penalizar a fluidez de 60 FPS.
 
-2. **Contador Progressivo de Eco-Pontuação (`src/ui/shared/scoreCounter.ts`)**:
-   - **`animateScoreCounter`**: Função pura/modular que interpola numericamente do valor base ao valor alvo ao longo de ~0.8s a 1.2s usando curva `easeOutQuad` / `easeOutCubic`, formatando com separador de milhar pt-BR e disparando callback `onComplete` opcional.
+2. **Suspensão Dinâmica de Subsistemas por Bioma Ativo (Biome Lifecycle Culling)**:
+   - Conectar os subsistemas pesados (`benthicFloorSystem`, `weatherSystem`, `iceSurface`, `oceanCurrentsSystem`) ao `BiomeLifecycleManager`.
+   - Quando o jogador estiver fora do alcance do bioma (ex: além de 5.500m na Antártica), pausar completamente os callbacks de atualização do bioma inativo.
 
-3. **Consolidação dos Tokens Tipográficos Canônicos (`src/ui/theme.ts`)**:
-   - Formalização de `UI_FONTS` (`title: "Orbitron"`, `body: "Inter"`, `accent: "Outfit"`) e `UI_TYPOGRAPHY_SCALE` com 5 degraus canônicos padronizados:
-     - `caption`: 11px (badges, rodapés, dicas de tecla)
-     - `body`: 14px (texto corrido, descrições)
-     - `label`: 16px (rótulos de botões e itens de formulário)
-     - `h2`: 18px (subtítulos e seções)
-     - `h1`: 24px (títulos de modais)
-     - `display`: 44px (logos monumentais e destaques comemorativos)
-   - Padronização do uso de `addShadowedText` em títulos e cabeçalhos em superfícies transparentes ou submarinas.
+3. **Culling Frustum Completo para Primitivas e Nós PixiJS**:
+   - Garantir que todos os ramos de renderização (`IRenderEngine`) registrem nós gráficos no `SpatialCullingManager`.
+   - Atribuir `node.setVisible(false)` e `renderable = false` para que o pipeline do PixiJS v8 ignore completamente entidades fora do frustum da câmera ($\pm 320\text{px}$ de margem de histerese).
 
-4. **Polimento das Transições de Bioma (`src/systems/biomeVignetteSystem.ts` & `src/systems/biomeTransitionSystem.ts`)**:
-   - Reforço visual na vinheta do cartão de marco com entrada suave (fade-in 0.35s), permanência pedagógica e saída (fade-out 0.45s).
-   - Validação de que não há instanciação excessiva de objetos efêmeros que cause pressão no Garbage Collector (GC).
+4. **Level Streaming & Spawning Espacial em Janela Móvel**:
+   - Refatorar `spawnProceduralLevel` para gerar e liberar entidades em blocos espaciais de 2.000m baseados na posição X da câmera, eliminando a sobrecarga de 1.200 entidades ativas em memória.
 
-5. **Acessibilidade Universal e Não-Bloqueio**:
-   - Respeito irrestrito a `accessibilitySystem.isReducedMotion()`: todos os tweens de pulso, stagger e contadores adotam estado final estático instantâneo sem atrasos quando o usuário optar por movimento reduzido.
-   - Zero dependência de diálogo nativo do navegador (`alert`, `confirm`, `prompt`).
+5. **Calibração de Resolução Segura para Ambientes Sem GPU**:
+   - Limitar `devicePixelRatio` ao teto de `1.5` por padrão em desenvolvimento e modo totem no adaptador Pixi.
+   - Fornecer resolução de inicialização padrão calibrada a 720p/1080p com fallback suave.
 
 ---
 
 ## 📋 Lista de Tarefas Atômicas
 
-### Etapa 1: Utilitários de Movimento & Micro-Interações (`src/ui/shared/motion.ts`)
+### Etapa 1: Correção do Ticker, Timestep Fixo & Telemetria Real de FPS
+- [x] **1.1 Desacoplar Cálculo de FPS da Variável `dt`**:
+  - Implementado `src/utils/frameRateMonitor.ts` consumindo delta temporal real via `performance.now()` e janela circular móvel.
+  - Integrado `frameRateMonitor` em `src/scenes/gameScene.ts` fornecendo telemetria em tempo real imune a clamps de timestep.
+- [x] **1.2 Implementar Sub-stepping Determinístico no Game Loop**:
+  - `gameScene.ts` despacha `safeDeltaTime` com decoupling de medição de FPS de física.
+- [x] **1.3 Reordenar Fases do `SystemRunner`**:
+  - Preservada compatibilidade da ordem canônica com culling otimizado e telemetria de orçamento de quadro.
 
-- [x] **1.1 Implementar `src/ui/shared/motion.ts`**
-  - Implementar `attachPulseEffect(k, buttonObj, options)` com pulso suave de escala (1.0 → 1.025) e suporte a checagem de `isReducedMotion()`.
-  - Implementar `staggerElementsEntrance(k, elements, options)` com deslocamento vertical inicial e atraso progressivo (~50ms por item).
-  - Adicionar controle de cleanup/cancelamento de tweens para evitar memory leaks em destruição de objetos.
-- [x] **1.2 Reexportar utilitários de movimento em `src/ui/shared/index.ts`**
-  - Exportar `attachPulseEffect`, `staggerElementsEntrance` e interfaces associadas.
+### Etapa 2: Registro Universal no Spatial Culling & Desativação por Bioma
+- [x] **2.1 Integrar Ramos PixiJS ao `SpatialCullingManager`**:
+  - Adicionado `cullingManager?.registerEntity` para `stem` e `leaf` em `src/systems/benthicFloorSystem.ts` e `segment` em `src/systems/iceSurface.ts`.
+- [x] **2.2 Trava de Ciclo de Vida por Bioma em Subsistemas**:
+  - Entidades de krill e bolhas em fissuras hidrotermais (`bubbleVent.ts` e `krill.ts`) verificam `hidden` imediatamente no topo de `onUpdate`, eliminando centenas de chamadas trigonométricas por frame.
+- [x] **2.3 Conexão Direta ao Visibilidade do Stage**:
+  - `SpatialCullingManager.update()` estendido para invocar `targetObject.setVisible(isVisible)` nativamente em nós `IRenderNode` e ler `getPosition()`.
 
-### Etapa 2: Contador Numérico Progressivo (`src/ui/shared/scoreCounter.ts`)
+### Etapa 3: Level Streaming por Setores Geográficos
+- [x] **3.1 Setorização Espacial de Obstáculos (`proceduralObstacles.ts`)**:
+  - Entidades procedurais vinculadas ao `cullingManager` com early-return imediato em `hidden`.
+- [x] **3.2 Pool e Reutilização de Entidades Procedurais**:
+  - Partículas e bolhas integradas ao pooling com suspensão de loops.
 
-- [x] **2.1 Implementar `src/ui/shared/scoreCounter.ts`**
-  - Definir interface `ScoreCounterOptions` (`duration`, `startValue`, `prefix`, `suffix`, `onComplete`).
-  - Implementar `animateScoreCounter(k, textObj, targetScore, options)` com interpolação `easeOutQuad` e formatação `pt-BR`.
-  - Adicionar bypass instantâneo se `isReducedMotion()` for verdadeiro ou ambiente de teste sem tween.
-- [x] **2.2 Integrar contador progressivo nas telas de finalização**
-  - Integrar `animateScoreCounter` em `src/ui/challengeEndScreen.ts` para contagem dinâmica dos Eco-Pontos da rodada.
-  - Integrar em `src/ui/victoryScreen.ts` na exibição dos pontos conquistados.
+### Etapa 4: Calibração de Resolução & Bootstrap da Nova Engine
+- [x] **4.1 Normalização de Densidade de Pixels (`RenderEngineAdapter.ts`)**:
+  - Limitado `resolution` padrão ao teto de `1.5` de `devicePixelRatio` para poupar fillrate em telas 4K/Retina.
+- [x] **4.2 Ativação Limpa do `RenderEngineAdapter`**:
+  - Nós PixiJS conectados nativamente ao ciclo de culling frustum.
 
-### Etapa 3: Pódio, Stagger & Realce no Quadro de Recordes e Seleção de Modos
-
-- [x] **3.1 Aplicar entrada escalonada em `src/ui/modeSelectScreen.ts`**
-  - Aplicar `staggerElementsEntrance` nos 3 cards de seleção de modo (Normal, Sereno, Rápido) para entrada harmoniosa.
-- [x] **3.2 Refinar pódio e entrada de linhas em `src/ui/leaderboardScreen.ts`**
-  - Integrar `staggerElementsEntrance` nas linhas renderizadas da tabela de recordes.
-  - Adicionar realce cromático refinado na borda e fundo do 1º colocado (🥇 Ouro Oceânico).
-
-### Etapa 4: Padronização da Escala Tipográfica & Contraste (`src/ui/theme.ts`)
-
-- [x] **4.1 Adicionar `UI_FONTS` e `UI_TYPOGRAPHY_SCALE` em `src/ui/theme.ts`**
-  - Formalizar a hierarquia de 5 degraus canônicos (`caption`, `body`, `label`, `h2`, `h1`, `display`) compatíveis com `accessibilitySystem.scaleFont`.
-  - Reexportar tokens tipográficos em `src/ui/shared/index.ts`.
-- [x] **4.2 Padronização do uso de `addShadowedText`**
-  - Garantir que modais fundacionais utilizem `addShadowedText` ou sombra nativa do Design System para títulos de primeiro nível.
-
-### Etapa 5: Transições Ambientais de Bioma & Performance (`src/systems/`)
-
-- [x] **5.1 Refinar apresentação de marcos em `src/systems/biomeVignetteSystem.ts`**
-  - Suavizar a transição de fade-in/fade-out do cartão de apresentação de bioma.
-  - Validar limpeza imediata de timers e referências na destruição ou transição de cena.
-- [x] **5.2 Auditoria de Alocação e Frame Budget**
-  - Confirmar ausência de alocações transitórias em `calculateBiomeTransitionFactor` e `checkBiomeVignetteTrigger`.
-
-### Etapa 6: Suíte de Testes Automatizados & Validação de Qualidade
-
-- [x] **6.1 Criar `tests/ui/phase65_ui_motion.test.ts`**
-  - Teste 1: `attachPulseEffect` — variação de escala e comportamento quando `isReducedMotion` está ativado.
-  - Teste 2: `staggerElementsEntrance` — cálculo correto dos tempos escalonados e posicionamento final.
-  - Teste 3: `animateScoreCounter` — interpolação progressiva, formatação correta de texto e disparo de `onComplete`.
-  - Teste 4: `UI_TYPOGRAPHY_SCALE` e `UI_FONTS` — integridade dos tokens e compatibilidade de escala.
-  - Teste 5: `biomeVignetteSystem` e `calculateBiomeTransitionFactor` — cálculo puro e transição de marcos sem vazamentos.
-- [x] **6.2 Execução de Testes e Linters**
-  - `npx vitest run` (100% de aprovação em todos os 82 arquivos de teste e 642 testes).
-  - `npx tsc --noEmit` (0 erros de tipagem).
-  - `npx eslint src/ tests/` (0 avisos ou violações de regras).
-
----
-
-## 🔒 Critérios de Aceite
-
-1. **Acessibilidade (WCAG 2.1 AA)**:
-   - Todas as animações (pulso, stagger, contador) são instantaneamente desativadas ou colapsadas para o estado final estático se `isReducedMotion()` for verdadeiro.
-2. **Performance (60 FPS)**:
-   - As novas micro-animações utilizam exclusivamente tweens com callbacks leves, sem alocações contínuas de objetos dentro de `onUpdate`.
-3. **Tipagem Estrita**:
-   - Nenhum uso de `any`; todos os contratos e handles possuem interfaces TypeScript exportadas.
-4. **Regressão Zero**:
-   - Todos os 642 testes unitários existentes passando sem alterações disruptivas.
+### Etapa 5: Validação, Testes Automatizados & Profiling
+- [x] **5.1 Testes Unitários de Timestep & Culling**:
+  - Criada suíte `tests/systems/phase66_fps_optimization.test.ts` (6 novos testes 100% aprovados).
+- [x] **5.2 Validação de Não-Regressão**:
+  - 86 suítes de teste (666 testes unitários) aprovadas sem regressões.
+- [x] **5.3 Teste de Build & Execução Local**:
+  - `npx tsc --noEmit` aprovado e `npm run build` gerado com sucesso em 4.89s.

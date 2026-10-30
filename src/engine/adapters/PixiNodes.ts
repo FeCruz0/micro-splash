@@ -19,20 +19,39 @@ import type {
   ITextNode,
 } from "../contracts/INTERFACE_CONTRACTS";
 
+const colorCache = new Map<string | number, Color>();
+
 /**
  * Utilitário de normalização de cor para o modelo interno do PixiJS.
  * Suporta tuplas [red, green, blue], números hexadecimais e strings CSS.
+ * Utiliza cache para prevenir alocações contínuas de instâncias Color no GC.
  */
 export function parseColor(color: ColorRepresentation): Color {
   if (typeof color === "number" || typeof color === "string") {
-    return new Color(color);
+    let cached = colorCache.get(color);
+    if (!cached) {
+      cached = new Color(color);
+      if (colorCache.size < 512) {
+        colorCache.set(color, cached);
+      }
+    }
+    return cached;
   }
   if (Array.isArray(color)) {
     const [red, green, blue] = color;
-    if (red > 1 || green > 1 || blue > 1) {
-      return new Color([red / 255, green / 255, blue / 255]);
+    const cacheKey = `${red},${green},${blue}`;
+    let cached = colorCache.get(cacheKey);
+    if (!cached) {
+      if (red > 1 || green > 1 || blue > 1) {
+        cached = new Color([red / 255, green / 255, blue / 255]);
+      } else {
+        cached = new Color([red, green, blue]);
+      }
+      if (colorCache.size < 512) {
+        colorCache.set(cacheKey, cached);
+      }
     }
-    return new Color([red, green, blue]);
+    return cached;
   }
   return new Color(0xffffff);
 }
@@ -48,6 +67,14 @@ export class PixiContainerNode implements IRenderNode {
   constructor(container?: Container, id?: string) {
     this.container = container ?? new Container();
     this.id = id ?? `node_${Math.random().toString(36).slice(2, 9)}`;
+    const target = this.container as unknown as {
+      eventMode?: string;
+      interactiveChildren?: boolean;
+      cullable?: boolean;
+    };
+    target.eventMode = "none";
+    target.interactiveChildren = false;
+    target.cullable = true;
   }
 
   getPosition(): Vector2D {
@@ -124,7 +151,22 @@ export class PixiContainerNode implements IRenderNode {
       child.destroy();
     }
     this.childrenList.length = 0;
+    if (this.container.parent) {
+      this.container.parent.removeChild(this.container);
+    }
     this.container.destroy({ children: true });
+  }
+
+  freeze(enabled: boolean = true): void {
+    const target = this.container as unknown as {
+      cacheAsTexture?: (val: boolean) => void;
+      cacheAsBitmap?: boolean;
+    };
+    if (typeof target.cacheAsTexture === "function") {
+      target.cacheAsTexture(enabled);
+    } else if ("cacheAsBitmap" in target) {
+      target.cacheAsBitmap = enabled;
+    }
   }
 
   getNativeNode<T>(): T {
@@ -144,6 +186,7 @@ export class PixiSpriteNode extends PixiContainerNode implements ISpriteNode {
     super(sprite, id);
     this.sprite = sprite;
     this.textureId = textureId;
+    this.sprite.blendMode = "normal";
   }
 
   getTextureId(): string {
@@ -195,11 +238,13 @@ export class PixiSpriteNode extends PixiContainerNode implements ISpriteNode {
  */
 export class PixiGraphicsNode extends PixiContainerNode implements IGraphicsNode {
   protected readonly graphics: Graphics;
+  private static readonly sharedPolygonBuffer: number[] = [];
 
   constructor(graphics?: Graphics, id?: string) {
     const nativeGraphics = graphics ?? new Graphics();
     super(nativeGraphics, id);
     this.graphics = nativeGraphics;
+    this.graphics.blendMode = "normal";
   }
 
   clear(): void {
@@ -230,7 +275,8 @@ export class PixiGraphicsNode extends PixiContainerNode implements IGraphicsNode
 
   drawPolygon(points: readonly Vector2D[], style?: GraphicStyle): void {
     if (points.length < 3) return;
-    const flatPoints: number[] = [];
+    const flatPoints = PixiGraphicsNode.sharedPolygonBuffer;
+    flatPoints.length = 0;
     for (let index = 0; index < points.length; index++) {
       flatPoints.push(points[index].x, points[index].y);
     }
@@ -327,6 +373,7 @@ export class PixiTextNode extends PixiContainerNode implements ITextNode {
   }
 
   setText(content: string): void {
+    if (this.textNode.text === content) return;
     this.textNode.text = content;
   }
 
