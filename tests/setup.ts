@@ -1,4 +1,4 @@
-// tests/setup.ts - Polyfill leve de localStorage para o ambiente Node/Vitest
+// tests/setup.ts - Polyfill leve de localStorage e navigator para o ambiente Node/Vitest
 const store = new Map<string, string>();
 
 const localStorageMock = {
@@ -16,3 +16,13 @@ Object.defineProperty(globalThis, "localStorage", {
   value: localStorageMock,
   writable: true,
 });
+
+if (typeof globalThis.navigator === "undefined") {
+  Object.defineProperty(globalThis, "navigator", {
+    value: { userAgent: "node" },
+    writable: true,
+    configurable: true,
+  });
+}
+
+

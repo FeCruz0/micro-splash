@@ -311,29 +311,23 @@ export function createWaterSurfaceSystem(
     destroy(obj: unknown): void;
   };
 
-  const initialColor =
-    typeof legacyCtx.rgb === "function" ? legacyCtx.rgb(20, 50, 120) : { r: 20, g: 50, b: 120 };
-
   const collider = legacyCtx.add([
     legacyCtx.rect(viewWidth * 2.2, 16),
     legacyCtx.pos(-viewWidth / 2, GAME_CONFIG.SEA_LEVEL),
     typeof legacyCtx.area === "function" ? legacyCtx.area() : null,
+    legacyCtx.color(20, 50, 120),
     legacyCtx.opacity(0),
     legacyCtx.z(1),
     TAGS.SURFACE,
     "water_surface_collider",
-    {
-      color: initialColor,
-      opacity: 0,
-      hasTag(tag: string) {
-        return tag === TAGS.SURFACE || tag === "water_surface_collider";
-      },
-      exists() {
-        return true;
-      },
-      destroy() {},
-    },
   ]) as unknown as SurfaceRenderObject;
+
+  if (typeof (collider as unknown as { is?: (tag: string) => boolean }).is === "function") {
+    collider.hasTag = (tag: string) =>
+      (collider as unknown as { is: (tag: string) => boolean }).is(tag);
+  } else if (!collider.hasTag) {
+    collider.hasTag = (tag: string) => tag === TAGS.SURFACE || tag === "water_surface_collider";
+  }
 
   const segments: SurfaceRenderObject[] = [];
   const foamSegments: SurfaceRenderObject[] = [];
@@ -346,17 +340,14 @@ export function createWaterSurfaceSystem(
       legacyCtx.opacity(0.92),
       legacyCtx.z(1),
       "water_surface_segment",
-      {
-        color: initialColor,
-        hasTag(tag: string) {
-          return tag === "water_surface_segment";
-        },
-        exists() {
-          return true;
-        },
-        destroy() {},
-      },
     ]) as unknown as SurfaceRenderObject;
+
+    if (typeof (seg as unknown as { is?: (tag: string) => boolean }).is === "function") {
+      seg.hasTag = (tag: string) => (seg as unknown as { is: (tag: string) => boolean }).is(tag);
+    } else if (!seg.hasTag) {
+      seg.hasTag = (tag: string) => tag === "water_surface_segment";
+    }
+
     segments.push(seg);
 
     const foam = legacyCtx.add([
@@ -366,16 +357,14 @@ export function createWaterSurfaceSystem(
       legacyCtx.opacity(0.38),
       legacyCtx.z(2),
       "water_surface_foam",
-      {
-        hasTag(tag: string) {
-          return tag === "water_surface_foam";
-        },
-        exists() {
-          return true;
-        },
-        destroy() {},
-      },
     ]) as unknown as SurfaceRenderObject;
+
+    if (typeof (foam as unknown as { is?: (tag: string) => boolean }).is === "function") {
+      foam.hasTag = (tag: string) => (foam as unknown as { is: (tag: string) => boolean }).is(tag);
+    } else if (!foam.hasTag) {
+      foam.hasTag = (tag: string) => tag === "water_surface_foam";
+    }
+
     foamSegments.push(foam);
   }
 

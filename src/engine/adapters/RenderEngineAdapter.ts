@@ -138,6 +138,11 @@ export class RenderEngineAdapter implements IRenderEngine {
     this.canvasElement = app.canvas as HTMLCanvasElement;
     this.canvasElement.setAttribute("data-engine", "pixijs-v8");
     this.canvasElement.style.display = "block";
+    this.canvasElement.style.position = "absolute";
+    this.canvasElement.style.top = "0";
+    this.canvasElement.style.left = "0";
+    this.canvasElement.style.width = "100%";
+    this.canvasElement.style.height = "100%";
 
     // Gerenciamento de ciclo de vida seguro no DOM para Docker/Vite/HMR
     if (options.containerElement) {

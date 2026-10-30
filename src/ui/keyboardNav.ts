@@ -64,6 +64,7 @@ export interface FocusGroup {
   focusIndex: (index: number) => void;
   activateCurrent: () => void;
   getCurrentIndex: () => number;
+  updateItems: (items: FocusableItem[], newIndex?: number) => void;
   destroy: () => void;
 }
 
@@ -104,7 +105,8 @@ export function createFocusGroup(
   engineOrContext: IRenderEngine | LegacyKeyboardNavContext,
   options: FocusGroupOptions
 ): FocusGroup {
-  const { items, onEscape, initialIndex = -1, ringZ = 350 } = options;
+  let items = options.items;
+  const { onEscape, initialIndex = -1, ringZ = 350 } = options;
   let currentIndex = initialIndex;
   const eventCleanups: Array<() => void> = [];
 
@@ -260,12 +262,29 @@ export function createFocusGroup(
       }
     };
 
+    const updateItems = (newItems: FocusableItem[], newIndex?: number) => {
+      items = newItems;
+      if (items.length === 0) {
+        currentIndex = -1;
+        focusRingNode.setOpacity(0);
+        return;
+      }
+      const targetIndex =
+        typeof newIndex === "number"
+          ? newIndex
+          : currentIndex >= items.length
+            ? items.length - 1
+            : Math.max(0, currentIndex);
+      setFocus(targetIndex);
+    };
+
     return {
       focusNext,
       focusPrev,
       focusIndex: setFocus,
       activateCurrent,
       getCurrentIndex: () => currentIndex,
+      updateItems,
       destroy,
     };
   }
@@ -423,12 +442,29 @@ export function createFocusGroup(
     }
   };
 
+  const updateItems = (newItems: FocusableItem[], newIndex?: number) => {
+    items = newItems;
+    if (items.length === 0) {
+      currentIndex = -1;
+      focusRing.opacity = 0;
+      return;
+    }
+    const targetIndex =
+      typeof newIndex === "number"
+        ? newIndex
+        : currentIndex >= items.length
+          ? items.length - 1
+          : Math.max(0, currentIndex);
+    setFocus(targetIndex);
+  };
+
   return {
     focusNext,
     focusPrev,
     focusIndex: setFocus,
     activateCurrent,
     getCurrentIndex: () => currentIndex,
+    updateItems,
     destroy,
   };
 }

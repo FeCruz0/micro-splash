@@ -16,21 +16,11 @@ const resolution = getSavedResolution();
 const displayMode = getSavedDisplayMode();
 const isLetterbox = displayMode === "letterbox";
 
-// Inicializa o RenderEngineAdapter (PixiJS v8) em coexistência (ADR 004 / WBS 4.21)
+// Instância do RenderEngineAdapter (PixiJS v8) disponível para inicialização sob demanda (ADR 004 / WBS 4.21)
 export const renderEngine = new RenderEngineAdapter();
-if (typeof document !== "undefined") {
-  const container = document.getElementById("app") || document.body;
-  renderEngine
-    .init({
-      width: resolution.width,
-      height: resolution.height,
-      containerElement: container,
-      backgroundColor: 0x06122a,
-    })
-    .catch((err: unknown) => {
-      reportWarning("[PixiEngine] Falha ao inicializar RenderEngineAdapter:", undefined, err);
-    });
-}
+
+const appContainer =
+  typeof document !== "undefined" ? document.getElementById("app") ?? undefined : undefined;
 
 const k = kaboom({
   width: resolution.width,
@@ -40,7 +30,9 @@ const k = kaboom({
   background: [6, 18, 42],
   debug: false,
   font: "Inter",
+  root: appContainer,
 });
+
 
 // Barras Protetoras de Letterbox (Fase 33.4)
 setupLetterboxBorders(k);

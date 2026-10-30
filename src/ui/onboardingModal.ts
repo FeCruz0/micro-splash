@@ -548,6 +548,39 @@ export function showOnboardingModal(
       nativeNextBtn.on("pointerdown", goNext);
     }
 
+    const getFocusItemsForSlide = (slideIndex: number): FocusableItem[] => {
+      const isFirst = slideIndex === 0;
+      const nextCenterX = isFirst ? cX : cX + 120;
+      const nextWidth = isFirst ? 240 : 160;
+
+      const items: FocusableItem[] = [
+        {
+          pos: btnSkipPos,
+          width: 94,
+          height: 36,
+          onActivate: closeAndFinish,
+        },
+      ];
+
+      if (!isFirst) {
+        items.push({
+          pos: btnPrevPos,
+          width: 160,
+          height: 46,
+          onActivate: goPrev,
+        });
+      }
+
+      items.push({
+        pos: { x: nextCenterX, y: actionBtnY },
+        width: nextWidth,
+        height: 46,
+        onActivate: goNext,
+      });
+
+      return items;
+    };
+
     const goToSlide = (slideIndex: number) => {
       if (isClosed) return;
       currentSlide = Math.max(0, Math.min(slideIndex, ONBOARDING_SLIDES.length - 1));
@@ -576,6 +609,13 @@ export function showOnboardingModal(
       btnNextText.setPosition(nextCenterX, actionBtnY);
       btnNextText.setText(isLast ? "Entendi! Iniciar 🌊" : "Próximo ▶");
       drawNext(false);
+
+      if (focusGroup) {
+        const nextItems = getFocusItemsForSlide(currentSlide);
+        const currentIndex = focusGroup.getCurrentIndex();
+        const targetIndex = currentIndex === 0 ? 0 : nextItems.length - 1;
+        focusGroup.updateItems(nextItems, targetIndex);
+      }
     };
 
     const keyHandler = (e: KeyboardEvent) => {
@@ -598,30 +638,10 @@ export function showOnboardingModal(
       window.addEventListener("keydown", keyHandler);
     }
 
-    const focusItems: FocusableItem[] = [
-      {
-        pos: btnSkipPos,
-        width: 94,
-        height: 36,
-        onActivate: closeAndFinish,
-      },
-      {
-        pos: btnPrevPos,
-        width: 160,
-        height: 46,
-        onActivate: goPrev,
-      },
-      {
-        pos: { x: cX + 120, y: actionBtnY },
-        width: 160,
-        height: 46,
-        onActivate: goNext,
-      },
-    ];
-
+    const initialFocusItems = getFocusItemsForSlide(0);
     focusGroup = createFocusGroup(engineOrContext, {
-      items: focusItems,
-      initialIndex: 2,
+      items: initialFocusItems,
+      initialIndex: initialFocusItems.length - 1,
       ringZ: 560,
     });
 
@@ -631,7 +651,7 @@ export function showOnboardingModal(
 
   // --- MODO LEGADO (COMPATIBILIDADE REVERSA) ---
   const elements: Array<{ destroy?: () => void } | object> = [];
-  let focusGroup: { destroy: () => void } | null = null;
+  let focusGroup: FocusGroup | null = null;
 
   const screenW = engineOrContext.width();
   const screenH = engineOrContext.height();
@@ -1073,6 +1093,39 @@ export function showOnboardingModal(
     btnNext.onClick(goNext);
   }
 
+  const getFocusItemsForSlide = (slideIndex: number): FocusableItem[] => {
+    const isFirst = slideIndex === 0;
+    const nextCenterX = isFirst ? cX : cX + 120;
+    const nextWidth = isFirst ? 240 : 160;
+
+    const items: FocusableItem[] = [
+      {
+        pos: btnSkipPos,
+        width: 94,
+        height: 36,
+        onActivate: closeAndFinish,
+      },
+    ];
+
+    if (!isFirst) {
+      items.push({
+        pos: btnPrevPos,
+        width: 160,
+        height: 46,
+        onActivate: goPrev,
+      });
+    }
+
+    items.push({
+      pos: createVec2(nextCenterX, actionBtnY),
+      width: nextWidth,
+      height: 46,
+      onActivate: goNext,
+    });
+
+    return items;
+  };
+
   const goToSlide = (slideIndex: number) => {
     if (isClosed) return;
     currentSlide = Math.max(0, Math.min(slideIndex, ONBOARDING_SLIDES.length - 1));
@@ -1130,6 +1183,13 @@ export function showOnboardingModal(
           : engineOrContext.rgb(56, 189, 248);
       }
     }
+
+    if (focusGroup) {
+      const nextItems = getFocusItemsForSlide(currentSlide);
+      const currentIndex = focusGroup.getCurrentIndex();
+      const targetIndex = currentIndex === 0 ? 0 : nextItems.length - 1;
+      focusGroup.updateItems(nextItems, targetIndex);
+    }
   };
 
   const keyHandler = (e: KeyboardEvent) => {
@@ -1152,30 +1212,10 @@ export function showOnboardingModal(
     window.addEventListener("keydown", keyHandler);
   }
 
-  const focusItems: FocusableItem[] = [
-    {
-      pos: btnSkipPos,
-      width: 94,
-      height: 36,
-      onActivate: closeAndFinish,
-    },
-    {
-      pos: btnPrevPos,
-      width: 160,
-      height: 46,
-      onActivate: goPrev,
-    },
-    {
-      pos: createVec2(cX + 120, actionBtnY),
-      width: 160,
-      height: 46,
-      onActivate: goNext,
-    },
-  ];
-
+  const initialFocusItems = getFocusItemsForSlide(0);
   focusGroup = createFocusGroup(engineOrContext, {
-    items: focusItems,
-    initialIndex: 2,
+    items: initialFocusItems,
+    initialIndex: initialFocusItems.length - 1,
     ringZ: 560,
   });
 

@@ -208,6 +208,93 @@ describe("Fase 26: Documentação, Acessibilidade & Compliance", () => {
       group.destroy();
     });
 
+    it("atualiza dinamicamente a lista de itens e reposiciona o foco com updateItems", () => {
+      let activatedAction = "";
+      const initialItems: FocusableItem[] = [
+        {
+          pos: { x: 50, y: 50 },
+          width: 90,
+          height: 30,
+          onActivate: () => {
+            activatedAction = "skip";
+          },
+        },
+        {
+          pos: { x: 400, y: 500 },
+          width: 240,
+          height: 46,
+          onActivate: () => {
+            activatedAction = "next_slide_0";
+          },
+        },
+      ];
+
+      const ringObj = {
+        pos: { x: 0, y: 0 },
+        width: 0,
+        height: 0,
+        opacity: 0,
+        onUpdate: () => ({ cancel: () => {} }),
+      };
+
+      const mockKaboom: any = {
+        add: () => ringObj,
+        destroy: () => {},
+        vec2: (x: number, y: number) => ({ x, y }),
+        rgb: () => ({}),
+        rect: () => ({}),
+        pos: () => ({}),
+        outline: () => ({}),
+        color: () => ({}),
+        opacity: () => ({}),
+        anchor: () => ({}),
+        fixed: () => ({}),
+        z: () => ({}),
+        onKeyPress: () => ({ cancel: () => {} }),
+        isKeyDown: () => false,
+      };
+
+      const group = createFocusGroup(mockKaboom, {
+        items: initialItems,
+        initialIndex: 1,
+      });
+
+      expect(group.getCurrentIndex()).toBe(1);
+      expect(ringObj.pos.x).toBe(400);
+      expect(ringObj.width).toBe(240 + 12);
+      group.activateCurrent();
+      expect(activatedAction).toBe("next_slide_0");
+
+      const slide1Items: FocusableItem[] = [
+        initialItems[0],
+        {
+          pos: { x: 280, y: 500 },
+          width: 160,
+          height: 46,
+          onActivate: () => {
+            activatedAction = "prev";
+          },
+        },
+        {
+          pos: { x: 520, y: 500 },
+          width: 160,
+          height: 46,
+          onActivate: () => {
+            activatedAction = "next_slide_1";
+          },
+        },
+      ];
+
+      group.updateItems(slide1Items, 2);
+      expect(group.getCurrentIndex()).toBe(2);
+      expect(ringObj.pos.x).toBe(520);
+      expect(ringObj.width).toBe(160 + 12);
+      group.activateCurrent();
+      expect(activatedAction).toBe("next_slide_1");
+
+      group.destroy();
+    });
+
     it("respeita a guarda isEnabled quando modais estão abertos", () => {
       let isModalOpen = false;
       let activations = 0;
