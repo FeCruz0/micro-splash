@@ -181,9 +181,14 @@ export interface IRenderEngine {
   getCanvas(): HTMLCanvasElement | null;
   getStageRoot(): IRenderNode;
   getTicker(): IRenderTicker;
+  getRenderer?(): unknown;
+  generateTexture?(
+    target: IRenderNode | unknown,
+    options?: { resolution?: number; scaleMode?: "nearest" | "linear" }
+  ): unknown;
 
   createContainer(id?: string): IRenderNode;
-  createSprite(textureId: string, id?: string): ISpriteNode;
+  createSprite(textureId: string | unknown, id?: string): ISpriteNode;
   createGraphics(id?: string): IGraphicsNode;
   createText(content: string, style?: TextStyleOptions, id?: string): ITextNode;
 

@@ -60,21 +60,26 @@ function createBenthicNodeProxy(
   let posY = initialY;
   let scaleX = 1;
   let scaleY = 1;
+  let currentAngle = 0;
 
   const posProxy: MutableVec2 = {
     get x() {
       return posX;
     },
     set x(val: number) {
-      posX = val;
-      node.setPosition(posX, posY);
+      if (Math.abs(posX - val) > 0.01) {
+        posX = val;
+        node.setPosition(posX, posY);
+      }
     },
     get y() {
       return posY;
     },
     set y(val: number) {
-      posY = val;
-      node.setPosition(posX, posY);
+      if (Math.abs(posY - val) > 0.01) {
+        posY = val;
+        node.setPosition(posX, posY);
+      }
     },
   };
 
@@ -83,34 +88,44 @@ function createBenthicNodeProxy(
       return scaleX;
     },
     set x(val: number) {
-      scaleX = val;
-      node.setScale(scaleX, scaleY);
+      if (Math.abs(scaleX - val) > 0.01) {
+        scaleX = val;
+        node.setScale(scaleX, scaleY);
+      }
     },
     get y() {
       return scaleY;
     },
     set y(val: number) {
-      scaleY = val;
-      node.setScale(scaleX, scaleY);
+      if (Math.abs(scaleY - val) > 0.01) {
+        scaleY = val;
+        node.setScale(scaleX, scaleY);
+      }
     },
   };
 
   return {
     pos: posProxy,
     get angle() {
-      return node.getRotation();
+      return currentAngle;
     },
     set angle(val: number | undefined) {
-      node.setRotation(val ?? 0);
+      const targetAngle = val ?? 0;
+      if (Math.abs(currentAngle - targetAngle) > 0.05) {
+        currentAngle = targetAngle;
+        node.setRotation(targetAngle);
+      }
     },
     get scale() {
       return scaleProxy;
     },
     set scale(val: MutableVec2 | undefined) {
       if (val) {
-        scaleX = val.x;
-        scaleY = val.y;
-        node.setScale(scaleX, scaleY);
+        if (Math.abs(scaleX - val.x) > 0.01 || Math.abs(scaleY - val.y) > 0.01) {
+          scaleX = val.x;
+          scaleY = val.y;
+          node.setScale(scaleX, scaleY);
+        }
       }
     },
     get hidden() {
@@ -882,44 +897,55 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
       const viewDist = legacyCtx.width() + 200;
 
       if (camX < 5500) {
-        kelpForest.forEach((plant) => {
-          if (Math.abs(plant.baseX - camX) > viewDist) return;
-          if (plant.segments[0]?.hidden) return;
+        const kelpCount = kelpForest.length;
+        for (let p = 0; p < kelpCount; p++) {
+          const plant = kelpForest[p];
+          if (Math.abs(plant.baseX - camX) > viewDist) continue;
+          if (plant.segments[0]?.hidden) continue;
 
           const baseSway = Math.sin(time * plant.swaySpeed + plant.swayPhase);
-          plant.segments.forEach((seg, idx) => {
-            const segProgress = (idx + 1) / plant.segments.length;
+          const segCount = plant.segments.length;
+          for (let s = 0; s < segCount; s++) {
+            const segProgress = (s + 1) / segCount;
             const currentSway = baseSway * segProgress * 16;
-            seg.pos.x = plant.baseX + currentSway;
-            seg.angle = baseSway * segProgress * 9;
-          });
-        });
+            plant.segments[s].pos.x = plant.baseX + currentSway;
+            plant.segments[s].angle = baseSway * segProgress * 9;
+          }
+        }
 
-        polarAlgaePlants.forEach((algae) => {
-          if (Math.abs(algae.baseX - camX) > viewDist) return;
-          if (algae.blades[0]?.hidden) return;
+        const algaeCount = polarAlgaePlants.length;
+        for (let a = 0; a < algaeCount; a++) {
+          const algae = polarAlgaePlants[a];
+          if (Math.abs(algae.baseX - camX) > viewDist) continue;
+          if (algae.blades[0]?.hidden) continue;
           const sway = Math.sin(time * algae.swaySpeed + algae.swayPhase);
-          algae.blades.forEach((blade, bIdx) => {
-            blade.angle = (bIdx - algae.blades.length / 2) * 8 + sway * 12;
-          });
-        });
+          const bladeCount = algae.blades.length;
+          for (let b = 0; b < bladeCount; b++) {
+            algae.blades[b].angle = (b - bladeCount / 2) * 8 + sway * 12;
+          }
+        }
       }
 
       if (camX >= 11500 && camX <= 19500) {
-        urbanSeagrassPlants.forEach((grass) => {
-          if (Math.abs(grass.baseX - camX) > viewDist) return;
-          if (grass.blades[0]?.hidden) return;
+        const grassCount = urbanSeagrassPlants.length;
+        for (let g = 0; g < grassCount; g++) {
+          const grass = urbanSeagrassPlants[g];
+          if (Math.abs(grass.baseX - camX) > viewDist) continue;
+          if (grass.blades[0]?.hidden) continue;
           const sway = Math.sin(time * grass.swaySpeed + grass.swayPhase);
-          grass.blades.forEach((blade, bIdx) => {
-            blade.angle = (bIdx - grass.blades.length / 2) * 6 + sway * 10;
-          });
-        });
+          const bladeCount = grass.blades.length;
+          for (let b = 0; b < bladeCount; b++) {
+            grass.blades[b].angle = (b - bladeCount / 2) * 6 + sway * 10;
+          }
+        }
       }
 
       if (camX > 18500) {
-        corals.forEach((coral) => {
-          if (Math.abs(coral.obj.pos.x - camX) > viewDist) return;
-          if (coral.obj.hidden) return;
+        const coralCount = corals.length;
+        for (let c = 0; c < coralCount; c++) {
+          const coral = corals[c];
+          if (Math.abs(coral.obj.pos.x - camX) > viewDist) continue;
+          if (coral.obj.hidden) continue;
 
           if (coral.type === "fan") {
             coral.obj.angle = Math.sin(time * 1.4 + coral.animPhase) * 4;
@@ -936,8 +962,10 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
 
             if (coral.tentacles) {
               const totalTentacles = coral.tentacles.length;
-              coral.tentacles.forEach((tentacle, tentacleIndex) => {
-                const baseAngle = (tentacleIndex - (totalTentacles - 1) / 2) * 8;
+              for (let t = 0; t < totalTentacles; t++) {
+                const tentacle = coral.tentacles[t];
+                if (!tentacle) continue;
+                const baseAngle = (t - (totalTentacles - 1) / 2) * 8;
                 const angleSpread = Math.sin(cycleTime) * 6 * (baseAngle >= 0 ? 1 : -1);
                 tentacle.angle = baseAngle + angleSpread;
                 if (tentacle.scale) {
@@ -946,10 +974,10 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
                 } else if (typeof legacyCtx.vec2 === "function") {
                   tentacle.scale = legacyCtx.vec2(1.0, verticalScale);
                 }
-              });
+              }
             }
           }
-        });
+        }
       }
     });
   }

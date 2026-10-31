@@ -82,7 +82,12 @@ export class PixiContainerNode implements IRenderNode {
   }
 
   setPosition(x: number, y: number): void {
-    this.container.position.set(x, y);
+    if (
+      Math.abs(this.container.position.x - x) > 0.01 ||
+      Math.abs(this.container.position.y - y) > 0.01
+    ) {
+      this.container.position.set(x, y);
+    }
   }
 
   getScale(): Vector2D {
@@ -90,7 +95,12 @@ export class PixiContainerNode implements IRenderNode {
   }
 
   setScale(scaleX: number, scaleY: number): void {
-    this.container.scale.set(scaleX, scaleY);
+    if (
+      Math.abs(this.container.scale.x - scaleX) > 0.01 ||
+      Math.abs(this.container.scale.y - scaleY) > 0.01
+    ) {
+      this.container.scale.set(scaleX, scaleY);
+    }
   }
 
   getRotation(): number {
@@ -98,7 +108,9 @@ export class PixiContainerNode implements IRenderNode {
   }
 
   setRotation(angleInRadians: number): void {
-    this.container.rotation = angleInRadians;
+    if (Math.abs(this.container.rotation - angleInRadians) > 0.005) {
+      this.container.rotation = angleInRadians;
+    }
   }
 
   getOpacity(): number {
@@ -106,7 +118,10 @@ export class PixiContainerNode implements IRenderNode {
   }
 
   setOpacity(alpha: number): void {
-    this.container.alpha = Math.max(0, Math.min(1, alpha));
+    const clampedAlpha = Math.max(0, Math.min(1, alpha));
+    if (Math.abs(this.container.alpha - clampedAlpha) > 0.005) {
+      this.container.alpha = clampedAlpha;
+    }
   }
 
   getZIndex(): number {
@@ -114,7 +129,9 @@ export class PixiContainerNode implements IRenderNode {
   }
 
   setZIndex(index: number): void {
-    this.container.zIndex = index;
+    if (this.container.zIndex !== index) {
+      this.container.zIndex = index;
+    }
   }
 
   isVisible(): boolean {
@@ -122,7 +139,9 @@ export class PixiContainerNode implements IRenderNode {
   }
 
   setVisible(visible: boolean): void {
-    this.container.visible = visible;
+    if (this.container.visible !== visible) {
+      this.container.visible = visible;
+    }
   }
 
   addChild(child: IRenderNode): void {
@@ -207,7 +226,12 @@ export class PixiSpriteNode extends PixiContainerNode implements ISpriteNode {
   }
 
   setAnchor(anchorX: number, anchorY: number): void {
-    this.sprite.anchor.set(anchorX, anchorY);
+    if (
+      Math.abs(this.sprite.anchor.x - anchorX) > 0.005 ||
+      Math.abs(this.sprite.anchor.y - anchorY) > 0.005
+    ) {
+      this.sprite.anchor.set(anchorX, anchorY);
+    }
   }
 
   getTint(): ColorRepresentation {
@@ -215,8 +239,12 @@ export class PixiSpriteNode extends PixiContainerNode implements ISpriteNode {
   }
 
   setTint(tint: ColorRepresentation): void {
+    if (this.tintColor === tint) return;
     this.tintColor = tint;
-    this.sprite.tint = parseColor(tint).toNumber();
+    const parsedColor = parseColor(tint).toNumber();
+    if (this.sprite.tint !== parsedColor) {
+      this.sprite.tint = parsedColor;
+    }
   }
 
   getWidth(): number {
@@ -228,8 +256,13 @@ export class PixiSpriteNode extends PixiContainerNode implements ISpriteNode {
   }
 
   setSize(width: number, height: number): void {
-    this.sprite.width = width;
-    this.sprite.height = height;
+    if (
+      Math.abs(this.sprite.width - width) > 0.01 ||
+      Math.abs(this.sprite.height - height) > 0.01
+    ) {
+      this.sprite.width = width;
+      this.sprite.height = height;
+    }
   }
 }
 
@@ -390,6 +423,7 @@ export class PixiTextNode extends PixiContainerNode implements ITextNode {
   }
 
   setFontSize(sizeInPixels: number): void {
+    if (Number(this.textNode.style.fontSize) === sizeInPixels) return;
     this.textNode.style.fontSize = sizeInPixels;
   }
 
@@ -398,8 +432,12 @@ export class PixiTextNode extends PixiContainerNode implements ITextNode {
   }
 
   setColor(color: ColorRepresentation): void {
+    if (this.currentColor === color) return;
     this.currentColor = color;
-    this.textNode.style.fill = parseColor(color).toNumber();
+    const parsedColor = parseColor(color).toNumber();
+    if (this.textNode.style.fill !== parsedColor) {
+      this.textNode.style.fill = parsedColor;
+    }
   }
 
   getAlign(): "left" | "center" | "right" {
@@ -407,6 +445,7 @@ export class PixiTextNode extends PixiContainerNode implements ITextNode {
   }
 
   setAlign(alignment: "left" | "center" | "right"): void {
+    if (this.textNode.style.align === alignment) return;
     this.textNode.style.align = alignment;
   }
 

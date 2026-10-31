@@ -224,18 +224,69 @@ export class RenderEngineAdapter implements IRenderEngine {
     return this.tickerAdapter;
   }
 
+  getRenderer(): unknown {
+    return this.application?.renderer ?? null;
+  }
+
+  generateTexture(
+    target: IRenderNode | unknown,
+    options?: { resolution?: number; scaleMode?: "nearest" | "linear" }
+  ): Texture | null {
+    if (!this.application?.renderer) return null;
+    const nativeTarget =
+      target && typeof target === "object" && "getNativeNode" in target
+        ? (target as IRenderNode).getNativeNode()
+        : target;
+    try {
+      const tex = this.application.renderer.generateTexture({
+        target: nativeTarget as any,
+        resolution: options?.resolution ?? 0.5,
+        textureSourceOptions: {
+          scaleMode: options?.scaleMode ?? "nearest",
+        },
+      });
+      if (tex && tex.source && options?.scaleMode) {
+        tex.source.scaleMode = options.scaleMode;
+      }
+      return tex;
+    } catch {
+      return null;
+    }
+  }
+
   createContainer(id?: string): IRenderNode {
     return new PixiContainerNode(undefined, id);
   }
 
-  createSprite(textureId: string, id?: string): ISpriteNode {
+  createSprite(textureOrId: string | unknown, id?: string): ISpriteNode {
     let texture: Texture;
-    try {
-      texture = Texture.from(textureId);
-    } catch {
+    let textureId: string;
+    if (typeof textureOrId === "string") {
+      textureId = textureOrId;
+      if (textureOrId === "white" || textureOrId === "Texture.WHITE") {
+        texture = Texture.WHITE;
+      } else {
+        try {
+          texture = Texture.from(textureOrId);
+        } catch {
+          texture = Texture.EMPTY;
+        }
+      }
+    } else if (textureOrId instanceof Texture) {
+      texture = textureOrId;
+      textureId = id ?? "baked_texture";
+    } else if (textureOrId && typeof textureOrId === "object" && "source" in textureOrId) {
+      texture = textureOrId as Texture;
+      textureId = id ?? "baked_texture";
+    } else {
       texture = Texture.EMPTY;
+      textureId = id ?? "empty";
     }
-    return new PixiSpriteNode(new Sprite(texture), textureId, id);
+    const sprite = new Sprite(texture);
+    sprite.roundPixels = true;
+    sprite.cullable = true;
+    sprite.eventMode = "none";
+    return new PixiSpriteNode(sprite, textureId, id);
   }
 
   createGraphics(id?: string): IGraphicsNode {

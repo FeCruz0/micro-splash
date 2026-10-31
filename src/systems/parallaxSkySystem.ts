@@ -7,7 +7,11 @@
 
 import { GAME_CONFIG } from "../config";
 import { getRandomFloat } from "../utils/random";
-import type { IRenderEngine, IRenderNode } from "../engine/contracts/INTERFACE_CONTRACTS";
+import type {
+  IRenderEngine,
+  IRenderNode,
+  IGraphicsNode,
+} from "../engine/contracts/INTERFACE_CONTRACTS";
 import {
   isRenderEngine,
   resolveCameraX,
@@ -76,34 +80,58 @@ class PixiSkyNodeProxy implements SkyRenderObject {
   private isDestroyed = false;
   private currentAngle = 0;
   private currentColor: unknown = [255, 255, 255];
+  private currentX: number;
+  private currentY: number;
+  private currentOpacity: number;
 
-  constructor(node: IRenderNode, tags: readonly string[] = [], comps: unknown[] = []) {
+  constructor(
+    node: IRenderNode,
+    tags: readonly string[] = [],
+    comps: unknown[] = [],
+    initialX: number = 0,
+    initialY: number = 0,
+    initialOpacity: number = 1
+  ) {
     this.node = node;
     this.tagSet = new Set(tags);
     this.comps = comps;
+    this.currentX = initialX;
+    this.currentY = initialY;
+    this.currentOpacity = initialOpacity;
 
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
+    const self = this;
     this.pos = {
       get x(): number {
-        return node.getPosition().x;
+        return self.currentX;
       },
       set x(value: number) {
-        node.setPosition(value, node.getPosition().y);
+        if (Math.abs(self.currentX - value) > 0.01) {
+          self.currentX = value;
+          self.node.setPosition(self.currentX, self.currentY);
+        }
       },
       get y(): number {
-        return node.getPosition().y;
+        return self.currentY;
       },
       set y(value: number) {
-        node.setPosition(node.getPosition().x, value);
+        if (Math.abs(self.currentY - value) > 0.01) {
+          self.currentY = value;
+          self.node.setPosition(self.currentX, self.currentY);
+        }
       },
     };
   }
 
   get opacity(): number {
-    return this.node.getOpacity();
+    return this.currentOpacity;
   }
 
   set opacity(val: number) {
-    this.node.setOpacity(val);
+    if (Math.abs(this.currentOpacity - val) > 0.005) {
+      this.currentOpacity = val;
+      this.node.setOpacity(val);
+    }
   }
 
   get angle(): number {
@@ -111,8 +139,10 @@ class PixiSkyNodeProxy implements SkyRenderObject {
   }
 
   set angle(val: number) {
-    this.currentAngle = val;
-    this.node.setRotation((val * Math.PI) / 180);
+    if (Math.abs(this.currentAngle - val) > 0.05) {
+      this.currentAngle = val;
+      this.node.setRotation((val * Math.PI) / 180);
+    }
   }
 
   get color(): unknown {
@@ -121,6 +151,23 @@ class PixiSkyNodeProxy implements SkyRenderObject {
 
   set color(val: unknown) {
     this.currentColor = val;
+    const native = this.node.getNativeNode<{ tint?: number }>();
+    if (native && typeof native === "object" && "tint" in native) {
+      if (Array.isArray(val) && val.length >= 3) {
+        const nextTint = ((val[0] & 0xff) << 16) | ((val[1] & 0xff) << 8) | (val[2] & 0xff);
+        if (native.tint !== nextTint) native.tint = nextTint;
+      } else if (
+        typeof val === "object" &&
+        val !== null &&
+        "r" in val &&
+        "g" in val &&
+        "b" in val
+      ) {
+        const rgb = val as { r: number; g: number; b: number };
+        const nextTint = ((rgb.r & 0xff) << 16) | ((rgb.g & 0xff) << 8) | (rgb.b & 0xff);
+        if (native.tint !== nextTint) native.tint = nextTint;
+      }
+    }
   }
 
   hasTag(tag: string): boolean {
@@ -137,6 +184,196 @@ class PixiSkyNodeProxy implements SkyRenderObject {
   }
 }
 
+// Paleta 16-bits canônica para nuvens oceânicas (SKILL.md)
+const CLOUD_PALETTE_BASE_HEX = 0xcfe2f3; // Base sombreada celeste (0xCFE2F3)
+const CLOUD_PALETTE_TOP_HEX = 0xffffff; // Topo iluminado solar (0xFFFFFF)
+const CLOUD_PALETTE_BASE_RGB: [number, number, number] = [207, 226, 243];
+const CLOUD_PALETTE_TOP_RGB: [number, number, number] = [255, 255, 255];
+
+function drawRetro16BitCloud(
+  gfx: IGraphicsNode,
+  width: number,
+  height: number,
+  puffs: number
+): void {
+  const baseHeight = height * 0.65;
+  const baseOffset = height * 0.35;
+  const baseRadius = baseHeight / 2;
+
+  // 1. Camada Base Sombreada Celeste (0xCFE2F3) - volume e base plana arredondada
+  gfx.drawRoundedRect(0, baseOffset, width, baseHeight, baseRadius, {
+    fill: { color: CLOUD_PALETTE_BASE_HEX, alpha: 1 },
+  });
+
+  if (puffs === 4) {
+    gfx.drawCircle(width * 0.20, height * 0.48, height * 0.42, {
+      fill: { color: CLOUD_PALETTE_BASE_HEX, alpha: 1 },
+    });
+    gfx.drawCircle(width * 0.42, height * 0.34, height * 0.54, {
+      fill: { color: CLOUD_PALETTE_BASE_HEX, alpha: 1 },
+    });
+    gfx.drawCircle(width * 0.66, height * 0.38, height * 0.48, {
+      fill: { color: CLOUD_PALETTE_BASE_HEX, alpha: 1 },
+    });
+    gfx.drawCircle(width * 0.82, height * 0.52, height * 0.38, {
+      fill: { color: CLOUD_PALETTE_BASE_HEX, alpha: 1 },
+    });
+  } else {
+    gfx.drawCircle(width * 0.26, height * 0.48, height * 0.44, {
+      fill: { color: CLOUD_PALETTE_BASE_HEX, alpha: 1 },
+    });
+    gfx.drawCircle(width * 0.52, height * 0.35, height * 0.54, {
+      fill: { color: CLOUD_PALETTE_BASE_HEX, alpha: 1 },
+    });
+    gfx.drawCircle(width * 0.76, height * 0.50, height * 0.42, {
+      fill: { color: CLOUD_PALETTE_BASE_HEX, alpha: 1 },
+    });
+  }
+
+  // 2. Camada Topo Iluminado (0xFFFFFF) - volume iluminado pela luz solar superior
+  const topHeight = height * 0.48;
+  const topOffset = height * 0.22;
+  const topInset = height * 0.10;
+  gfx.drawRoundedRect(topInset, topOffset, width - topInset * 2, topHeight, topHeight / 2, {
+    fill: { color: CLOUD_PALETTE_TOP_HEX, alpha: 1 },
+  });
+
+  if (puffs === 4) {
+    gfx.drawCircle(width * 0.20, height * 0.42, height * 0.36, {
+      fill: { color: CLOUD_PALETTE_TOP_HEX, alpha: 1 },
+    });
+    gfx.drawCircle(width * 0.42, height * 0.28, height * 0.48, {
+      fill: { color: CLOUD_PALETTE_TOP_HEX, alpha: 1 },
+    });
+    gfx.drawCircle(width * 0.66, height * 0.32, height * 0.42, {
+      fill: { color: CLOUD_PALETTE_TOP_HEX, alpha: 1 },
+    });
+    gfx.drawCircle(width * 0.82, height * 0.46, height * 0.32, {
+      fill: { color: CLOUD_PALETTE_TOP_HEX, alpha: 1 },
+    });
+  } else {
+    gfx.drawCircle(width * 0.26, height * 0.42, height * 0.38, {
+      fill: { color: CLOUD_PALETTE_TOP_HEX, alpha: 1 },
+    });
+    gfx.drawCircle(width * 0.52, height * 0.29, height * 0.48, {
+      fill: { color: CLOUD_PALETTE_TOP_HEX, alpha: 1 },
+    });
+    gfx.drawCircle(width * 0.76, height * 0.44, height * 0.36, {
+      fill: { color: CLOUD_PALETTE_TOP_HEX, alpha: 1 },
+    });
+  }
+}
+
+function createCloudObject(
+  engineOrContext: IRenderEngine | LegacyEngineBridge,
+  options: {
+    width: number;
+    height: number;
+    baseY: number;
+    puffs: number;
+    textureCache: Map<string, unknown>;
+  }
+): SkyRenderObject {
+  if (isRenderEngine(engineOrContext)) {
+    const { width, height, baseY, puffs, textureCache } = options;
+    const cacheKey = `${width}_${height}_${puffs}`;
+
+    const gfx = engineOrContext.createGraphics("sky_cloud");
+    drawRetro16BitCloud(gfx, width, height, puffs);
+
+    let bakedTexture: unknown = textureCache.get(cacheKey) ?? null;
+    if (!bakedTexture) {
+      if (typeof engineOrContext.generateTexture === "function") {
+        bakedTexture = engineOrContext.generateTexture(gfx, {
+          resolution: 0.5,
+          scaleMode: "nearest",
+        });
+      } else {
+        const renderer =
+          typeof engineOrContext.getRenderer === "function"
+            ? (engineOrContext.getRenderer() as { generateTexture?: (opts: unknown) => unknown })
+            : null;
+        if (renderer && typeof renderer.generateTexture === "function") {
+          const nativeGfx =
+            typeof gfx.getNativeNode === "function" ? gfx.getNativeNode() : gfx;
+          try {
+            bakedTexture = renderer.generateTexture({
+              target: nativeGfx,
+              resolution: 0.5,
+              scaleMode: "nearest",
+            });
+          } catch {
+            bakedTexture = null;
+          }
+        }
+      }
+      if (bakedTexture) {
+        textureCache.set(cacheKey, bakedTexture);
+      }
+    }
+
+    let renderNode: IRenderNode = gfx;
+    if (bakedTexture && typeof engineOrContext.createSprite === "function") {
+      try {
+        const spriteNode = engineOrContext.createSprite(bakedTexture, "sky_cloud");
+        const nativeSprite = spriteNode.getNativeNode<{
+          roundPixels?: boolean;
+          cullable?: boolean;
+          eventMode?: string;
+        }>();
+        if (nativeSprite) {
+          nativeSprite.roundPixels = true;
+          nativeSprite.cullable = true;
+          nativeSprite.eventMode = "none";
+        }
+        renderNode = spriteNode;
+        gfx.destroy();
+      } catch {
+        renderNode = gfx;
+      }
+    }
+
+    renderNode.setPosition(0, baseY);
+    renderNode.setZIndex(-8);
+    renderNode.setOpacity(1);
+    engineOrContext.getStageRoot().addChild(renderNode);
+
+    const comps: unknown[] = [
+      "sky_cloud",
+      {
+        type: "rect",
+        w: width,
+        h: height,
+        opts: { radius: height / 2 },
+      },
+    ];
+
+    return new PixiSkyNodeProxy(renderNode, ["sky_cloud"], comps);
+  }
+
+  // Legacy Kaboom engine: silhueta blocada em 2 camadas (base celeste + topo iluminado)
+  const rawCloud = engineOrContext.add([
+    engineOrContext.rect(options.width, options.height, { radius: options.height / 2 }),
+    engineOrContext.pos(0, options.baseY),
+    engineOrContext.color(CLOUD_PALETTE_BASE_RGB[0], CLOUD_PALETTE_BASE_RGB[1], CLOUD_PALETTE_BASE_RGB[2]),
+    engineOrContext.opacity(1),
+    engineOrContext.z(-8),
+    "sky_cloud",
+  ]) as SkyRenderObject;
+
+  if (typeof (rawCloud as any).add === "function") {
+    (rawCloud as any).add([
+      engineOrContext.rect(options.width - 6, options.height * 0.55, { radius: (options.height * 0.55) / 2 }),
+      engineOrContext.pos(3, 0),
+      engineOrContext.color(CLOUD_PALETTE_TOP_RGB[0], CLOUD_PALETTE_TOP_RGB[1], CLOUD_PALETTE_TOP_RGB[2]),
+      engineOrContext.opacity(1),
+      engineOrContext.z(-7.9),
+    ]);
+  }
+
+  return rawCloud;
+}
+
 function createSkyObject(
   engineOrContext: IRenderEngine | LegacyEngineBridge,
   options: {
@@ -151,48 +388,186 @@ function createSkyObject(
     height?: number;
     radius?: number;
     points?: readonly { x: number; y: number }[];
+    textureCache?: Map<string, unknown>;
   }
 ): SkyRenderObject {
   if (isRenderEngine(engineOrContext)) {
+    const isPlainRect =
+      options.type === "rect" &&
+      (!options.radius || options.radius <= 0) &&
+      options.width !== undefined &&
+      options.height !== undefined;
+
+    // A. Retângulos planos (faixas de pôr do sol, estrelas, reflexos da lua, partes de aves): instanciar como Sprite com zero overhead
+    if (isPlainRect && typeof engineOrContext.createSprite === "function") {
+      const sprite = engineOrContext.createSprite("white", options.tag);
+      sprite.setPosition(options.x, options.y);
+      if (typeof sprite.setSize === "function") {
+        sprite.setSize(options.width ?? 1, options.height ?? 1);
+      }
+      sprite.setZIndex(options.zIndex);
+      sprite.setOpacity(options.opacity);
+      const colorNum =
+        ((options.color[0] & 0xff) << 16) |
+        ((options.color[1] & 0xff) << 8) |
+        (options.color[2] & 0xff);
+      if (typeof sprite.setTint === "function") {
+        sprite.setTint(colorNum);
+      }
+
+      const nativeSprite = sprite.getNativeNode<{
+        roundPixels?: boolean;
+        cullable?: boolean;
+        eventMode?: string;
+      }>();
+      if (nativeSprite) {
+        nativeSprite.roundPixels = true;
+        nativeSprite.cullable = true;
+        nativeSprite.eventMode = "none";
+      }
+
+      engineOrContext.getStageRoot().addChild(sprite);
+
+      const comps: unknown[] = [
+        options.tag,
+        {
+          type: "rect",
+          w: options.width,
+          h: options.height,
+        },
+      ];
+      return new PixiSkyNodeProxy(
+        sprite,
+        [options.tag],
+        comps,
+        options.x,
+        options.y,
+        options.opacity
+      );
+    }
+
+    // B. Círculos, retângulos arredondados e polígonos: bake estático de textura
+    const cacheKey = `${options.tag}_${options.type}_${options.radius ?? 0}_${options.width ?? 0}_${options.height ?? 0}`;
+    let bakedTexture: unknown = options.textureCache?.get(cacheKey) ?? null;
+
     const gfx = engineOrContext.createGraphics(options.tag);
     if (options.type === "circle" && options.radius !== undefined) {
       gfx.drawCircle(0, 0, options.radius, {
-        fill: { color: options.color, alpha: options.opacity },
+        fill: { color: options.color, alpha: 1 },
       });
     } else if (
       options.type === "rect" &&
       options.width !== undefined &&
       options.height !== undefined
     ) {
-      gfx.drawRect(0, 0, options.width, options.height, {
-        fill: { color: options.color, alpha: options.opacity },
-      });
+      if (options.radius !== undefined && options.radius > 0) {
+        gfx.drawRoundedRect(0, 0, options.width, options.height, options.radius, {
+          fill: { color: options.color, alpha: 1 },
+        });
+      } else {
+        gfx.drawRect(0, 0, options.width, options.height, {
+          fill: { color: options.color, alpha: 1 },
+        });
+      }
     } else if (options.type === "polygon" && options.points) {
       gfx.drawPolygon(options.points, {
-        fill: { color: options.color, alpha: options.opacity },
+        fill: { color: options.color, alpha: 1 },
       });
     }
 
-    gfx.setPosition(options.x, options.y);
-    gfx.setZIndex(options.zIndex);
-    gfx.setOpacity(options.opacity);
-    engineOrContext.getStageRoot().addChild(gfx);
+    if (!bakedTexture && options.textureCache) {
+      if (typeof engineOrContext.generateTexture === "function") {
+        bakedTexture = engineOrContext.generateTexture(gfx, {
+          resolution: 0.5,
+          scaleMode: "nearest",
+        });
+      } else {
+        const renderer =
+          typeof engineOrContext.getRenderer === "function"
+            ? (engineOrContext.getRenderer() as { generateTexture?: (opts: unknown) => unknown })
+            : null;
+        if (renderer && typeof renderer.generateTexture === "function") {
+          const nativeGfx =
+            typeof gfx.getNativeNode === "function" ? gfx.getNativeNode() : gfx;
+          try {
+            bakedTexture = renderer.generateTexture({
+              target: nativeGfx,
+              resolution: 0.5,
+              scaleMode: "nearest",
+            });
+          } catch {
+            bakedTexture = null;
+          }
+        }
+      }
+      if (bakedTexture) {
+        options.textureCache.set(cacheKey, bakedTexture);
+      }
+    }
+
+    let renderNode: IRenderNode = gfx;
+    if (bakedTexture && typeof engineOrContext.createSprite === "function") {
+      try {
+        const sprite = engineOrContext.createSprite(bakedTexture, options.tag);
+        const nativeSprite = sprite.getNativeNode<{
+          roundPixels?: boolean;
+          cullable?: boolean;
+          eventMode?: string;
+        }>();
+        if (nativeSprite) {
+          nativeSprite.roundPixels = true;
+          nativeSprite.cullable = true;
+          nativeSprite.eventMode = "none";
+        }
+        renderNode = sprite;
+        gfx.destroy();
+      } catch {
+        renderNode = gfx;
+      }
+    }
+
+    renderNode.setPosition(options.x, options.y);
+    renderNode.setZIndex(options.zIndex);
+    renderNode.setOpacity(options.opacity);
+    engineOrContext.getStageRoot().addChild(renderNode);
 
     const comps: unknown[] = [
       options.tag,
-      options.type === "rect" ? { type: "rect", w: options.width, h: options.height } : null,
+      options.type === "rect"
+        ? {
+            type: "rect",
+            w: options.width,
+            h: options.height,
+            opts: {
+              radius: options.radius ?? (options.height ? options.height / 2 : undefined),
+            },
+          }
+        : null,
       options.type === "circle" ? { type: "circle", r: options.radius } : null,
       options.type === "polygon" ? { type: "polygon", pts: options.points } : null,
     ].filter(Boolean);
 
-    return new PixiSkyNodeProxy(gfx, [options.tag], comps);
+    return new PixiSkyNodeProxy(
+      renderNode,
+      [options.tag],
+      comps,
+      options.x,
+      options.y,
+      options.opacity
+    );
   }
 
   // Legacy Kaboom engine
   const comps: unknown[] = [
     options.type === "circle" ? engineOrContext.circle(options.radius ?? 1) : null,
     options.type === "rect"
-      ? engineOrContext.rect(options.width ?? 10, options.height ?? 10)
+      ? engineOrContext.rect(
+          options.width ?? 10,
+          options.height ?? 10,
+          options.radius !== undefined
+            ? { radius: options.radius ?? (options.height ? options.height / 2 : undefined) }
+            : undefined
+        )
       : null,
     options.type === "polygon" && options.points ? engineOrContext.polygon(options.points) : null,
     engineOrContext.pos(options.x, options.y),
@@ -223,6 +598,8 @@ export function setupParallaxSkySystem(
       ? engineOrContext.width()
       : 640;
 
+  const bakedTextureCache = new Map<string, unknown>();
+
   // 1. PÔR DO SOL ESTRATIFICADO NA TRAVESSIA PELÁGICA (29.7: 5.000m - 12.000m)
   const sunsetConfigs: { y: number; h: number; col: [number, number, number] }[] = [
     { y: 0, h: 18, col: [45, 55, 95] },
@@ -243,10 +620,11 @@ export function setupParallaxSkySystem(
       color: cfg.col,
       opacity: 0,
       zIndex: -9.5,
+      textureCache: bakedTextureCache,
     });
   });
 
-  // 2. NUVENS EM PARALAXE
+  // 2. NUVENS EM PARALAXE COM TEXTURAS ESTÁTICAS E ESTÉTICA 16-BITS (SKILL.md)
   const cloudCount = 7;
   const clouds: CloudData[] = [];
 
@@ -256,17 +634,14 @@ export function setupParallaxSkySystem(
     const baseY = 10 + (index % 4) * 12;
     const parallaxFactor = 0.18 + (index % 3) * 0.1;
     const speed = 6 + (index % 3) * 4;
+    const puffs = index % 2 === 0 ? 3 : 4;
 
-    const cloudObj = createSkyObject(engineOrContext, {
-      tag: "sky_cloud",
-      type: "rect",
-      x: 0,
-      y: baseY,
+    const cloudObj = createCloudObject(engineOrContext, {
       width,
       height,
-      color: [255, 255, 255],
-      opacity: 0.45 + (index % 3) * 0.15,
-      zIndex: -8,
+      baseY,
+      puffs,
+      textureCache: bakedTextureCache,
     });
 
     clouds.push({
@@ -279,26 +654,26 @@ export function setupParallaxSkySystem(
     });
   }
 
+
   // 3. ESTRELAS CINTILANTES NA COSTA URBANA (12.000m - 19.000m)
   const starCount = 28;
   const stars: StarData[] = [];
 
   for (let index = 0; index < starCount; index++) {
     const starY = 8 + (index % 6) * 11;
-    const starObj = createSkyObject(engineOrContext, {
-      tag: "sky_star",
-      type: "rect",
-      x: 0,
-      y: starY,
-      width: 1.5,
-      height: 1.5,
-      color: [240, 245, 255],
-      opacity: 0,
-      zIndex: -9,
-    });
-
     stars.push({
-      obj: starObj,
+      obj: createSkyObject(engineOrContext, {
+        tag: "sky_star",
+        type: "rect",
+        x: 0,
+        y: starY,
+        width: 1.5,
+        height: 1.5,
+        color: [240, 245, 255],
+        opacity: 0,
+        zIndex: -9,
+        textureCache: bakedTextureCache,
+      }),
       baseX: index * ((screenW / starCount) * 1.4),
       baseY: starY,
       blinkPhase: getRandomFloat(0, Math.PI * 2),
@@ -315,6 +690,7 @@ export function setupParallaxSkySystem(
     color: [248, 242, 215],
     opacity: 0,
     zIndex: -9,
+    textureCache: bakedTextureCache,
   });
 
   const moonHalo = createSkyObject(engineOrContext, {
@@ -326,6 +702,7 @@ export function setupParallaxSkySystem(
     color: [248, 242, 215],
     opacity: 0,
     zIndex: -9.2,
+    textureCache: bakedTextureCache,
   });
 
   const reflectionConfigs = [
@@ -347,6 +724,7 @@ export function setupParallaxSkySystem(
       color: [248, 242, 215],
       opacity: 0,
       zIndex: 2,
+      textureCache: bakedTextureCache,
     });
   });
 
@@ -397,6 +775,7 @@ export function setupParallaxSkySystem(
         color: [25, 25, 30],
         opacity: 1,
         zIndex: -7,
+        textureCache: bakedTextureCache,
       });
     } else {
       bodyColor = [255, 255, 255];
@@ -414,6 +793,7 @@ export function setupParallaxSkySystem(
         color: [30, 30, 35],
         opacity: 1,
         zIndex: -7,
+        textureCache: bakedTextureCache,
       });
     }
 
@@ -427,6 +807,7 @@ export function setupParallaxSkySystem(
       color: bodyColor,
       opacity: 1,
       zIndex: -7,
+      textureCache: bakedTextureCache,
     });
 
     const wingLeft = createSkyObject(engineOrContext, {
@@ -439,6 +820,7 @@ export function setupParallaxSkySystem(
       color: wingColor,
       opacity: 1,
       zIndex: -7,
+      textureCache: bakedTextureCache,
     });
 
     const wingRight = createSkyObject(engineOrContext, {
@@ -451,6 +833,7 @@ export function setupParallaxSkySystem(
       color: wingColor,
       opacity: 1,
       zIndex: -7,
+      textureCache: bakedTextureCache,
     });
 
     birds.push({
@@ -485,29 +868,22 @@ export function setupParallaxSkySystem(
               ? (12200 - camX) / 1000
               : 1.0;
 
-    sunsetBands.forEach((band) => {
+    const bandCount = sunsetBands.length;
+    for (let i = 0; i < bandCount; i++) {
+      const band = sunsetBands[i];
       band.pos.x = screenLeft - screenW * 0.1;
       band.opacity = sunsetIntensity * 0.88;
-    });
+    }
 
-    // B. Nuvens em Paralaxe
-    clouds.forEach((c) => {
+    // B. Nuvens em Paralaxe (movimento horizontal in-place com reciclagem/wrapping — SKILL.md)
+    const wrapWidth = screenW * 1.5;
+    const cloudCountLen = clouds.length;
+    for (let i = 0; i < cloudCountLen; i++) {
+      const c = clouds[i];
       const drift = time * c.speed;
-      const effectivePos = (c.baseX + drift + camX * c.parallaxFactor) % (screenW * 1.5);
+      const effectivePos = (c.baseX + drift + camX * c.parallaxFactor) % wrapWidth;
       c.obj.pos.x = screenLeft - 100 + effectivePos;
-
-      if (camX < 5000) {
-        c.obj.opacity = 0.55;
-      } else if (camX < 12000) {
-        c.obj.opacity = 0.65;
-      } else if (camX < 19000) {
-        c.obj.opacity = 0.4;
-      } else if (camX < 25000) {
-        c.obj.opacity = 0.55;
-      } else {
-        c.obj.opacity = 0.6;
-      }
-    });
+    }
 
     // C. Noite Urbana: Estrelas, Lua e Reflexos
     const nightIntensity =
@@ -519,12 +895,15 @@ export function setupParallaxSkySystem(
             : 1.0
         : 0;
 
-    stars.forEach((s) => {
-      const effPos = (s.baseX + camX * 0.05) % (screenW * 1.4);
+    const starCountLen = stars.length;
+    const starWrap = screenW * 1.4;
+    for (let i = 0; i < starCountLen; i++) {
+      const s = stars[i];
+      const effPos = (s.baseX + camX * 0.05) % starWrap;
       s.obj.pos.x = screenLeft - 50 + effPos;
       const twinkle = Math.sin(time * 3.5 + s.blinkPhase) * 0.35 + 0.65;
       s.obj.opacity = nightIntensity * twinkle * 0.9;
-    });
+    }
 
     const moonX = screenLeft + screenW * 0.68;
     moonDisk.pos.x = moonX;
@@ -532,14 +911,17 @@ export function setupParallaxSkySystem(
     moonDisk.opacity = nightIntensity * 0.92;
     moonHalo.opacity = nightIntensity * 0.18;
 
-    moonReflections.forEach((ref, idx) => {
-      const waveSway = Math.sin(time * 3.2 + idx * 0.85) * (4 + idx * 2.2);
-      ref.pos.x = moonX + waveSway;
-      ref.opacity = nightIntensity * reflectionConfigs[idx].baseAlpha;
-    });
+    const reflCount = moonReflections.length;
+    for (let i = 0; i < reflCount; i++) {
+      const waveSway = Math.sin(time * 3.2 + i * 0.85) * (4 + i * 2.2);
+      moonReflections[i].pos.x = moonX + waveSway;
+      moonReflections[i].opacity = nightIntensity * reflectionConfigs[i].baseAlpha;
+    }
 
     // D. Aves Marinhas
-    birds.forEach((b) => {
+    const birdCount = birds.length;
+    for (let i = 0; i < birdCount; i++) {
+      const b = birds[i];
       b.worldX += b.speedX * deltaTime;
 
       let flapSpeed: number;
@@ -575,7 +957,7 @@ export function setupParallaxSkySystem(
         b.extra.pos.x = b.worldX - 5;
         b.extra.pos.y = currentY + (b.flightType === "egret" ? 2 : 0);
       }
-    });
+    }
   };
 
   let unregisterTicker: () => void;
@@ -604,6 +986,12 @@ export function setupParallaxSkySystem(
 
   const destroy = (): void => {
     unregisterTicker();
+    bakedTextureCache.forEach((tex: unknown) => {
+      if (tex && typeof (tex as { destroy?: (destroyBase?: boolean) => void }).destroy === "function") {
+        (tex as { destroy: (destroyBase?: boolean) => void }).destroy(true);
+      }
+    });
+    bakedTextureCache.clear();
     sunsetBands.forEach((sb) => sb.destroy && sb.destroy());
     clouds.forEach((c) => c.obj.destroy && c.obj.destroy());
     stars.forEach((s) => s.obj.destroy && s.obj.destroy());

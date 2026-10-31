@@ -6,7 +6,12 @@
  */
 
 import { getRandomFloat } from "../utils/random";
-import type { IRenderEngine, IGraphicsNode } from "../engine/contracts/INTERFACE_CONTRACTS";
+import type {
+  IRenderEngine,
+  IRenderNode,
+  IGraphicsNode,
+  ISpriteNode,
+} from "../engine/contracts/INTERFACE_CONTRACTS";
 import { isRenderEngine, type LegacyEngineBridge } from "../engine/adapters/LegacyBridge";
 
 export interface ParticleVec2 {
@@ -127,7 +132,7 @@ interface PooledRect {
 }
 
 class PixiPooledParticleProxy implements ParticleRenderObject {
-  private readonly node: IGraphicsNode;
+  private readonly node: IRenderNode;
   private currentX: number = -9999;
   private currentY: number = -9999;
   private currentRadius: number = 2;
@@ -135,10 +140,12 @@ class PixiPooledParticleProxy implements ParticleRenderObject {
   private currentHeight: number = 2;
   private currentColor: [number, number, number] = [255, 255, 255];
   private isCircle: boolean;
+  private readonly isSprite: boolean;
 
-  constructor(node: IGraphicsNode, isCircle: boolean) {
+  constructor(node: IRenderNode, isCircle: boolean, isSprite = false) {
     this.node = node;
     this.isCircle = isCircle;
+    this.isSprite = isSprite;
   }
 
   get pos(): { x: number; y: number } {
@@ -150,29 +157,35 @@ class PixiPooledParticleProxy implements ParticleRenderObject {
         return self.currentX;
       },
       set x(val: number) {
-        self.currentX = val;
-        nodeRef.setPosition(val, self.currentY);
+        if (Math.abs(self.currentX - val) > 0.01) {
+          self.currentX = val;
+          nodeRef.setPosition(val, self.currentY);
+        }
       },
       get y() {
         return self.currentY;
       },
       set y(val: number) {
-        self.currentY = val;
-        nodeRef.setPosition(self.currentX, val);
+        if (Math.abs(self.currentY - val) > 0.01) {
+          self.currentY = val;
+          nodeRef.setPosition(self.currentX, val);
+        }
       },
     };
   }
   set pos(val: { x: number; y: number }) {
-    this.currentX = val.x;
-    this.currentY = val.y;
-    this.node.setPosition(val.x, val.y);
+    if (Math.abs(this.currentX - val.x) > 0.01 || Math.abs(this.currentY - val.y) > 0.01) {
+      this.currentX = val.x;
+      this.currentY = val.y;
+      this.node.setPosition(val.x, val.y);
+    }
   }
 
   get radius(): number {
     return this.currentRadius;
   }
   set radius(val: number) {
-    if (this.currentRadius === val) return;
+    if (Math.abs(this.currentRadius - val) < 0.01) return;
     this.currentRadius = val;
     if (this.isCircle) {
       this.node.setScale(val / 2, val / 2);
@@ -185,7 +198,7 @@ class PixiPooledParticleProxy implements ParticleRenderObject {
     return this.currentWidth;
   }
   set width(val: number) {
-    if (this.currentWidth === val) return;
+    if (Math.abs(this.currentWidth - val) < 0.01) return;
     this.currentWidth = val;
     if (!this.isCircle) {
       this.node.setScale(val / 10, this.currentHeight / 2);
@@ -198,7 +211,7 @@ class PixiPooledParticleProxy implements ParticleRenderObject {
     return this.currentHeight;
   }
   set height(val: number) {
-    if (this.currentHeight === val) return;
+    if (Math.abs(this.currentHeight - val) < 0.01) return;
     this.currentHeight = val;
     if (!this.isCircle) {
       this.node.setScale(this.currentWidth / 10, val / 2);
@@ -232,7 +245,18 @@ class PixiPooledParticleProxy implements ParticleRenderObject {
       return;
     }
     this.currentColor = [red, green, blue];
-    this.redraw();
+
+    const hexColor = ((red & 0xff) << 16) | ((green & 0xff) << 8) | (blue & 0xff);
+    if ("setTint" in this.node && typeof (this.node as ISpriteNode).setTint === "function") {
+      (this.node as ISpriteNode).setTint(hexColor);
+    } else {
+      const native = this.node.getNativeNode<{ tint?: number }>();
+      if (native && typeof native === "object" && "tint" in native) {
+        native.tint = hexColor;
+      } else {
+        this.redraw();
+      }
+    }
   }
 
   get opacity(): number {
@@ -257,17 +281,21 @@ class PixiPooledParticleProxy implements ParticleRenderObject {
   }
 
   private redraw(): void {
-    this.node.clear();
-    if (this.isCircle) {
-      this.node.drawCircle(0, 0, 2, {
-        fill: { color: this.currentColor, alpha: 1 },
-      });
-      this.node.setScale(this.currentRadius / 2, this.currentRadius / 2);
-    } else {
-      this.node.drawRect(0, 0, 10, 2, {
-        fill: { color: this.currentColor, alpha: 1 },
-      });
-      this.node.setScale(this.currentWidth / 10, this.currentHeight / 2);
+    if (this.isSprite) return;
+    if ("clear" in this.node && typeof (this.node as IGraphicsNode).clear === "function") {
+      const gfx = this.node as IGraphicsNode;
+      gfx.clear();
+      if (this.isCircle) {
+        gfx.drawCircle(0, 0, 2, {
+          fill: { color: this.currentColor, alpha: 1 },
+        });
+        gfx.setScale(this.currentRadius / 2, this.currentRadius / 2);
+      } else {
+        gfx.drawRect(0, 0, 10, 2, {
+          fill: { color: this.currentColor, alpha: 1 },
+        });
+        gfx.setScale(this.currentWidth / 10, this.currentHeight / 2);
+      }
     }
   }
 }
@@ -284,6 +312,8 @@ export class ParticlePool {
   private circleIndex = 0;
   private rectIndex = 0;
 
+  private sharedCircleTexture: unknown = null;
+
   constructor(
     engineOrContext: IRenderEngine | LegacyEngineBridge,
     circleCount = 140,
@@ -297,16 +327,64 @@ export class ParticlePool {
     if (isRenderEngine(this.engineOrContext)) {
       const stageRoot = this.engineOrContext.getStageRoot();
 
-      for (let i = 0; i < circleCount; i++) {
-        const g = this.engineOrContext.createGraphics("pooled_particle");
-        g.drawCircle(0, 0, 2, { fill: { color: [255, 255, 255], alpha: 1 } });
-        g.setPosition(-9999, -9999);
-        g.setOpacity(0);
-        g.setZIndex(15);
-        g.setVisible(false);
-        stageRoot.addChild(g);
+      if (
+        typeof this.engineOrContext.generateTexture === "function" &&
+        typeof this.engineOrContext.createGraphics === "function"
+      ) {
+        try {
+          const tempG = this.engineOrContext.createGraphics("pooled_circle_baker");
+          tempG.drawCircle(0, 0, 2, { fill: { color: [255, 255, 255], alpha: 1 } });
+          this.sharedCircleTexture = this.engineOrContext.generateTexture(tempG, {
+            resolution: 0.5,
+            scaleMode: "nearest",
+          });
+          tempG.destroy();
+        } catch {
+          this.sharedCircleTexture = null;
+        }
+      }
 
-        const proxy = new PixiPooledParticleProxy(g, true);
+      for (let i = 0; i < circleCount; i++) {
+        let node: IRenderNode;
+        let isSprite = false;
+
+        if (this.sharedCircleTexture && typeof this.engineOrContext.createSprite === "function") {
+          try {
+            const spr = this.engineOrContext.createSprite(
+              this.sharedCircleTexture,
+              "pooled_particle"
+            );
+            spr.setAnchor(0.5, 0.5);
+            const nativeSpr = spr.getNativeNode<{
+              roundPixels?: boolean;
+              cullable?: boolean;
+              eventMode?: string;
+            }>();
+            if (nativeSpr) {
+              nativeSpr.roundPixels = true;
+              nativeSpr.cullable = true;
+              nativeSpr.eventMode = "none";
+            }
+            node = spr;
+            isSprite = true;
+          } catch {
+            const g = this.engineOrContext.createGraphics("pooled_particle");
+            g.drawCircle(0, 0, 2, { fill: { color: [255, 255, 255], alpha: 1 } });
+            node = g;
+          }
+        } else {
+          const g = this.engineOrContext.createGraphics("pooled_particle");
+          g.drawCircle(0, 0, 2, { fill: { color: [255, 255, 255], alpha: 1 } });
+          node = g;
+        }
+
+        node.setPosition(-9999, -9999);
+        node.setOpacity(0);
+        node.setZIndex(15);
+        node.setVisible(false);
+        stageRoot.addChild(node);
+
+        const proxy = new PixiPooledParticleProxy(node, true, isSprite);
         this.circlePool.push({
           obj: proxy,
           active: false,
@@ -330,15 +408,43 @@ export class ParticlePool {
       }
 
       for (let i = 0; i < rectCount; i++) {
-        const g = this.engineOrContext.createGraphics("pooled_rect_particle");
-        g.drawRect(0, 0, 10, 2, { fill: { color: [255, 255, 255], alpha: 1 } });
-        g.setPosition(-9999, -9999);
-        g.setOpacity(0);
-        g.setZIndex(12);
-        g.setVisible(false);
-        stageRoot.addChild(g);
+        let node: IRenderNode;
+        let isSprite = false;
 
-        const proxy = new PixiPooledParticleProxy(g, false);
+        if (typeof this.engineOrContext.createSprite === "function") {
+          try {
+            const spr = this.engineOrContext.createSprite("white", "pooled_rect_particle");
+            spr.setSize(10, 2);
+            const nativeSpr = spr.getNativeNode<{
+              roundPixels?: boolean;
+              cullable?: boolean;
+              eventMode?: string;
+            }>();
+            if (nativeSpr) {
+              nativeSpr.roundPixels = true;
+              nativeSpr.cullable = true;
+              nativeSpr.eventMode = "none";
+            }
+            node = spr;
+            isSprite = true;
+          } catch {
+            const g = this.engineOrContext.createGraphics("pooled_rect_particle");
+            g.drawRect(0, 0, 10, 2, { fill: { color: [255, 255, 255], alpha: 1 } });
+            node = g;
+          }
+        } else {
+          const g = this.engineOrContext.createGraphics("pooled_rect_particle");
+          g.drawRect(0, 0, 10, 2, { fill: { color: [255, 255, 255], alpha: 1 } });
+          node = g;
+        }
+
+        node.setPosition(-9999, -9999);
+        node.setOpacity(0);
+        node.setZIndex(12);
+        node.setVisible(false);
+        stageRoot.addChild(node);
+
+        const proxy = new PixiPooledParticleProxy(node, false, isSprite);
         this.rectPool.push({
           obj: proxy,
           active: false,
@@ -671,6 +777,18 @@ export class ParticlePool {
     }
     for (let i = 0; i < this.rectPool.length; i++) {
       this.deactivateRect(this.rectPool[i]);
+    }
+  }
+
+  public destroy(): void {
+    this.reset();
+    if (
+      this.sharedCircleTexture &&
+      typeof (this.sharedCircleTexture as { destroy?: (destroyBase?: boolean) => void }).destroy ===
+        "function"
+    ) {
+      (this.sharedCircleTexture as { destroy: (destroyBase?: boolean) => void }).destroy(true);
+      this.sharedCircleTexture = null;
     }
   }
 }

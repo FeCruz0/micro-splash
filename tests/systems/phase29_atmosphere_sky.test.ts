@@ -189,11 +189,15 @@ describe("FASE 29: Superfície, Céu & Atmosfera", () => {
 
     expect(sky.clouds.length).toBe(7);
 
-    // Cada nuvem possui o objeto principal com tag sky_cloud e dimensões arredondadas
+    // Cada nuvem possui o objeto principal com tag sky_cloud e dimensões arredondadas (sem pontas quadradas)
     sky.clouds.forEach((cloud) => {
       expect(cloud.obj.hasTag("sky_cloud")).toBe(true);
       expect(cloud.width).toBeGreaterThanOrEqual(80);
       expect(cloud.speed).toBeGreaterThan(0);
+
+      const rectComp = cloud.obj.comps.find((c: any) => c && c.type === "rect") as any;
+      expect(rectComp).toBeDefined();
+      expect(rectComp.opts?.radius).toBeGreaterThanOrEqual(9);
     });
 
     // Atualiza posição com a deriva do vento e paralaxe da câmera
@@ -202,6 +206,117 @@ describe("FASE 29: Superfície, Céu & Atmosfera", () => {
     expect(sky.clouds[0].obj.pos.x).toBeDefined();
 
     sky.destroy();
+
+    // Verificação na Camada PixiJS v8 / IRenderEngine (eliminação total de bordas quadradas)
+    const cloudGraphicsNodes: any[] = [];
+    const mockEngine: any = {
+      getDimensions: () => ({ width: 640, height: 360 }),
+      getStageRoot: () => ({ addChild: vi.fn() }),
+      getTicker: () => ({ add: vi.fn(() => vi.fn()) }),
+      getCamera: () => ({ getPosition: () => ({ x: 0, y: 0 }) }),
+      createGraphics: vi.fn((tag: string) => {
+        const gfx: any = {
+          tag,
+          drawRect: vi.fn(),
+          drawRoundedRect: vi.fn(),
+          drawCircle: vi.fn(),
+          drawPolygon: vi.fn(),
+          setPosition: vi.fn(),
+          setZIndex: vi.fn(),
+          setOpacity: vi.fn(),
+          getPosition: () => ({ x: 0, y: 0 }),
+          getOpacity: () => 1,
+          setRotation: vi.fn(),
+          destroy: vi.fn(),
+          getNativeNode: () => ({ tint: 0xffffff }),
+        };
+        if (tag === "sky_cloud") {
+          cloudGraphicsNodes.push(gfx);
+        }
+        return gfx;
+      }),
+    };
+
+    const pixiSky = setupParallaxSkySystem(mockEngine);
+    expect(pixiSky.clouds.length).toBe(7);
+    expect(cloudGraphicsNodes.length).toBe(7);
+
+    cloudGraphicsNodes.forEach((gfx) => {
+      // Nuvens usam silhueta 16-bits em duas camadas: base sombreada celeste e topo iluminado
+      expect(gfx.drawRect).not.toHaveBeenCalled();
+      expect(gfx.drawRoundedRect).toHaveBeenCalledTimes(2);
+      const roundedCallArgs = gfx.drawRoundedRect.mock.calls[0];
+      expect(roundedCallArgs[4]).toBeGreaterThan(0); // radius da base
+      expect(gfx.drawCircle.mock.calls.length).toBeGreaterThanOrEqual(6); // cúpulas cumuliformes em 2 camadas
+    });
+
+    pixiSky.destroy();
+
+    // Verificação de Bake de Textura Estática e Sprites Leves (SKILL.md / Zero-Overhead)
+    const bakedTextures: any[] = [];
+    const spriteNativeProps: any[] = [];
+    const mockBakeEngine: any = {
+      getDimensions: () => ({ width: 640, height: 360 }),
+      getStageRoot: () => ({ addChild: vi.fn() }),
+      getTicker: () => ({ add: vi.fn(() => vi.fn()) }),
+      getCamera: () => ({ getPosition: () => ({ x: 0, y: 0 }) }),
+      createGraphics: vi.fn((tag: string) => ({
+        tag,
+        drawRect: vi.fn(),
+        drawRoundedRect: vi.fn(),
+        drawCircle: vi.fn(),
+        drawPolygon: vi.fn(),
+        setPosition: vi.fn(),
+        setZIndex: vi.fn(),
+        setOpacity: vi.fn(),
+        destroy: vi.fn(),
+        getNativeNode: () => ({}),
+      })),
+      generateTexture: vi.fn((_gfx: any, opts: any) => {
+        expect(opts).toEqual({ resolution: 0.5, scaleMode: "nearest" });
+        const tex = { id: `tex_${bakedTextures.length}`, destroy: vi.fn() };
+        bakedTextures.push(tex);
+        return tex;
+      }),
+      createSprite: vi.fn((texture: any, tag: string) => {
+        const nativeSprite = {
+          roundPixels: false,
+          cullable: false,
+          eventMode: "auto",
+        };
+        spriteNativeProps.push(nativeSprite);
+        return {
+          tag,
+          texture,
+          setPosition: vi.fn(),
+          setZIndex: vi.fn(),
+          setOpacity: vi.fn(),
+          setSize: vi.fn(),
+          setTint: vi.fn(),
+          getPosition: () => ({ x: 0, y: 0 }),
+          destroy: vi.fn(),
+          getNativeNode: () => nativeSprite,
+        };
+      }),
+    };
+
+    const bakedSky = setupParallaxSkySystem(mockBakeEngine);
+    expect(bakedSky.clouds.length).toBe(7);
+    expect(mockBakeEngine.generateTexture).toHaveBeenCalled();
+    expect(mockBakeEngine.createSprite.mock.calls.length).toBeGreaterThanOrEqual(7);
+
+    // Todos os sprites foram configurados para zero overhead
+    spriteNativeProps.forEach((props) => {
+      expect(props.roundPixels).toBe(true);
+      expect(props.cullable).toBe(true);
+      expect(props.eventMode).toBe("none");
+    });
+
+    // Ao destruir, texturas em cache devem ser liberadas
+    bakedSky.destroy();
+    bakedTextures.forEach((tex) => {
+      expect(tex.destroy).toHaveBeenCalledWith(true);
+    });
   });
 
   // =========================================================================
