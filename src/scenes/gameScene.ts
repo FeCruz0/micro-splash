@@ -48,7 +48,7 @@ import { setupSereneInsightsSystem } from "../systems/sereneMigrationInsights";
 import { createCompanionWhale } from "../entities/companionWhale";
 import { shouldSpawnCompanionWhale } from "../systems/companionTutorialSettings";
 import { SystemRunner } from "../systems/systemRunner";
-import { SpatialHashGrid } from "../systems/spatialHashGrid";
+import { initSpatialGrid } from "../systems/spatialHashGrid";
 import { FrameBudgetMonitor } from "../systems/frameBudgetMonitor";
 import { FrameRateMonitor } from "../utils/frameRateMonitor";
 
@@ -297,7 +297,7 @@ export function registerGameScene(rawK: GameSceneEngineContext): void {
     const biomeManager = initBiomeLifecycleManager(k);
     const spatialCulling = initSpatialCullingManager(k);
     const presentationMode = initPresentationMode(k, playerController);
-    const spatialGrid = new SpatialHashGrid<unknown>({ cellSize: 200 });
+    const spatialGrid = initSpatialGrid<unknown>({ cellSize: 200 });
     k.onSceneLeave(() => {
       spatialGrid.clear();
     });

@@ -32,11 +32,14 @@ export interface CompanionCollisionGameObject extends CollisionGameObject {
   handleNetCollision?: (net: unknown) => void;
 }
 
+import { getSpatialGrid, type SpatialAABB } from "./spatialHashGrid";
+
 export interface CollisionsEngineContext<TDestroyable = unknown> {
   onCollide: (tag1: string, tag2: string, cb: (obj1: unknown, obj2: unknown) => void) => unknown;
   destroy: (obj: TDestroyable) => void;
   time: () => number;
   shake?: (amount: number) => void;
+  onUpdate?: (cb: () => void) => unknown;
 }
 
 export function setupCollisions<TDestroyable = unknown>(
@@ -147,18 +150,66 @@ export function setupCollisions<TDestroyable = unknown>(
     }
   });
 
-  // Colisão com formações rochosas (Ilha do Farol e Fundo Rochoso do Boqueirão)
+  // Colisão com formações rochosas (Ilha do Farol e Fundo Rochoso do Boqueirão) e navios cargueiros
   let lastObstacleBumpTime = 0;
-  k.onCollide(TAGS.PLAYER, TAGS.OBSTACLE, () => {
-    if (playerController.isFrozen()) return;
+  const spatialGrid = getSpatialGrid();
 
-    const now = k.time();
-    if (now - lastObstacleBumpTime > 0.35) {
-      lastObstacleBumpTime = now;
-      audioSystem.playTrashThud(); // Impacto sólido e surdo contra a rocha
-      accessibilitySystem.triggerShake(k, 2.0);
-    }
-  });
+  if (spatialGrid && typeof k.onUpdate === "function") {
+    k.onUpdate(() => {
+      if (playerController.isFrozen()) return;
+      const playerObj = playerController.gameObj;
+      if (!playerObj || !playerObj.pos) return;
+
+      const playerAABB: SpatialAABB = {
+        minX: playerObj.pos.x - 35,
+        minY: playerObj.pos.y - 18,
+        maxX: playerObj.pos.x + 35,
+        maxY: playerObj.pos.y + 18,
+      };
+
+      const candidates = spatialGrid.queryAABB(playerAABB);
+      const totalCandidates = candidates.length;
+      if (totalCandidates === 0) return;
+
+      for (let i = 0; i < totalCandidates; i++) {
+        const item = candidates[i] as {
+          is?: (tag: string) => boolean;
+          tag?: string;
+        } | null;
+        if (!item) continue;
+        const isObstacleOrShip =
+          (typeof item.is === "function" &&
+            (item.is(TAGS.OBSTACLE) ||
+              item.is("ship") ||
+              item.is("fishing_trawler") ||
+              item.is("navio"))) ||
+          item.tag === TAGS.OBSTACLE ||
+          item.tag === "ship" ||
+          item.tag === "fishing_trawler";
+
+        if (isObstacleOrShip) {
+          const now = k.time();
+          if (now - lastObstacleBumpTime > 0.35) {
+            lastObstacleBumpTime = now;
+            audioSystem.playTrashThud();
+            accessibilitySystem.triggerShake(k, 2.0);
+          }
+          break;
+        }
+      }
+    });
+  } else if (typeof k.onCollide === "function") {
+    k.onCollide(TAGS.PLAYER, TAGS.OBSTACLE, () => {
+      if (playerController.isFrozen()) return;
+
+      const now = k.time();
+      if (now - lastObstacleBumpTime > 0.35) {
+        lastObstacleBumpTime = now;
+        audioSystem.playTrashThud(); // Impacto sólido e surdo contra a rocha
+        accessibilitySystem.triggerShake(k, 2.0);
+      }
+    });
+  }
 
   // =========================================================================
   // COLISÕES DA BALEIA-GUIA NPC (Fase 56: Ecologia e Mecânicas Espelho)

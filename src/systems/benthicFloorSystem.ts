@@ -121,11 +121,8 @@ function createBenthicNodeProxy(
     },
     set scale(val: MutableVec2 | undefined) {
       if (val) {
-        if (Math.abs(scaleX - val.x) > 0.01 || Math.abs(scaleY - val.y) > 0.01) {
-          scaleX = val.x;
-          scaleY = val.y;
-          node.setScale(scaleX, scaleY);
-        }
+        scaleProxy.x = val.x;
+        scaleProxy.y = val.y;
       }
     },
     get hidden() {
@@ -499,56 +496,91 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
     engineOrContext.getTicker().add((dt: number) => {
       time += dt;
       const camX = resolveCameraX(engineOrContext);
-      const viewDist = engineOrContext.getDimensions().width + 200;
+      const screenWidth = engineOrContext.getDimensions().width;
+      const minActiveX = camX - 400;
+      const maxActiveX = camX + screenWidth + 400;
 
       // Peixes de recife
-      reefFishList.forEach((fish) => {
-        if (fish.obj.hidden) return;
+      const totalFish = reefFishList.length;
+      for (let f = 0; f < totalFish; f++) {
+        const fish = reefFishList[f];
+        if (fish.basePos.x < minActiveX || fish.basePos.x > maxActiveX) {
+          fish.obj.hidden = true;
+          continue;
+        }
+        fish.obj.hidden = false;
         fish.obj.pos.x = fish.basePos.x + Math.sin(time * fish.swimSpeed + fish.phase) * 18;
         fish.obj.pos.y = fish.basePos.y + Math.cos(time * 1.8 + fish.phase) * 6;
-      });
+      }
 
       // A. Ondulação do Kelp e Algas Vermelhas
       if (camX < 5500) {
-        kelpForest.forEach((plant) => {
-          if (Math.abs(plant.baseX - camX) > viewDist) return;
-          if (plant.segments[0]?.hidden) return;
+        const totalKelp = kelpForest.length;
+        for (let k = 0; k < totalKelp; k++) {
+          const plant = kelpForest[k];
+          if (plant.baseX < minActiveX || plant.baseX > maxActiveX) {
+            if (plant.segments[0]) plant.segments[0].hidden = true;
+            continue;
+          }
+          if (plant.segments[0]) plant.segments[0].hidden = false;
+
           const baseSway = Math.sin(time * plant.swaySpeed + plant.swayPhase);
-          plant.segments.forEach((seg, idx) => {
-            const segProgress = (idx + 1) / plant.segments.length;
+          const totalSegs = plant.segments.length;
+          for (let s = 0; s < totalSegs; s++) {
+            const seg = plant.segments[s];
+            const segProgress = (s + 1) / totalSegs;
             const currentSway = baseSway * segProgress * 16;
             seg.pos.x = plant.baseX + currentSway;
             seg.angle = baseSway * segProgress * 9;
-          });
-        });
+          }
+        }
 
-        polarAlgaePlants.forEach((algae) => {
-          if (Math.abs(algae.baseX - camX) > viewDist) return;
-          if (algae.blades[0]?.hidden) return;
+        const totalAlgae = polarAlgaePlants.length;
+        for (let a = 0; a < totalAlgae; a++) {
+          const algae = polarAlgaePlants[a];
+          if (algae.baseX < minActiveX || algae.baseX > maxActiveX) {
+            if (algae.blades[0]) algae.blades[0].hidden = true;
+            continue;
+          }
+          if (algae.blades[0]) algae.blades[0].hidden = false;
+
           const sway = Math.sin(time * algae.swaySpeed + algae.swayPhase);
-          algae.blades.forEach((blade, bIdx) => {
-            blade.angle = (bIdx - algae.blades.length / 2) * 8 + sway * 12;
-          });
-        });
+          const totalBlades = algae.blades.length;
+          for (let b = 0; b < totalBlades; b++) {
+            algae.blades[b].angle = (b - totalBlades / 2) * 8 + sway * 12;
+          }
+        }
       }
 
       // A.5. Ervas Marinhas
       if (camX >= 11500 && camX <= 19500) {
-        urbanSeagrassPlants.forEach((grass) => {
-          if (Math.abs(grass.baseX - camX) > viewDist) return;
-          if (grass.blades[0]?.hidden) return;
+        const totalGrass = urbanSeagrassPlants.length;
+        for (let g = 0; g < totalGrass; g++) {
+          const grass = urbanSeagrassPlants[g];
+          if (grass.baseX < minActiveX || grass.baseX > maxActiveX) {
+            if (grass.blades[0]) grass.blades[0].hidden = true;
+            continue;
+          }
+          if (grass.blades[0]) grass.blades[0].hidden = false;
+
           const sway = Math.sin(time * grass.swaySpeed + grass.swayPhase);
-          grass.blades.forEach((blade, bIdx) => {
-            blade.angle = (bIdx - grass.blades.length / 2) * 6 + sway * 10;
-          });
-        });
+          const totalBlades = grass.blades.length;
+          for (let b = 0; b < totalBlades; b++) {
+            grass.blades[b].angle = (b - totalBlades / 2) * 6 + sway * 10;
+          }
+        }
       }
 
       // B. Respiração dos corais
       if (camX > 18500) {
-        corals.forEach((coral) => {
-          if (Math.abs(coral.obj.pos.x - camX) > viewDist) return;
-          if (coral.obj.hidden) return;
+        const totalCorals = corals.length;
+        for (let c = 0; c < totalCorals; c++) {
+          const coral = corals[c];
+          if (coral.obj.pos.x < minActiveX || coral.obj.pos.x > maxActiveX) {
+            coral.obj.hidden = true;
+            continue;
+          }
+          coral.obj.hidden = false;
 
           if (coral.type === "fan") {
             coral.obj.angle = Math.sin(time * 1.4 + coral.animPhase) * 4;
@@ -556,19 +588,27 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
             const cycleTime = time * 2.5 + coral.animPhase;
             const verticalScale = 1.0 + Math.sin(cycleTime) * 0.15;
             const horizontalScale = 1.0 - Math.sin(cycleTime) * 0.08;
-            coral.obj.scale = { x: horizontalScale, y: verticalScale };
+            if (coral.obj.scale) {
+              coral.obj.scale.x = horizontalScale;
+              coral.obj.scale.y = verticalScale;
+            }
 
             if (coral.tentacles) {
               const totalTentacles = coral.tentacles.length;
-              coral.tentacles.forEach((tentacle, tentacleIndex) => {
-                const baseAngle = (tentacleIndex - (totalTentacles - 1) / 2) * 8;
+              for (let t = 0; t < totalTentacles; t++) {
+                const tentacle = coral.tentacles[t];
+                if (!tentacle) continue;
+                const baseAngle = (t - (totalTentacles - 1) / 2) * 8;
                 const angleSpread = Math.sin(cycleTime) * 6 * (baseAngle >= 0 ? 1 : -1);
                 tentacle.angle = baseAngle + angleSpread;
-                tentacle.scale = { x: 1.0, y: verticalScale };
-              });
+                if (tentacle.scale) {
+                  tentacle.scale.x = 1.0;
+                  tentacle.scale.y = verticalScale;
+                }
+              }
             }
           }
-        });
+        }
       }
     });
   } else {
@@ -894,13 +934,15 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
     legacyCtx.onUpdate(() => {
       time += legacyCtx.dt();
       const camX = legacyCtx.camPos().x;
-      const viewDist = legacyCtx.width() + 200;
+      const screenWidth = legacyCtx.width();
+      const minActiveX = camX - 400;
+      const maxActiveX = camX + screenWidth + 400;
 
       if (camX < 5500) {
         const kelpCount = kelpForest.length;
         for (let p = 0; p < kelpCount; p++) {
           const plant = kelpForest[p];
-          if (Math.abs(plant.baseX - camX) > viewDist) continue;
+          if (plant.baseX < minActiveX || plant.baseX > maxActiveX) continue;
           if (plant.segments[0]?.hidden) continue;
 
           const baseSway = Math.sin(time * plant.swaySpeed + plant.swayPhase);
@@ -916,7 +958,7 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
         const algaeCount = polarAlgaePlants.length;
         for (let a = 0; a < algaeCount; a++) {
           const algae = polarAlgaePlants[a];
-          if (Math.abs(algae.baseX - camX) > viewDist) continue;
+          if (algae.baseX < minActiveX || algae.baseX > maxActiveX) continue;
           if (algae.blades[0]?.hidden) continue;
           const sway = Math.sin(time * algae.swaySpeed + algae.swayPhase);
           const bladeCount = algae.blades.length;
@@ -930,7 +972,7 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
         const grassCount = urbanSeagrassPlants.length;
         for (let g = 0; g < grassCount; g++) {
           const grass = urbanSeagrassPlants[g];
-          if (Math.abs(grass.baseX - camX) > viewDist) continue;
+          if (grass.baseX < minActiveX || grass.baseX > maxActiveX) continue;
           if (grass.blades[0]?.hidden) continue;
           const sway = Math.sin(time * grass.swaySpeed + grass.swayPhase);
           const bladeCount = grass.blades.length;
@@ -944,7 +986,7 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
         const coralCount = corals.length;
         for (let c = 0; c < coralCount; c++) {
           const coral = corals[c];
-          if (Math.abs(coral.obj.pos.x - camX) > viewDist) continue;
+          if (coral.obj.pos.x < minActiveX || coral.obj.pos.x > maxActiveX) continue;
           if (coral.obj.hidden) continue;
 
           if (coral.type === "fan") {

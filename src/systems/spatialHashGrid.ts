@@ -285,3 +285,15 @@ export class SpatialHashGrid<T> {
     };
   }
 }
+
+let activeSpatialGrid: SpatialHashGrid<unknown> | null = null;
+
+export function initSpatialGrid<T = unknown>(options?: SpatialHashGridOptions): SpatialHashGrid<T> {
+  activeSpatialGrid = new SpatialHashGrid<T>(options) as SpatialHashGrid<unknown>;
+  return activeSpatialGrid as SpatialHashGrid<T>;
+}
+
+export function getSpatialGrid<T = unknown>(): SpatialHashGrid<T> | null {
+  return activeSpatialGrid as SpatialHashGrid<T> | null;
+}
+

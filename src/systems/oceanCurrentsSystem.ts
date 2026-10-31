@@ -134,6 +134,26 @@ export function createCurrentVectorLines<
  * @param playerController - Controlador físico da baleia-jubarte.
  * @param zones - Vetor de zonas de correnteza a serem geradas no mundo.
  */
+function resolveCameraX(engineOrContext: unknown): number {
+  if (
+    engineOrContext &&
+    typeof engineOrContext === "object" &&
+    "getCamera" in engineOrContext &&
+    typeof (engineOrContext as { getCamera: () => { getPosition: () => { x: number } } }).getCamera === "function"
+  ) {
+    return (engineOrContext as { getCamera: () => { getPosition: () => { x: number } } }).getCamera().getPosition().x;
+  }
+  if (
+    engineOrContext &&
+    typeof engineOrContext === "object" &&
+    "camPos" in engineOrContext &&
+    typeof (engineOrContext as { camPos: () => { x: number } }).camPos === "function"
+  ) {
+    return (engineOrContext as { camPos: () => { x: number } }).camPos().x;
+  }
+  return 0;
+}
+
 export function setupOceanCurrentsSystem<
   TDestroyable = unknown,
   TColor = unknown,
@@ -145,7 +165,9 @@ export function setupOceanCurrentsSystem<
 ) {
   let lastFavorableAudioTime = 0;
 
-  zones.forEach((zone) => {
+  const totalZones = zones.length;
+  for (let z = 0; z < totalZones; z++) {
+    const zone = zones[z];
     const width = zone.endX - zone.startX;
     const isFavorable = zone.type === "favorable";
 
@@ -159,6 +181,13 @@ export function setupOceanCurrentsSystem<
 
     const cullingManager = getSpatialCullingManager();
     cullingManager?.registerEntity(currentBox as unknown as CullableTargetObject, () => zone.startX + width / 2);
+
+    currentBox.onUpdate(() => {
+      const camX = resolveCameraX(k);
+      const minActiveX = camX - 400;
+      const maxActiveX = camX + 1280 + 400;
+      currentBox.hidden = zone.endX < minActiveX || zone.startX > maxActiveX;
+    });
 
     // 2. Linhas vetoriais oceanográficas de fluxo visível (Fase 35.4)
     createCurrentVectorLines(k, currentBox, width, zone.height, isFavorable);
@@ -328,7 +357,7 @@ export function setupOceanCurrentsSystem<
         }
       }
     });
-  });
+  }
 
   // Reset do modificador quando a baleia não estiver dentro de nenhuma zona
   k.onUpdate(() => {

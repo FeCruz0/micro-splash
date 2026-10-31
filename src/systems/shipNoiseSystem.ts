@@ -6,6 +6,29 @@ import { audioSystem } from "./audioSystem";
 import { safeShake } from "../utils/camera";
 import { getRandomFloat, getRandomInteger } from "../utils/random";
 import { getSpatialCullingManager, type CullableTargetObject } from "./spatialCullingSystem";
+import { getSpatialGrid } from "./spatialHashGrid";
+import { isRenderEngine } from "../engine/adapters/LegacyBridge";
+import type { IRenderEngine, ISpriteNode } from "../engine/contracts/INTERFACE_CONTRACTS";
+
+function resolveCameraX(engineOrContext: unknown): number {
+  if (
+    engineOrContext &&
+    typeof engineOrContext === "object" &&
+    "getCamera" in engineOrContext &&
+    typeof (engineOrContext as { getCamera: () => { getPosition: () => { x: number } } }).getCamera === "function"
+  ) {
+    return (engineOrContext as { getCamera: () => { getPosition: () => { x: number } } }).getCamera().getPosition().x;
+  }
+  if (
+    engineOrContext &&
+    typeof engineOrContext === "object" &&
+    "camPos" in engineOrContext &&
+    typeof (engineOrContext as { camPos: () => { x: number } }).camPos === "function"
+  ) {
+    return (engineOrContext as { camPos: () => { x: number } }).camPos().x;
+  }
+  return 0;
+}
 
 export interface ShipVector2D {
   x: number;
@@ -55,6 +78,80 @@ export function setupShipNoiseSystem<
   let isSystemActive = true;
   const allShipBodies: { pos: { x: number; y: number }; hidden?: boolean }[] = [];
   const cullingManager = getSpatialCullingManager();
+  const spatialGrid = getSpatialGrid();
+  const isEngine = isRenderEngine(k);
+  const engineContext = isEngine ? (k as unknown as IRenderEngine) : null;
+
+  // Pre-bake de texturas de navio cargueiro e anel de ruído exclusivamente no carregamento (SKILL.md / Seção 3)
+  let bakedCargoShipTexture: unknown = null;
+  let bakedNoiseRingTexture: unknown = null;
+  const pooledNoiseRings: Array<{
+    sprite: ISpriteNode;
+    active: boolean;
+    scale: number;
+    opacity: number;
+    x: number;
+    y: number;
+  }> = [];
+
+  if (
+    engineContext &&
+    typeof engineContext.generateTexture === "function" &&
+    typeof engineContext.createGraphics === "function" &&
+    typeof engineContext.createSprite === "function"
+  ) {
+    try {
+      const tempShip = engineContext.createGraphics("cargo_ship_bake");
+      tempShip.drawRoundedRect(-140, -25, 280, 50, 12, { fill: { color: [60, 65, 80], alpha: 0.95 } });
+      tempShip.drawRect(-140, 6, 280, 14, { fill: { color: [160, 35, 35], alpha: 1 } });
+      for (let w = 0; w < 9; w++) {
+        tempShip.drawRoundedRect(-100 + w * 25 - 3, -12, 6, 4, 1, {
+          fill: { color: [255, 230, 120], alpha: 0.9 },
+        });
+      }
+      tempShip.drawRect(65 - 17.5, -45 - 22.5, 35, 45, { fill: { color: [180, 50, 50], alpha: 1 } });
+      tempShip.drawRect(65 - 21, -67 - 5, 42, 10, { fill: { color: [40, 40, 44], alpha: 1 } });
+      tempShip.drawRoundedRect(-85, -40, 32, 15, 2, { fill: { color: [45, 95, 155], alpha: 1 } });
+      tempShip.drawRoundedRect(-50, -44, 36, 19, 2, { fill: { color: [195, 75, 45], alpha: 1 } });
+      tempShip.drawRoundedRect(-10, -38, 30, 13, 2, { fill: { color: [40, 140, 120], alpha: 1 } });
+
+      bakedCargoShipTexture = engineContext.generateTexture(tempShip, {
+        resolution: 0.5,
+        scaleMode: "nearest",
+      });
+      tempShip.destroy();
+
+      const tempRing = engineContext.createGraphics("noise_ring_bake");
+      tempRing.drawCircle(0, 0, 32, { fill: { color: [255, 80, 50], alpha: 0.8 } });
+      bakedNoiseRingTexture = engineContext.generateTexture(tempRing, {
+        resolution: 0.5,
+        scaleMode: "nearest",
+      });
+      tempRing.destroy();
+
+      if (bakedNoiseRingTexture) {
+        for (let r = 0; r < 8; r++) {
+          const spr = engineContext.createSprite(bakedNoiseRingTexture, "pooled_noise_ring");
+          spr.setAnchor(0.5, 0.5);
+          spr.setVisible(false);
+          spr.setOpacity(0);
+          spr.setZIndex(8);
+          engineContext.getStageRoot().addChild(spr);
+          pooledNoiseRings.push({
+            sprite: spr,
+            active: false,
+            scale: 0.2,
+            opacity: 0,
+            x: -9999,
+            y: -9999,
+          });
+        }
+      }
+    } catch {
+      bakedCargoShipTexture = null;
+      bakedNoiseRingTexture = null;
+    }
+  }
 
   // Traineiras de pesca artesanal estacionadas com redes na Costa Urbana (Fase 35.5)
   const fishingTrawlerPositions = [13800, 16200];
@@ -62,6 +159,14 @@ export function setupShipNoiseSystem<
     const trawler = createFishingTrawler(k, positionX);
     allShipBodies.push(trawler);
     cullingManager?.registerEntity(trawler as unknown as CullableTargetObject, () => positionX);
+    if (spatialGrid) {
+      spatialGrid.insert(`trawler_${positionX}`, trawler, {
+        minX: positionX - 30,
+        minY: GAME_CONFIG.SEA_LEVEL,
+        maxX: positionX + 30,
+        maxY: GAME_CONFIG.SEA_LEVEL + 25,
+      });
+    }
   });
 
   const ships = [
@@ -88,6 +193,14 @@ export function setupShipNoiseSystem<
 
     allShipBodies.push(ship);
     cullingManager?.registerEntity(ship as unknown as CullableTargetObject, () => ship.pos.x);
+    if (spatialGrid) {
+      spatialGrid.insert(`ship_${shipData.initialXPosition}`, ship, {
+        minX: shipData.initialXPosition - 140,
+        minY: GAME_CONFIG.SEA_LEVEL - 25,
+        maxX: shipData.initialXPosition + 140,
+        maxY: GAME_CONFIG.SEA_LEVEL + 25,
+      });
+    }
 
     // Linha de flutuação (faixa vermelha na metade inferior do casco)
     ship.add([k.rect(280, 14), k.pos(0, 16), k.color(160, 35, 35), k.anchor("center"), k.z(-2)]);
@@ -112,18 +225,39 @@ export function setupShipNoiseSystem<
     let trashEjectTimer = getRandomFloat(3.0, 7.0);
 
     ship.onUpdate(() => {
-      if (!isSystemActive || ship.hidden) return;
+      if (!isSystemActive) return;
 
       // Movimento de patrulha (ida e volta pelo setor)
-      ship.pos.x += shipData.speed * shipData.movementDirection * k.dt();
+      const deltaTime = k.dt();
+      ship.pos.x += shipData.speed * shipData.movementDirection * deltaTime;
       if (ship.pos.x >= shipData.maxX) {
         shipData.movementDirection = -1;
       } else if (ship.pos.x <= shipData.minX) {
         shipData.movementDirection = 1;
       }
 
+      // Culling Lógico por Distância da Câmera (Active Simulation Window: camX - 400 .. camX + screenWidth + 400)
+      const camX = resolveCameraX(k);
+      const minActiveX = camX - 400;
+      const maxActiveX = camX + 1280 + 400;
+
+      if (ship.pos.x < minActiveX || ship.pos.x > maxActiveX) {
+        ship.hidden = true;
+        return;
+      }
+      ship.hidden = false;
+
+      if (spatialGrid) {
+        spatialGrid.update(`ship_${shipData.initialXPosition}`, {
+          minX: ship.pos.x - 140,
+          minY: ship.pos.y - 25,
+          maxX: ship.pos.x + 140,
+          maxY: ship.pos.y + 25,
+        });
+      }
+
       // 1. Emissão periódica de ondas acústicas de ruído (ruído submarino)
-      noiseTimer += k.dt();
+      noiseTimer += deltaTime;
       if (noiseTimer >= 2.5) {
         noiseTimer = 0;
 
@@ -131,50 +265,98 @@ export function setupShipNoiseSystem<
         if (distToPlayer <= 1400) {
           audioSystem.playShipHorn(ship.pos.x, playerController.gameObj.pos.x);
 
-          const noiseRing = k.add([
-            k.circle(20),
-            k.pos(ship.pos.x, ship.pos.y + 20),
-            k.color(255, 80, 50),
-            k.opacity(0.6),
-            k.anchor("center"),
-            k.z(8),
-            "noise_ring",
-          ]) as ShipGameObject<TColor>;
-
-          let ringRadius = 20;
-
-          noiseRing.onUpdate(() => {
-            ringRadius += k.dt() * 120;
-            noiseRing.radius = ringRadius;
-            if (noiseRing.opacity !== undefined) {
-              noiseRing.opacity -= k.dt() * 0.25;
-
-              // Se a baleia estiver dentro do raio da onda de ruído, causa desorientação e a empurra para o fundo
-              const playerPos = playerController.gameObj.pos;
-              const dist = Math.hypot(noiseRing.pos.x - playerPos.x, noiseRing.pos.y - playerPos.y);
-              if (dist <= ringRadius && noiseRing.opacity > 0.2) {
-                safeShake(k, 1.5);
-                const speed = playerController.getSpeed();
-                const downwardForce = 400 * k.dt();
-
-                playerController.setSpeed(
-                  k.vec2(
-                    speed.x + getRandomFloat(-10, 10),
-                    k.clamp(speed.y + downwardForce, -300, 300)
-                  ) as unknown as Parameters<PlayerController["setSpeed"]>[0]
-                );
-              }
-
-              if (noiseRing.opacity <= 0) {
-                k.destroy(noiseRing as unknown as TDestroyable);
-              }
+          // Animação de onda acústica via Sprite em pool pre-baked (SKILL.md / Seção 3)
+          if (pooledNoiseRings.length > 0) {
+            const availableRing = pooledNoiseRings.find((r) => !r.active);
+            if (availableRing) {
+              availableRing.active = true;
+              availableRing.scale = 0.25;
+              availableRing.opacity = 0.65;
+              availableRing.x = ship.pos.x;
+              availableRing.y = ship.pos.y + 20;
+              availableRing.sprite.setPosition(availableRing.x, availableRing.y);
+              availableRing.sprite.setScale(0.25, 0.25);
+              availableRing.sprite.setOpacity(0.65);
+              availableRing.sprite.setVisible(true);
             }
-          });
+          } else {
+            const noiseRing = k.add([
+              k.circle(20),
+              k.pos(ship.pos.x, ship.pos.y + 20),
+              k.color(255, 80, 50),
+              k.opacity(0.6),
+              k.anchor("center"),
+              k.z(8),
+              "noise_ring",
+            ]) as ShipGameObject<TColor>;
+
+            let ringRadius = 20;
+
+            noiseRing.onUpdate(() => {
+              ringRadius += k.dt() * 120;
+              noiseRing.radius = ringRadius;
+              if (noiseRing.opacity !== undefined) {
+                noiseRing.opacity -= k.dt() * 0.25;
+
+                const playerP = playerController.gameObj.pos;
+                const dist = Math.hypot(noiseRing.pos.x - playerP.x, noiseRing.pos.y - playerP.y);
+                if (dist <= ringRadius && noiseRing.opacity > 0.2) {
+                  safeShake(k, 1.5);
+                  const speed = playerController.getSpeed();
+                  const downwardForce = 400 * k.dt();
+
+                  playerController.setSpeed(
+                    k.vec2(
+                      speed.x + getRandomFloat(-10, 10),
+                      k.clamp(speed.y + downwardForce, -300, 300)
+                    ) as unknown as Parameters<PlayerController["setSpeed"]>[0]
+                  );
+                }
+
+                if (noiseRing.opacity <= 0) {
+                  k.destroy(noiseRing as unknown as TDestroyable);
+                }
+              }
+            });
+          }
+        }
+      }
+
+      // Atualização dos anéis de ruído acústico no pool de sprites (sem redraw de geometria)
+      const totalRings = pooledNoiseRings.length;
+      for (let r = 0; r < totalRings; r++) {
+        const ring = pooledNoiseRings[r];
+        if (!ring.active) continue;
+
+        ring.scale += deltaTime * 3.5;
+        ring.opacity -= deltaTime * 0.25;
+        ring.sprite.setScale(ring.scale, ring.scale);
+        ring.sprite.setOpacity(Math.max(0, ring.opacity));
+
+        const effectiveRadius = ring.scale * 32;
+        const playerPos = playerController.gameObj.pos;
+        const dist = Math.hypot(ring.x - playerPos.x, ring.y - playerPos.y);
+
+        if (dist <= effectiveRadius && ring.opacity > 0.2) {
+          safeShake(k, 1.5);
+          const speed = playerController.getSpeed();
+          const downwardForce = 400 * deltaTime;
+          playerController.setSpeed(
+            k.vec2(
+              speed.x + getRandomFloat(-10, 10),
+              k.clamp(speed.y + downwardForce, -300, 300)
+            ) as unknown as Parameters<PlayerController["setSpeed"]>[0]
+          );
+        }
+
+        if (ring.opacity <= 0) {
+          ring.active = false;
+          ring.sprite.setVisible(false);
         }
       }
 
       // 2. Descarte ativo de resíduos industriais pela esteira da popa (Fase 9.2)
-      trashEjectTimer += k.dt();
+      trashEjectTimer += deltaTime;
       const playerPos = playerController.gameObj.pos;
       const distToPlayer = Math.hypot(playerPos.x - ship.pos.x, playerPos.y - ship.pos.y);
 
@@ -290,9 +472,28 @@ export function setupShipNoiseSystem<
     });
   }
 
+  const destroy = () => {
+    deactivate();
+    if (
+      bakedCargoShipTexture &&
+      typeof (bakedCargoShipTexture as { destroy?: (b?: boolean) => void }).destroy === "function"
+    ) {
+      (bakedCargoShipTexture as { destroy: (b?: boolean) => void }).destroy(true);
+      bakedCargoShipTexture = null;
+    }
+    if (
+      bakedNoiseRingTexture &&
+      typeof (bakedNoiseRingTexture as { destroy?: (b?: boolean) => void }).destroy === "function"
+    ) {
+      (bakedNoiseRingTexture as { destroy: (b?: boolean) => void }).destroy(true);
+      bakedNoiseRingTexture = null;
+    }
+  };
+
   return {
     activate,
     deactivate,
     isActive: () => isSystemActive,
+    destroy,
   };
 }

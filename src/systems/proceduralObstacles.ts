@@ -5,6 +5,7 @@ import { createBubbleVent } from "../entities/bubbleVent";
 import type { CurrentZone } from "./oceanCurrentsSystem";
 import { getRandomInteger } from "../utils/random";
 import { getSpatialCullingManager, type CullableTargetObject } from "./spatialCullingSystem";
+import { getSpatialGrid } from "./spatialHashGrid";
 
 export interface ProceduralVector2D {
   x: number;
@@ -333,34 +334,76 @@ export function spawnProceduralLevel<
   const actualSeed = seed ?? getRandomInteger(0, 999999);
   const layout = generateProceduralLayout(actualSeed, k.height());
   const cullingManager = getSpatialCullingManager();
+  const spatialGrid = getSpatialGrid();
 
   // Instancia Lixos Plásticos
-  layout.trashPositions.forEach((pos) => {
+  const totalTrash = layout.trashPositions.length;
+  for (let i = 0; i < totalTrash; i++) {
+    const pos = layout.trashPositions[i];
     const trash = createTrash(k, k.vec2(pos.x, pos.y));
     cullingManager?.registerEntity(trash, () => pos.x);
-  });
+    if (spatialGrid) {
+      spatialGrid.insert(`trash_${i}`, trash, {
+        minX: pos.x - 12,
+        minY: pos.y - 12,
+        maxX: pos.x + 12,
+        maxY: pos.y + 12,
+      });
+    }
+  }
 
   // Instancia Krills
-  layout.krillPositions.forEach((pos) => {
+  const totalKrill = layout.krillPositions.length;
+  for (let i = 0; i < totalKrill; i++) {
+    const pos = layout.krillPositions[i];
     const krill = createKrill(k, k.vec2(pos.x, pos.y));
     cullingManager?.registerEntity(krill, () => pos.x);
-  });
+    if (spatialGrid) {
+      spatialGrid.insert(`krill_${i}`, krill, {
+        minX: pos.x - 10,
+        minY: pos.y - 10,
+        maxX: pos.x + 10,
+        maxY: pos.y + 10,
+      });
+    }
+  }
 
   // Instancia Redes Fantasmas
-  layout.netPositions.forEach((pos) => {
+  const totalNets = layout.netPositions.length;
+  for (let i = 0; i < totalNets; i++) {
+    const pos = layout.netPositions[i];
     const net = createGhostNet(k, k.vec2(pos.x, pos.y));
     cullingManager?.registerEntity(net, () => pos.x);
-  });
+    if (spatialGrid) {
+      spatialGrid.insert(`net_${i}`, net, {
+        minX: pos.x - 25,
+        minY: pos.y - 45,
+        maxX: pos.x + 25,
+        maxY: pos.y + 45,
+      });
+    }
+  }
 
   // Instancia Colunas de Bolhas Naturais (Bolsões de Ar)
-  layout.bubbleVentPositions.forEach((vent) => {
+  const totalVents = layout.bubbleVentPositions.length;
+  for (let i = 0; i < totalVents; i++) {
+    const vent = layout.bubbleVentPositions[i];
+    const ventHeight = vent.height ?? 220;
     const ventObj = createBubbleVent(
       k,
       k.vec2(vent.x, vent.y),
-      vent.height ?? 220
+      ventHeight
     ) as CullableTargetObject;
     cullingManager?.registerEntity(ventObj, () => vent.x);
-  });
+    if (spatialGrid) {
+      spatialGrid.insert(`vent_${i}`, ventObj, {
+        minX: vent.x - 20,
+        minY: vent.y - ventHeight,
+        maxX: vent.x + 20,
+        maxY: vent.y,
+      });
+    }
+  }
 
   return layout;
 }
