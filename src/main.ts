@@ -8,9 +8,12 @@ import { setupLetterboxBorders } from "./systems/letterboxSystem";
 import { registerAllScenes, loadAllGameAssets } from "./scenes";
 import { RenderEngineAdapter } from "./engine/adapters/RenderEngineAdapter";
 
+import { detectGpuCapabilities } from "./utils/gpuDiagnostics";
+
 // Inicializa observabilidade e proteção contra exceções em totens (Fase 27)
 errorReporter.setupGlobalHandlers();
 initPwaManager();
+detectGpuCapabilities();
 
 const resolution = getSavedResolution();
 const displayMode = getSavedDisplayMode();
@@ -27,6 +30,7 @@ const k = kaboom({
   height: resolution.height,
   letterbox: isLetterbox,
   stretch: !isLetterbox,
+  pixelDensity: 1,
   background: [6, 18, 42],
   debug: false,
   font: "Inter",

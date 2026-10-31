@@ -424,7 +424,19 @@ export function registerGameScene(rawK: GameSceneEngineContext): void {
     const frameRateMonitor = new FrameRateMonitor(30);
     systemRunner.setProfiler((phase, ms) => frameBudgetMonitor.recordPhaseDuration(phase, ms));
 
+    const handleVisibilityChange = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        frameRateMonitor.reset();
+      }
+    };
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", handleVisibilityChange);
+    }
+
     k.onSceneLeave(() => {
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", handleVisibilityChange);
+      }
       systemRunner.clear();
       frameBudgetMonitor.reset();
       frameRateMonitor.reset();
