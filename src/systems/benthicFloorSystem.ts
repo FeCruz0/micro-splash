@@ -496,15 +496,18 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
     engineOrContext.getTicker().add((dt: number) => {
       time += dt;
       const camX = resolveCameraX(engineOrContext);
-      const screenWidth = engineOrContext.getDimensions().width;
-      const minActiveX = camX - 400;
-      const maxActiveX = camX + screenWidth + 400;
+      const screenWidth = engineOrContext.getDimensions().width || 1280;
+      const minActiveX = camX - screenWidth - 600;
+      const maxActiveX = camX + screenWidth + 600;
 
       // Peixes de recife
       const totalFish = reefFishList.length;
       for (let f = 0; f < totalFish; f++) {
         const fish = reefFishList[f];
-        if (fish.basePos.x < minActiveX || fish.basePos.x > maxActiveX) {
+        const fishWidth = 60;
+        const isVisible =
+          fish.basePos.x + fishWidth >= minActiveX && fish.basePos.x - fishWidth <= maxActiveX;
+        if (!isVisible) {
           fish.obj.hidden = true;
           continue;
         }
@@ -518,7 +521,10 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
         const totalKelp = kelpForest.length;
         for (let k = 0; k < totalKelp; k++) {
           const plant = kelpForest[k];
-          if (plant.baseX < minActiveX || plant.baseX > maxActiveX) {
+          const plantWidth = 80;
+          const isVisible =
+            plant.baseX + plantWidth >= minActiveX && plant.baseX - plantWidth <= maxActiveX;
+          if (!isVisible) {
             if (plant.segments[0]) plant.segments[0].hidden = true;
             continue;
           }
@@ -538,7 +544,10 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
         const totalAlgae = polarAlgaePlants.length;
         for (let a = 0; a < totalAlgae; a++) {
           const algae = polarAlgaePlants[a];
-          if (algae.baseX < minActiveX || algae.baseX > maxActiveX) {
+          const algaeWidth = 80;
+          const isVisible =
+            algae.baseX + algaeWidth >= minActiveX && algae.baseX - algaeWidth <= maxActiveX;
+          if (!isVisible) {
             if (algae.blades[0]) algae.blades[0].hidden = true;
             continue;
           }
@@ -557,7 +566,10 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
         const totalGrass = urbanSeagrassPlants.length;
         for (let g = 0; g < totalGrass; g++) {
           const grass = urbanSeagrassPlants[g];
-          if (grass.baseX < minActiveX || grass.baseX > maxActiveX) {
+          const grassWidth = 80;
+          const isVisible =
+            grass.baseX + grassWidth >= minActiveX && grass.baseX - grassWidth <= maxActiveX;
+          if (!isVisible) {
             if (grass.blades[0]) grass.blades[0].hidden = true;
             continue;
           }
@@ -576,7 +588,11 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
         const totalCorals = corals.length;
         for (let c = 0; c < totalCorals; c++) {
           const coral = corals[c];
-          if (coral.obj.pos.x < minActiveX || coral.obj.pos.x > maxActiveX) {
+          const coralWidth = 120;
+          const isVisible =
+            coral.obj.pos.x + coralWidth >= minActiveX &&
+            coral.obj.pos.x - coralWidth <= maxActiveX;
+          if (!isVisible) {
             coral.obj.hidden = true;
             continue;
           }
@@ -934,15 +950,16 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
     legacyCtx.onUpdate(() => {
       time += legacyCtx.dt();
       const camX = legacyCtx.camPos().x;
-      const screenWidth = legacyCtx.width();
-      const minActiveX = camX - 400;
-      const maxActiveX = camX + screenWidth + 400;
+      const screenWidth = typeof legacyCtx.width === "function" ? legacyCtx.width() : 1280;
+      const minActiveX = camX - screenWidth - 600;
+      const maxActiveX = camX + screenWidth + 600;
 
       if (camX < 5500) {
         const kelpCount = kelpForest.length;
         for (let p = 0; p < kelpCount; p++) {
           const plant = kelpForest[p];
-          if (plant.baseX < minActiveX || plant.baseX > maxActiveX) continue;
+          const plantWidth = 80;
+          if (plant.baseX + plantWidth < minActiveX || plant.baseX - plantWidth > maxActiveX) continue;
           if (plant.segments[0]?.hidden) continue;
 
           const baseSway = Math.sin(time * plant.swaySpeed + plant.swayPhase);
@@ -958,7 +975,8 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
         const algaeCount = polarAlgaePlants.length;
         for (let a = 0; a < algaeCount; a++) {
           const algae = polarAlgaePlants[a];
-          if (algae.baseX < minActiveX || algae.baseX > maxActiveX) continue;
+          const algaeWidth = 80;
+          if (algae.baseX + algaeWidth < minActiveX || algae.baseX - algaeWidth > maxActiveX) continue;
           if (algae.blades[0]?.hidden) continue;
           const sway = Math.sin(time * algae.swaySpeed + algae.swayPhase);
           const bladeCount = algae.blades.length;
@@ -972,7 +990,8 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
         const grassCount = urbanSeagrassPlants.length;
         for (let g = 0; g < grassCount; g++) {
           const grass = urbanSeagrassPlants[g];
-          if (grass.baseX < minActiveX || grass.baseX > maxActiveX) continue;
+          const grassWidth = 80;
+          if (grass.baseX + grassWidth < minActiveX || grass.baseX - grassWidth > maxActiveX) continue;
           if (grass.blades[0]?.hidden) continue;
           const sway = Math.sin(time * grass.swaySpeed + grass.swayPhase);
           const bladeCount = grass.blades.length;
@@ -986,7 +1005,8 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
         const coralCount = corals.length;
         for (let c = 0; c < coralCount; c++) {
           const coral = corals[c];
-          if (coral.obj.pos.x < minActiveX || coral.obj.pos.x > maxActiveX) continue;
+          const coralWidth = 120;
+          if (coral.obj.pos.x + coralWidth < minActiveX || coral.obj.pos.x - coralWidth > maxActiveX) continue;
           if (coral.obj.hidden) continue;
 
           if (coral.type === "fan") {

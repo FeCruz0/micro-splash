@@ -528,7 +528,7 @@ export function setupIceSurfaceSystem(
         }
       }
 
-      cullingManager?.registerEntity(segment as unknown as CullingTarget, () => x);
+      cullingManager?.registerEntity(segment as unknown as CullingTarget, () => x, width);
 
       if (segment && typeof segment.onUpdate === "function") {
         segment.onUpdate(() => {

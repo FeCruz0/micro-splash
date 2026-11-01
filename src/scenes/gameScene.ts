@@ -295,12 +295,21 @@ export function registerGameScene(rawK: GameSceneEngineContext): void {
     // 2.5. Inicializa Núcleo de Otimização & Performance (Fase 15 & 39) e Apresentação (Fase 16)
     const particlePool = initParticlePool(k);
     const biomeManager = initBiomeLifecycleManager(k);
-    const spatialCulling = initSpatialCullingManager(k);
+    const spatialCulling = initSpatialCullingManager(k, 600);
     const presentationMode = initPresentationMode(k, playerController);
     const spatialGrid = initSpatialGrid<unknown>({ cellSize: 200 });
     k.onSceneLeave(() => {
       spatialGrid.clear();
     });
+
+    // Trava escala da câmera permanentemente em 1.0 (Zero Dynamic Zoom)
+    if (typeof k.camScale === "function") {
+      if (typeof k.vec2 === "function") {
+        k.camScale(k.vec2(1.0, 1.0));
+      } else {
+        (k.camScale as (s: unknown) => void)(1.0);
+      }
+    }
 
     // 2. Instancia obstáculos, krill, redes e bolsões de ar procedurais (com semente determinística caso informada)
     const obstacleData = loadLevelLayout(k, true, options.seed);

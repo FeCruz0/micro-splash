@@ -27,6 +27,7 @@ export interface OceanCurrentsEngineContext<
   destroy: (obj: TDestroyable) => void;
   dt: () => number;
   time: () => number;
+  width?: () => number;
   onUpdate: (cb: () => void) => void;
   rect: (w: number, h: number, opt?: { radius?: number }) => unknown;
   circle: (r: number) => unknown;
@@ -180,13 +181,19 @@ export function setupOceanCurrentsSystem<
     ]) as OceanCurrentGameObject;
 
     const cullingManager = getSpatialCullingManager();
-    cullingManager?.registerEntity(currentBox as unknown as CullableTargetObject, () => zone.startX + width / 2);
+    cullingManager?.registerEntity(
+      currentBox as unknown as CullableTargetObject,
+      () => zone.startX + width / 2,
+      width / 2
+    );
 
     currentBox.onUpdate(() => {
       const camX = resolveCameraX(k);
-      const minActiveX = camX - 400;
-      const maxActiveX = camX + 1280 + 400;
-      currentBox.hidden = zone.endX < minActiveX || zone.startX > maxActiveX;
+      const screenWidth = typeof k.width === "function" ? k.width() : 1280;
+      const minActiveX = camX - screenWidth - 600;
+      const maxActiveX = camX + screenWidth + 600;
+      const isVisible = zone.endX >= minActiveX && zone.startX <= maxActiveX;
+      currentBox.hidden = !isVisible;
     });
 
     // 2. Linhas vetoriais oceanográficas de fluxo visível (Fase 35.4)

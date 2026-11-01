@@ -341,7 +341,7 @@ export function spawnProceduralLevel<
   for (let i = 0; i < totalTrash; i++) {
     const pos = layout.trashPositions[i];
     const trash = createTrash(k, k.vec2(pos.x, pos.y));
-    cullingManager?.registerEntity(trash, () => pos.x);
+    cullingManager?.registerEntity(trash, () => pos.x, 30);
     if (spatialGrid) {
       spatialGrid.insert(`trash_${i}`, trash, {
         minX: pos.x - 12,
@@ -357,7 +357,7 @@ export function spawnProceduralLevel<
   for (let i = 0; i < totalKrill; i++) {
     const pos = layout.krillPositions[i];
     const krill = createKrill(k, k.vec2(pos.x, pos.y));
-    cullingManager?.registerEntity(krill, () => pos.x);
+    cullingManager?.registerEntity(krill, () => pos.x, 25);
     if (spatialGrid) {
       spatialGrid.insert(`krill_${i}`, krill, {
         minX: pos.x - 10,
@@ -373,7 +373,7 @@ export function spawnProceduralLevel<
   for (let i = 0; i < totalNets; i++) {
     const pos = layout.netPositions[i];
     const net = createGhostNet(k, k.vec2(pos.x, pos.y));
-    cullingManager?.registerEntity(net, () => pos.x);
+    cullingManager?.registerEntity(net, () => pos.x, 60);
     if (spatialGrid) {
       spatialGrid.insert(`net_${i}`, net, {
         minX: pos.x - 25,
@@ -394,7 +394,7 @@ export function spawnProceduralLevel<
       k.vec2(vent.x, vent.y),
       ventHeight
     ) as CullableTargetObject;
-    cullingManager?.registerEntity(ventObj, () => vent.x);
+    cullingManager?.registerEntity(ventObj, () => vent.x, 50);
     if (spatialGrid) {
       spatialGrid.insert(`vent_${i}`, ventObj, {
         minX: vent.x - 20,

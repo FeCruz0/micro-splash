@@ -37,11 +37,19 @@ export function isEntityInFrustum(
   entityXPosition: number,
   cameraXPosition: number,
   viewportWidth: number,
-  safetyMarginInPixels: number = 320
+  safetyMarginInPixels: number = 600,
+  entityWidth: number = 0
 ): boolean {
   const halfViewport = viewportWidth / 2;
   const minimumVisibleX = cameraXPosition - halfViewport - safetyMarginInPixels;
   const maximumVisibleX = cameraXPosition + halfViewport + safetyMarginInPixels;
+
+  if (entityWidth > 0) {
+    return (
+      entityXPosition + entityWidth >= minimumVisibleX &&
+      entityXPosition - entityWidth <= maximumVisibleX
+    );
+  }
 
   return entityXPosition >= minimumVisibleX && entityXPosition <= maximumVisibleX;
 }
@@ -73,7 +81,7 @@ export class SpatialCullingManager {
   private lastVisibleCount: number = 0;
   private lastHiddenCount: number = 0;
 
-  constructor(engineContext: SpatialCullingEngineContext, safetyMargin: number = 320) {
+  constructor(engineContext: SpatialCullingEngineContext, safetyMargin: number = 600) {
     this.engineContext = engineContext;
     this.safetyMargin = safetyMargin;
   }
@@ -88,7 +96,8 @@ export class SpatialCullingManager {
 
   public registerEntity(
     targetObject: CullableTargetObject,
-    getCustomXPosition?: number | (() => number)
+    getCustomXPosition?: number | (() => number),
+    entityWidth?: number
   ): void {
     const resolveXPosition: () => number =
       typeof getCustomXPosition === "function"
@@ -101,9 +110,15 @@ export class SpatialCullingManager {
               return 0;
             };
 
+    const width =
+      entityWidth ??
+      (targetObject as { width?: number }).width ??
+      0;
+
     this.cullableEntities.push({
       targetObject,
       getXPosition: resolveXPosition,
+      width,
     });
   }
 
@@ -135,11 +150,13 @@ export class SpatialCullingManager {
       }
 
       const entityX = entity.getXPosition();
+      const entityWidth = entity.width ?? 0;
       const isVisible = isEntityInFrustum(
         entityX,
         cameraXPosition,
         viewportWidth,
-        this.safetyMargin
+        this.safetyMargin,
+        entityWidth
       );
 
       const isCurrentlyHidden = targetObject.hidden ?? false;
@@ -208,7 +225,7 @@ let activeSpatialCullingManager: SpatialCullingManager | null = null;
 
 export function initSpatialCullingManager(
   engineContext: SpatialCullingEngineContext,
-  safetyMargin: number = 320
+  safetyMargin: number = 600
 ): SpatialCullingManager {
   activeSpatialCullingManager = new SpatialCullingManager(engineContext, safetyMargin);
   return activeSpatialCullingManager;

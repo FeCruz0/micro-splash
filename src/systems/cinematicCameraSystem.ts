@@ -108,77 +108,23 @@ export function setupCinematicCameraSystem<
   isZoomActive: () => boolean;
 } {
   const triggeredEvents = new Set<string>();
-  let isZooming = false;
-  let activeHoldTimer: CinematicCancelable | null = null;
+
+  const lockCameraScaleToDefault = () => {
+    if (typeof k.camScale === "function") {
+      if (typeof k.vec2 === "function") {
+        k.camScale(k.vec2(1.0, 1.0));
+      } else {
+        (k.camScale as (s: unknown) => void)(1.0);
+      }
+    }
+  };
+
+  // Trava escala da câmera permanentemente em 1.0 (Zero Dynamic Zoom)
+  lockCameraScaleToDefault();
 
   function executeZoom(event: CinematicEvent): void {
-    // Verifica preferência de redução de movimento do usuário
-    const prefersReducedMotion =
-      typeof window !== "undefined" &&
-      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-
-    if (prefersReducedMotion) {
-      triggeredEvents.add(event.id);
-      return;
-    }
-
-    if (isZooming) return;
-    isZooming = true;
     triggeredEvents.add(event.id);
-
-    const initialScale = 1.0;
-    const targetScale = event.targetScale;
-
-    const applyCameraScale = (scaleValue: number) => {
-      if (typeof k.camScale === "function") {
-        if (typeof k.vec2 === "function") {
-          k.camScale(k.vec2(scaleValue, scaleValue));
-        } else {
-          (k.camScale as (s: unknown) => void)(scaleValue);
-        }
-      }
-    };
-
-    // Zoom In suave
-    if (typeof k.tween === "function" && k.easings?.easeInOutQuad) {
-      k.tween(
-        initialScale,
-        targetScale,
-        event.zoomDuration,
-        (scaleValue) => {
-          applyCameraScale(scaleValue);
-        },
-        k.easings.easeInOutQuad
-      ).then(() => {
-        // Sustenta o enquadramento dramático
-        activeHoldTimer = k.wait(event.holdDuration, () => {
-          // Zoom Out retornando ao padrão
-          if (typeof k.tween === "function" && k.easings?.easeInOutQuad) {
-            k.tween(
-              targetScale,
-              initialScale,
-              event.restoreDuration,
-              (restoreValue) => {
-                applyCameraScale(restoreValue);
-              },
-              k.easings.easeInOutQuad
-            ).then(() => {
-              applyCameraScale(1.0);
-              isZooming = false;
-            });
-          } else {
-            applyCameraScale(1.0);
-            isZooming = false;
-          }
-        }) as CinematicCancelable;
-      });
-    } else {
-      applyCameraScale(targetScale);
-      activeHoldTimer = k.wait(event.holdDuration, () => {
-        applyCameraScale(1.0);
-        isZooming = false;
-      }) as CinematicCancelable;
-    }
+    lockCameraScaleToDefault();
   }
 
   const updateHandler = k.onUpdate(() => {
@@ -199,22 +145,12 @@ export function setupCinematicCameraSystem<
       if (typeof updateHandler?.cancel === "function") {
         updateHandler.cancel();
       }
-      if (activeHoldTimer && typeof activeHoldTimer.cancel === "function") {
-        activeHoldTimer.cancel();
-      }
-      if (typeof k.camScale === "function") {
-        if (typeof k.vec2 === "function") {
-          k.camScale(k.vec2(1.0, 1.0));
-        } else {
-          (k.camScale as (s: unknown) => void)(1.0);
-        }
-      }
-      isZooming = false;
+      lockCameraScaleToDefault();
     },
     triggerEventDirectly: (event: CinematicEvent) => {
       executeZoom(event);
     },
     getTriggeredEvents: () => Array.from(triggeredEvents),
-    isZoomActive: () => isZooming,
+    isZoomActive: () => false,
   };
 }

@@ -112,7 +112,7 @@ export function setupBackgroundFaunaSystem<
         k.z(-5),
       ]) as BackgroundFaunaGameObject;
       orcaObjects.push(orca);
-      cullingManager?.registerEntity(orca, () => pod.basePos.x + m.offsetX);
+      cullingManager?.registerEntity(orca, () => pod.basePos.x + m.offsetX, 120);
 
       let timer = getRandomFloat(0, 10);
       let bubbleTimer = getRandomFloat(0, 3);
@@ -174,7 +174,7 @@ export function setupBackgroundFaunaSystem<
       k.z(-4),
     ]) as BackgroundFaunaGameObject;
     passingWhaleObjects.push(whaleBg);
-    cullingManager?.registerEntity(whaleBg, () => pos.x);
+    cullingManager?.registerEntity(whaleBg, () => pos.x, 180);
 
     let pulseTimer = 0;
     let swimTimer = getRandomFloat(0, 10);
@@ -283,8 +283,8 @@ export function setupBackgroundFaunaSystem<
     k.z(-4),
   ]) as BackgroundFaunaGameObject;
 
-  cullingManager?.registerEntity(motherWhale, () => 25800);
-  cullingManager?.registerEntity(calfWhale, () => 25848);
+  cullingManager?.registerEntity(motherWhale, () => 25800, 160);
+  cullingManager?.registerEntity(calfWhale, () => 25848, 80);
 
   let sanctuaryTimer = 0;
   let motherPulseTimer = 0;
@@ -374,7 +374,7 @@ export function setupBackgroundFaunaSystem<
     k.z(-7), // Plano mais distante de fundo abissal
   ]) as BackgroundFaunaGameObject;
 
-  cullingManager?.registerEntity(leviathan, () => leviathan.pos.x);
+  cullingManager?.registerEntity(leviathan, () => leviathan.pos.x, 220);
 
   let levTimer = 0;
   let levCallTimer = 0;

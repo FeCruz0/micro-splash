@@ -52,6 +52,7 @@ export interface ShipNoiseEngineContext<
   add: (components: unknown[]) => unknown;
   destroy: (obj: TDestroyable) => void;
   dt: () => number;
+  width?: () => number;
   height: () => number;
   rect: (w: number, h: number, opt?: { radius?: number }) => unknown;
   circle: (r: number) => unknown;
@@ -236,12 +237,17 @@ export function setupShipNoiseSystem<
         shipData.movementDirection = 1;
       }
 
-      // Culling Lógico por Distância da Câmera (Active Simulation Window: camX - 400 .. camX + screenWidth + 400)
+      // Culling Lógico por Distância da Câmera (Active Simulation Window: camX - screenWidth - 600 .. camX + screenWidth + 600)
       const camX = resolveCameraX(k);
-      const minActiveX = camX - 400;
-      const maxActiveX = camX + 1280 + 400;
+      const screenWidth = typeof k.width === "function" ? k.width() : 1280;
+      const minActiveX = camX - screenWidth - 600;
+      const maxActiveX = camX + screenWidth + 600;
+      const shipWidth = 320; // Margem segura cobrindo casco e esteira
 
-      if (ship.pos.x < minActiveX || ship.pos.x > maxActiveX) {
+      const isVisible =
+        ship.pos.x + shipWidth >= minActiveX && ship.pos.x - shipWidth <= maxActiveX;
+
+      if (!isVisible) {
         ship.hidden = true;
         return;
       }
