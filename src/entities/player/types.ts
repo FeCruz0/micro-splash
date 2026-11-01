@@ -109,4 +109,7 @@ export interface PlayerController<TGameObj = PlayerGameObject, TVector2 = Strict
   // Fase 51: Pipeline Unificada de Renderização e Paleta de Fôlego
   getRenderPipelineSnapshot?: () => WhaleRenderPipelineSnapshot | null;
   getBreathPalette?: () => WhaleColorPalette | null;
+
+  // Fase 68: Overlay 16-Bits de Rede de Pesca (Zero-Overhead)
+  getNetOverlaySprite?: () => unknown;
 }

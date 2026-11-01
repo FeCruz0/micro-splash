@@ -32,6 +32,7 @@ import { accessibilitySystem } from "../systems/accessibilitySystem";
 import { calculateOceanIdleDrift } from "./player/playerDrift";
 import { setupPlayerCaustics } from "./player/playerCaustics";
 import { PlayerTrapManager } from "./player/playerCollision";
+import { setupWhaleNetOverlay } from "./player/playerNetOverlay";
 
 export type {
   PlayerController,
@@ -79,6 +80,13 @@ export interface PlayerEngineContext {
   wait(time: number, cb: () => void): void;
   get(tag: string): RevealableTarget[];
   height?(): number;
+  createGraphics?(id?: string): unknown;
+  generateTexture?(
+    target: unknown,
+    options?: { resolution?: number; scaleMode?: "nearest" | "linear" }
+  ): unknown;
+  createSprite?(texture: unknown, id?: string): unknown;
+  getStageRoot?(): unknown;
 }
 
 let activePlayerObject: PlayerGameObject | null = null;
@@ -135,10 +143,12 @@ export function createPlayer(
   let currentPuppetRigTransforms: PuppetRigTransforms | null = null; // Cadeia esquelética multissegmentar (Fase 43)
   let currentRenderPipelineSnapshot: WhaleRenderPipelineSnapshot | null = null; // Snapshot consolidado da pipeline (Fase 51)
   const pectoralFinsSystem = setupPectoralFins(k, baleia);
+  const netOverlaySystem = setupWhaleNetOverlay(k, baleia);
 
   if (typeof baleia.onDestroy === "function") {
     baleia.onDestroy(() => {
       pectoralFinsSystem.destroy();
+      netOverlaySystem.destroy();
       if (typeof k.destroy === "function") {
         k.destroy(causticsSystem.whaleCaustics);
         k.destroy(causticsSystem.whaleVentralFlash);
@@ -161,6 +171,7 @@ export function createPlayer(
       isStrokeInMotion = false;
       if (causticsSystem.whaleCaustics) causticsSystem.whaleCaustics.opacity = 0;
       if (causticsSystem.whaleVentralFlash) causticsSystem.whaleVentralFlash.opacity = 0;
+      netOverlaySystem.update(false, baleia, controlsMgr.isFacingRight());
       if (animState !== "glide") {
         animState = "glide";
         baleia.play?.("glide");
@@ -213,9 +224,12 @@ export function createPlayer(
     } else if (trapMgr.isTrapped()) {
       // 3. Presa em rede fantasma
       const isStrokePressedNow =
-        k.isKeyPressed("space") || (touchState && touchState.strokePressed);
+        (typeof k.isKeyPressed === "function" ? k.isKeyPressed("space") : false) ||
+        (touchState && touchState.strokePressed);
       if (isStrokePressedNow) {
-        k.shake(2);
+        if (typeof k.shake === "function") {
+          k.shake(2);
+        }
         trapMgr.tryEscape();
       }
       controlsMgr.setAngle(k.lerp(controlsMgr.getAngle(), 0, 0.05));
@@ -543,6 +557,9 @@ export function createPlayer(
       baleia.color = k.rgb(bodyRed, bodyGreen, bodyBlue);
     }
 
+    // 10.5. Atualização do Overlay 16-bits de Rede de Pesca (Fase 68 / Etapa 2)
+    netOverlaySystem.update(trapMgr.isTrapped(), baleia, controlsMgr.isFacingRight());
+
     // 11. Atualização dos Cáusticos Solares e Brilho Ventral em Perspectiva (Fases 17.2 e 17.3)
     causticsSystem.update({
       dt,
@@ -672,5 +689,8 @@ export function createPlayer(
     // Fase 51: Pipeline Unificada de Renderização e Paleta de Fôlego
     getRenderPipelineSnapshot: () => currentRenderPipelineSnapshot,
     getBreathPalette: () => currentRenderPipelineSnapshot?.palette || null,
+
+    // Fase 68: Overlay 16-Bits de Rede de Pesca (Zero-Overhead)
+    getNetOverlaySprite: () => netOverlaySystem.netOverlaySprite,
   };
 }

@@ -14,6 +14,7 @@ import {
   resolveCameraX,
   type LegacyEngineBridge,
 } from "../engine/adapters/LegacyBridge";
+import { create16BitSanctuaryTextures } from "./benthic/benthic16BitSanctuary";
 
 export interface MutableVec2 {
   x: number;
@@ -215,6 +216,7 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
 
   if (isPixi) {
     const stageRoot = engineOrContext.getStageRoot();
+    const sanctuary16Bit = create16BitSanctuaryTextures(engineOrContext);
 
     // 1. Kelp
     KELP_SPAWN_X.forEach((xPos, plantIdx) => {
@@ -385,103 +387,158 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
       const transitionFactor = calculateBiomeTransitionFactor(xPos, 19000, 30000, 300);
       const coralType = cIdx % 3 === 0 ? "brain" : cIdx % 3 === 1 ? "fan" : "anemone";
 
-      if (coralType === "brain") {
-        const brainG = engineOrContext.createGraphics();
-        brainG.drawRoundedRect(-32, -40, 64, 40, 18, {
-          fill: { color: [240, 125, 140], alpha: 0.9 * (0.4 + 0.6 * transitionFactor) },
-          stroke: { color: [190, 85, 100], width: 3 },
-        });
-        brainG.setPosition(xPos, floorY - 6);
-        brainG.setZIndex(-3);
-        stageRoot.addChild(brainG);
-
-        const grooveG = engineOrContext.createGraphics();
-        grooveG.drawCircle(0, 0, 12, {
-          fill: { color: [255, 155, 165], alpha: 0.85 * (0.4 + 0.6 * transitionFactor) },
-        });
-        grooveG.setPosition(xPos, floorY - 14);
-        grooveG.setZIndex(-3);
-        stageRoot.addChild(grooveG);
-
-        corals.push({
-          obj: createBenthicNodeProxy(brainG, xPos, floorY - 6),
-          type: "brain",
-          baseY: floorY - 6,
-          animPhase: cIdx,
-        });
-      } else if (coralType === "fan") {
-        const fanG = engineOrContext.createGraphics();
-        const fanPoints: readonly Vector2D[] = [
-          { x: 0, y: 0 },
-          { x: -28, y: -55 },
-          { x: -10, y: -65 },
-          { x: 0, y: -58 },
-          { x: 14, y: -68 },
-          { x: 30, y: -50 },
-        ];
-        fanG.drawPolygon(fanPoints, {
-          fill: { color: [255, 95, 80], alpha: 0.9 * (0.4 + 0.6 * transitionFactor) },
-        });
-        fanG.setPosition(xPos, floorY);
-        fanG.setZIndex(-3);
-        stageRoot.addChild(fanG);
-
-        corals.push({
-          obj: createBenthicNodeProxy(fanG, xPos, floorY),
-          type: "fan",
-          baseY: floorY,
-          animPhase: cIdx,
-        });
-      } else {
-        const anemoneG = engineOrContext.createGraphics();
-        anemoneG.drawRoundedRect(-22, -26, 44, 26, 11, {
-          fill: { color: [65, 230, 190], alpha: 0.9 * (0.4 + 0.6 * transitionFactor) },
-        });
-        anemoneG.setPosition(xPos, floorY - 4);
-        anemoneG.setZIndex(-3);
-        stageRoot.addChild(anemoneG);
-
-        const tentacles: BenthicRenderNode[] = [];
-        for (let t = -3; t <= 3; t++) {
-          const tentacleG = engineOrContext.createGraphics();
-          tentacleG.drawRoundedRect(-1.5, -16, 3, 16, 2, {
-            fill: { color: [110, 255, 220], alpha: 0.85 * (0.4 + 0.6 * transitionFactor) },
+      if (sanctuary16Bit.available) {
+        if (coralType === "brain") {
+          const brainTex = sanctuary16Bit.brainCorals[cIdx % sanctuary16Bit.brainCorals.length];
+          const brainSprite = engineOrContext.createSprite(brainTex, "coral_brain_16bit");
+          brainSprite.setAnchor(0.5, 1.0);
+          brainSprite.setPosition(xPos, floorY);
+          brainSprite.setZIndex(-3);
+          stageRoot.addChild(brainSprite);
+          corals.push({
+            obj: createBenthicNodeProxy(brainSprite, xPos, floorY),
+            type: "brain",
+            baseY: floorY,
+            animPhase: cIdx,
           });
-          const tentacleX = xPos + t * 4;
-          const tentacleY = floorY - 12;
-          tentacleG.setPosition(tentacleX, tentacleY);
-          tentacleG.setRotation(t * 8);
-          tentacleG.setZIndex(-3);
-          stageRoot.addChild(tentacleG);
-
-          tentacles.push(createBenthicNodeProxy(tentacleG, tentacleX, tentacleY));
+        } else if (coralType === "fan") {
+          const fanTex = sanctuary16Bit.seaFans[cIdx % sanctuary16Bit.seaFans.length];
+          const fanSprite = engineOrContext.createSprite(fanTex, "coral_fan_16bit");
+          fanSprite.setAnchor(0.5, 1.0);
+          fanSprite.setPosition(xPos, floorY);
+          fanSprite.setZIndex(-3);
+          stageRoot.addChild(fanSprite);
+          corals.push({
+            obj: createBenthicNodeProxy(fanSprite, xPos, floorY),
+            type: "fan",
+            baseY: floorY,
+            animPhase: cIdx,
+          });
+        } else {
+          // Esponja (sponge) / anemone
+          const spongeTex = sanctuary16Bit.sponges[cIdx % sanctuary16Bit.sponges.length];
+          const spongeSprite = engineOrContext.createSprite(spongeTex, "sponge_16bit");
+          spongeSprite.setAnchor(0.5, 1.0);
+          spongeSprite.setPosition(xPos, floorY);
+          spongeSprite.setZIndex(-3);
+          stageRoot.addChild(spongeSprite);
+          corals.push({
+            obj: createBenthicNodeProxy(spongeSprite, xPos, floorY),
+            type: "anemone",
+            baseY: floorY,
+            animPhase: cIdx,
+          });
         }
+      } else {
+        if (coralType === "brain") {
+          const brainG = engineOrContext.createGraphics();
+          brainG.drawRoundedRect(-32, -40, 64, 40, 18, {
+            fill: { color: [240, 125, 140], alpha: 0.9 * (0.4 + 0.6 * transitionFactor) },
+            stroke: { color: [190, 85, 100], width: 3 },
+          });
+          brainG.setPosition(xPos, floorY - 6);
+          brainG.setZIndex(-3);
+          stageRoot.addChild(brainG);
 
-        corals.push({
-          obj: createBenthicNodeProxy(anemoneG, xPos, floorY - 4),
-          type: "anemone",
-          baseY: floorY - 4,
-          animPhase: cIdx,
-          tentacles,
-        });
+          const grooveG = engineOrContext.createGraphics();
+          grooveG.drawCircle(0, 0, 12, {
+            fill: { color: [255, 155, 165], alpha: 0.85 * (0.4 + 0.6 * transitionFactor) },
+          });
+          grooveG.setPosition(xPos, floorY - 14);
+          grooveG.setZIndex(-3);
+          stageRoot.addChild(grooveG);
+
+          corals.push({
+            obj: createBenthicNodeProxy(brainG, xPos, floorY - 6),
+            type: "brain",
+            baseY: floorY - 6,
+            animPhase: cIdx,
+          });
+        } else if (coralType === "fan") {
+          const fanG = engineOrContext.createGraphics();
+          const fanPoints: readonly Vector2D[] = [
+            { x: 0, y: 0 },
+            { x: -28, y: -55 },
+            { x: -10, y: -65 },
+            { x: 0, y: -58 },
+            { x: 14, y: -68 },
+            { x: 30, y: -50 },
+          ];
+          fanG.drawPolygon(fanPoints, {
+            fill: { color: [255, 95, 80], alpha: 0.9 * (0.4 + 0.6 * transitionFactor) },
+          });
+          fanG.setPosition(xPos, floorY);
+          fanG.setZIndex(-3);
+          stageRoot.addChild(fanG);
+
+          corals.push({
+            obj: createBenthicNodeProxy(fanG, xPos, floorY),
+            type: "fan",
+            baseY: floorY,
+            animPhase: cIdx,
+          });
+        } else {
+          const anemoneG = engineOrContext.createGraphics();
+          anemoneG.drawRoundedRect(-22, -26, 44, 26, 11, {
+            fill: { color: [65, 230, 190], alpha: 0.9 * (0.4 + 0.6 * transitionFactor) },
+          });
+          anemoneG.setPosition(xPos, floorY - 4);
+          anemoneG.setZIndex(-3);
+          stageRoot.addChild(anemoneG);
+
+          const tentacles: BenthicRenderNode[] = [];
+          for (let t = -3; t <= 3; t++) {
+            const tentacleG = engineOrContext.createGraphics();
+            tentacleG.drawRoundedRect(-1.5, -16, 3, 16, 2, {
+              fill: { color: [110, 255, 220], alpha: 0.85 * (0.4 + 0.6 * transitionFactor) },
+            });
+            const tentacleX = xPos + t * 4;
+            const tentacleY = floorY - 12;
+            tentacleG.setPosition(tentacleX, tentacleY);
+            tentacleG.setRotation(t * 8);
+            tentacleG.setZIndex(-3);
+            stageRoot.addChild(tentacleG);
+
+            tentacles.push(createBenthicNodeProxy(tentacleG, tentacleX, tentacleY));
+          }
+
+          corals.push({
+            obj: createBenthicNodeProxy(anemoneG, xPos, floorY - 4),
+            type: "anemone",
+            baseY: floorY - 4,
+            animPhase: cIdx,
+            tentacles,
+          });
+        }
       }
 
       if (cIdx % 2 === 0) {
-        const fishColor = cIdx % 4 === 0 ? ([255, 225, 60] as const) : ([50, 160, 255] as const);
-        const reefFishG = engineOrContext.createGraphics();
-        const fishPoints: readonly Vector2D[] = [
-          { x: -8, y: -4 },
-          { x: 6, y: 0 },
-          { x: -8, y: 4 },
-          { x: -12, y: 0 },
-        ];
-        reefFishG.drawPolygon(fishPoints, { fill: { color: fishColor, alpha: 1 } });
         const fishBasePos: MutableVec2 = { x: xPos + 15, y: floorY - 45 - (cIdx % 3) * 15 };
-        reefFishG.setPosition(fishBasePos.x, fishBasePos.y);
-        reefFishG.setZIndex(-3);
-        stageRoot.addChild(reefFishG);
+        let fishNode: BenthicRenderNode;
 
-        const fishNode = createBenthicNodeProxy(reefFishG, fishBasePos.x, fishBasePos.y);
+        if (sanctuary16Bit.available) {
+          const fishTex = sanctuary16Bit.fishVariants[cIdx % sanctuary16Bit.fishVariants.length];
+          const fishSprite = engineOrContext.createSprite(fishTex, "reef_fish_16bit");
+          fishSprite.setAnchor(0.5, 0.5);
+          fishSprite.setPosition(fishBasePos.x, fishBasePos.y);
+          fishSprite.setZIndex(-3);
+          stageRoot.addChild(fishSprite);
+          fishNode = createBenthicNodeProxy(fishSprite, fishBasePos.x, fishBasePos.y);
+        } else {
+          const fishColor = cIdx % 4 === 0 ? ([255, 225, 60] as const) : ([50, 160, 255] as const);
+          const reefFishG = engineOrContext.createGraphics();
+          const fishPoints: readonly Vector2D[] = [
+            { x: -8, y: -4 },
+            { x: 6, y: 0 },
+            { x: -8, y: 4 },
+            { x: -12, y: 0 },
+          ];
+          reefFishG.drawPolygon(fishPoints, { fill: { color: fishColor, alpha: 1 } });
+          reefFishG.setPosition(fishBasePos.x, fishBasePos.y);
+          reefFishG.setZIndex(-3);
+          stageRoot.addChild(reefFishG);
+          fishNode = createBenthicNodeProxy(reefFishG, fishBasePos.x, fishBasePos.y);
+        }
 
         reefFishList.push({
           obj: fishNode,
@@ -514,6 +571,9 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
         fish.obj.hidden = false;
         fish.obj.pos.x = fish.basePos.x + Math.sin(time * fish.swimSpeed + fish.phase) * 18;
         fish.obj.pos.y = fish.basePos.y + Math.cos(time * 1.8 + fish.phase) * 6;
+        if (fish.obj.scale) {
+          fish.obj.scale.y = 1.0 + Math.sin(time * 5 + fish.phase) * 0.04;
+        }
       }
 
       // A. Ondulação do Kelp e Algas Vermelhas

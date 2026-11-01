@@ -31,11 +31,11 @@ describe("Fase 51: Pipeline Unificada de Renderização e Paleta de Fôlego", ()
       expect(palette.suffocationIntensity).toBeCloseTo(0.9, 2);
     });
 
-    it("retorna cor púrpura característica quando presa em rede fantasma", () => {
+    it("mantém a cor natural da baleia quando presa em rede fantasma", () => {
       const palette = getWhaleBreathColor({ oxygenRatio: 0.9, isTrapped: true });
       expect(palette.urgencyState).toBe("trapped");
-      expect(palette.bodyColor).toEqual([190, 90, 230]);
-      expect(palette.finsColor).toEqual([175, 80, 215]);
+      expect(palette.bodyColor).toEqual([255, 255, 255]);
+      expect(palette.finsColor).toEqual([255, 255, 255]);
     });
 
     it("retorna cor escura cianótica em estado de desmaio por anóxia", () => {
@@ -58,7 +58,7 @@ describe("Fase 51: Pipeline Unificada de Renderização e Paleta de Fôlego", ()
         isTrapped: true,
         isHighContrast: true,
       });
-      expect(trappedHc.bodyColor).toEqual([220, 100, 255]);
+      expect(trappedHc.bodyColor).toEqual([255, 255, 255]);
     });
   });
 

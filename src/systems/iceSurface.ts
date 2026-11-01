@@ -13,8 +13,9 @@ import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 import { getSpatialCullingManager } from "./spatialCullingSystem";
 import { safeShake } from "../utils/camera";
 import { getRandomFloat } from "../utils/random";
-import type { IRenderEngine, Vector2D } from "../engine/contracts/INTERFACE_CONTRACTS";
+import type { IRenderEngine, IRenderNode, Vector2D } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { isRenderEngine, type LegacyEngineBridge } from "../engine/adapters/LegacyBridge";
+import { create16BitIceTextures } from "./ice/ice16BitTextures";
 
 /**
  * Representa uma fenda de respiração (polínia natural) na camada de gelo polar.
@@ -106,40 +107,50 @@ export function setupIceSurfaceSystem(
     const stageRoot = engine.getStageRoot();
     const screenH = engine.getDimensions().height;
 
+    const { iceBlockTexture, icebergWallTexture } = create16BitIceTextures(engine);
+
     function spawnIceSegment(x: number, width: number) {
       let isBroken = false;
 
-      const segment = engine.createGraphics("ice_block");
-      segment.drawRect(0, 0, width + 0.5, iceHeight, {
-        fill: { color: [210, 235, 255], alpha: 0.96 },
-      });
-
-      // Bordas superior e inferior translúcidas
-      segment.drawRect(0, 0, width, 3, {
-        fill: { color: [240, 252, 255], alpha: 0.4 },
-      });
-      segment.drawRect(0, iceHeight - 3, width, 3, {
-        fill: { color: [180, 215, 255], alpha: 0.4 },
-      });
-
-      // Faixas internas de estratificação cristalina
-      segment.drawRect(0, 5, width, 7, {
-        fill: { color: [230, 248, 255], alpha: 0.35 },
-      });
-      segment.drawRect(0, 16, width, 9, {
-        fill: { color: [180, 215, 255], alpha: 0.28 },
-      });
-      segment.drawRect(0, 28, width, 7, {
-        fill: { color: [215, 240, 255], alpha: 0.3 },
-      });
-
-      // Veios glaciais diagonais
-      const veinCount = 3 + Math.floor((width / 75) % 2);
-      for (let v = 0; v < veinCount; v++) {
-        const veinRelX = (width / (veinCount + 1)) * (v + 1);
-        segment.drawRect(veinRelX, iceHeight * 0.12, 1.5, iceHeight * 0.76, {
-          fill: { color: [30, 80, 140], alpha: 0.15 },
+      let segment: IRenderNode;
+      if (iceBlockTexture) {
+        const sprite = engine.createSprite(iceBlockTexture, "ice_block");
+        sprite.setSize(width + 0.5, iceHeight);
+        segment = sprite;
+      } else {
+        const gfx = engine.createGraphics("ice_block");
+        gfx.drawRect(0, 0, width + 0.5, iceHeight, {
+          fill: { color: [210, 235, 255], alpha: 0.96 },
         });
+
+        // Bordas superior e inferior translúcidas
+        gfx.drawRect(0, 0, width, 3, {
+          fill: { color: [240, 252, 255], alpha: 0.4 },
+        });
+        gfx.drawRect(0, iceHeight - 3, width, 3, {
+          fill: { color: [180, 215, 255], alpha: 0.4 },
+        });
+
+        // Faixas internas de estratificação cristalina
+        gfx.drawRect(0, 5, width, 7, {
+          fill: { color: [230, 248, 255], alpha: 0.35 },
+        });
+        gfx.drawRect(0, 16, width, 9, {
+          fill: { color: [180, 215, 255], alpha: 0.28 },
+        });
+        gfx.drawRect(0, 28, width, 7, {
+          fill: { color: [215, 240, 255], alpha: 0.3 },
+        });
+
+        // Veios glaciais diagonais
+        const veinCount = 3 + Math.floor((width / 75) % 2);
+        for (let v = 0; v < veinCount; v++) {
+          const veinRelX = (width / (veinCount + 1)) * (v + 1);
+          gfx.drawRect(veinRelX, iceHeight * 0.12, 1.5, iceHeight * 0.76, {
+            fill: { color: [30, 80, 140], alpha: 0.15 },
+          });
+        }
+        segment = gfx;
       }
 
       segment.setPosition(x, icePosY);
@@ -256,66 +267,74 @@ export function setupIceSurfaceSystem(
     const wallWidth = 1100;
     const wallStartX = -1100;
 
-    const wallG = engine.createGraphics("iceberg_wall");
-    wallG.drawRect(0, 0, wallWidth, screenH, {
-      fill: { color: [150, 195, 235], alpha: 0.95 },
-    });
-    wallG.setPosition(wallStartX, 0);
-    wallG.setZIndex(10);
-    stageRoot.addChild(wallG);
-
-    // Colunas de gelo verticais
-    for (let x = wallStartX; x < 0; x += 75) {
-      const colWidth = 65 + Math.sin(x * 0.04) * 20;
-      const bumpX = x + Math.cos(x * 0.02) * 12;
-
-      const colG = engine.createGraphics();
-      const colPts: readonly Vector2D[] = [
-        { x: bumpX, y: 0 },
-        { x: bumpX + colWidth, y: 0 },
-        { x: bumpX + colWidth - 15, y: screenH },
-        { x: bumpX - 20, y: screenH },
-      ];
-      colG.drawPolygon(colPts, {
-        fill: { color: [180, 220, 255], alpha: 0.35 },
+    if (icebergWallTexture) {
+      const wallSprite = engine.createSprite(icebergWallTexture, "iceberg_wall");
+      wallSprite.setSize(wallWidth, screenH);
+      wallSprite.setPosition(wallStartX, 0);
+      wallSprite.setZIndex(10);
+      stageRoot.addChild(wallSprite);
+    } else {
+      const wallG = engine.createGraphics("iceberg_wall");
+      wallG.drawRect(0, 0, wallWidth, screenH, {
+        fill: { color: [150, 195, 235], alpha: 0.95 },
       });
-      colG.setZIndex(11);
-      stageRoot.addChild(colG);
+      wallG.setPosition(wallStartX, 0);
+      wallG.setZIndex(10);
+      stageRoot.addChild(wallG);
 
-      const ridgeG = engine.createGraphics();
-      const ridgePts: readonly Vector2D[] = [
-        { x: bumpX + 8, y: 0 },
-        { x: bumpX + colWidth * 0.45, y: 0 },
-        { x: bumpX + colWidth * 0.25, y: screenH },
+      // Colunas de gelo verticais
+      for (let x = wallStartX; x < 0; x += 75) {
+        const colWidth = 65 + Math.sin(x * 0.04) * 20;
+        const bumpX = x + Math.cos(x * 0.02) * 12;
+
+        const colG = engine.createGraphics();
+        const colPts: readonly Vector2D[] = [
+          { x: bumpX, y: 0 },
+          { x: bumpX + colWidth, y: 0 },
+          { x: bumpX + colWidth - 15, y: screenH },
+          { x: bumpX - 20, y: screenH },
+        ];
+        colG.drawPolygon(colPts, {
+          fill: { color: [180, 220, 255], alpha: 0.35 },
+        });
+        colG.setZIndex(11);
+        stageRoot.addChild(colG);
+
+        const ridgeG = engine.createGraphics();
+        const ridgePts: readonly Vector2D[] = [
+          { x: bumpX + 8, y: 0 },
+          { x: bumpX + colWidth * 0.45, y: 0 },
+          { x: bumpX + colWidth * 0.25, y: screenH },
+        ];
+        ridgeG.drawPolygon(ridgePts, {
+          fill: { color: [230, 248, 255], alpha: 0.55 },
+        });
+        ridgeG.setZIndex(12);
+        stageRoot.addChild(ridgeG);
+      }
+
+      // Crista pontiaguda na borda frontal
+      const cliffG = engine.createGraphics();
+      const cliffPts: readonly Vector2D[] = [
+        { x: -50, y: 0 },
+        { x: 0, y: 35 },
+        { x: -20, y: 95 },
+        { x: 8, y: 165 },
+        { x: -25, y: 235 },
+        { x: 5, y: 315 },
+        { x: -30, y: 385 },
+        { x: 0, y: 455 },
+        { x: -35, y: screenH },
+        { x: -120, y: screenH },
+        { x: -120, y: 0 },
       ];
-      ridgeG.drawPolygon(ridgePts, {
-        fill: { color: [230, 248, 255], alpha: 0.55 },
+      cliffG.drawPolygon(cliffPts, {
+        fill: { color: [210, 240, 255], alpha: 0.98 },
+        stroke: { color: [120, 180, 230], width: 3 },
       });
-      ridgeG.setZIndex(12);
-      stageRoot.addChild(ridgeG);
+      cliffG.setZIndex(14);
+      stageRoot.addChild(cliffG);
     }
-
-    // Crista pontiaguda na borda frontal
-    const cliffG = engine.createGraphics();
-    const cliffPts: readonly Vector2D[] = [
-      { x: -50, y: 0 },
-      { x: 0, y: 35 },
-      { x: -20, y: 95 },
-      { x: 8, y: 165 },
-      { x: -25, y: 235 },
-      { x: 5, y: 315 },
-      { x: -30, y: 385 },
-      { x: 0, y: 455 },
-      { x: -35, y: screenH },
-      { x: -120, y: screenH },
-      { x: -120, y: 0 },
-    ];
-    cliffG.drawPolygon(cliffPts, {
-      fill: { color: [210, 240, 255], alpha: 0.98 },
-      stroke: { color: [120, 180, 230], width: 3 },
-    });
-    cliffG.setZIndex(14);
-    stageRoot.addChild(cliffG);
 
     DEFAULT_ICE_GAPS.forEach((gap) => {
       if (gap.start > currentX) {

@@ -53,25 +53,7 @@ export function getWhaleBreathColor(parameters: BreathPaletteParameters): WhaleC
 
   const clampedRatio = Math.max(0, Math.min(1, oxygenRatio));
 
-  // 1. Estado de Aprisionamento em Rede Fantasma (Matiz púrpura-violeta)
-  if (isTrapped) {
-    if (isHighContrast) {
-      return {
-        bodyColor: [220, 100, 255],
-        finsColor: [240, 140, 255],
-        urgencyState: "trapped",
-        suffocationIntensity: 0.8,
-      };
-    }
-    return {
-      bodyColor: [190, 90, 230],
-      finsColor: [175, 80, 215],
-      urgencyState: "trapped",
-      suffocationIntensity: 0.75,
-    };
-  }
-
-  // 2. Estado de Desmaio / Blackout por Asfixia (Cianose profunda acinzentada)
+  // 1. Estado de Desmaio / Blackout por Asfixia (Cianose profunda acinzentada)
   if (isFainting || clampedRatio <= 0) {
     if (isHighContrast) {
       return {
@@ -119,7 +101,7 @@ export function getWhaleBreathColor(parameters: BreathPaletteParameters): WhaleC
     return {
       bodyColor: bodyRgb,
       finsColor: finsRgb,
-      urgencyState: "critical",
+      urgencyState: isTrapped ? "trapped" : "critical",
       suffocationIntensity: 1.0 - clampedRatio,
     };
   }
@@ -141,7 +123,7 @@ export function getWhaleBreathColor(parameters: BreathPaletteParameters): WhaleC
     return {
       bodyColor: bodyRgb,
       finsColor: finsRgb,
-      urgencyState: "warning",
+      urgencyState: isTrapped ? "trapped" : "warning",
       suffocationIntensity: 1.0 - clampedRatio,
     };
   }
@@ -150,7 +132,7 @@ export function getWhaleBreathColor(parameters: BreathPaletteParameters): WhaleC
   return {
     bodyColor: [255, 255, 255],
     finsColor: [255, 255, 255],
-    urgencyState: "calm",
+    urgencyState: isTrapped ? "trapped" : "calm",
     suffocationIntensity: 0.0,
   };
 }
