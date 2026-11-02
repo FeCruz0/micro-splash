@@ -171,7 +171,12 @@ export function createPlayer(
       isStrokeInMotion = false;
       if (causticsSystem.whaleCaustics) causticsSystem.whaleCaustics.opacity = 0;
       if (causticsSystem.whaleVentralFlash) causticsSystem.whaleVentralFlash.opacity = 0;
-      netOverlaySystem.update(false, baleia, controlsMgr.isFacingRight());
+      netOverlaySystem.update(
+        false,
+        baleia,
+        controlsMgr.isFacingRight(),
+        typeof k.time === "function" ? k.time() : 0
+      );
       if (animState !== "glide") {
         animState = "glide";
         baleia.play?.("glide");
@@ -480,6 +485,12 @@ export function createPlayer(
       swimSway +
       rollTilt;
 
+    // Feedback Físico de Aprisionamento: Tremor de Esforço (Struggle Jitter)
+    if (trapMgr.isTrapped()) {
+      const struggleTime = typeof k.time === "function" ? k.time() : 0;
+      baleia.angle += Math.sin(struggleTime * 32) * 1.5;
+    }
+
     // Fase 40.5: Emissão de micro-vórtices nas aletas peitorais durante guinadas bruscas
     if (inWater && !trapMgr.isTrapped() && !trapMgr.isFrozen() && Math.abs(pitchVelocity) > 28) {
       pectoralVortexTimer -= dt;
@@ -558,7 +569,13 @@ export function createPlayer(
     }
 
     // 10.5. Atualização do Overlay 16-bits de Rede de Pesca (Fase 68 / Etapa 2)
-    netOverlaySystem.update(trapMgr.isTrapped(), baleia, controlsMgr.isFacingRight());
+    const currentLoopTime = typeof k.time === "function" ? k.time() : 0;
+    netOverlaySystem.update(
+      trapMgr.isTrapped(),
+      baleia,
+      controlsMgr.isFacingRight(),
+      currentLoopTime
+    );
 
     // 11. Atualização dos Cáusticos Solares e Brilho Ventral em Perspectiva (Fases 17.2 e 17.3)
     causticsSystem.update({
@@ -607,10 +624,28 @@ export function createPlayer(
 
     trapInNet: (count: number) => {
       trapMgr.trapInNet(count);
+      const overlay = (baleia as any).netOverlaySprite;
+      if (overlay) {
+        overlay.visible = true;
+        overlay.hidden = false;
+        overlay.opacity = 1.0;
+        overlay.alpha = 1.0;
+        if (typeof overlay.setVisible === "function") overlay.setVisible(true);
+        if (typeof overlay.setOpacity === "function") overlay.setOpacity(1.0);
+      }
     },
 
     addTrapCount: (count: number) => {
       trapMgr.addTrapCount(count);
+      const overlay = (baleia as any).netOverlaySprite;
+      if (overlay) {
+        overlay.visible = true;
+        overlay.hidden = false;
+        overlay.opacity = 1.0;
+        overlay.alpha = 1.0;
+        if (typeof overlay.setVisible === "function") overlay.setVisible(true);
+        if (typeof overlay.setOpacity === "function") overlay.setOpacity(1.0);
+      }
     },
 
     isTrapped: () => trapMgr.isTrapped(),

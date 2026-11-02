@@ -37,6 +37,7 @@ const k = kaboom({
   root: appContainer,
 });
 
+(k as unknown as { renderEngine?: unknown }).renderEngine = renderEngine;
 
 // Barras Protetoras de Letterbox (Fase 33.4)
 setupLetterboxBorders(k);

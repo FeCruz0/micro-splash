@@ -96,6 +96,16 @@ export class PixiRenderTicker implements IRenderTicker {
   }
 }
 
+let activeRenderEngineInstance: IRenderEngine | null = null;
+
+export function getActiveRenderEngine(): IRenderEngine | null {
+  return activeRenderEngineInstance;
+}
+
+export function setActiveRenderEngine(engine: IRenderEngine | null): void {
+  activeRenderEngineInstance = engine;
+}
+
 /**
  * Adaptador de Renderização baseado em PixiJS v8.
  */
@@ -110,6 +120,13 @@ export class RenderEngineAdapter implements IRenderEngine {
   private initialized: boolean = false;
   private viewportWidth: number = 800;
   private viewportHeight: number = 600;
+
+  constructor() {
+    activeRenderEngineInstance = this;
+    if (typeof globalThis !== "undefined") {
+      (globalThis as any).__MICRO_SPLASH_RENDER_ENGINE = this;
+    }
+  }
 
   get isInitialized(): boolean {
     return this.initialized;
@@ -327,5 +344,8 @@ export class RenderEngineAdapter implements IRenderEngine {
 
     this.containerElement = null;
     this.initialized = false;
+    if (activeRenderEngineInstance === this) {
+      activeRenderEngineInstance = null;
+    }
   }
 }

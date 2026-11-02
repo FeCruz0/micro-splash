@@ -127,6 +127,18 @@ export function setupCollisions<TDestroyable = unknown>(
       playerController.addTrapCount(3);
       accessibilitySystem.triggerShake(k, 4);
     }
+
+    // Força imediatamente visibilidade total e opacidade 1.0 do overlay na baleia, ignorando o sonar
+    const rawPlayer = (player ?? playerController.gameObj) as unknown as { netOverlaySprite?: any };
+    const overlay = rawPlayer?.netOverlaySprite;
+    if (overlay) {
+      overlay.visible = true;
+      overlay.hidden = false;
+      overlay.opacity = 1.0;
+      overlay.alpha = 1.0;
+      if (typeof overlay.setVisible === "function") overlay.setVisible(true);
+      if (typeof overlay.setOpacity === "function") overlay.setOpacity(1.0);
+    }
   });
 
   // Colisão com blocos de gelo: quebra apenas quando atingido por cima ao cair do salto
