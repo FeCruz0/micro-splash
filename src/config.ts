@@ -31,7 +31,9 @@ export const GAME_CONFIG = {
   UPWELLING_INTERVAL: 18, // intervalo entre ressurgencias
   UPWELLING_DURATION: 4, // duração da ressurgência
   UPWELLING_PUSH_X: 120, // força horizontal da ressurgência
-  UPWELLING_PUSH_Y: -150, // força vertical da ressurgência
+  UPWELLING_PUSH_Y: -98, // força vertical da ressurgência (empuxo vigoroso subaquático)
+  UPWELLING_COLLISION_FORCE_Y: -9.0, // impulso vertical por frame sobre a baleia
+  UPWELLING_SURFACE_LOCK_DISTANCE: 55, // px abaixo de SEA_LEVEL onde a correnteza não empurra mais para cima
   UPWELLING_ZONE_START: 19000, // início da zona de ressurgência em Arraial do Cabo (19.000m)
   UPWELLING_ZONE_END: 25000, // fim da zona de ressurgência em Arraial do Cabo (25.000m)
   ROUTE_TOTAL_DISTANCE: 30000, // distancia total do percurso (30.000m - ~4 a 5 min de partida)

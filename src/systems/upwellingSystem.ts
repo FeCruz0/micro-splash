@@ -4,6 +4,21 @@ import type { PlayerController } from "../entities/player";
 import { safeShake } from "../utils/camera";
 import { getRandomFloat } from "../utils/random";
 
+/**
+ * Calcula o impulso vertical da ressurgência sobre a baleia com trava de superfície.
+ * Se a baleia estiver a menos de UPWELLING_SURFACE_LOCK_DISTANCE abaixo da linha d'água
+ * (SEA_LEVEL), qualquer componente ascendente (forceY < 0) é zerado: o salto para fora
+ * d'água só ocorre pela velocidade própria do jogador.
+ */
+export function computeUpwellingVerticalForce(
+  playerY: number,
+  forceY: number = GAME_CONFIG.UPWELLING_COLLISION_FORCE_Y
+): number {
+  const lockLimitY = GAME_CONFIG.SEA_LEVEL + GAME_CONFIG.UPWELLING_SURFACE_LOCK_DISTANCE;
+  if (forceY < 0 && playerY <= lockLimitY) return 0;
+  return forceY;
+}
+
 export interface UpwellingVector2D {
   x: number;
   y: number;
@@ -204,7 +219,11 @@ export function setupUpwellingSystem<
     playerController.setSpeed(
       k.vec2(
         k.clamp(currentVelocity.x + 10, -GAME_CONFIG.MAX_SPEED, GAME_CONFIG.MAX_SPEED),
-        k.clamp(currentVelocity.y - 14, -GAME_CONFIG.MAX_SPEED, GAME_CONFIG.MAX_SPEED)
+        k.clamp(
+          currentVelocity.y + computeUpwellingVerticalForce(playerController.gameObj.pos.y),
+          -GAME_CONFIG.MAX_SPEED,
+          GAME_CONFIG.MAX_SPEED
+        )
       ) as unknown as Parameters<PlayerController["setSpeed"]>[0]
     );
   });

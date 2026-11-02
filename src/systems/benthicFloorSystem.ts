@@ -14,7 +14,16 @@ import {
   resolveCameraX,
   type LegacyEngineBridge,
 } from "../engine/adapters/LegacyBridge";
-import { create16BitSanctuaryTextures } from "./benthic/benthic16BitSanctuary";
+import { getActiveRenderEngine } from "../engine/adapters/RenderEngineAdapter";
+import {
+  create16BitSanctuaryTextures,
+  draw16BitBrainCoral,
+  draw16BitGorgonianFan,
+  draw16BitAnemone,
+  draw16BitAnemoneTentacle,
+  draw16BitReefFish,
+  ARRAIAL_16BIT_PALETTE,
+} from "./benthic/benthic16BitSanctuary";
 
 export interface MutableVec2 {
   x: number;
@@ -140,7 +149,7 @@ function createBenthicNodeProxy(
  * Interpola da base marrom-escura (55, 35, 15) para o topo dourado-esverdeado (110, 130, 40).
  */
 export function calculateKelpSegmentColor(
-  engineOrContext:
+  realEngine:
     | { rgb?: (r: number, g: number, b: number) => { r: number; g: number; b: number } }
     | IRenderEngine
     | LegacyEngineBridge,
@@ -151,8 +160,8 @@ export function calculateKelpSegmentColor(
   const redChannel = Math.round(55 + (110 - 55) * progressRatio);
   const greenChannel = Math.round(35 + (130 - 35) * progressRatio);
   const blueChannel = Math.round(15 + (40 - 15) * progressRatio);
-  if ("rgb" in engineOrContext && typeof engineOrContext.rgb === "function") {
-    return engineOrContext.rgb(redChannel, greenChannel, blueChannel) as {
+  if ("rgb" in realEngine && typeof realEngine.rgb === "function") {
+    return realEngine.rgb(redChannel, greenChannel, blueChannel) as {
       r: number;
       g: number;
       b: number;
@@ -182,11 +191,34 @@ export const LITHOTHAMNION_SPAWN_X = [
  * Enriquece o leito oceânico com ecossistemas autênticos e física suave de ondulação subaquática.
  */
 export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyEngineBridge): void {
-  const isPixi = isRenderEngine(engineOrContext);
-  const screenH = isPixi
-    ? engineOrContext.getDimensions().height
-    : typeof engineOrContext.height === "function"
-      ? engineOrContext.height()
+  const candidateEngine: unknown =
+    isRenderEngine(engineOrContext)
+      ? engineOrContext
+      : isRenderEngine((engineOrContext as any)?.renderEngine)
+        ? (engineOrContext as any).renderEngine
+        : getActiveRenderEngine();
+
+  let realEngine: IRenderEngine | null = isRenderEngine(candidateEngine) ? candidateEngine : null;
+  let isPixi = false;
+
+  if (realEngine) {
+    if (("isInitialized" in realEngine && (realEngine as any).isInitialized) || !("isInitialized" in realEngine)) {
+      try {
+        realEngine.getStageRoot();
+        isPixi = true;
+      } catch (_e) {
+        isPixi = false;
+        realEngine = null;
+      }
+    } else {
+      realEngine = null;
+    }
+  }
+
+  const screenH = realEngine
+    ? realEngine.getDimensions().height
+    : "height" in engineOrContext && typeof engineOrContext.height === "function"
+      ? (engineOrContext.height as () => number)()
       : 360;
 
   const floorY = screenH - 40;
@@ -214,9 +246,9 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
     24600, 25100, 25550, 26100, 26450, 26850, 27250, 27650, 28100, 28550, 29000, 29450,
   ];
 
-  if (isPixi) {
-    const stageRoot = engineOrContext.getStageRoot();
-    const sanctuary16Bit = create16BitSanctuaryTextures(engineOrContext);
+  if (isPixi && realEngine) {
+    const stageRoot = realEngine.getStageRoot();
+    const sanctuary16Bit = create16BitSanctuaryTextures(realEngine);
 
     // 1. Kelp
     KELP_SPAWN_X.forEach((xPos, plantIdx) => {
@@ -228,10 +260,10 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
 
       for (let s = 0; s < segmentCount; s++) {
         const segWidth = 14 - s * 1.4;
-        const color = calculateKelpSegmentColor(engineOrContext, s, segmentCount);
+        const color = calculateKelpSegmentColor(realEngine, s, segmentCount);
         const colorTuple = [color.r, color.g, color.b] as const;
 
-        const stem = engineOrContext.createGraphics();
+        const stem = realEngine.createGraphics();
         stem.drawRect(-segWidth / 2, -(segHeight + 4), segWidth, segHeight + 4, {
           fill: { color: colorTuple, alpha: 0.85 * (0.4 + 0.6 * transitionFactor) },
         });
@@ -243,7 +275,7 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
         const leafSide = s % 2 === 0 ? 1 : -1;
         const leafWidth = 18 + s * 2;
         const leafHeight = 8 + s * 1.2;
-        const leaf = engineOrContext.createGraphics();
+        const leaf = realEngine.createGraphics();
         leaf.drawRect(-leafWidth / 2, -leafHeight / 2, leafWidth, leafHeight, {
           fill: { color: colorTuple, alpha: 0.75 * (0.4 + 0.6 * transitionFactor) },
         });
@@ -283,7 +315,7 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
 
       for (let b = 0; b < bladeCount; b++) {
         const bladeHeight = (22 + b * 6) * (0.7 + 0.3 * transitionFactor);
-        const bladeG = engineOrContext.createGraphics();
+        const bladeG = realEngine.createGraphics();
         bladeG.drawRect(-1.25, -bladeHeight, 2.5, bladeHeight, {
           fill: { color: bladeColor, alpha: 0.85 * (0.4 + 0.6 * transitionFactor) },
         });
@@ -313,7 +345,7 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
 
       for (let b = 0; b < bladeCount; b++) {
         const bladeH = (26 + b * 5) * (0.7 + 0.3 * transitionFactor);
-        const bladeG = engineOrContext.createGraphics();
+        const bladeG = realEngine.createGraphics();
         bladeG.drawRect(-1.1, -bladeH, 2.2, bladeH, {
           fill: { color: grassColor, alpha: 0.82 * (0.4 + 0.6 * transitionFactor) },
         });
@@ -335,7 +367,7 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
               ? ([60, 160, 230] as const)
               : ([230, 230, 230] as const);
 
-      const wasteG = engineOrContext.createGraphics();
+      const wasteG = realEngine.createGraphics();
       wasteG.drawRect(-1.75, -1.75, 3.5, 3.5, {
         fill: { color: trashColor, alpha: 0.88 * (0.4 + 0.6 * transitionFactor) },
       });
@@ -363,7 +395,7 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
         135 + (lIdx % 2) * 16,
       ] as const;
 
-      const crustG = engineOrContext.createGraphics();
+      const crustG = realEngine.createGraphics();
       crustG.drawRect(0, 0, crustW, crustH, {
         fill: { color: crustColor, alpha: 0.88 * (0.4 + 0.6 * transitionFactor) },
       });
@@ -372,7 +404,7 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
       stageRoot.addChild(crustG);
 
       if (lIdx % 2 === 0) {
-        const noduleG = engineOrContext.createGraphics();
+        const noduleG = realEngine.createGraphics();
         noduleG.drawCircle(0, 0, 3.5, {
           fill: { color: [195, 110, 145], alpha: 0.85 * (0.4 + 0.6 * transitionFactor) },
         });
@@ -384,13 +416,13 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
 
     // 4. Corals
     coralSpawnX.forEach((xPos, cIdx) => {
-      const transitionFactor = calculateBiomeTransitionFactor(xPos, 19000, 30000, 300);
+      calculateBiomeTransitionFactor(xPos, 19000, 30000, 300);
       const coralType = cIdx % 3 === 0 ? "brain" : cIdx % 3 === 1 ? "fan" : "anemone";
 
       if (sanctuary16Bit.available) {
         if (coralType === "brain") {
           const brainTex = sanctuary16Bit.brainCorals[cIdx % sanctuary16Bit.brainCorals.length];
-          const brainSprite = engineOrContext.createSprite(brainTex, "coral_brain_16bit");
+          const brainSprite = realEngine.createSprite(brainTex, "coral_brain_16bit");
           brainSprite.setAnchor(0.5, 1.0);
           brainSprite.setPosition(xPos, floorY);
           brainSprite.setZIndex(-3);
@@ -403,7 +435,7 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
           });
         } else if (coralType === "fan") {
           const fanTex = sanctuary16Bit.seaFans[cIdx % sanctuary16Bit.seaFans.length];
-          const fanSprite = engineOrContext.createSprite(fanTex, "coral_fan_16bit");
+          const fanSprite = realEngine.createSprite(fanTex, "coral_fan_16bit");
           fanSprite.setAnchor(0.5, 1.0);
           fanSprite.setPosition(xPos, floorY);
           fanSprite.setZIndex(-3);
@@ -415,59 +447,84 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
             animPhase: cIdx,
           });
         } else {
-          // Esponja (sponge) / anemone
-          const spongeTex = sanctuary16Bit.sponges[cIdx % sanctuary16Bit.sponges.length];
-          const spongeSprite = engineOrContext.createSprite(spongeTex, "sponge_16bit");
-          spongeSprite.setAnchor(0.5, 1.0);
-          spongeSprite.setPosition(xPos, floorY);
-          spongeSprite.setZIndex(-3);
-          stageRoot.addChild(spongeSprite);
+          // Anêmona 16-bits com coroa de tentáculos ondulantes
+          const anemoneTex =
+            sanctuary16Bit.anemones && sanctuary16Bit.anemones.length > 0
+              ? sanctuary16Bit.anemones[cIdx % sanctuary16Bit.anemones.length]
+              : sanctuary16Bit.sponges[cIdx % sanctuary16Bit.sponges.length];
+          const anemoneSprite = realEngine.createSprite(anemoneTex, "coral_anemone_16bit");
+          anemoneSprite.setAnchor(0.5, 1.0);
+          anemoneSprite.setPosition(xPos, floorY);
+          anemoneSprite.setZIndex(-3);
+          stageRoot.addChild(anemoneSprite);
+
+          const tentacles: BenthicRenderNode[] = [];
+          if (sanctuary16Bit.anemoneTentacles && sanctuary16Bit.anemoneTentacles.length > 0) {
+            const tentTex =
+              sanctuary16Bit.anemoneTentacles[cIdx % sanctuary16Bit.anemoneTentacles.length];
+            for (let t = -3; t <= 3; t++) {
+              const tentSprite = realEngine.createSprite(tentTex, "anemone_tentacle_16bit");
+              tentSprite.setAnchor(0.5, 1.0);
+              const tentX = xPos + t * 4;
+              const tentY = floorY - 18;
+              tentSprite.setPosition(tentX, tentY);
+              tentSprite.setRotation(t * 7);
+              tentSprite.setZIndex(-3);
+              stageRoot.addChild(tentSprite);
+              tentacles.push(createBenthicNodeProxy(tentSprite, tentX, tentY));
+            }
+          }
+
           corals.push({
-            obj: createBenthicNodeProxy(spongeSprite, xPos, floorY),
+            obj: createBenthicNodeProxy(anemoneSprite, xPos, floorY),
             type: "anemone",
             baseY: floorY,
             animPhase: cIdx,
+            tentacles,
           });
         }
       } else {
         if (coralType === "brain") {
-          const brainG = engineOrContext.createGraphics();
-          brainG.drawRoundedRect(-32, -40, 64, 40, 18, {
-            fill: { color: [240, 125, 140], alpha: 0.9 * (0.4 + 0.6 * transitionFactor) },
-            stroke: { color: [190, 85, 100], width: 3 },
-          });
-          brainG.setPosition(xPos, floorY - 6);
+          const brainG = realEngine.createGraphics();
+          draw16BitBrainCoral(
+            brainG,
+            cIdx % 2 === 0 ? ARRAIAL_16BIT_PALETTE.CORAL_ORANGE : ARRAIAL_16BIT_PALETTE.REEF_PURPLE,
+            cIdx % 2 === 0
+              ? ARRAIAL_16BIT_PALETTE.CORAL_ORANGE_DARK
+              : ARRAIAL_16BIT_PALETTE.REEF_PURPLE_DARK,
+            cIdx % 2 === 0
+              ? ARRAIAL_16BIT_PALETTE.CORAL_ORANGE_LIGHT
+              : ARRAIAL_16BIT_PALETTE.REEF_PURPLE_LIGHT,
+            64,
+            40,
+            cIdx % 2 === 0 ? ARRAIAL_16BIT_PALETTE.POLYP_GLOW_GOLD : ARRAIAL_16BIT_PALETTE.POLYP_GLOW_CYAN
+          );
+          brainG.setPosition(xPos - 32, floorY - 40);
           brainG.setZIndex(-3);
           stageRoot.addChild(brainG);
 
-          const grooveG = engineOrContext.createGraphics();
-          grooveG.drawCircle(0, 0, 12, {
-            fill: { color: [255, 155, 165], alpha: 0.85 * (0.4 + 0.6 * transitionFactor) },
-          });
-          grooveG.setPosition(xPos, floorY - 14);
-          grooveG.setZIndex(-3);
-          stageRoot.addChild(grooveG);
-
           corals.push({
-            obj: createBenthicNodeProxy(brainG, xPos, floorY - 6),
+            obj: createBenthicNodeProxy(brainG, xPos, floorY),
             type: "brain",
-            baseY: floorY - 6,
+            baseY: floorY,
             animPhase: cIdx,
           });
         } else if (coralType === "fan") {
-          const fanG = engineOrContext.createGraphics();
-          const fanPoints: readonly Vector2D[] = [
-            { x: 0, y: 0 },
-            { x: -28, y: -55 },
-            { x: -10, y: -65 },
-            { x: 0, y: -58 },
-            { x: 14, y: -68 },
-            { x: 30, y: -50 },
-          ];
-          fanG.drawPolygon(fanPoints, {
-            fill: { color: [255, 95, 80], alpha: 0.9 * (0.4 + 0.6 * transitionFactor) },
-          });
-          fanG.setPosition(xPos, floorY);
+          const fanG = realEngine.createGraphics();
+          draw16BitGorgonianFan(
+            fanG,
+            cIdx % 2 === 0 ? ARRAIAL_16BIT_PALETTE.TURQUOISE : ARRAIAL_16BIT_PALETTE.CORAL_ORANGE,
+            cIdx % 2 === 0
+              ? ARRAIAL_16BIT_PALETTE.TURQUOISE_DARK
+              : ARRAIAL_16BIT_PALETTE.CORAL_ORANGE_DARK,
+            cIdx % 2 === 0
+              ? ARRAIAL_16BIT_PALETTE.TURQUOISE_LIGHT
+              : ARRAIAL_16BIT_PALETTE.SUN_YELLOW,
+            60,
+            64,
+            cIdx % 2 === 0 ? ARRAIAL_16BIT_PALETTE.SUN_YELLOW : ARRAIAL_16BIT_PALETTE.POLYP_GLOW_CYAN
+          );
+          fanG.setPosition(xPos - 30, floorY - 64);
           fanG.setZIndex(-3);
           stageRoot.addChild(fanG);
 
@@ -478,34 +535,43 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
             animPhase: cIdx,
           });
         } else {
-          const anemoneG = engineOrContext.createGraphics();
-          anemoneG.drawRoundedRect(-22, -26, 44, 26, 11, {
-            fill: { color: [65, 230, 190], alpha: 0.9 * (0.4 + 0.6 * transitionFactor) },
-          });
-          anemoneG.setPosition(xPos, floorY - 4);
+          const anemoneG = realEngine.createGraphics();
+          draw16BitAnemone(
+            anemoneG,
+            ARRAIAL_16BIT_PALETTE.ANEMONE_BODY_TEAL,
+            ARRAIAL_16BIT_PALETTE.ANEMONE_BODY_DARK,
+            ARRAIAL_16BIT_PALETTE.ANEMONE_TENTACLE_PINK,
+            ARRAIAL_16BIT_PALETTE.ANEMONE_TENTACLE_TIP,
+            56,
+            44
+          );
+          anemoneG.setPosition(xPos - 28, floorY - 44);
           anemoneG.setZIndex(-3);
           stageRoot.addChild(anemoneG);
 
           const tentacles: BenthicRenderNode[] = [];
           for (let t = -3; t <= 3; t++) {
-            const tentacleG = engineOrContext.createGraphics();
-            tentacleG.drawRoundedRect(-1.5, -16, 3, 16, 2, {
-              fill: { color: [110, 255, 220], alpha: 0.85 * (0.4 + 0.6 * transitionFactor) },
-            });
+            const tentacleG = realEngine.createGraphics();
+            draw16BitAnemoneTentacle(
+              tentacleG,
+              ARRAIAL_16BIT_PALETTE.ANEMONE_TENTACLE_PINK,
+              ARRAIAL_16BIT_PALETTE.ANEMONE_TENTACLE_TIP,
+              8,
+              22
+            );
             const tentacleX = xPos + t * 4;
-            const tentacleY = floorY - 12;
-            tentacleG.setPosition(tentacleX, tentacleY);
-            tentacleG.setRotation(t * 8);
+            const tentacleY = floorY - 18;
+            tentacleG.setPosition(tentacleX - 4, tentacleY - 22);
+            tentacleG.setRotation(t * 7);
             tentacleG.setZIndex(-3);
             stageRoot.addChild(tentacleG);
-
             tentacles.push(createBenthicNodeProxy(tentacleG, tentacleX, tentacleY));
           }
 
           corals.push({
-            obj: createBenthicNodeProxy(anemoneG, xPos, floorY - 4),
+            obj: createBenthicNodeProxy(anemoneG, xPos, floorY),
             type: "anemone",
-            baseY: floorY - 4,
+            baseY: floorY,
             animPhase: cIdx,
             tentacles,
           });
@@ -518,23 +584,26 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
 
         if (sanctuary16Bit.available) {
           const fishTex = sanctuary16Bit.fishVariants[cIdx % sanctuary16Bit.fishVariants.length];
-          const fishSprite = engineOrContext.createSprite(fishTex, "reef_fish_16bit");
+          const fishSprite = realEngine.createSprite(fishTex, "reef_fish_16bit");
           fishSprite.setAnchor(0.5, 0.5);
           fishSprite.setPosition(fishBasePos.x, fishBasePos.y);
           fishSprite.setZIndex(-3);
           stageRoot.addChild(fishSprite);
           fishNode = createBenthicNodeProxy(fishSprite, fishBasePos.x, fishBasePos.y);
         } else {
-          const fishColor = cIdx % 4 === 0 ? ([255, 225, 60] as const) : ([50, 160, 255] as const);
-          const reefFishG = engineOrContext.createGraphics();
-          const fishPoints: readonly Vector2D[] = [
-            { x: -8, y: -4 },
-            { x: 6, y: 0 },
-            { x: -8, y: 4 },
-            { x: -12, y: 0 },
-          ];
-          reefFishG.drawPolygon(fishPoints, { fill: { color: fishColor, alpha: 1 } });
-          reefFishG.setPosition(fishBasePos.x, fishBasePos.y);
+          const reefFishG = realEngine.createGraphics();
+          draw16BitReefFish(
+            reefFishG,
+            cIdx % 4 === 0 ? ARRAIAL_16BIT_PALETTE.SUN_YELLOW : ARRAIAL_16BIT_PALETTE.TURQUOISE,
+            cIdx % 4 === 0 ? ARRAIAL_16BIT_PALETTE.CORAL_ORANGE : ARRAIAL_16BIT_PALETTE.REEF_PURPLE,
+            cIdx % 4 === 0 ? ARRAIAL_16BIT_PALETTE.TURQUOISE : ARRAIAL_16BIT_PALETTE.SUN_YELLOW,
+            cIdx % 4 === 0
+              ? ARRAIAL_16BIT_PALETTE.FISH_BELLY_SHADOW
+              : ARRAIAL_16BIT_PALETTE.FISH_TURQUOISE_BELLY,
+            24,
+            12
+          );
+          reefFishG.setPosition(fishBasePos.x - 12, fishBasePos.y - 6);
           reefFishG.setZIndex(-3);
           stageRoot.addChild(reefFishG);
           fishNode = createBenthicNodeProxy(reefFishG, fishBasePos.x, fishBasePos.y);
@@ -550,14 +619,14 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
     });
 
     let time = 0;
-    engineOrContext.getTicker().add((dt: number) => {
+    realEngine.getTicker().add((dt: number) => {
       time += dt;
-      const camX = resolveCameraX(engineOrContext);
-      const screenWidth = engineOrContext.getDimensions().width || 1280;
+      const camX = resolveCameraX(realEngine);
+      const screenWidth = realEngine.getDimensions().width || 1280;
       const minActiveX = camX - screenWidth - 600;
       const maxActiveX = camX + screenWidth + 600;
 
-      // Peixes de recife
+      // Peixes de recife com ondulação senoidal suave de inclinação (pitch) e impulso caudal
       const totalFish = reefFishList.length;
       for (let f = 0; f < totalFish; f++) {
         const fish = reefFishList[f];
@@ -569,10 +638,16 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
           continue;
         }
         fish.obj.hidden = false;
-        fish.obj.pos.x = fish.basePos.x + Math.sin(time * fish.swimSpeed + fish.phase) * 18;
-        fish.obj.pos.y = fish.basePos.y + Math.cos(time * 1.8 + fish.phase) * 6;
+
+        const swimCycle = time * fish.swimSpeed * 2.2 + fish.phase;
+        // Ondulação senoidal suave de inclinação hidrodinâmica (pitch idêntico às orcas/baleias de fundo)
+        fish.obj.angle = Math.sin(swimCycle) * 6.5;
+        // Deslocamento orgânico e impulso caudal
+        fish.obj.pos.x = fish.basePos.x + Math.sin(time * fish.swimSpeed + fish.phase) * 22;
+        fish.obj.pos.y = fish.basePos.y + Math.cos(swimCycle * 0.8) * 8;
         if (fish.obj.scale) {
-          fish.obj.scale.y = 1.0 + Math.sin(time * 5 + fish.phase) * 0.04;
+          fish.obj.scale.x = 1.0 + Math.sin(swimCycle * 2) * 0.05;
+          fish.obj.scale.y = 1.0 - Math.sin(swimCycle * 2) * 0.03;
         }
       }
 
@@ -887,55 +962,244 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
       const coralType = cIdx % 3 === 0 ? "brain" : cIdx % 3 === 1 ? "fan" : "anemone";
 
       if (coralType === "brain") {
-        const brain = legacyCtx.add([
-          legacyCtx.rect(64, 40, { radius: 18 }),
-          legacyCtx.pos(xPos, floorY - 6),
-          legacyCtx.color(240, 125, 140),
-          legacyCtx.outline(3, legacyCtx.rgb(190, 85, 100)),
-          legacyCtx.opacity(0.9 * (0.4 + 0.6 * transitionFactor)),
-          legacyCtx.anchor("bot"),
-          legacyCtx.z(-3),
-          "coral_brain",
-        ]) as unknown as BenthicRenderNode;
-        cullingManager?.registerEntity(brain as unknown as CullingTarget, () => xPos);
-
-        const groove = legacyCtx.add([
-          legacyCtx.circle(12),
-          legacyCtx.pos(xPos, floorY - 14),
-          legacyCtx.color(255, 155, 165),
-          legacyCtx.opacity(0.85 * (0.4 + 0.6 * transitionFactor)),
-          legacyCtx.anchor("center"),
-          legacyCtx.z(-3),
-        ]) as unknown as BenthicRenderNode;
-        cullingManager?.registerEntity(groove as unknown as CullingTarget, () => xPos);
-
-        corals.push({ obj: brain, type: "brain", baseY: floorY - 6, animPhase: cIdx });
-      } else if (coralType === "fan") {
-        const fan = legacyCtx.add([
-          legacyCtx.polygon([
-            legacyCtx.vec2(0, 0),
-            legacyCtx.vec2(-28, -55),
-            legacyCtx.vec2(-10, -65),
-            legacyCtx.vec2(0, -58),
-            legacyCtx.vec2(14, -68),
-            legacyCtx.vec2(30, -50),
-          ]),
+        // Base rochosa escura
+        const baseShadow = legacyCtx.add([
+          legacyCtx.rect(56, 8),
           legacyCtx.pos(xPos, floorY),
-          legacyCtx.color(255, 95, 80),
-          legacyCtx.opacity(0.9 * (0.4 + 0.6 * transitionFactor)),
+          legacyCtx.color(15, 37, 55),
+          legacyCtx.opacity(0.96 * (0.4 + 0.6 * transitionFactor)),
           legacyCtx.anchor("bot"),
           legacyCtx.z(-3),
-          "coral_fan",
         ]) as unknown as BenthicRenderNode;
-        cullingManager?.registerEntity(fan as unknown as CullingTarget, () => xPos);
+        cullingManager?.registerEntity(baseShadow as unknown as CullingTarget, () => xPos);
 
-        corals.push({ obj: fan, type: "fan", baseY: floorY, animPhase: cIdx });
+        const coralMainCol =
+          cIdx % 2 === 0 ? legacyCtx.rgb(255, 112, 67) : legacyCtx.rgb(171, 71, 188);
+        const coralBorderCol =
+          cIdx % 2 === 0 ? legacyCtx.rgb(191, 54, 12) : legacyCtx.rgb(92, 34, 104);
+        const coralHighlightCol =
+          cIdx % 2 === 0 ? legacyCtx.rgb(255, 171, 145) : legacyCtx.rgb(206, 147, 216);
+        const polypCol =
+          cIdx % 2 === 0 ? legacyCtx.rgb(255, 213, 79) : legacyCtx.rgb(128, 222, 234);
+
+        // 5 tubos verticais agrupados (alturas 20, 32, 38, 28, 18; larguras 10 a 12px; offsets X -20, -10, 0, +10, +20)
+        const tubes = [
+          { offX: -20, w: 10, h: 20 },
+          { offX: -10, w: 12, h: 32 },
+          { offX: 0, w: 12, h: 38 },
+          { offX: 10, w: 12, h: 28 },
+          { offX: 20, w: 10, h: 18 },
+        ];
+
+        let representativeObj: BenthicRenderNode | null = null;
+
+        for (const tube of tubes) {
+          // Corpo principal do tubo
+          const tubeObj = legacyCtx.add([
+            legacyCtx.rect(tube.w, tube.h, { radius: 3 }),
+            legacyCtx.pos(xPos + tube.offX, floorY - 4),
+            legacyCtx.color(coralMainCol),
+            legacyCtx.opacity(0.98 * (0.4 + 0.6 * transitionFactor)),
+            legacyCtx.anchor("bot"),
+            legacyCtx.z(-3),
+            "coral_brain_tube",
+          ]) as unknown as BenthicRenderNode;
+          cullingManager?.registerEntity(tubeObj as unknown as CullingTarget, () => xPos);
+
+          if (!representativeObj || tube.h === 38) {
+            representativeObj = tubeObj;
+          }
+
+          // Sombra lateral esquerda
+          const shadowObj = legacyCtx.add([
+            legacyCtx.rect(2, tube.h - 4),
+            legacyCtx.pos(xPos + tube.offX - Math.floor(tube.w / 2) + 1, floorY - 4),
+            legacyCtx.color(coralBorderCol),
+            legacyCtx.opacity(0.85 * (0.4 + 0.6 * transitionFactor)),
+            legacyCtx.anchor("bot"),
+            legacyCtx.z(-3),
+          ]) as unknown as BenthicRenderNode;
+          cullingManager?.registerEntity(shadowObj as unknown as CullingTarget, () => xPos);
+
+          // Anéis horizontais frisados iluminados
+          const ringCount = tube.h >= 30 ? 4 : 3;
+          const ringStep = Math.floor((tube.h - 10) / ringCount);
+          for (let r = 0; r < ringCount; r++) {
+            const ry = floorY - 4 - tube.h + 6 + r * ringStep;
+            const ring = legacyCtx.add([
+              legacyCtx.rect(tube.w - 2, 2),
+              legacyCtx.pos(xPos + tube.offX, ry),
+              legacyCtx.color(coralHighlightCol),
+              legacyCtx.opacity(0.9 * (0.4 + 0.6 * transitionFactor)),
+              legacyCtx.anchor("bot"),
+              legacyCtx.z(-3),
+            ]) as unknown as BenthicRenderNode;
+            cullingManager?.registerEntity(ring as unknown as CullingTarget, () => xPos);
+          }
+
+          // Abertura escura no topo
+          const opening = legacyCtx.add([
+            legacyCtx.rect(tube.w - 4, 2),
+            legacyCtx.pos(xPos + tube.offX, floorY - 4 - tube.h + 2),
+            legacyCtx.color(15, 37, 55),
+            legacyCtx.opacity(0.95 * (0.4 + 0.6 * transitionFactor)),
+            legacyCtx.anchor("bot"),
+            legacyCtx.z(-3),
+          ]) as unknown as BenthicRenderNode;
+          cullingManager?.registerEntity(opening as unknown as CullingTarget, () => xPos);
+
+          // Pólipo 3x3px brilhante
+          const polyp = legacyCtx.add([
+            legacyCtx.rect(3, 3),
+            legacyCtx.pos(xPos + tube.offX, floorY - 4 - tube.h + 8),
+            legacyCtx.color(polypCol),
+            legacyCtx.opacity(1.0 * (0.4 + 0.6 * transitionFactor)),
+            legacyCtx.anchor("center"),
+            legacyCtx.z(-3),
+          ]) as unknown as BenthicRenderNode;
+          cullingManager?.registerEntity(polyp as unknown as CullingTarget, () => xPos);
+        }
+
+        corals.push({
+          obj: representativeObj ?? baseShadow,
+          type: "brain",
+          baseY: floorY - 4,
+          animPhase: cIdx,
+        });
+      } else if (coralType === "fan") {
+        // Base rochosa de ancoragem escura no chão
+        const baseShadow = legacyCtx.add([
+          legacyCtx.rect(24, 8),
+          legacyCtx.pos(xPos, floorY),
+          legacyCtx.color(15, 37, 55),
+          legacyCtx.opacity(0.96 * (0.4 + 0.6 * transitionFactor)),
+          legacyCtx.anchor("bot"),
+          legacyCtx.z(-3),
+        ]) as unknown as BenthicRenderNode;
+        cullingManager?.registerEntity(baseShadow as unknown as CullingTarget, () => xPos);
+
+        const fanMainCol =
+          cIdx % 2 === 0 ? legacyCtx.rgb(38, 198, 218) : legacyCtx.rgb(255, 112, 67);
+        const fanDarkCol =
+          cIdx % 2 === 0 ? legacyCtx.rgb(0, 131, 143) : legacyCtx.rgb(191, 54, 12);
+        const tipCol =
+          cIdx % 2 === 0 ? legacyCtx.rgb(255, 235, 59) : legacyCtx.rgb(255, 213, 79);
+
+        // 5 galhos ramificados abertos em leque (offsets X -18, -9, 0, +9, +18; alturas 34, 46, 52, 42, 28)
+        // Construídos com segmentos empilhados 6x8px, fundo vazado transparente e pontas brilhantes 3x3px
+        const branches = [
+          { offX: -18, h: 34 },
+          { offX: -9, h: 46 },
+          { offX: 0, h: 52 },
+          { offX: 9, h: 42 },
+          { offX: 18, h: 28 },
+        ];
+
+        let centralBranchObj: BenthicRenderNode | null = null;
+
+        for (const branch of branches) {
+          const segCount = Math.ceil(branch.h / 8);
+          let lastSegX = xPos + branch.offX;
+          let lastSegY = floorY - 8;
+
+          for (let s = 0; s < segCount; s++) {
+            const lean = Math.round((branch.offX / 18) * s * 1.5);
+            const segX = xPos + branch.offX + lean;
+            const segY = floorY - 8 - s * 8;
+
+            const segment = legacyCtx.add([
+              legacyCtx.rect(6, 8, { radius: 2 }),
+              legacyCtx.pos(segX, segY),
+              legacyCtx.color(fanMainCol),
+              legacyCtx.opacity(0.98 * (0.4 + 0.6 * transitionFactor)),
+              legacyCtx.anchor("bot"),
+              legacyCtx.z(-3),
+              "coral_fan_segment",
+            ]) as unknown as BenthicRenderNode;
+            cullingManager?.registerEntity(segment as unknown as CullingTarget, () => xPos);
+
+            if (branch.offX === 0 && s === 0) {
+              centralBranchObj = segment;
+            }
+
+            // Sombra e anel intercalado
+            if (s % 2 === 0) {
+              const ring = legacyCtx.add([
+                legacyCtx.rect(6, 2),
+                legacyCtx.pos(segX, segY - 1),
+                legacyCtx.color(fanDarkCol),
+                legacyCtx.opacity(0.85 * (0.4 + 0.6 * transitionFactor)),
+                legacyCtx.anchor("bot"),
+                legacyCtx.z(-3),
+              ]) as unknown as BenthicRenderNode;
+              cullingManager?.registerEntity(ring as unknown as CullingTarget, () => xPos);
+            }
+
+            // Sub-ramificações laterais curtas
+            if (s === 2 || s === 4) {
+              const stubDir = branch.offX >= 0 ? 1 : -1;
+              const stubX = segX + stubDir * 4;
+              const stub = legacyCtx.add([
+                legacyCtx.rect(4, 6, { radius: 2 }),
+                legacyCtx.pos(stubX, segY - 2),
+                legacyCtx.color(fanMainCol),
+                legacyCtx.opacity(0.95 * (0.4 + 0.6 * transitionFactor)),
+                legacyCtx.anchor("bot"),
+                legacyCtx.z(-3),
+              ]) as unknown as BenthicRenderNode;
+              cullingManager?.registerEntity(stub as unknown as CullingTarget, () => xPos);
+
+              const stubTip = legacyCtx.add([
+                legacyCtx.rect(3, 3),
+                legacyCtx.pos(stubX, segY - 6),
+                legacyCtx.color(tipCol),
+                legacyCtx.opacity(1.0 * (0.4 + 0.6 * transitionFactor)),
+                legacyCtx.anchor("center"),
+                legacyCtx.z(-3),
+              ]) as unknown as BenthicRenderNode;
+              cullingManager?.registerEntity(stubTip as unknown as CullingTarget, () => xPos);
+            }
+
+            lastSegX = segX;
+            lastSegY = segY;
+          }
+
+          // Ponta brilhante 3x3px no topo do galho
+          const tip = legacyCtx.add([
+            legacyCtx.rect(3, 3),
+            legacyCtx.pos(lastSegX, lastSegY - 8),
+            legacyCtx.color(tipCol),
+            legacyCtx.opacity(1.0 * (0.4 + 0.6 * transitionFactor)),
+            legacyCtx.anchor("center"),
+            legacyCtx.z(-3),
+          ]) as unknown as BenthicRenderNode;
+          cullingManager?.registerEntity(tip as unknown as CullingTarget, () => xPos);
+        }
+
+        corals.push({
+          obj: centralBranchObj ?? baseShadow,
+          type: "fan",
+          baseY: floorY - 8,
+          animPhase: cIdx,
+        });
       } else {
+        // Base rochosa da anêmona
+        const baseShadow = legacyCtx.add([
+          legacyCtx.rect(36, 6),
+          legacyCtx.pos(xPos, floorY),
+          legacyCtx.color(15, 37, 55),
+          legacyCtx.opacity(0.96 * (0.4 + 0.6 * transitionFactor)),
+          legacyCtx.anchor("bot"),
+          legacyCtx.z(-3),
+        ]) as unknown as BenthicRenderNode;
+        cullingManager?.registerEntity(baseShadow as unknown as CullingTarget, () => xPos);
+
+        // Coluna da anêmona
         const anemone = legacyCtx.add([
-          legacyCtx.rect(44, 26, { radius: 11 }),
-          legacyCtx.pos(xPos, floorY - 4),
-          legacyCtx.color(65, 230, 190),
-          legacyCtx.opacity(0.9 * (0.4 + 0.6 * transitionFactor)),
+          legacyCtx.rect(28, 18, { radius: 6 }),
+          legacyCtx.pos(xPos, floorY - 6),
+          legacyCtx.color(0, 137, 123),
+          legacyCtx.opacity(0.98 * (0.4 + 0.6 * transitionFactor)),
           legacyCtx.anchor("bot"),
           legacyCtx.scale(1, 1),
           legacyCtx.z(-3),
@@ -943,15 +1207,26 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
         ]) as unknown as BenthicRenderNode;
         cullingManager?.registerEntity(anemone as unknown as CullingTarget, () => xPos);
 
+        // Disco oral
+        const oralDisc = legacyCtx.add([
+          legacyCtx.rect(34, 4),
+          legacyCtx.pos(xPos, floorY - 22),
+          legacyCtx.color(255, 235, 59),
+          legacyCtx.opacity(0.95),
+          legacyCtx.anchor("bot"),
+          legacyCtx.z(-3),
+        ]) as unknown as BenthicRenderNode;
+        cullingManager?.registerEntity(oralDisc as unknown as CullingTarget, () => xPos);
+
         const tentacles: BenthicRenderNode[] = [];
         for (let t = -3; t <= 3; t++) {
           const tentacle = legacyCtx.add([
-            legacyCtx.rect(3, 16, { radius: 2 }),
-            legacyCtx.pos(xPos + t * 4, floorY - 12),
-            legacyCtx.color(110, 255, 220),
-            legacyCtx.opacity(0.85 * (0.4 + 0.6 * transitionFactor)),
+            legacyCtx.rect(4, 18, { radius: 2 }),
+            legacyCtx.pos(xPos + t * 4, floorY - 20),
+            legacyCtx.color(240, 98, 146),
+            legacyCtx.opacity(0.92 * (0.4 + 0.6 * transitionFactor)),
             legacyCtx.anchor("bot"),
-            legacyCtx.rotate(t * 8),
+            legacyCtx.rotate(t * 7),
             legacyCtx.z(-3),
           ]) as unknown as BenthicRenderNode;
           cullingManager?.registerEntity(tentacle as unknown as CullingTarget, () => xPos);
@@ -961,24 +1236,39 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
         corals.push({
           obj: anemone,
           type: "anemone",
-          baseY: floorY - 4,
+          baseY: floorY - 6,
           animPhase: cIdx,
           tentacles,
         });
       }
 
       if (cIdx % 2 === 0) {
-        const fishColor =
-          cIdx % 4 === 0 ? legacyCtx.rgb(255, 225, 60) : legacyCtx.rgb(50, 160, 255);
+        const isYellow = cIdx % 4 === 0;
+        const fishBodyCol = isYellow ? legacyCtx.rgb(255, 202, 40) : legacyCtx.rgb(38, 198, 218);
+        const fishFinCol = isYellow ? legacyCtx.rgb(255, 112, 67) : legacyCtx.rgb(171, 71, 188);
+
+        // Peixe recifal com cauda bifurcada em V, corpo fusiforme e olho anatômico
         const reefFish = legacyCtx.add([
           legacyCtx.polygon([
-            legacyCtx.vec2(-8, -4),
-            legacyCtx.vec2(6, 0),
-            legacyCtx.vec2(-8, 4),
-            legacyCtx.vec2(-12, 0),
+            // Cauda bifurcada
+            legacyCtx.vec2(-10, -5),
+            legacyCtx.vec2(-6, -1),
+            legacyCtx.vec2(-4, 0),
+            legacyCtx.vec2(-6, 1),
+            legacyCtx.vec2(-10, 5),
+            legacyCtx.vec2(-4, 2),
+            // Dorso e cabeça
+            legacyCtx.vec2(2, 4),
+            legacyCtx.vec2(8, 2),
+            legacyCtx.vec2(10, 0),
+            // Focinho e ventre
+            legacyCtx.vec2(8, -2),
+            legacyCtx.vec2(2, -4),
+            legacyCtx.vec2(-4, -2),
           ]),
           legacyCtx.pos(xPos + 15, floorY - 45 - (cIdx % 3) * 15),
-          legacyCtx.color(fishColor),
+          legacyCtx.color(fishBodyCol),
+          legacyCtx.outline(1, fishFinCol),
           legacyCtx.z(-3),
           "reef_fish",
           {
@@ -998,9 +1288,13 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
           reefFish.onUpdate(() => {
             if (reefFish.hidden) return;
             const t = legacyCtx.time();
+            const swimCycle = t * reefFish.swimSpeed * 2.2 + reefFish.phase;
+            if (typeof (reefFish as any).angle === "number" || (reefFish as any).angle !== undefined) {
+              (reefFish as any).angle = Math.sin(swimCycle) * 6.5;
+            }
             reefFish.pos.x =
-              reefFish.basePos.x + Math.sin(t * reefFish.swimSpeed + reefFish.phase) * 18;
-            reefFish.pos.y = reefFish.basePos.y + Math.cos(t * 1.8 + reefFish.phase) * 6;
+              reefFish.basePos.x + Math.sin(t * reefFish.swimSpeed + reefFish.phase) * 22;
+            reefFish.pos.y = reefFish.basePos.y + Math.cos(swimCycle * 0.8) * 8;
           });
         }
       }
