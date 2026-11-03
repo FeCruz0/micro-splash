@@ -9,6 +9,7 @@ import type {
   CanyonOutlinedGameObject,
 } from "./canyonTypes";
 import { getSpatialCullingManager, type CullableTargetObject } from "../spatialCullingSystem";
+import { getSpatialGrid } from "../spatialHashGrid";
 
 export function setupCanyonGeometry<
   TColor = unknown,
@@ -17,8 +18,6 @@ export function setupCanyonGeometry<
   const {
     surfaceY,
     deepFloorY,
-    shallowRockTopY,
-    seabedThickness,
     boqueiraoStartX,
     rampUpEndX,
     plateauEndX,
@@ -37,22 +36,23 @@ export function setupCanyonGeometry<
   // =========================================================================
 
   const cullingManager = getSpatialCullingManager();
+  const spatialGrid = getSpatialGrid();
 
   // A. Rampa de Subida Orgânica (25.400m a 25.800m)
   const rampUpWidth = rampUpEndX - boqueiraoStartX;
+  const crestY = 190;
   const rampUpShape = k.add([
     k.polygon([
-      k.vec2(0, deepFloorY + 140),
+      k.vec2(0, 1200),
       k.vec2(0, deepFloorY),
-      k.vec2(rampUpWidth * 0.2, deepFloorY - (deepFloorY - shallowRockTopY) * 0.22),
-      k.vec2(rampUpWidth * 0.45, deepFloorY - (deepFloorY - shallowRockTopY) * 0.5),
-      k.vec2(rampUpWidth * 0.72, deepFloorY - (deepFloorY - shallowRockTopY) * 0.78),
-      k.vec2(rampUpWidth * 0.9, shallowRockTopY + 8),
-      k.vec2(rampUpWidth, shallowRockTopY),
-      k.vec2(rampUpWidth, deepFloorY + 140),
+      k.vec2(rampUpWidth * 0.25, deepFloorY - (deepFloorY - crestY) * 0.2),
+      k.vec2(rampUpWidth * 0.55, deepFloorY - (deepFloorY - crestY) * 0.5),
+      k.vec2(rampUpWidth * 0.8, deepFloorY - (deepFloorY - crestY) * 0.8),
+      k.vec2(rampUpWidth, crestY),
+      k.vec2(rampUpWidth, 1200),
     ]),
     k.pos(boqueiraoStartX, 0),
-    k.color(36, 46, 60),
+    k.color(127, 140, 141), // 0x7F8C8D (gnaisse)
     k.outline(2, k.rgb(60, 80, 100)),
     k.z(2),
     TAGS.OBSTACLE,
@@ -65,18 +65,16 @@ export function setupCanyonGeometry<
   ]) as CanyonOutlinedGameObject<TColor>;
   cullingManager?.registerEntity(rampUpShape as unknown as CullableTargetObject, () => boqueiraoStartX + rampUpWidth / 2);
 
-  // Colisores Físicos Sólidos da Rampa de Subida
+  // Colisores Físicos Sólidos da Rampa de Subida (estendidos até o limite abissal)
   const upSegments = 4;
   const upSegW = rampUpWidth / upSegments;
   for (let i = 0; i < upSegments; i++) {
     const segX = boqueiraoStartX + i * upSegW;
     const t = (i + 0.5) / upSegments;
-    const segTopY = deepFloorY - t * (deepFloorY - shallowRockTopY);
+    const segTopY = deepFloorY - t * (deepFloorY - crestY);
     k.add([
-      k.rect(upSegW + 4, deepFloorY + 140 - segTopY),
+      k.rect(upSegW + 4, deepFloorY + 140 - segTopY + 800),
       k.pos(segX, segTopY),
-      k.area(),
-      k.body({ isStatic: true }),
       k.opacity(0),
       k.z(3),
       TAGS.OBSTACLE,
@@ -88,14 +86,14 @@ export function setupCanyonGeometry<
   k.add([
     k.polygon([
       k.vec2(0, deepFloorY),
-      k.vec2(rampUpWidth * 0.2, deepFloorY - (deepFloorY - shallowRockTopY) * 0.22),
-      k.vec2(rampUpWidth * 0.45, deepFloorY - (deepFloorY - shallowRockTopY) * 0.5),
-      k.vec2(rampUpWidth * 0.72, deepFloorY - (deepFloorY - shallowRockTopY) * 0.78),
-      k.vec2(rampUpWidth, shallowRockTopY),
-      k.vec2(rampUpWidth, shallowRockTopY + 8),
-      k.vec2(rampUpWidth * 0.72, deepFloorY - (deepFloorY - shallowRockTopY) * 0.78 + 8),
-      k.vec2(rampUpWidth * 0.45, deepFloorY - (deepFloorY - shallowRockTopY) * 0.5 + 8),
-      k.vec2(rampUpWidth * 0.2, deepFloorY - (deepFloorY - shallowRockTopY) * 0.22 + 8),
+      k.vec2(rampUpWidth * 0.25, deepFloorY - (deepFloorY - crestY) * 0.2),
+      k.vec2(rampUpWidth * 0.55, deepFloorY - (deepFloorY - crestY) * 0.5),
+      k.vec2(rampUpWidth * 0.8, deepFloorY - (deepFloorY - crestY) * 0.8),
+      k.vec2(rampUpWidth, crestY),
+      k.vec2(rampUpWidth, crestY + 8),
+      k.vec2(rampUpWidth * 0.8, deepFloorY - (deepFloorY - crestY) * 0.8 + 8),
+      k.vec2(rampUpWidth * 0.55, deepFloorY - (deepFloorY - crestY) * 0.5 + 8),
+      k.vec2(rampUpWidth * 0.25, deepFloorY - (deepFloorY - crestY) * 0.2 + 8),
       k.vec2(0, deepFloorY + 8),
     ]),
     k.pos(boqueiraoStartX, 0),
@@ -103,41 +101,242 @@ export function setupCanyonGeometry<
     k.z(3),
   ]);
 
-  // B. Platô Rochoso Central do Boqueirão (25.800m a 26.900m)
+  // B. Estreito Submarino em V do Boqueirão (25.800m a 26.900m)
+  // Substitui o platô plano trapezoidal por um desfiladeiro submarino fiel à geologia real
+  // com rocha gnaisse (0x7F8C8D), diques vulcânicos de diabásio (0x2C3E50 e 0x1A252F) e pontilhamento 4x4px.
   const plateauWidth = plateauEndX - rampUpEndX;
-  const plateauObj = k.add([
-    k.rect(plateauWidth, seabedThickness),
-    k.pos(rampUpEndX, shallowRockTopY),
-    k.area(),
-    k.body({ isStatic: true }),
-    k.color(34, 44, 58),
-    k.outline(2, k.rgb(60, 80, 100)),
-    k.z(2),
-    TAGS.OBSTACLE,
-    "boqueirao_rock",
-    {
-      reveal() {
-        revealTimer = GAME_CONFIG.SONAR_REVEAL_DURATION;
-      },
-    },
+  const canyonMidX = rampUpEndX + plateauWidth / 2;
+
+  const rightWallOffsetX = plateauWidth - 640;
+  const valleyStartX = rampUpEndX + 200;
+  const valleyEndX = rampUpEndX + rightWallOffsetX + 440;
+  const valleyWidth = Math.max(10, valleyEndX - valleyStartX);
+
+  // Parede Esquerda
+  const leftWallShape = k.add([
+    k.polygon([ k.vec2(0, 1200), k.vec2(0, 190), k.vec2(150, 340), k.vec2(200, 1200) ]),
+    k.pos(rampUpEndX, 0), k.color(127, 140, 141), k.z(2), TAGS.OBSTACLE, "boqueirao_rock", "canyon_left_wall",
+    { reveal() { revealTimer = GAME_CONFIG.SONAR_REVEAL_DURATION; } }
   ]) as CanyonOutlinedGameObject<TColor>;
-  cullingManager?.registerEntity(plateauObj as unknown as CullableTargetObject, () => rampUpEndX + plateauWidth / 2);
+  cullingManager?.registerEntity(leftWallShape as unknown as CullableTargetObject, () => rampUpEndX + 100);
+  spatialGrid?.insert(
+    "boqueirao_canyon_left_wall",
+    leftWallShape,
+    { minX: rampUpEndX, minY: 190, maxX: rampUpEndX + 200, maxY: 1200 },
+    true
+  );
+
+  // Parede Direita
+  const rightWallShape = k.add([
+    k.polygon([ k.vec2(440, 1200), k.vec2(490, 340), k.vec2(640, 190), k.vec2(640, 1200) ]),
+    k.pos(rampUpEndX + rightWallOffsetX, 0), k.color(127, 140, 141), k.z(2), TAGS.OBSTACLE, "boqueirao_rock", "canyon_right_wall",
+    { reveal() { revealTimer = GAME_CONFIG.SONAR_REVEAL_DURATION; } }
+  ]) as CanyonOutlinedGameObject<TColor>;
+  cullingManager?.registerEntity(rightWallShape as unknown as CullableTargetObject, () => rampUpEndX + rightWallOffsetX + 540);
+  spatialGrid?.insert(
+    "boqueirao_canyon_right_wall",
+    rightWallShape,
+    { minX: rampUpEndX + rightWallOffsetX + 440, minY: 190, maxX: rampUpEndX + rightWallOffsetX + 640, maxY: 1200 },
+    true
+  );
+
+  // Fundo do Vale
+  const plateauObj = k.add([
+    k.polygon([ k.vec2(-50, 340), k.vec2(valleyWidth + 50, 340), k.vec2(valleyWidth + 50, 1200), k.vec2(-50, 1200) ]),
+    k.pos(valleyStartX, 0), k.color(127, 140, 141), k.z(2), TAGS.OBSTACLE, "boqueirao_rock", "canyon_valley_floor",
+    { reveal() { revealTimer = GAME_CONFIG.SONAR_REVEAL_DURATION; } }
+  ]) as CanyonOutlinedGameObject<TColor>;
+  cullingManager?.registerEntity(plateauObj as unknown as CullableTargetObject, () => canyonMidX);
+  spatialGrid?.insert(
+    "boqueirao_canyon_valley_floor",
+    plateauObj,
+    { minX: valleyStartX - 50, minY: 340, maxX: valleyStartX + valleyWidth + 50, maxY: 1200 },
+    true
+  );
+
+  // 4. Diques de Diabásio Vulcânico (0x2C3E50 e 0x1A252F) cortando o gnaisse dentro das novas paredes
+  // Dique 1 (Parede Esquerda - diagonal ascendente na rocha)
+  k.add([
+    k.polygon([
+      k.vec2(30, 205),
+      k.vec2(55, 230),
+      k.vec2(120, 335),
+      k.vec2(95, 345),
+    ]),
+    k.pos(rampUpEndX, 0),
+    k.color(44, 62, 80), // 0x2C3E50
+    k.z(3),
+    "boqueirao_diabase_dike",
+  ]);
+
+  // Dique 2 (Parede Esquerda - faixa profunda perto do fundo)
+  k.add([
+    k.polygon([
+      k.vec2(30, 240),
+      k.vec2(55, 240),
+      k.vec2(150, 340),
+      k.vec2(130, 340),
+    ]),
+    k.pos(rampUpEndX, 0),
+    k.color(26, 37, 47), // 0x1A252F
+    k.z(3),
+    "boqueirao_diabase_dike",
+  ]);
+
+  // Dique 3 (Parede Direita - diagonal ascendente na rocha)
+  k.add([
+    k.polygon([
+      k.vec2(610, 205),
+      k.vec2(585, 230),
+      k.vec2(520, 335),
+      k.vec2(545, 340),
+    ]),
+    k.pos(rampUpEndX + rightWallOffsetX, 0),
+    k.color(44, 62, 80), // 0x2C3E50
+    k.z(3),
+    "boqueirao_diabase_dike",
+  ]);
+
+  // Dique 4 (Parede Direita - faixa profunda perto do fundo)
+  k.add([
+    k.polygon([
+      k.vec2(610, 240),
+      k.vec2(585, 240),
+      k.vec2(490, 340),
+      k.vec2(510, 340),
+    ]),
+    k.pos(rampUpEndX + rightWallOffsetX, 0),
+    k.color(26, 37, 47), // 0x1A252F
+    k.z(3),
+    "boqueirao_diabase_dike",
+  ]);
+
+  // Dique 5 (Fundo do Estreito - veio transversal no vale)
+  k.add([
+    k.polygon([
+      k.vec2(valleyWidth * 0.42, 340),
+      k.vec2(valleyWidth * 0.42 + 25, 340),
+      k.vec2(valleyWidth * 0.42 + 20, 380),
+      k.vec2(valleyWidth * 0.42 - 5, 380),
+    ]),
+    k.pos(valleyStartX, 0),
+    k.color(26, 37, 47), // 0x1A252F
+    k.z(3),
+    "boqueirao_diabase_dike",
+  ]);
+
+  // 5. Bordas texturizadas com pontilhamento 4x4px nas beiradas inclinadas para quebrar a linha reta do polígono
+  const leftEdgeSteps = [
+    { x: 35, y: 200 },
+    { x: 60, y: 230 },
+    { x: 85, y: 260 },
+    { x: 110, y: 285 },
+    { x: 130, y: 310 },
+    { x: 140, y: 325 },
+    { x: 146, y: 334 },
+  ];
+  for (const step of leftEdgeSteps) {
+    k.add([
+      k.rect(4, 4),
+      k.pos(rampUpEndX + step.x, step.y),
+      k.color(44, 62, 80),
+      k.z(3),
+      "boqueirao_dither",
+    ]);
+    k.add([
+      k.rect(4, 4),
+      k.pos(rampUpEndX + step.x - 4, step.y + 4),
+      k.color(26, 37, 47),
+      k.z(3),
+      "boqueirao_dither",
+    ]);
+  }
+
+  const rightEdgeSteps = [
+    { x: 605, y: 200 },
+    { x: 580, y: 230 },
+    { x: 555, y: 260 },
+    { x: 530, y: 285 },
+    { x: 510, y: 310 },
+    { x: 500, y: 325 },
+    { x: 494, y: 334 },
+  ];
+  for (const step of rightEdgeSteps) {
+    k.add([
+      k.rect(4, 4),
+      k.pos(rampUpEndX + rightWallOffsetX + step.x, step.y),
+      k.color(44, 62, 80),
+      k.z(3),
+      "boqueirao_dither",
+    ]);
+    k.add([
+      k.rect(4, 4),
+      k.pos(rampUpEndX + rightWallOffsetX + step.x + 4, step.y + 4),
+      k.color(26, 37, 47),
+      k.z(3),
+      "boqueirao_dither",
+    ]);
+  }
+
+  // 6. Colisores Físicos Sólidos nas Paredes e Vale do Estreito (estendidos até o limite abissal)
+  // Parede Esquerda (degraus subindo de 340 até 190, ancorados no maciço profundo)
+  const leftSegments = 5;
+  for (let i = 0; i < leftSegments; i++) {
+    const t = i / leftSegments;
+    const sx = rampUpEndX + t * 150;
+    const sy = 190 + t * 150; // de 190 até 340
+    const segH = 360 - sy + 800;
+    k.add([
+      k.rect(35, segH),
+      k.pos(sx, sy),
+      k.opacity(0),
+      k.z(3),
+      TAGS.OBSTACLE,
+      "boqueirao_rock_collider",
+    ]);
+  }
+
+  // Parede Direita (degraus simétricos descendo de 190 até 340, ancorados no maciço profundo)
+  const rightSegments = 5;
+  for (let i = 0; i < rightSegments; i++) {
+    const t = i / rightSegments;
+    const sx = rampUpEndX + rightWallOffsetX + 640 - (1 - t) * 150;
+    const sy = 340 - t * 150; // de 340 até 190
+    const segH = 360 - sy + 800;
+    k.add([
+      k.rect(35, segH),
+      k.pos(sx - 35, sy),
+      k.opacity(0),
+      k.z(3),
+      TAGS.OBSTACLE,
+      "boqueirao_rock_collider",
+    ]);
+  }
+
+  // Colisor do Vale Central (Fundo do Estreito maciço selado hermeticamente)
+  k.add([
+    k.rect(valleyWidth + 100, 800),
+    k.pos(valleyStartX - 50, 340),
+    k.opacity(0),
+    k.z(3),
+    TAGS.OBSTACLE,
+    "boqueirao_rock_collider",
+  ]);
 
   // C. Rampa de Descida Orgânica (26.900m a 27.300m)
   const rampDownWidth = boqueiraoEndX - plateauEndX;
   const rampDownShape = k.add([
     k.polygon([
-      k.vec2(0, shallowRockTopY),
-      k.vec2(rampDownWidth * 0.15, shallowRockTopY + 6),
-      k.vec2(rampDownWidth * 0.35, shallowRockTopY + (deepFloorY - shallowRockTopY) * 0.3),
-      k.vec2(rampDownWidth * 0.62, shallowRockTopY + (deepFloorY - shallowRockTopY) * 0.65),
-      k.vec2(rampDownWidth * 0.85, shallowRockTopY + (deepFloorY - shallowRockTopY) * 0.88),
+      k.vec2(0, crestY),
+      k.vec2(rampDownWidth * 0.2, deepFloorY - (deepFloorY - crestY) * 0.8),
+      k.vec2(rampDownWidth * 0.45, deepFloorY - (deepFloorY - crestY) * 0.5),
+      k.vec2(rampDownWidth * 0.75, deepFloorY - (deepFloorY - crestY) * 0.2),
       k.vec2(rampDownWidth, deepFloorY),
-      k.vec2(rampDownWidth, deepFloorY + 140),
-      k.vec2(0, deepFloorY + 140),
+      k.vec2(rampDownWidth, 1200),
+      k.vec2(0, 1200),
     ]),
     k.pos(plateauEndX, 0),
-    k.color(36, 46, 60),
+    k.color(127, 140, 141), // 0x7F8C8D (gnaisse)
     k.outline(2, k.rgb(60, 80, 100)),
     k.z(2),
     TAGS.OBSTACLE,
@@ -150,18 +349,16 @@ export function setupCanyonGeometry<
   ]) as CanyonOutlinedGameObject<TColor>;
   cullingManager?.registerEntity(rampDownShape as unknown as CullableTargetObject, () => plateauEndX + rampDownWidth / 2);
 
-  // Colisores Físicos Sólidos da Rampa de Descida
+  // Colisores Físicos Sólidos da Rampa de Descida (estendidos até o limite abissal)
   const downSegments = 4;
   const downSegW = rampDownWidth / downSegments;
   for (let i = 0; i < downSegments; i++) {
     const segX = plateauEndX + i * downSegW;
     const t = (i + 0.5) / downSegments;
-    const segTopY = shallowRockTopY + t * (deepFloorY - shallowRockTopY);
+    const segTopY = crestY + t * (deepFloorY - crestY);
     k.add([
-      k.rect(downSegW + 4, deepFloorY + 140 - segTopY),
+      k.rect(downSegW + 4, deepFloorY + 140 - segTopY + 800),
       k.pos(segX, segTopY),
-      k.area(),
-      k.body({ isStatic: true }),
       k.opacity(0),
       k.z(3),
       TAGS.OBSTACLE,
@@ -172,14 +369,16 @@ export function setupCanyonGeometry<
   // Cobertura de musgo na rampa de descida
   k.add([
     k.polygon([
-      k.vec2(0, shallowRockTopY),
-      k.vec2(rampDownWidth * 0.35, shallowRockTopY + (deepFloorY - shallowRockTopY) * 0.3),
-      k.vec2(rampDownWidth * 0.62, shallowRockTopY + (deepFloorY - shallowRockTopY) * 0.65),
+      k.vec2(0, crestY),
+      k.vec2(rampDownWidth * 0.2, deepFloorY - (deepFloorY - crestY) * 0.8),
+      k.vec2(rampDownWidth * 0.45, deepFloorY - (deepFloorY - crestY) * 0.5),
+      k.vec2(rampDownWidth * 0.75, deepFloorY - (deepFloorY - crestY) * 0.2),
       k.vec2(rampDownWidth, deepFloorY),
       k.vec2(rampDownWidth, deepFloorY + 8),
-      k.vec2(rampDownWidth * 0.62, shallowRockTopY + (deepFloorY - shallowRockTopY) * 0.65 + 8),
-      k.vec2(rampDownWidth * 0.35, shallowRockTopY + (deepFloorY - shallowRockTopY) * 0.3 + 8),
-      k.vec2(0, shallowRockTopY + 8),
+      k.vec2(rampDownWidth * 0.75, deepFloorY - (deepFloorY - crestY) * 0.2 + 8),
+      k.vec2(rampDownWidth * 0.45, deepFloorY - (deepFloorY - crestY) * 0.5 + 8),
+      k.vec2(rampDownWidth * 0.2, deepFloorY - (deepFloorY - crestY) * 0.8 + 8),
+      k.vec2(0, crestY + 8),
     ]),
     k.pos(plateauEndX, 0),
     k.color(28, 105, 80),
@@ -310,8 +509,6 @@ export function setupCanyonGeometry<
   k.add([
     k.rect(islandWidth - 90, surfaceY - islandPeakY + 15),
     k.pos(islandStartX + 45, islandPeakY),
-    k.area(),
-    k.body({ isStatic: true }),
     k.opacity(0),
     k.z(10),
     TAGS.OBSTACLE,
@@ -460,6 +657,8 @@ export function setupCanyonGeometry<
     rampUpShape,
     rampDownShape,
     cliffObj,
+    leftWallShape,
+    rightWallShape,
     lighthouseBeam,
     lanternGlow,
     reflectionSegments,

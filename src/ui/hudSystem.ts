@@ -217,7 +217,8 @@ export function setupHudSystem(
     stageRoot.addChild(oxygenBarFill);
 
     let totalTime = 0;
-    let currentUrgency: OxygenUrgencyState = "calm";
+    let lastPixiBiomeText = "";
+    let lastPixiDistanceText = "";
 
     const updateHud = () => {
       const dt = engineOrContext.getTicker().getDeltaTime();
@@ -229,10 +230,17 @@ export function setupHudSystem(
           : Math.max(0, playerController.gameObj?.pos?.x || 0);
 
       const biomeInfo = getBiomeHudInfo(currentDistance);
-      distanceText.setText(
-        `${formatDualDistance(currentDistance)} • ${biomeInfo.progressPercent}%`
-      );
-      biomeText.setText(`${biomeInfo.emoji} ${biomeInfo.name}`);
+      const nextBiomeStr = `${biomeInfo.emoji} ${biomeInfo.name}`;
+      if (nextBiomeStr !== lastPixiBiomeText) {
+        lastPixiBiomeText = nextBiomeStr;
+        biomeText.setText(nextBiomeStr);
+      }
+
+      const nextDistanceStr = `${formatDualDistance(currentDistance)} • ${biomeInfo.progressPercent}%`;
+      if (nextDistanceStr !== lastPixiDistanceText) {
+        lastPixiDistanceText = nextDistanceStr;
+        distanceText.setText(nextDistanceStr);
+      }
 
       const currentOx =
         typeof playerController.getOxygen === "function" ? playerController.getOxygen() : 100;

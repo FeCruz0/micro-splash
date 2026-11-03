@@ -165,6 +165,7 @@ export function setupCollisions<TDestroyable = unknown>(
   // Colisão com formações rochosas (Ilha do Farol e Fundo Rochoso do Boqueirão) e navios cargueiros
   let lastObstacleBumpTime = 0;
   const spatialGrid = getSpatialGrid();
+  const playerAABB: SpatialAABB = { minX: 0, minY: 0, maxX: 0, maxY: 0 };
 
   if (spatialGrid && typeof k.onUpdate === "function") {
     k.onUpdate(() => {
@@ -172,12 +173,10 @@ export function setupCollisions<TDestroyable = unknown>(
       const playerObj = playerController.gameObj;
       if (!playerObj || !playerObj.pos) return;
 
-      const playerAABB: SpatialAABB = {
-        minX: playerObj.pos.x - 35,
-        minY: playerObj.pos.y - 18,
-        maxX: playerObj.pos.x + 35,
-        maxY: playerObj.pos.y + 18,
-      };
+      playerAABB.minX = playerObj.pos.x - 35;
+      playerAABB.minY = playerObj.pos.y - 18;
+      playerAABB.maxX = playerObj.pos.x + 35;
+      playerAABB.maxY = playerObj.pos.y + 18;
 
       const candidates = spatialGrid.queryAABB(playerAABB);
       const totalCandidates = candidates.length;

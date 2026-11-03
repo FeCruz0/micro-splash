@@ -66,24 +66,56 @@ export function setupCanyonCurrents<
       revealTimer -= dt;
       setRevealTimer(revealTimer);
       const pulseCol = k.rgb(0, 230, 255);
-      plateauObj.outline.color = pulseCol;
-      plateauObj.outline.width = 3;
-      rampUpShape.outline.color = pulseCol;
-      rampUpShape.outline.width = 3;
-      rampDownShape.outline.color = pulseCol;
-      rampDownShape.outline.width = 3;
-      cliffObj.outline.color = pulseCol;
-      cliffObj.outline.width = 3;
+      if (plateauObj.outline) {
+        plateauObj.outline.color = pulseCol;
+        plateauObj.outline.width = 3;
+      }
+      if (rampUpShape.outline) {
+        rampUpShape.outline.color = pulseCol;
+        rampUpShape.outline.width = 3;
+      }
+      if (rampDownShape.outline) {
+        rampDownShape.outline.color = pulseCol;
+        rampDownShape.outline.width = 3;
+      }
+      if (cliffObj.outline) {
+        cliffObj.outline.color = pulseCol;
+        cliffObj.outline.width = 3;
+      }
+      if (geometry.leftWallShape?.outline) {
+        geometry.leftWallShape.outline.color = pulseCol;
+        geometry.leftWallShape.outline.width = 3;
+      }
+      if (geometry.rightWallShape?.outline) {
+        geometry.rightWallShape.outline.color = pulseCol;
+        geometry.rightWallShape.outline.width = 3;
+      }
     } else {
       const defaultCol = k.rgb(60, 80, 100);
-      plateauObj.outline.color = defaultCol;
-      plateauObj.outline.width = 2;
-      rampUpShape.outline.color = defaultCol;
-      rampUpShape.outline.width = 1.5;
-      rampDownShape.outline.color = defaultCol;
-      rampDownShape.outline.width = 1.5;
-      cliffObj.outline.color = k.rgb(30, 38, 50);
-      cliffObj.outline.width = 2;
+      if (plateauObj.outline) {
+        plateauObj.outline.color = defaultCol;
+        plateauObj.outline.width = 2;
+      }
+      if (rampUpShape.outline) {
+        rampUpShape.outline.color = defaultCol;
+        rampUpShape.outline.width = 1.5;
+      }
+      if (rampDownShape.outline) {
+        rampDownShape.outline.color = defaultCol;
+        rampDownShape.outline.width = 1.5;
+      }
+      if (cliffObj.outline) {
+        cliffObj.outline.color = k.rgb(30, 38, 50);
+        cliffObj.outline.width = 2;
+      }
+      if (geometry.leftWallShape?.outline) {
+        geometry.leftWallShape.outline.color = defaultCol;
+        geometry.leftWallShape.outline.width = 2;
+      }
+      if (geometry.rightWallShape?.outline) {
+        geometry.rightWallShape.outline.color = defaultCol;
+        geometry.rightWallShape.outline.width = 2;
+      }
     }
 
     // Micro-oscilação suave dos tentáculos das anêmonas marinhas com o fluxo da ressurgência

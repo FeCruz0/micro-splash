@@ -76,7 +76,9 @@ export function animateScoreCounter(
       target.setText(formatted);
     } else {
       try {
-        target.text = formatted;
+        if (target.text !== formatted) {
+          target.text = formatted;
+        }
       } catch {}
     }
   };

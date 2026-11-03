@@ -159,9 +159,11 @@ export function revealEntitiesInSonarRadius(
 
   let revealedCount = 0;
   let echoCount = 0;
-  targets.forEach((targetEntity: RevealableTarget) => {
-    if (!targetEntity.pos) return;
-    if (Math.abs(targetEntity.pos.x - centerPosition.x) > scanRadius) return;
+  const targetCount = targets.length;
+  for (let tIdx = 0; tIdx < targetCount; tIdx++) {
+    const targetEntity = targets[tIdx] as RevealableTarget;
+    if (!targetEntity.pos) continue;
+    if (Math.abs(targetEntity.pos.x - centerPosition.x) > scanRadius) continue;
     const distanceToObject =
       typeof centerPosition.dist === "function"
         ? centerPosition.dist(targetEntity.pos)
@@ -223,10 +225,8 @@ export function revealEntitiesInSonarRadius(
               spark.onUpdate(() => {
                 const dt = k.dt();
                 if (spark.pos) {
-                  spark.pos =
-                    typeof spark.pos.add === "function"
-                      ? (spark.pos.add(dir.scale(dt)) as StrictPlayerVector2D)
-                      : k.vec2(spark.pos.x + dir.x * dt, spark.pos.y + dir.y * dt);
+                  spark.pos.x += dir.x * dt;
+                  spark.pos.y += dir.y * dt;
                 }
                 spark.opacity -= dt * 2.5;
                 if (spark.opacity <= 0) k.destroy(spark);
@@ -257,7 +257,7 @@ export function revealEntitiesInSonarRadius(
         }
       });
     }
-  });
+  }
 
   return revealedCount;
 }

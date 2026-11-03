@@ -2,7 +2,7 @@ import { COMPANION_CONFIG, GAME_CONFIG, TAGS } from "../../config";
 import { audioSystem } from "../../systems/audioSystem";
 import { revealEntitiesInSonarRadius } from "../player/playerSonar";
 import type { RandomNumberGenerator } from "../../utils/random";
-import type { SpatialHashGrid } from "../../systems/spatialHashGrid";
+import type { SpatialHashGrid, SpatialAABB } from "../../systems/spatialHashGrid";
 import type { CompanionGameObject, CompanionState, CompanionVector2D } from "./types";
 import type { CompanionEngineContext } from "./states/types";
 
@@ -58,6 +58,9 @@ export function createCompanionSenses<
   let sonarCooldownTimer = 10.0;
   let targetKrillEntity: TGameObj | null = null;
   let targetHazardEntity: TGameObj | null = null;
+  const hazardAABB: SpatialAABB = { minX: 0, minY: 0, maxX: 0, maxY: 0 };
+  const krillAABB: SpatialAABB = { minX: 0, minY: 0, maxX: 0, maxY: 0 };
+  const emptyCandidates: TGameObj[] = [];
 
   const triggerSonar = (): void => {
     const headX = companion.pos.x + 40;
@@ -132,19 +135,14 @@ export function createCompanionSenses<
       const hazardAheadRange = COMPANION_CONFIG.HAZARD_AVOID_RANGE;
       const hazardVertRange = COMPANION_CONFIG.HAZARD_VERTICAL_CLEARANCE;
 
+      hazardAABB.minX = companion.pos.x + 20;
+      hazardAABB.minY = companion.pos.y - hazardVertRange;
+      hazardAABB.maxX = companion.pos.x + hazardAheadRange;
+      hazardAABB.maxY = companion.pos.y + hazardVertRange;
+
       const candidates: TGameObj[] = spatialGrid
-        ? spatialGrid.queryAABB({
-            minX: companion.pos.x + 20,
-            minY: companion.pos.y - hazardVertRange,
-            maxX: companion.pos.x + hazardAheadRange,
-            maxY: companion.pos.y + hazardVertRange,
-          })
-        : [
-            ...(typeof k.get === "function" ? (k.get(TAGS.NET) as unknown as TGameObj[]) : []),
-            ...(typeof k.get === "function" ? (k.get(TAGS.OBSTACLE) as unknown as TGameObj[]) : []),
-            ...(typeof k.get === "function" ? (k.get(TAGS.TRASH) as unknown as TGameObj[]) : []),
-            ...(typeof k.get === "function" ? (k.get("ice_block") as unknown as TGameObj[]) : []),
-          ];
+        ? spatialGrid.queryAABB(hazardAABB)
+        : emptyCandidates;
 
       let closestHazard: TGameObj | null = null;
       let shortestHazardDist: number = hazardAheadRange;
@@ -187,16 +185,14 @@ export function createCompanionSenses<
       const aheadRange = COMPANION_CONFIG.RADAR_AHEAD_RANGE;
       const vertRange = COMPANION_CONFIG.RADAR_VERTICAL_RANGE;
 
+      krillAABB.minX = companion.pos.x + 20;
+      krillAABB.minY = companion.pos.y - vertRange;
+      krillAABB.maxX = companion.pos.x + aheadRange;
+      krillAABB.maxY = companion.pos.y + vertRange;
+
       const availableKrills: TGameObj[] = spatialGrid
-        ? spatialGrid.queryAABB({
-            minX: companion.pos.x + 20,
-            minY: companion.pos.y - vertRange,
-            maxX: companion.pos.x + aheadRange,
-            maxY: companion.pos.y + vertRange,
-          })
-        : typeof k.get === "function"
-          ? (k.get(TAGS.KRILL) as unknown as TGameObj[])
-          : [];
+        ? spatialGrid.queryAABB(krillAABB)
+        : emptyCandidates;
       let bestTarget: TGameObj | null = null;
       let shortestDist: number = aheadRange;
 

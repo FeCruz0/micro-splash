@@ -71,7 +71,9 @@ class PixiTextNodeProxy {
   }
 
   set text(value: string) {
-    this.textNode.setText(value);
+    if (this.textNode.getText() !== value) {
+      this.textNode.setText(value);
+    }
   }
 
   getNode(): ITextNode {
@@ -220,8 +222,12 @@ export function addShadowedText<
     main: mainObj,
     shadow: shadowObj,
     setText: (newText: string) => {
-      mainObj.text = newText;
-      shadowObj.text = newText;
+      if (mainObj.text !== newText) {
+        mainObj.text = newText;
+      }
+      if (shadowObj.text !== newText) {
+        shadowObj.text = newText;
+      }
     },
     destroy: () => {
       try {

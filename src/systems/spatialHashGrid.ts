@@ -15,7 +15,8 @@ export interface SpatialEntry<T> {
   id: string;
   item: T;
   bounds: SpatialAABB;
-  cellKeys: Set<string>;
+  cellKeys: Set<number>;
+  isStatic?: boolean;
 }
 
 export interface SpatialHashGridOptions {
@@ -30,8 +31,11 @@ export interface SpatialGridStats {
 
 export class SpatialHashGrid<T> {
   private readonly cellSize: number;
-  private readonly cells: Map<string, Map<string, SpatialEntry<T>>> = new Map();
+  private readonly cells: Map<number, Map<string, SpatialEntry<T>>> = new Map();
   private readonly entries: Map<string, SpatialEntry<T>> = new Map();
+  private readonly queryResult: T[] = [];
+  private readonly querySeen: Set<string> = new Set<string>();
+  private readonly cellKeysBuffer: number[] = [];
 
   constructor(options: SpatialHashGridOptions = {}) {
     this.cellSize = options.cellSize && options.cellSize > 0 ? options.cellSize : 200;
@@ -41,39 +45,42 @@ export class SpatialHashGrid<T> {
     return Math.floor(val / this.cellSize);
   }
 
-  private cellKey(cx: number, cy: number): string {
-    return `${cx}:${cy}`;
+  private cellKey(cx: number, cy: number): number {
+    return (cx << 16) | (cy & 0xffff);
   }
 
-  private getCellsForAABB(bounds: SpatialAABB): string[] {
+  private getCellsForAABB(bounds: SpatialAABB): number[] {
     const minCx = this.cellCoord(bounds.minX);
     const maxCx = this.cellCoord(bounds.maxX);
     const minCy = this.cellCoord(bounds.minY);
     const maxCy = this.cellCoord(bounds.maxY);
 
-    const keys: string[] = [];
+    this.cellKeysBuffer.length = 0;
     for (let cx = minCx; cx <= maxCx; cx++) {
       for (let cy = minCy; cy <= maxCy; cy++) {
-        keys.push(this.cellKey(cx, cy));
+        this.cellKeysBuffer.push(this.cellKey(cx, cy));
       }
     }
-    return keys;
+    return this.cellKeysBuffer;
   }
 
   /**
    * Insere um item na grade espacial delimitado por sua AABB.
+   * Suporta a flag isStatic para ignorar atualizações subsequentes em geometrias fixas.
    */
-  public insert(id: string, item: T, bounds: SpatialAABB): void {
+  public insert(id: string, item: T, bounds: SpatialAABB, isStatic: boolean = false): void {
     if (this.entries.has(id)) {
       this.remove(id);
     }
 
-    const cellKeys = new Set(this.getCellsForAABB(bounds));
+    const keys = this.getCellsForAABB(bounds);
+    const cellKeys = new Set(keys);
     const entry: SpatialEntry<T> = {
       id,
       item,
       bounds: { ...bounds },
       cellKeys,
+      isStatic,
     };
 
     for (const key of cellKeys) {
@@ -90,10 +97,11 @@ export class SpatialHashGrid<T> {
 
   /**
    * Atualiza a posição e dimensões de um item existente.
+   * Se o item for estático (isStatic), aborta imediatamente economizando 100% de CPU.
    */
   public update(id: string, bounds: SpatialAABB): boolean {
     const existing = this.entries.get(id);
-    if (!existing) {
+    if (!existing || existing.isStatic) {
       return false;
     }
 
@@ -111,7 +119,10 @@ export class SpatialHashGrid<T> {
       }
     }
 
-    existing.bounds = { ...bounds };
+    existing.bounds.minX = bounds.minX;
+    existing.bounds.minY = bounds.minY;
+    existing.bounds.maxX = bounds.maxX;
+    existing.bounds.maxY = bounds.maxY;
 
     if (keysChanged) {
       // Remove das células que não ocupa mais
@@ -184,19 +195,21 @@ export class SpatialHashGrid<T> {
 
   /**
    * Consulta itens contidos ou interceptados por uma AABB.
+   * Utiliza buffers reutilizados sem criar novos arrays ou Sets (Zero Heap Allocation).
    */
   public queryAABB(queryBounds: SpatialAABB): T[] {
     const keys = this.getCellsForAABB(queryBounds);
-    const visited = new Set<string>();
-    const results: T[] = [];
+    this.queryResult.length = 0;
+    this.querySeen.clear();
 
-    for (let i = 0; i < keys.length; i++) {
+    const keysLen = keys.length;
+    for (let i = 0; i < keysLen; i++) {
       const bucket = this.cells.get(keys[i]);
       if (!bucket) continue;
 
       for (const [id, entry] of bucket) {
-        if (visited.has(id)) continue;
-        visited.add(id);
+        if (this.querySeen.has(id)) continue;
+        this.querySeen.add(id);
 
         // Teste de intersecção estrita de AABB
         if (
@@ -205,16 +218,17 @@ export class SpatialHashGrid<T> {
           entry.bounds.maxY >= queryBounds.minY &&
           entry.bounds.minY <= queryBounds.maxY
         ) {
-          results.push(entry.item);
+          this.queryResult.push(entry.item);
         }
       }
     }
 
-    return results;
+    return this.queryResult;
   }
 
   /**
    * Consulta itens dentro de um raio euclidiano a partir de um ponto central.
+   * Utiliza buffers reutilizados sem alocação dinâmica.
    */
   public queryRadius(
     centerX: number,
@@ -230,17 +244,18 @@ export class SpatialHashGrid<T> {
     };
 
     const keys = this.getCellsForAABB(queryBounds);
-    const visited = new Set<string>();
-    const results: T[] = [];
+    this.queryResult.length = 0;
+    this.querySeen.clear();
     const radiusSq = radius * radius;
+    const keysLen = keys.length;
 
-    for (let i = 0; i < keys.length; i++) {
+    for (let i = 0; i < keysLen; i++) {
       const bucket = this.cells.get(keys[i]);
       if (!bucket) continue;
 
       for (const [id, entry] of bucket) {
-        if (visited.has(id)) continue;
-        visited.add(id);
+        if (this.querySeen.has(id)) continue;
+        this.querySeen.add(id);
 
         // Se uma função de ponto for fornecida, calcula distância radial exata
         if (getPoint) {
@@ -248,22 +263,22 @@ export class SpatialHashGrid<T> {
           const dx = pt.x - centerX;
           const dy = pt.y - centerY;
           if (dx * dx + dy * dy <= radiusSq) {
-            results.push(entry.item);
+            this.queryResult.push(entry.item);
           }
         } else {
           // Aproximação pelo centro da AABB da entidade
-          const entCx = (entry.bounds.minX + entry.bounds.maxX) / 2;
-          const entCy = (entry.bounds.minY + entry.bounds.maxY) / 2;
+          const entCx = (entry.bounds.minX + entry.bounds.maxX) * 0.5;
+          const entCy = (entry.bounds.minY + entry.bounds.maxY) * 0.5;
           const dx = entCx - centerX;
           const dy = entCy - centerY;
           if (dx * dx + dy * dy <= radiusSq) {
-            results.push(entry.item);
+            this.queryResult.push(entry.item);
           }
         }
       }
     }
 
-    return results;
+    return this.queryResult;
   }
 
   /**

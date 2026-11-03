@@ -248,18 +248,23 @@ export function generateProceduralLayout(
   // =========================================================================
   // 5. BIOMA 5: SANTUÁRIO DE ARRAIAL DO CABO (25.000m - 29.500m)
   // =========================================================================
-  const nurseryNetXs = [25400, 26300, 27100, 27900, 28700, 29300];
-  const nurseryNetLayers = [midNetY1, shallowNetY, floorNetY, midNetY2, shallowNetY, floorNetY];
+  // Redes do Santuário (fora da garganta do cânion do Boqueirão 25.600m - 26.900m)
+  const nurseryNetXs = [25200, 27300, 27900, 28700, 29300];
+  const nurseryNetLayers = [midNetY1, floorNetY, midNetY2, shallowNetY, floorNetY];
   nurseryNetXs.forEach((baseX, idx) => {
-    const x = Math.round(baseX + (rand() - 0.5) * 100);
+    const x = Math.round(baseX + (rand() - 0.5) * 80);
     const y = nurseryNetLayers[idx % nurseryNetLayers.length];
     netPositions.push({ x, y });
   });
 
-  const nurseryTrashCount = 14 + Math.floor(rand() * 3);
+  const nurseryTrashCount = 12 + Math.floor(rand() * 3);
   const nurseryTrashStep = 4100 / nurseryTrashCount;
   for (let i = 0; i < nurseryTrashCount; i++) {
     const x = Math.round(25200 + i * nurseryTrashStep + (rand() - 0.5) * 80);
+    // Não polui o estreito natural do Boqueirão (25.600m a 26.900m)
+    if (x >= 25600 && x <= 26900) {
+      continue;
+    }
     const zone = i % 3;
     let y: number;
     if (zone === 0) {
@@ -268,10 +273,6 @@ export function generateProceduralLayout(
       y = Math.round(minY + usableHeight * 0.35 + rand() * (usableHeight * 0.3));
     } else {
       y = Math.round(minY + usableHeight * 0.68 + rand() * (usableHeight * 0.28));
-    }
-    // No canal raso do Boqueirão da Ilha do Farol (25.600m a 26.900m), o lixo fica na lâmina d'água superior
-    if (x >= 25600 && x <= 26900) {
-      y = Math.min(y, shallowNetY + 10);
     }
     trashPositions.push({ x, y });
   }
@@ -287,13 +288,14 @@ export function generateProceduralLayout(
   // Bolsão de Ar sereno no berçário
   bubbleVentPositions.push({ x: Math.round(27200 + rand() * 200), y: floorNetY, height: 230 });
 
-  // Única correnteza favorável no berçário para a aproximação suave da enseada (na superfície do Boqueirão)
+  // Correnteza Forte do Canal do Estreito do Boqueirão (Arraial do Cabo - 25.800m a 26.900m)
+  // Fluxo puramente horizontal simulando a forte corrente do canal submarino entre Pontal e Ilha do Farol
   currentZones.push({
-    startX: Math.round(26200 + (rand() - 0.5) * 150),
-    endX: Math.round(28200 + (rand() - 0.5) * 150),
-    y: shallowNetY + 10,
-    height: 110,
-    force: 180,
+    startX: 25800,
+    endX: 26900,
+    y: 80,
+    height: 260,
+    force: 80,
     type: "favorable",
   });
 

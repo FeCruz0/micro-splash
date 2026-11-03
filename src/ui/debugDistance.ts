@@ -407,8 +407,9 @@ export function createDebugDistanceUI(
           curFps = dt > 0 ? Math.round(1 / dt) : 60;
         }
 
-        cachedFpsText = `${curFps} FPS`;
-        fpsBadgeText.setText(cachedFpsText);
+        if (fpsBadgeText.getText() !== cachedFpsText) {
+          fpsBadgeText.setText(cachedFpsText);
+        }
 
         fpsBadgeBg.clear();
         let strokeColor: [number, number, number];
@@ -469,27 +470,29 @@ export function createDebugDistanceUI(
               ? `${perfStats.activeParticles}/${perfStats.totalParticles} part`
               : "--";
 
-          perfText.setText(`Taxa: ${fpsStr}   •   Objetos: ${entStr}   •   Pool: ${poolStr}`);
-          if (perfStats.budgetStatus) {
-            frameTimeText.setText(
-              `Latência: Méd ${metrics.avg}ms • p95 ${metrics.p95}ms • ${perfStats.budgetStatus}`
-            );
-          } else {
-            frameTimeText.setText(
-              `Latência: Méd ${metrics.avg}ms • p95 ${metrics.p95}ms • p99 ${metrics.p99}ms`
-            );
+          const nextPerf = `Taxa: ${fpsStr}   •   Objetos: ${entStr}   •   Pool: ${poolStr}`;
+          if (perfText.getText() !== nextPerf) {
+            perfText.setText(nextPerf);
+          }
+          const nextFrameTime = perfStats.budgetStatus
+            ? `Latência: Méd ${metrics.avg}ms • p95 ${metrics.p95}ms • ${perfStats.budgetStatus}`
+            : `Latência: Méd ${metrics.avg}ms • p95 ${metrics.p95}ms • p99 ${metrics.p99}ms`;
+          if (frameTimeText.getText() !== nextFrameTime) {
+            frameTimeText.setText(nextFrameTime);
           }
 
           const isCritical = curFps < 45 || avgFps < 45 || metrics.p95 > 22.0;
           if (isCritical) {
-            sparklineText.setText(
-              `⚠️ Alerta de Queda: ${curFps} FPS (Mín: ${minFps} | Méd: ${avgFps})`
-            );
+            const nextSpark = `⚠️ Alerta de Queda: ${curFps} FPS (Mín: ${minFps} | Méd: ${avgFps})`;
+            if (sparklineText.getText() !== nextSpark) {
+              sparklineText.setText(nextSpark);
+            }
             sparklineText.setColor([255, 110, 90]);
           } else {
-            sparklineText.setText(
-              `Desempenho Estável: Mín ${minFps} | Méd ${avgFps} | Máx ${maxFps} FPS`
-            );
+            const nextSpark = `Desempenho Estável: Mín ${minFps} | Méd ${avgFps} | Máx ${maxFps} FPS`;
+            if (sparklineText.getText() !== nextSpark) {
+              sparklineText.setText(nextSpark);
+            }
             sparklineText.setColor([130, 245, 190]);
           }
         }
@@ -499,9 +502,10 @@ export function createDebugDistanceUI(
         const biome = getCurrentBiome(clampedDist);
         const distFormatted = Math.floor(clampedDist).toLocaleString("pt-BR");
 
-        routeText.setText(
-          `Bioma: ${biome.name}\nDistância: ${distFormatted}m / ${totalFormatted}m (${percent}%)`
-        );
+        const nextRoute = `Bioma: ${biome.name}\nDistância: ${distFormatted}m / ${totalFormatted}m (${percent}%)`;
+        if (routeText.getText() !== nextRoute) {
+          routeText.setText(nextRoute);
+        }
 
         const progressWidth = (clampedDist / GAME_CONFIG.ROUTE_TOTAL_DISTANCE) * barWidth;
         progressBarFill.clear();
@@ -532,7 +536,10 @@ export function createDebugDistanceUI(
           const ratio = maxSpd > 0 ? speedLen / maxSpd : 0;
           const speedPercent = Math.round(ratio * 100);
 
-          speedText.setText(`Velocidade: ${speedLen} / ${maxSpd} px/s (${speedPercent}%)`);
+          const nextSpeed = `Velocidade: ${speedLen} / ${maxSpd} px/s (${speedPercent}%)`;
+          if (speedText.getText() !== nextSpeed) {
+            speedText.setText(nextSpeed);
+          }
 
           const currentSpeedBarWidth = Math.min(barWidth, ratio * barWidth);
           speedBarFill.clear();
@@ -564,11 +571,17 @@ export function createDebugDistanceUI(
           const oil = playerController.isOilObstructed?.() ? " • Óleo!" : "";
 
           if (isSerene) {
-            statusText.setText(`Fôlego: ∞ (Infinito)   •   Nutrição: +${krills}%${drafting}${oil}`);
+            const nextStatus = `Fôlego: ∞ (Infinito)   •   Nutrição: +${krills}%${drafting}${oil}`;
+            if (statusText.getText() !== nextStatus) {
+              statusText.setText(nextStatus);
+            }
             statusText.setColor([110, 255, 195]);
           } else {
             const oxygen = Math.floor(playerController.getOxygen?.() ?? 100);
-            statusText.setText(`Fôlego: ${oxygen}%   •   Nutrição: +${krills}%${drafting}${oil}`);
+            const nextStatus = `Fôlego: ${oxygen}%   •   Nutrição: +${krills}%${drafting}${oil}`;
+            if (statusText.getText() !== nextStatus) {
+              statusText.setText(nextStatus);
+            }
             if (oxygen <= 25) {
               statusText.setColor([255, 90, 90]);
             } else if (oxygen <= 50) {
@@ -583,7 +596,10 @@ export function createDebugDistanceUI(
             const t = playerController.getSpeedBoostTimer?.().toFixed(1);
             badges.push(`Correnteza ${t}s`);
           }
-          powerupText.setText(badges.length > 0 ? `★ ${badges.join(" | ")}` : "");
+          const nextPowerup = badges.length > 0 ? `★ ${badges.join(" | ")}` : "";
+          if (powerupText.getText() !== nextPowerup) {
+            powerupText.setText(nextPowerup);
+          }
         }
       },
     };
@@ -1024,7 +1040,10 @@ export function createDebugDistanceUI(
         curFps = dt > 0 ? Math.round(1 / dt) : 60;
       }
 
-      fpsBadgeText.text = `${curFps} FPS`;
+      const nextFpsBadge = `${curFps} FPS`;
+      if (fpsBadgeText.text !== nextFpsBadge) {
+        fpsBadgeText.text = nextFpsBadge;
+      }
       if (typeof engineOrContext.rgb === "function") {
         if (curFps >= 55) {
           fpsBadgeText.color = engineOrContext.rgb(74, 222, 128);
@@ -1071,21 +1090,31 @@ export function createDebugDistanceUI(
             ? `${perfStats.activeParticles}/${perfStats.totalParticles} part`
             : "--";
 
-        perfText.text = `Taxa: ${fpsStr}   •   Objetos: ${entStr}   •   Pool: ${poolStr}`;
-        if (perfStats.budgetStatus) {
-          frameTimeText.text = `Latência: Méd ${metrics.avg}ms • p95 ${metrics.p95}ms • ${perfStats.budgetStatus}`;
-        } else {
-          frameTimeText.text = `Latência: Méd ${metrics.avg}ms • p95 ${metrics.p95}ms • p99 ${metrics.p99}ms`;
+        const nextPerf = `Taxa: ${fpsStr}   •   Objetos: ${entStr}   •   Pool: ${poolStr}`;
+        if (perfText.text !== nextPerf) {
+          perfText.text = nextPerf;
+        }
+        const nextFrameTime = perfStats.budgetStatus
+          ? `Latência: Méd ${metrics.avg}ms • p95 ${metrics.p95}ms • ${perfStats.budgetStatus}`
+          : `Latência: Méd ${metrics.avg}ms • p95 ${metrics.p95}ms • p99 ${metrics.p99}ms`;
+        if (frameTimeText.text !== nextFrameTime) {
+          frameTimeText.text = nextFrameTime;
         }
 
         const isCritical = curFps < 45 || avgFps < 45 || metrics.p95 > 22.0;
         if (isCritical) {
-          sparklineText.text = `⚠️ Alerta de Queda: ${curFps} FPS (Mín: ${minFps} | Méd: ${avgFps})`;
+          const nextSpark = `⚠️ Alerta de Queda: ${curFps} FPS (Mín: ${minFps} | Méd: ${avgFps})`;
+          if (sparklineText.text !== nextSpark) {
+            sparklineText.text = nextSpark;
+          }
           if (typeof engineOrContext.rgb === "function") {
             sparklineText.color = engineOrContext.rgb(255, 110, 90);
           }
         } else {
-          sparklineText.text = `Desempenho Estável: Mín ${minFps} | Méd ${avgFps} | Máx ${maxFps} FPS`;
+          const nextSpark = `Desempenho Estável: Mín ${minFps} | Méd ${avgFps} | Máx ${maxFps} FPS`;
+          if (sparklineText.text !== nextSpark) {
+            sparklineText.text = nextSpark;
+          }
           if (typeof engineOrContext.rgb === "function") {
             sparklineText.color = engineOrContext.rgb(130, 245, 190);
           }
@@ -1097,7 +1126,10 @@ export function createDebugDistanceUI(
       const biome = getCurrentBiome(clampedDist);
       const distFormatted = Math.floor(clampedDist).toLocaleString("pt-BR");
 
-      routeText.text = `Bioma: ${biome.name}\nDistância: ${distFormatted}m / ${totalFormatted}m (${percent}%)`;
+      const nextRoute = `Bioma: ${biome.name}\nDistância: ${distFormatted}m / ${totalFormatted}m (${percent}%)`;
+      if (routeText.text !== nextRoute) {
+        routeText.text = nextRoute;
+      }
       progressBarFill.width = (clampedDist / GAME_CONFIG.ROUTE_TOTAL_DISTANCE) * barWidth;
       if (typeof engineOrContext.rgb === "function") {
         progressBarFill.color = engineOrContext.rgb(
@@ -1122,7 +1154,10 @@ export function createDebugDistanceUI(
         const ratio = maxSpd > 0 ? speedLen / maxSpd : 0;
         const speedPercent = Math.round(ratio * 100);
 
-        speedText.text = `Velocidade: ${speedLen} / ${maxSpd} px/s (${speedPercent}%)`;
+        const nextSpeed = `Velocidade: ${speedLen} / ${maxSpd} px/s (${speedPercent}%)`;
+        if (speedText.text !== nextSpeed) {
+          speedText.text = nextSpeed;
+        }
         speedBarFill.width = Math.min(barWidth, ratio * barWidth);
 
         if (typeof engineOrContext.rgb === "function") {
@@ -1143,13 +1178,19 @@ export function createDebugDistanceUI(
         const oil = playerController.isOilObstructed?.() ? " • Óleo!" : "";
 
         if (isSerene) {
-          statusText.text = `Fôlego: ∞ (Infinito)   •   Nutrição: +${krills}%${drafting}${oil}`;
+          const nextStatus = `Fôlego: ∞ (Infinito)   •   Nutrição: +${krills}%${drafting}${oil}`;
+          if (statusText.text !== nextStatus) {
+            statusText.text = nextStatus;
+          }
           if (typeof engineOrContext.rgb === "function") {
             statusText.color = engineOrContext.rgb(110, 255, 195);
           }
         } else {
           const oxygen = Math.floor(playerController.getOxygen?.() ?? 100);
-          statusText.text = `Fôlego: ${oxygen}%   •   Nutrição: +${krills}%${drafting}${oil}`;
+          const nextStatus = `Fôlego: ${oxygen}%   •   Nutrição: +${krills}%${drafting}${oil}`;
+          if (statusText.text !== nextStatus) {
+            statusText.text = nextStatus;
+          }
           if (typeof engineOrContext.rgb === "function") {
             if (oxygen <= 25) {
               statusText.color = engineOrContext.rgb(255, 90, 90);
@@ -1166,7 +1207,10 @@ export function createDebugDistanceUI(
           const t = playerController.getSpeedBoostTimer?.().toFixed(1);
           badges.push(`Correnteza ${t}s`);
         }
-        powerupText.text = badges.length > 0 ? `★ ${badges.join(" | ")}` : "";
+        const nextPowerup = badges.length > 0 ? `★ ${badges.join(" | ")}` : "";
+        if (powerupText.text !== nextPowerup) {
+          powerupText.text = nextPowerup;
+        }
       }
     },
   };

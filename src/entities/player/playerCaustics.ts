@@ -96,23 +96,6 @@ export function setupPlayerCaustics<TObj = CausticVisualObject>(
     };
   };
 
-  const addVec2 = (
-    baseVector: InternalVector2D,
-    offsetVector: { x: number; y: number }
-  ): InternalVector2D => {
-    if (typeof baseVector.add === "function") {
-      return baseVector.add(offsetVector);
-    }
-    return createVec2(baseVector.x + offsetVector.x, baseVector.y + offsetVector.y);
-  };
-
-  const scaleVec2 = (baseVector: InternalVector2D, factor: number): InternalVector2D => {
-    if (typeof baseVector.scale === "function") {
-      return baseVector.scale(factor);
-    }
-    return createVec2(baseVector.x * factor, baseVector.y * factor);
-  };
-
   const deg2rad =
     typeof engineContext.deg2rad === "function"
       ? engineContext.deg2rad
@@ -230,21 +213,10 @@ export function setupPlayerCaustics<TObj = CausticVisualObject>(
     const thoraxAngle = thoraxSlice ? thoraxSlice.relativeAngleInDegrees * 0.35 : 0;
 
     if (causticsProxy && causticsProxy.pos) {
-      const causticsOffset = addVec2(scaleVec2(upNormal, 7), thoraxOffset);
-      if (typeof baleia.pos.add === "function") {
-        causticsProxy.pos = (baleia.pos.add(causticsOffset) as {
-          x: number;
-          y: number;
-        }) ?? {
-          x: baleia.pos.x + causticsOffset.x,
-          y: baleia.pos.y + causticsOffset.y,
-        };
-      } else {
-        causticsProxy.pos = {
-          x: baleia.pos.x + causticsOffset.x,
-          y: baleia.pos.y + causticsOffset.y,
-        };
-      }
+      const causticsOffsetX = upNormal.x * 7 + thoraxOffset.x;
+      const causticsOffsetY = upNormal.y * 7 + thoraxOffset.y;
+      causticsProxy.pos.x = baleia.pos.x + causticsOffsetX;
+      causticsProxy.pos.y = baleia.pos.y + causticsOffsetY;
       causticsProxy.angle = baleia.angle + thoraxAngle;
       if (causticsProxy.scale && baleia.scale) {
         causticsProxy.scale.x = baleia.scale.x;
@@ -253,24 +225,11 @@ export function setupPlayerCaustics<TObj = CausticVisualObject>(
     }
 
     if (ventralProxy && ventralProxy.pos) {
-      const ventralOffset = addVec2(
-        scaleVec2(downNormal, 6 + Math.abs(pitchFlexion) * 2),
-        thoraxOffset
-      );
-      if (typeof baleia.pos.add === "function") {
-        ventralProxy.pos = (baleia.pos.add(ventralOffset) as {
-          x: number;
-          y: number;
-        }) ?? {
-          x: baleia.pos.x + ventralOffset.x,
-          y: baleia.pos.y + ventralOffset.y,
-        };
-      } else {
-        ventralProxy.pos = {
-          x: baleia.pos.x + ventralOffset.x,
-          y: baleia.pos.y + ventralOffset.y,
-        };
-      }
+      const ventralScaleFactor = 6 + Math.abs(pitchFlexion) * 2;
+      const ventralOffsetX = downNormal.x * ventralScaleFactor + thoraxOffset.x;
+      const ventralOffsetY = downNormal.y * ventralScaleFactor + thoraxOffset.y;
+      ventralProxy.pos.x = baleia.pos.x + ventralOffsetX;
+      ventralProxy.pos.y = baleia.pos.y + ventralOffsetY;
       ventralProxy.angle = baleia.angle + thoraxAngle;
       if (ventralProxy.scale && baleia.scale) {
         ventralProxy.scale.x = baleia.scale.x;

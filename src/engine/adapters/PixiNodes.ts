@@ -83,11 +83,12 @@ export class PixiContainerNode implements IRenderNode {
 
   setPosition(x: number, y: number): void {
     if (
-      Math.abs(this.container.position.x - x) > 0.01 ||
-      Math.abs(this.container.position.y - y) > 0.01
+      Math.abs(this.container.position.x - x) < 0.01 &&
+      Math.abs(this.container.position.y - y) < 0.01
     ) {
-      this.container.position.set(x, y);
+      return;
     }
+    this.container.position.set(x, y);
   }
 
   getScale(): Vector2D {
@@ -96,11 +97,12 @@ export class PixiContainerNode implements IRenderNode {
 
   setScale(scaleX: number, scaleY: number): void {
     if (
-      Math.abs(this.container.scale.x - scaleX) > 0.01 ||
-      Math.abs(this.container.scale.y - scaleY) > 0.01
+      Math.abs(this.container.scale.x - scaleX) < 0.01 &&
+      Math.abs(this.container.scale.y - scaleY) < 0.01
     ) {
-      this.container.scale.set(scaleX, scaleY);
+      return;
     }
+    this.container.scale.set(scaleX, scaleY);
   }
 
   getRotation(): number {
@@ -108,9 +110,10 @@ export class PixiContainerNode implements IRenderNode {
   }
 
   setRotation(angleInRadians: number): void {
-    if (Math.abs(this.container.rotation - angleInRadians) > 0.005) {
-      this.container.rotation = angleInRadians;
+    if (Math.abs(this.container.rotation - angleInRadians) < 0.005) {
+      return;
     }
+    this.container.rotation = angleInRadians;
   }
 
   getOpacity(): number {
@@ -119,9 +122,10 @@ export class PixiContainerNode implements IRenderNode {
 
   setOpacity(alpha: number): void {
     const clampedAlpha = Math.max(0, Math.min(1, alpha));
-    if (Math.abs(this.container.alpha - clampedAlpha) > 0.005) {
-      this.container.alpha = clampedAlpha;
+    if (Math.abs(this.container.alpha - clampedAlpha) < 0.005) {
+      return;
     }
+    this.container.alpha = clampedAlpha;
   }
 
   getZIndex(): number {
@@ -131,6 +135,9 @@ export class PixiContainerNode implements IRenderNode {
   setZIndex(index: number): void {
     if (this.container.zIndex !== index) {
       this.container.zIndex = index;
+      if (this.container.parent) {
+        this.container.parent.sortChildren(); // Ordena só no frame que alterar, não eternamente
+      }
     }
   }
 
@@ -141,6 +148,7 @@ export class PixiContainerNode implements IRenderNode {
   setVisible(visible: boolean): void {
     if (this.container.visible !== visible) {
       this.container.visible = visible;
+      this.container.renderable = visible; // Corta o objeto no WebGL pipeline
     }
   }
 

@@ -59,11 +59,9 @@ export function setEntityVisibilityRecursively(
   shouldBeHidden: boolean
 ): void {
   targetObject.hidden = shouldBeHidden;
+  targetObject.paused = shouldBeHidden;
   if (typeof targetObject.setVisible === "function") {
     targetObject.setVisible(!shouldBeHidden);
-  }
-  if ("paused" in targetObject) {
-    (targetObject as unknown as { paused?: boolean }).paused = shouldBeHidden;
   }
   const childContainer = targetObject as unknown as { children?: CullableTargetObject[] };
   if (Array.isArray(childContainer.children)) {

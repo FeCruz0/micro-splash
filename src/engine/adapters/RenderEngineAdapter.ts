@@ -196,9 +196,11 @@ export class RenderEngineAdapter implements IRenderEngine {
     const nativeStage = app.stage as unknown as {
       eventMode?: string;
       interactiveChildren?: boolean;
+      sortableChildren?: boolean;
     };
     nativeStage.eventMode = "none";
     nativeStage.interactiveChildren = false;
+    nativeStage.sortableChildren = false;
 
     this.tickerAdapter = new PixiRenderTicker(app, RenderEngineAdapter.MAX_DELTA_TIME);
     this.initialized = true;

@@ -84,7 +84,8 @@ export function spawnOilSpout(
       p.onUpdate(() => {
         const dt = k.dt();
         vel.y += 280 * dt;
-        p.pos = addVec(k, p.pos, vel.scale(dt));
+        p.pos.x += vel.x * dt;
+        p.pos.y += vel.y * dt;
         life -= dt;
         p.opacity = Math.max(0, (life / maxLife) * 0.9);
         if (life <= 0) k.destroy(p);
@@ -222,7 +223,8 @@ export function spawnBlowholeSpout(
       particle.onUpdate(() => {
         const dt = k.dt();
         vel.y += 240 * dt; // gravidade puxando gotículas de volta ao mar
-        particle.pos = addVec(k, particle.pos, vel.scale(dt));
+        particle.pos.x += vel.x * dt;
+        particle.pos.y += vel.y * dt;
         if (typeof particle.radius === "number") {
           particle.radius += dt * 3.2; // expansão de vapor
         }
@@ -273,14 +275,16 @@ export function spawnBaleenSuction(
       ]) as PlayerParticleGameObject;
 
       p.onUpdate(() => {
-        const toMouth =
-          typeof mouthPos.sub === "function"
-            ? mouthPos.sub(p.pos)
-            : k.vec2(mouthPos.x - p.pos.x, mouthPos.y - p.pos.y);
-        if (toMouth.len() < 6) {
+        const dx = mouthPos.x - p.pos.x;
+        const dy = mouthPos.y - p.pos.y;
+        const distSq = dx * dx + dy * dy;
+        if (distSq < 36) {
           k.destroy(p);
         } else {
-          p.pos = addVec(k, p.pos, toMouth.unit().scale(190 * k.dt()));
+          const invDist = 1 / Math.sqrt(distSq);
+          const step = 190 * k.dt();
+          p.pos.x += dx * invDist * step;
+          p.pos.y += dy * invDist * step;
           if (typeof p.opacity === "number") {
             p.opacity -= k.dt() * 2.4;
             if (p.opacity <= 0) k.destroy(p);
@@ -399,7 +403,8 @@ export function spawnTailWaterRipples(
         const dt = k.dt();
         curRadius += growthRate * dt;
         ripple.radius = curRadius;
-        ripple.pos = addVec(k, ripple.pos, driftVel.scale(dt));
+        ripple.pos.x += driftVel.x * dt;
+        ripple.pos.y += driftVel.y * dt;
         curLife -= dt;
         ripple.opacity = Math.max(0, (curLife / life) * opacity);
         if (curLife <= 0 || (typeof ripple.opacity === "number" && ripple.opacity <= 0)) {
@@ -503,7 +508,8 @@ export function spawnTailStrokeBubbles(
       let curLife = data.life;
       bubble.onUpdate(() => {
         const dt = k.dt();
-        bubble.pos = addVec(k, bubble.pos, vel.scale(dt));
+        bubble.pos.x += vel.x * dt;
+        bubble.pos.y += vel.y * dt;
         curLife -= dt;
         bubble.opacity = Math.max(0, (curLife / data.life) * data.opacity);
         if (curLife <= 0 || bubble.pos.y <= GAME_CONFIG.SEA_LEVEL) {

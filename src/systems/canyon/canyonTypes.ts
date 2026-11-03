@@ -20,7 +20,7 @@ export interface CanyonOutlinedGameObject<TColor = unknown> {
   pos: CanyonVector2D;
   opacity?: number;
   angle?: number;
-  outline: CanyonOutline<TColor>;
+  outline?: CanyonOutline<TColor>;
   hidden?: boolean;
 }
 
@@ -54,6 +54,8 @@ export interface CanyonGeometryResult<TColor = unknown> {
   rampUpShape: CanyonOutlinedGameObject<TColor>;
   rampDownShape: CanyonOutlinedGameObject<TColor>;
   cliffObj: CanyonOutlinedGameObject<TColor>;
+  leftWallShape?: CanyonOutlinedGameObject<TColor>;
+  rightWallShape?: CanyonOutlinedGameObject<TColor>;
   lighthouseBeam: CanyonGameObject<TColor>;
   lanternGlow: CanyonGameObject<TColor>;
   reflectionSegments: CanyonGameObject<TColor>[];

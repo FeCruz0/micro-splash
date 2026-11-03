@@ -41,6 +41,7 @@ export interface OceanCurrentsEngineContext<
   rgb: (r: number, g: number, b: number) => TColor;
   vec2: (x: number, y: number) => TVec;
   shake?: (amount: number) => void;
+  lifespan?: (time: number, opt?: { fade?: number }) => unknown;
 }
 
 /**
@@ -68,6 +69,8 @@ export const DEFAULT_OCEAN_CURRENTS: CurrentZone[] = [
   { startX: 7800, endX: 9400, y: 130, height: 110, force: 190, type: "favorable" },
   // 3. Correnteza Contrária 2 (Travessia profunda - fundo do mar)
   { startX: 9800, endX: 11400, y: 280, height: 125, force: 185, type: "opposing" },
+  // 4. Correnteza do Estreito do Boqueirão (Arraial do Cabo - vão livre do canal submarino)
+  { startX: 25800, endX: 26900, y: 80, height: 260, force: 80, type: "favorable" },
 ];
 
 /**
@@ -310,19 +313,23 @@ export function setupOceanCurrentsSystem<
             audioSystem.playSpeedBoost();
           }
 
-          // Partículas douradas de fluxo favorável na baleia (normalizado por deltaTime)
+          // Partículas douradas de fluxo favorável na baleia (normalizado por deltaTime com taxa reduzida pela metade)
           const normalizedDeltaTime = dt * 60;
-          if (getRandomFloat(0, 1) < 0.25 * normalizedDeltaTime) {
-            const particle = k.add([
-              k.circle(k.rand(2, 3.5)),
+          if (getRandomFloat(0, 1) < 0.125 * normalizedDeltaTime) {
+            const particleComponents: unknown[] = [
+              k.rect(3, 3, { radius: 1 }),
               k.pos(playerPos.x + k.rand(-25, 25), playerPos.y + k.rand(-10, 10)),
               k.color(255, 235, 140),
               k.opacity(0.8),
               k.z(15),
-            ]) as OceanCurrentGameObject;
+            ];
+            if (typeof k.lifespan === "function") {
+              particleComponents.push(k.lifespan(2.5, { fade: 0.5 }));
+            }
+            const particle = k.add(particleComponents) as OceanCurrentGameObject;
             particle.onUpdate(() => {
               particle.pos.x += 180 * k.dt();
-              if (particle.opacity !== undefined) {
+              if (typeof k.lifespan !== "function" && particle.opacity !== undefined) {
                 particle.opacity -= k.dt() * 2.8;
                 if (particle.opacity <= 0) k.destroy(particle as unknown as TDestroyable);
               }
@@ -343,20 +350,24 @@ export function setupOceanCurrentsSystem<
           }
         }
 
-        // Micro-bolhas de esforço/resistência ao nadar contra a correnteza (normalizado por deltaTime)
+        // Micro-bolhas de esforço/resistência ao nadar contra a correnteza (chance reduzida pela metade)
         const normalizedDeltaTime = dt * 60;
-        if (!isAlignedWithFlow && getRandomFloat(0, 1) < 0.22 * normalizedDeltaTime) {
-          const bubble = k.add([
-            k.circle(k.rand(1.5, 3)),
+        if (!isAlignedWithFlow && getRandomFloat(0, 1) < 0.11 * normalizedDeltaTime) {
+          const bubbleComponents: unknown[] = [
+            k.rect(3, 3, { radius: 1 }),
             k.pos(playerPos.x + (facingRight ? 40 : -40), playerPos.y + k.rand(-8, 8)),
             k.color(200, 230, 255),
             k.opacity(0.65),
             k.z(14),
-          ]) as OceanCurrentGameObject;
+          ];
+          if (typeof k.lifespan === "function") {
+            bubbleComponents.push(k.lifespan(2.5, { fade: 0.5 }));
+          }
+          const bubble = k.add(bubbleComponents) as OceanCurrentGameObject;
           bubble.onUpdate(() => {
             bubble.pos.x -= currentDir * 110 * k.dt();
             bubble.pos.y -= 20 * k.dt();
-            if (bubble.opacity !== undefined) {
+            if (typeof k.lifespan !== "function" && bubble.opacity !== undefined) {
               bubble.opacity -= k.dt() * 2.2;
               if (bubble.opacity <= 0) k.destroy(bubble as unknown as TDestroyable);
             }
