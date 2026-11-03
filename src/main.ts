@@ -23,7 +23,7 @@ const isLetterbox = displayMode === "letterbox";
 export const renderEngine = new RenderEngineAdapter();
 
 const appContainer =
-  typeof document !== "undefined" ? document.getElementById("app") ?? undefined : undefined;
+  typeof document !== "undefined" ? (document.getElementById("app") ?? undefined) : undefined;
 
 const k = kaboom({
   width: resolution.width,

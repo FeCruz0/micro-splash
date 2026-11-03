@@ -192,8 +192,7 @@ export function createGhostNet<TColor = unknown>(
   net.onUpdate(() => {
     const rawNet = net as unknown as { hidden?: boolean; isVisible?: () => boolean };
     const isCulled =
-      rawNet.hidden === true ||
-      (typeof rawNet.isVisible === "function" && !rawNet.isVisible());
+      rawNet.hidden === true || (typeof rawNet.isVisible === "function" && !rawNet.isVisible());
     if (isCulled && revealTimer <= 0) return;
 
     time += k.dt();

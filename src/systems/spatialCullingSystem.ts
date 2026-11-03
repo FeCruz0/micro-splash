@@ -104,14 +104,12 @@ export class SpatialCullingManager {
           ? () => getCustomXPosition
           : () => {
               if (targetObject.pos) return targetObject.pos.x;
-              if (typeof targetObject.getPosition === "function") return targetObject.getPosition().x;
+              if (typeof targetObject.getPosition === "function")
+                return targetObject.getPosition().x;
               return 0;
             };
 
-    const width =
-      entityWidth ??
-      (targetObject as { width?: number }).width ??
-      0;
+    const width = entityWidth ?? (targetObject as { width?: number }).width ?? 0;
 
     this.cullableEntities.push({
       targetObject,

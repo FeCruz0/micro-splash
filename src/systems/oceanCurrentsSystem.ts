@@ -143,9 +143,12 @@ function resolveCameraX(engineOrContext: unknown): number {
     engineOrContext &&
     typeof engineOrContext === "object" &&
     "getCamera" in engineOrContext &&
-    typeof (engineOrContext as { getCamera: () => { getPosition: () => { x: number } } }).getCamera === "function"
+    typeof (engineOrContext as { getCamera: () => { getPosition: () => { x: number } } })
+      .getCamera === "function"
   ) {
-    return (engineOrContext as { getCamera: () => { getPosition: () => { x: number } } }).getCamera().getPosition().x;
+    return (engineOrContext as { getCamera: () => { getPosition: () => { x: number } } })
+      .getCamera()
+      .getPosition().x;
   }
   if (
     engineOrContext &&

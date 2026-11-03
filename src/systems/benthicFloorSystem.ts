@@ -191,18 +191,20 @@ export const LITHOTHAMNION_SPAWN_X = [
  * Enriquece o leito oceânico com ecossistemas autênticos e física suave de ondulação subaquática.
  */
 export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyEngineBridge): void {
-  const candidateEngine: unknown =
-    isRenderEngine(engineOrContext)
-      ? engineOrContext
-      : isRenderEngine((engineOrContext as any)?.renderEngine)
-        ? (engineOrContext as any).renderEngine
-        : getActiveRenderEngine();
+  const candidateEngine: unknown = isRenderEngine(engineOrContext)
+    ? engineOrContext
+    : isRenderEngine((engineOrContext as any)?.renderEngine)
+      ? (engineOrContext as any).renderEngine
+      : getActiveRenderEngine();
 
   let realEngine: IRenderEngine | null = isRenderEngine(candidateEngine) ? candidateEngine : null;
   let isPixi = false;
 
   if (realEngine) {
-    if (("isInitialized" in realEngine && (realEngine as any).isInitialized) || !("isInitialized" in realEngine)) {
+    if (
+      ("isInitialized" in realEngine && (realEngine as any).isInitialized) ||
+      !("isInitialized" in realEngine)
+    ) {
       try {
         realEngine.getStageRoot();
         isPixi = true;
@@ -497,7 +499,9 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
               : ARRAIAL_16BIT_PALETTE.REEF_PURPLE_LIGHT,
             64,
             40,
-            cIdx % 2 === 0 ? ARRAIAL_16BIT_PALETTE.POLYP_GLOW_GOLD : ARRAIAL_16BIT_PALETTE.POLYP_GLOW_CYAN
+            cIdx % 2 === 0
+              ? ARRAIAL_16BIT_PALETTE.POLYP_GLOW_GOLD
+              : ARRAIAL_16BIT_PALETTE.POLYP_GLOW_CYAN
           );
           brainG.setPosition(xPos - 32, floorY - 40);
           brainG.setZIndex(-3);
@@ -522,7 +526,9 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
               : ARRAIAL_16BIT_PALETTE.SUN_YELLOW,
             60,
             64,
-            cIdx % 2 === 0 ? ARRAIAL_16BIT_PALETTE.SUN_YELLOW : ARRAIAL_16BIT_PALETTE.POLYP_GLOW_CYAN
+            cIdx % 2 === 0
+              ? ARRAIAL_16BIT_PALETTE.SUN_YELLOW
+              : ARRAIAL_16BIT_PALETTE.POLYP_GLOW_CYAN
           );
           fanG.setPosition(xPos - 30, floorY - 64);
           fanG.setZIndex(-3);
@@ -1080,10 +1086,8 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
 
         const fanMainCol =
           cIdx % 2 === 0 ? legacyCtx.rgb(38, 198, 218) : legacyCtx.rgb(255, 112, 67);
-        const fanDarkCol =
-          cIdx % 2 === 0 ? legacyCtx.rgb(0, 131, 143) : legacyCtx.rgb(191, 54, 12);
-        const tipCol =
-          cIdx % 2 === 0 ? legacyCtx.rgb(255, 235, 59) : legacyCtx.rgb(255, 213, 79);
+        const fanDarkCol = cIdx % 2 === 0 ? legacyCtx.rgb(0, 131, 143) : legacyCtx.rgb(191, 54, 12);
+        const tipCol = cIdx % 2 === 0 ? legacyCtx.rgb(255, 235, 59) : legacyCtx.rgb(255, 213, 79);
 
         // 5 galhos ramificados abertos em leque (offsets X -18, -9, 0, +9, +18; alturas 34, 46, 52, 42, 28)
         // Construídos com segmentos empilhados 6x8px, fundo vazado transparente e pontas brilhantes 3x3px
@@ -1289,7 +1293,10 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
             if (reefFish.hidden) return;
             const t = legacyCtx.time();
             const swimCycle = t * reefFish.swimSpeed * 2.2 + reefFish.phase;
-            if (typeof (reefFish as any).angle === "number" || (reefFish as any).angle !== undefined) {
+            if (
+              typeof (reefFish as any).angle === "number" ||
+              (reefFish as any).angle !== undefined
+            ) {
               (reefFish as any).angle = Math.sin(swimCycle) * 6.5;
             }
             reefFish.pos.x =
@@ -1313,7 +1320,8 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
         for (let p = 0; p < kelpCount; p++) {
           const plant = kelpForest[p];
           const plantWidth = 80;
-          if (plant.baseX + plantWidth < minActiveX || plant.baseX - plantWidth > maxActiveX) continue;
+          if (plant.baseX + plantWidth < minActiveX || plant.baseX - plantWidth > maxActiveX)
+            continue;
           if (plant.segments[0]?.hidden) continue;
 
           const baseSway = Math.sin(time * plant.swaySpeed + plant.swayPhase);
@@ -1330,7 +1338,8 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
         for (let a = 0; a < algaeCount; a++) {
           const algae = polarAlgaePlants[a];
           const algaeWidth = 80;
-          if (algae.baseX + algaeWidth < minActiveX || algae.baseX - algaeWidth > maxActiveX) continue;
+          if (algae.baseX + algaeWidth < minActiveX || algae.baseX - algaeWidth > maxActiveX)
+            continue;
           if (algae.blades[0]?.hidden) continue;
           const sway = Math.sin(time * algae.swaySpeed + algae.swayPhase);
           const bladeCount = algae.blades.length;
@@ -1345,7 +1354,8 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
         for (let g = 0; g < grassCount; g++) {
           const grass = urbanSeagrassPlants[g];
           const grassWidth = 80;
-          if (grass.baseX + grassWidth < minActiveX || grass.baseX - grassWidth > maxActiveX) continue;
+          if (grass.baseX + grassWidth < minActiveX || grass.baseX - grassWidth > maxActiveX)
+            continue;
           if (grass.blades[0]?.hidden) continue;
           const sway = Math.sin(time * grass.swaySpeed + grass.swayPhase);
           const bladeCount = grass.blades.length;
@@ -1360,7 +1370,11 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
         for (let c = 0; c < coralCount; c++) {
           const coral = corals[c];
           const coralWidth = 120;
-          if (coral.obj.pos.x + coralWidth < minActiveX || coral.obj.pos.x - coralWidth > maxActiveX) continue;
+          if (
+            coral.obj.pos.x + coralWidth < minActiveX ||
+            coral.obj.pos.x - coralWidth > maxActiveX
+          )
+            continue;
           if (coral.obj.hidden) continue;
 
           if (coral.type === "fan") {

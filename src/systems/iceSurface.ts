@@ -599,7 +599,10 @@ export function setupIceSurfaceSystem(
       "iceberg_wall",
       TAGS.OBSTACLE,
     ]);
-    cullingManager?.registerEntity(wallObj as unknown as CullingTarget, () => wallStartX + wallWidth / 2);
+    cullingManager?.registerEntity(
+      wallObj as unknown as CullingTarget,
+      () => wallStartX + wallWidth / 2
+    );
 
     for (let x = wallStartX; x < 0; x += 75) {
       const colWidth = 65 + Math.sin(x * 0.04) * 20;

@@ -149,9 +149,7 @@ describe("Fase 68: Overlay 16-Bits de Rede de Pesca (Ghost Net de Alto Contraste
       expect(lightCenters.length).toBeGreaterThanOrEqual(10);
 
       // Pontas de corda arrebentadas se estendem atrás da cauda (x <= 34)
-      const trailingRopePolygons = polygons.filter((p) =>
-        p.points.some((pt: any) => pt.x <= 34)
-      );
+      const trailingRopePolygons = polygons.filter((p) => p.points.some((pt: any) => pt.x <= 34));
       expect(trailingRopePolygons.length).toBeGreaterThanOrEqual(6);
     });
   });

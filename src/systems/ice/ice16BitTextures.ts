@@ -131,7 +131,7 @@ export function drawBeveled16BitIceBlock(gfx: any, width: number, height: number
     const totalSteps = Math.floor(width / stepWidth);
     for (let s = 0; s < totalSteps; s++) {
       const stepX = s * stepWidth;
-      const stepH = (s % 3 === 0 ? 3 : s % 3 === 1 ? 1 : 2);
+      const stepH = s % 3 === 0 ? 3 : s % 3 === 1 ? 1 : 2;
       gfx.drawRect(stepX, 2 - stepH, stepWidth, stepH + 1, {
         fill: { color: ICE_16BIT_PALETTE.SNOW_CREST, alpha: 1.0 },
       });

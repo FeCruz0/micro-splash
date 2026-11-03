@@ -63,7 +63,10 @@ export function setupCanyonGeometry<
       },
     },
   ]) as CanyonOutlinedGameObject<TColor>;
-  cullingManager?.registerEntity(rampUpShape as unknown as CullableTargetObject, () => boqueiraoStartX + rampUpWidth / 2);
+  cullingManager?.registerEntity(
+    rampUpShape as unknown as CullableTargetObject,
+    () => boqueiraoStartX + rampUpWidth / 2
+  );
 
   // Colisores Físicos Sólidos da Rampa de Subida (estendidos até o limite abissal)
   const upSegments = 4;
@@ -114,11 +117,23 @@ export function setupCanyonGeometry<
 
   // Parede Esquerda
   const leftWallShape = k.add([
-    k.polygon([ k.vec2(0, 1200), k.vec2(0, 190), k.vec2(150, 340), k.vec2(200, 1200) ]),
-    k.pos(rampUpEndX, 0), k.color(127, 140, 141), k.z(2), TAGS.OBSTACLE, "boqueirao_rock", "canyon_left_wall",
-    { reveal() { revealTimer = GAME_CONFIG.SONAR_REVEAL_DURATION; } }
+    k.polygon([k.vec2(0, 1200), k.vec2(0, 190), k.vec2(150, 340), k.vec2(200, 1200)]),
+    k.pos(rampUpEndX, 0),
+    k.color(127, 140, 141),
+    k.z(2),
+    TAGS.OBSTACLE,
+    "boqueirao_rock",
+    "canyon_left_wall",
+    {
+      reveal() {
+        revealTimer = GAME_CONFIG.SONAR_REVEAL_DURATION;
+      },
+    },
   ]) as CanyonOutlinedGameObject<TColor>;
-  cullingManager?.registerEntity(leftWallShape as unknown as CullableTargetObject, () => rampUpEndX + 100);
+  cullingManager?.registerEntity(
+    leftWallShape as unknown as CullableTargetObject,
+    () => rampUpEndX + 100
+  );
   spatialGrid?.insert(
     "boqueirao_canyon_left_wall",
     leftWallShape,
@@ -128,23 +143,54 @@ export function setupCanyonGeometry<
 
   // Parede Direita
   const rightWallShape = k.add([
-    k.polygon([ k.vec2(440, 1200), k.vec2(490, 340), k.vec2(640, 190), k.vec2(640, 1200) ]),
-    k.pos(rampUpEndX + rightWallOffsetX, 0), k.color(127, 140, 141), k.z(2), TAGS.OBSTACLE, "boqueirao_rock", "canyon_right_wall",
-    { reveal() { revealTimer = GAME_CONFIG.SONAR_REVEAL_DURATION; } }
+    k.polygon([k.vec2(440, 1200), k.vec2(490, 340), k.vec2(640, 190), k.vec2(640, 1200)]),
+    k.pos(rampUpEndX + rightWallOffsetX, 0),
+    k.color(127, 140, 141),
+    k.z(2),
+    TAGS.OBSTACLE,
+    "boqueirao_rock",
+    "canyon_right_wall",
+    {
+      reveal() {
+        revealTimer = GAME_CONFIG.SONAR_REVEAL_DURATION;
+      },
+    },
   ]) as CanyonOutlinedGameObject<TColor>;
-  cullingManager?.registerEntity(rightWallShape as unknown as CullableTargetObject, () => rampUpEndX + rightWallOffsetX + 540);
+  cullingManager?.registerEntity(
+    rightWallShape as unknown as CullableTargetObject,
+    () => rampUpEndX + rightWallOffsetX + 540
+  );
   spatialGrid?.insert(
     "boqueirao_canyon_right_wall",
     rightWallShape,
-    { minX: rampUpEndX + rightWallOffsetX + 440, minY: 190, maxX: rampUpEndX + rightWallOffsetX + 640, maxY: 1200 },
+    {
+      minX: rampUpEndX + rightWallOffsetX + 440,
+      minY: 190,
+      maxX: rampUpEndX + rightWallOffsetX + 640,
+      maxY: 1200,
+    },
     true
   );
 
   // Fundo do Vale
   const plateauObj = k.add([
-    k.polygon([ k.vec2(-50, 340), k.vec2(valleyWidth + 50, 340), k.vec2(valleyWidth + 50, 1200), k.vec2(-50, 1200) ]),
-    k.pos(valleyStartX, 0), k.color(127, 140, 141), k.z(2), TAGS.OBSTACLE, "boqueirao_rock", "canyon_valley_floor",
-    { reveal() { revealTimer = GAME_CONFIG.SONAR_REVEAL_DURATION; } }
+    k.polygon([
+      k.vec2(-50, 340),
+      k.vec2(valleyWidth + 50, 340),
+      k.vec2(valleyWidth + 50, 1200),
+      k.vec2(-50, 1200),
+    ]),
+    k.pos(valleyStartX, 0),
+    k.color(127, 140, 141),
+    k.z(2),
+    TAGS.OBSTACLE,
+    "boqueirao_rock",
+    "canyon_valley_floor",
+    {
+      reveal() {
+        revealTimer = GAME_CONFIG.SONAR_REVEAL_DURATION;
+      },
+    },
   ]) as CanyonOutlinedGameObject<TColor>;
   cullingManager?.registerEntity(plateauObj as unknown as CullableTargetObject, () => canyonMidX);
   spatialGrid?.insert(
@@ -157,12 +203,7 @@ export function setupCanyonGeometry<
   // 4. Diques de Diabásio Vulcânico (0x2C3E50 e 0x1A252F) cortando o gnaisse dentro das novas paredes
   // Dique 1 (Parede Esquerda - diagonal ascendente na rocha)
   k.add([
-    k.polygon([
-      k.vec2(30, 205),
-      k.vec2(55, 230),
-      k.vec2(120, 335),
-      k.vec2(95, 345),
-    ]),
+    k.polygon([k.vec2(30, 205), k.vec2(55, 230), k.vec2(120, 335), k.vec2(95, 345)]),
     k.pos(rampUpEndX, 0),
     k.color(44, 62, 80), // 0x2C3E50
     k.z(3),
@@ -171,12 +212,7 @@ export function setupCanyonGeometry<
 
   // Dique 2 (Parede Esquerda - faixa profunda perto do fundo)
   k.add([
-    k.polygon([
-      k.vec2(30, 240),
-      k.vec2(55, 240),
-      k.vec2(150, 340),
-      k.vec2(130, 340),
-    ]),
+    k.polygon([k.vec2(30, 240), k.vec2(55, 240), k.vec2(150, 340), k.vec2(130, 340)]),
     k.pos(rampUpEndX, 0),
     k.color(26, 37, 47), // 0x1A252F
     k.z(3),
@@ -185,12 +221,7 @@ export function setupCanyonGeometry<
 
   // Dique 3 (Parede Direita - diagonal ascendente na rocha)
   k.add([
-    k.polygon([
-      k.vec2(610, 205),
-      k.vec2(585, 230),
-      k.vec2(520, 335),
-      k.vec2(545, 340),
-    ]),
+    k.polygon([k.vec2(610, 205), k.vec2(585, 230), k.vec2(520, 335), k.vec2(545, 340)]),
     k.pos(rampUpEndX + rightWallOffsetX, 0),
     k.color(44, 62, 80), // 0x2C3E50
     k.z(3),
@@ -199,12 +230,7 @@ export function setupCanyonGeometry<
 
   // Dique 4 (Parede Direita - faixa profunda perto do fundo)
   k.add([
-    k.polygon([
-      k.vec2(610, 240),
-      k.vec2(585, 240),
-      k.vec2(490, 340),
-      k.vec2(510, 340),
-    ]),
+    k.polygon([k.vec2(610, 240), k.vec2(585, 240), k.vec2(490, 340), k.vec2(510, 340)]),
     k.pos(rampUpEndX + rightWallOffsetX, 0),
     k.color(26, 37, 47), // 0x1A252F
     k.z(3),
@@ -347,7 +373,10 @@ export function setupCanyonGeometry<
       },
     },
   ]) as CanyonOutlinedGameObject<TColor>;
-  cullingManager?.registerEntity(rampDownShape as unknown as CullableTargetObject, () => plateauEndX + rampDownWidth / 2);
+  cullingManager?.registerEntity(
+    rampDownShape as unknown as CullableTargetObject,
+    () => plateauEndX + rampDownWidth / 2
+  );
 
   // Colisores Físicos Sólidos da Rampa de Descida (estendidos até o limite abissal)
   const downSegments = 4;
@@ -437,7 +466,10 @@ export function setupCanyonGeometry<
       },
     },
   ]) as CanyonOutlinedGameObject<TColor>;
-  cullingManager?.registerEntity(cliffObj as unknown as CullableTargetObject, () => islandStartX + islandWidth / 2);
+  cullingManager?.registerEntity(
+    cliffObj as unknown as CullableTargetObject,
+    () => islandStartX + islandWidth / 2
+  );
 
   // Cobertura de vegetação de restinga e matas costeiras no topo da ilha
   k.add([

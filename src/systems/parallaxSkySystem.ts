@@ -206,7 +206,7 @@ function drawRetro16BitCloud(
   });
 
   if (puffs === 4) {
-    gfx.drawCircle(width * 0.20, height * 0.48, height * 0.42, {
+    gfx.drawCircle(width * 0.2, height * 0.48, height * 0.42, {
       fill: { color: CLOUD_PALETTE_BASE_HEX, alpha: 1 },
     });
     gfx.drawCircle(width * 0.42, height * 0.34, height * 0.54, {
@@ -225,7 +225,7 @@ function drawRetro16BitCloud(
     gfx.drawCircle(width * 0.52, height * 0.35, height * 0.54, {
       fill: { color: CLOUD_PALETTE_BASE_HEX, alpha: 1 },
     });
-    gfx.drawCircle(width * 0.76, height * 0.50, height * 0.42, {
+    gfx.drawCircle(width * 0.76, height * 0.5, height * 0.42, {
       fill: { color: CLOUD_PALETTE_BASE_HEX, alpha: 1 },
     });
   }
@@ -233,13 +233,13 @@ function drawRetro16BitCloud(
   // 2. Camada Topo Iluminado (0xFFFFFF) - volume iluminado pela luz solar superior
   const topHeight = height * 0.48;
   const topOffset = height * 0.22;
-  const topInset = height * 0.10;
+  const topInset = height * 0.1;
   gfx.drawRoundedRect(topInset, topOffset, width - topInset * 2, topHeight, topHeight / 2, {
     fill: { color: CLOUD_PALETTE_TOP_HEX, alpha: 1 },
   });
 
   if (puffs === 4) {
-    gfx.drawCircle(width * 0.20, height * 0.42, height * 0.36, {
+    gfx.drawCircle(width * 0.2, height * 0.42, height * 0.36, {
       fill: { color: CLOUD_PALETTE_TOP_HEX, alpha: 1 },
     });
     gfx.drawCircle(width * 0.42, height * 0.28, height * 0.48, {
@@ -294,8 +294,7 @@ function createCloudObject(
             ? (engineOrContext.getRenderer() as { generateTexture?: (opts: unknown) => unknown })
             : null;
         if (renderer && typeof renderer.generateTexture === "function") {
-          const nativeGfx =
-            typeof gfx.getNativeNode === "function" ? gfx.getNativeNode() : gfx;
+          const nativeGfx = typeof gfx.getNativeNode === "function" ? gfx.getNativeNode() : gfx;
           try {
             bakedTexture = renderer.generateTexture({
               target: nativeGfx,
@@ -355,7 +354,11 @@ function createCloudObject(
   const rawCloud = engineOrContext.add([
     engineOrContext.rect(options.width, options.height, { radius: options.height / 2 }),
     engineOrContext.pos(0, options.baseY),
-    engineOrContext.color(CLOUD_PALETTE_BASE_RGB[0], CLOUD_PALETTE_BASE_RGB[1], CLOUD_PALETTE_BASE_RGB[2]),
+    engineOrContext.color(
+      CLOUD_PALETTE_BASE_RGB[0],
+      CLOUD_PALETTE_BASE_RGB[1],
+      CLOUD_PALETTE_BASE_RGB[2]
+    ),
     engineOrContext.opacity(1),
     engineOrContext.z(-8),
     "sky_cloud",
@@ -363,9 +366,15 @@ function createCloudObject(
 
   if (typeof (rawCloud as any).add === "function") {
     (rawCloud as any).add([
-      engineOrContext.rect(options.width - 6, options.height * 0.55, { radius: (options.height * 0.55) / 2 }),
+      engineOrContext.rect(options.width - 6, options.height * 0.55, {
+        radius: (options.height * 0.55) / 2,
+      }),
       engineOrContext.pos(3, 0),
-      engineOrContext.color(CLOUD_PALETTE_TOP_RGB[0], CLOUD_PALETTE_TOP_RGB[1], CLOUD_PALETTE_TOP_RGB[2]),
+      engineOrContext.color(
+        CLOUD_PALETTE_TOP_RGB[0],
+        CLOUD_PALETTE_TOP_RGB[1],
+        CLOUD_PALETTE_TOP_RGB[2]
+      ),
       engineOrContext.opacity(1),
       engineOrContext.z(-7.9),
     ]);
@@ -487,8 +496,7 @@ function createSkyObject(
             ? (engineOrContext.getRenderer() as { generateTexture?: (opts: unknown) => unknown })
             : null;
         if (renderer && typeof renderer.generateTexture === "function") {
-          const nativeGfx =
-            typeof gfx.getNativeNode === "function" ? gfx.getNativeNode() : gfx;
+          const nativeGfx = typeof gfx.getNativeNode === "function" ? gfx.getNativeNode() : gfx;
           try {
             bakedTexture = renderer.generateTexture({
               target: nativeGfx,
@@ -653,7 +661,6 @@ export function setupParallaxSkySystem(
       width,
     });
   }
-
 
   // 3. ESTRELAS CINTILANTES NA COSTA URBANA (12.000m - 19.000m)
   const starCount = 28;
@@ -987,7 +994,10 @@ export function setupParallaxSkySystem(
   const destroy = (): void => {
     unregisterTicker();
     bakedTextureCache.forEach((tex: unknown) => {
-      if (tex && typeof (tex as { destroy?: (destroyBase?: boolean) => void }).destroy === "function") {
+      if (
+        tex &&
+        typeof (tex as { destroy?: (destroyBase?: boolean) => void }).destroy === "function"
+      ) {
         (tex as { destroy: (destroyBase?: boolean) => void }).destroy(true);
       }
     });

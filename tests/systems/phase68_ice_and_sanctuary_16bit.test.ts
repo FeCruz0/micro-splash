@@ -41,9 +41,9 @@ describe("Fase 68 / Etapa 3: Estética 16-Bits do Gelo e Santuário de Arraial d
       drawBeveled16BitIceBlock(mockGfx, 120, 40);
 
       // Camada submersa chanfrada
-      expect(drawnPolys.some((p) => p.style?.fill?.color === ICE_16BIT_PALETTE.SUBMERGED_BASE)).toBe(
-        true
-      );
+      expect(
+        drawnPolys.some((p) => p.style?.fill?.color === ICE_16BIT_PALETTE.SUBMERGED_BASE)
+      ).toBe(true);
       // Corpo glacial ciano
       expect(
         drawnRects.some((r) => r.style?.fill?.color === ICE_16BIT_PALETTE.GLACIAL_BODY_MAIN)
@@ -227,7 +227,8 @@ describe("Fase 68 / Etapa 3: Estética 16-Bits do Gelo e Santuário de Arraial d
       // Anéis de sombra intercalados
       expect(
         drawnRects.some(
-          (r) => r.w === 6 && r.h === 2 && r.style?.fill?.color === ARRAIAL_16BIT_PALETTE.TURQUOISE_DARK
+          (r) =>
+            r.w === 6 && r.h === 2 && r.style?.fill?.color === ARRAIAL_16BIT_PALETTE.TURQUOISE_DARK
         )
       ).toBe(true);
 
@@ -240,9 +241,9 @@ describe("Fase 68 / Etapa 3: Estética 16-Bits do Gelo e Santuário de Arraial d
         drawnRects.filter((r) => r.style?.fill?.color === ARRAIAL_16BIT_PALETTE.TURQUOISE_LIGHT)
           .length
       ).toBeGreaterThanOrEqual(5);
-      expect(drawnRects.some((r) => r.style?.fill?.color === ARRAIAL_16BIT_PALETTE.SUN_YELLOW)).toBe(
-        true
-      );
+      expect(
+        drawnRects.some((r) => r.style?.fill?.color === ARRAIAL_16BIT_PALETTE.SUN_YELLOW)
+      ).toBe(true);
     });
 
     it("deve desenhar esponjas tubulares com ósculos no topo e sombra na base", () => {
@@ -265,9 +266,9 @@ describe("Fase 68 / Etapa 3: Estética 16-Bits do Gelo e Santuário de Arraial d
         drawnRects.some((r) => r.style?.fill?.color === ARRAIAL_16BIT_PALETTE.BASE_BEDROCK_SHADOW)
       ).toBe(true);
       // Tubos amarelos
-      expect(drawnRects.some((r) => r.style?.fill?.color === ARRAIAL_16BIT_PALETTE.SUN_YELLOW)).toBe(
-        true
-      );
+      expect(
+        drawnRects.some((r) => r.style?.fill?.color === ARRAIAL_16BIT_PALETTE.SUN_YELLOW)
+      ).toBe(true);
       // Borda do ósculo laranja
       expect(
         drawnRects.some((r) => r.style?.fill?.color === ARRAIAL_16BIT_PALETTE.CORAL_ORANGE)
@@ -292,9 +293,7 @@ describe("Fase 68 / Etapa 3: Estética 16-Bits do Gelo e Santuário de Arraial d
 
       // Pólipos contrastantes com brilho dourado
       expect(
-        drawnBrainRects.some(
-          (r) => r.style?.fill?.color === ARRAIAL_16BIT_PALETTE.POLYP_GLOW_GOLD
-        )
+        drawnBrainRects.some((r) => r.style?.fill?.color === ARRAIAL_16BIT_PALETTE.POLYP_GLOW_GOLD)
       ).toBe(true);
 
       const drawnFanRects: any[] = [];
@@ -405,9 +404,9 @@ describe("Fase 68 / Etapa 3: Estética 16-Bits do Gelo e Santuário de Arraial d
       ).toBe(true);
 
       // Corpo amarelo
-      expect(drawnRects.some((r) => r.style?.fill?.color === ARRAIAL_16BIT_PALETTE.SUN_YELLOW)).toBe(
-        true
-      );
+      expect(
+        drawnRects.some((r) => r.style?.fill?.color === ARRAIAL_16BIT_PALETTE.SUN_YELLOW)
+      ).toBe(true);
 
       // Faixa lateral / marcações contrastantes (turquesa)
       expect(drawnRects.some((r) => r.style?.fill?.color === ARRAIAL_16BIT_PALETTE.TURQUOISE)).toBe(
@@ -692,8 +691,9 @@ describe("Fase 68 / Etapa 3: Estética 16-Bits do Gelo e Santuário de Arraial d
       );
       expect(hasFlatCapsule).toBe(false);
 
-      const hasLegacyPolygonFan = addedObjects.some((o) =>
-        o.components.includes("coral_fan") && o.components.some((c: any) => c.type === "polygon")
+      const hasLegacyPolygonFan = addedObjects.some(
+        (o) =>
+          o.components.includes("coral_fan") && o.components.some((c: any) => c.type === "polygon")
       );
       expect(hasLegacyPolygonFan).toBe(false);
 
@@ -701,7 +701,9 @@ describe("Fase 68 / Etapa 3: Estética 16-Bits do Gelo e Santuário de Arraial d
       const tubeHeights = [20, 32, 38, 28, 18];
       for (const h of tubeHeights) {
         const foundTube = addedObjects.some((o) =>
-          o.components.some((c: any) => c.type === "rect" && c.h === h && (c.w === 10 || c.w === 12))
+          o.components.some(
+            (c: any) => c.type === "rect" && c.h === h && (c.w === 10 || c.w === 12)
+          )
         );
         expect(foundTube).toBe(true);
       }
@@ -720,7 +722,9 @@ describe("Fase 68 / Etapa 3: Estética 16-Bits do Gelo e Santuário de Arraial d
         getTicker: vi.fn(() => ({ add: vi.fn() })),
         createGraphics: vi.fn(),
         getStageRoot: vi.fn(() => {
-          throw new Error("RenderEngineAdapter não inicializado. Chame init() antes de acessar stageRoot.");
+          throw new Error(
+            "RenderEngineAdapter não inicializado. Chame init() antes de acessar stageRoot."
+          );
         }),
       };
 

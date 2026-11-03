@@ -391,11 +391,7 @@ export function spawnProceduralLevel<
   for (let i = 0; i < totalVents; i++) {
     const vent = layout.bubbleVentPositions[i];
     const ventHeight = vent.height ?? 220;
-    const ventObj = createBubbleVent(
-      k,
-      k.vec2(vent.x, vent.y),
-      ventHeight
-    ) as CullableTargetObject;
+    const ventObj = createBubbleVent(k, k.vec2(vent.x, vent.y), ventHeight) as CullableTargetObject;
     cullingManager?.registerEntity(ventObj, () => vent.x, 50);
     if (spatialGrid) {
       spatialGrid.insert(`vent_${i}`, ventObj, {

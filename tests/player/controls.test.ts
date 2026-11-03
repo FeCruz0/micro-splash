@@ -94,10 +94,8 @@ describe("PlayerControlsManager: Controle de Orientação", () => {
     expect(controls.getTargetCamOffset()).toBe(-200);
   });
 
-  it(
-    "permite congelar o jogador (freeze) bloqueando movimento e controles ao final da partida",
-    async () => {
-      const { createPlayer } = await import("../../src/entities/player");
+  it("permite congelar o jogador (freeze) bloqueando movimento e controles ao final da partida", async () => {
+    const { createPlayer } = await import("../../src/entities/player");
 
     let registeredUpdate: (() => void) | null = null;
     const mockKaboom: any = {

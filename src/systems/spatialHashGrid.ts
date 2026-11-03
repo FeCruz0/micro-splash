@@ -311,4 +311,3 @@ export function initSpatialGrid<T = unknown>(options?: SpatialHashGridOptions): 
 export function getSpatialGrid<T = unknown>(): SpatialHashGrid<T> | null {
   return activeSpatialGrid as SpatialHashGrid<T> | null;
 }
-

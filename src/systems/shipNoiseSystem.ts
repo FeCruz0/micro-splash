@@ -15,9 +15,12 @@ function resolveCameraX(engineOrContext: unknown): number {
     engineOrContext &&
     typeof engineOrContext === "object" &&
     "getCamera" in engineOrContext &&
-    typeof (engineOrContext as { getCamera: () => { getPosition: () => { x: number } } }).getCamera === "function"
+    typeof (engineOrContext as { getCamera: () => { getPosition: () => { x: number } } })
+      .getCamera === "function"
   ) {
-    return (engineOrContext as { getCamera: () => { getPosition: () => { x: number } } }).getCamera().getPosition().x;
+    return (engineOrContext as { getCamera: () => { getPosition: () => { x: number } } })
+      .getCamera()
+      .getPosition().x;
   }
   if (
     engineOrContext &&
@@ -103,14 +106,18 @@ export function setupShipNoiseSystem<
   ) {
     try {
       const tempShip = engineContext.createGraphics("cargo_ship_bake");
-      tempShip.drawRoundedRect(-140, -25, 280, 50, 12, { fill: { color: [60, 65, 80], alpha: 0.95 } });
+      tempShip.drawRoundedRect(-140, -25, 280, 50, 12, {
+        fill: { color: [60, 65, 80], alpha: 0.95 },
+      });
       tempShip.drawRect(-140, 6, 280, 14, { fill: { color: [160, 35, 35], alpha: 1 } });
       for (let w = 0; w < 9; w++) {
         tempShip.drawRoundedRect(-100 + w * 25 - 3, -12, 6, 4, 1, {
           fill: { color: [255, 230, 120], alpha: 0.9 },
         });
       }
-      tempShip.drawRect(65 - 17.5, -45 - 22.5, 35, 45, { fill: { color: [180, 50, 50], alpha: 1 } });
+      tempShip.drawRect(65 - 17.5, -45 - 22.5, 35, 45, {
+        fill: { color: [180, 50, 50], alpha: 1 },
+      });
       tempShip.drawRect(65 - 21, -67 - 5, 42, 10, { fill: { color: [40, 40, 44], alpha: 1 } });
       tempShip.drawRoundedRect(-85, -40, 32, 15, 2, { fill: { color: [45, 95, 155], alpha: 1 } });
       tempShip.drawRoundedRect(-50, -44, 36, 19, 2, { fill: { color: [195, 75, 45], alpha: 1 } });

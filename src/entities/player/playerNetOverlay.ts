@@ -231,11 +231,19 @@ export function drawRetro16BitNetMesh(gfx: IGraphicsNode | any): void {
       const topH = Math.max(2, midY - startY);
       const botH = Math.max(2, endY - midY);
       // Sombra
-      gfx.drawRect(cx - 2, startY, 4, topH, { fill: { color: NET_16BIT_PALETTE.SHADOW_DARK, alpha: 1.0 } });
-      gfx.drawRect(cx, midY, 4, botH, { fill: { color: NET_16BIT_PALETTE.SHADOW_DARK, alpha: 1.0 } });
+      gfx.drawRect(cx - 2, startY, 4, topH, {
+        fill: { color: NET_16BIT_PALETTE.SHADOW_DARK, alpha: 1.0 },
+      });
+      gfx.drawRect(cx, midY, 4, botH, {
+        fill: { color: NET_16BIT_PALETTE.SHADOW_DARK, alpha: 1.0 },
+      });
       // Corda
-      gfx.drawRect(cx - 1, startY, 2, topH, { fill: { color: NET_16BIT_PALETTE.ROPE_LIGHT, alpha: 1.0 } });
-      gfx.drawRect(cx + 1, midY, 2, botH, { fill: { color: NET_16BIT_PALETTE.ROPE_LIGHT, alpha: 1.0 } });
+      gfx.drawRect(cx - 1, startY, 2, topH, {
+        fill: { color: NET_16BIT_PALETTE.ROPE_LIGHT, alpha: 1.0 },
+      });
+      gfx.drawRect(cx + 1, midY, 2, botH, {
+        fill: { color: NET_16BIT_PALETTE.ROPE_LIGHT, alpha: 1.0 },
+      });
     }
   }
 
@@ -248,8 +256,26 @@ export function drawRetro16BitNetMesh(gfx: IGraphicsNode | any): void {
 
     if (typeof gfx.drawPolygon === "function") {
       // Sombra escura das diagonais
-      drawQuadStrip(gfx, l1.cx, l1.startY, l2.cx + 2, l2.midY, 3, NET_16BIT_PALETTE.SHADOW_DARK, 0.9);
-      drawQuadStrip(gfx, l1.cx + 2, l1.midY, l2.cx, l2.startY, 3, NET_16BIT_PALETTE.SHADOW_DARK, 0.9);
+      drawQuadStrip(
+        gfx,
+        l1.cx,
+        l1.startY,
+        l2.cx + 2,
+        l2.midY,
+        3,
+        NET_16BIT_PALETTE.SHADOW_DARK,
+        0.9
+      );
+      drawQuadStrip(
+        gfx,
+        l1.cx + 2,
+        l1.midY,
+        l2.cx,
+        l2.startY,
+        3,
+        NET_16BIT_PALETTE.SHADOW_DARK,
+        0.9
+      );
       drawQuadStrip(gfx, l1.cx + 2, l1.midY, l2.cx, l2.endY, 3, NET_16BIT_PALETTE.SHADOW_DARK, 0.9);
       drawQuadStrip(gfx, l1.cx, l1.endY, l2.cx + 2, l2.midY, 3, NET_16BIT_PALETTE.SHADOW_DARK, 0.9);
 
@@ -280,41 +306,203 @@ export function drawRetro16BitNetMesh(gfx: IGraphicsNode | any): void {
 
     if (typeof gfx.drawPolygon === "function") {
       // Cabo dorsal convergente
-      drawQuadStrip(gfx, l1.cx, l1.startY + 2, l2.cx, l2.startY + 2, 3, NET_16BIT_PALETTE.SHADOW_DARK, 0.8);
-      drawQuadStrip(gfx, l1.cx, l1.startY + 2, l2.cx, l2.startY + 2, 2, NET_16BIT_PALETTE.ROPE_LIGHT, 1.0);
+      drawQuadStrip(
+        gfx,
+        l1.cx,
+        l1.startY + 2,
+        l2.cx,
+        l2.startY + 2,
+        3,
+        NET_16BIT_PALETTE.SHADOW_DARK,
+        0.8
+      );
+      drawQuadStrip(
+        gfx,
+        l1.cx,
+        l1.startY + 2,
+        l2.cx,
+        l2.startY + 2,
+        2,
+        NET_16BIT_PALETTE.ROPE_LIGHT,
+        1.0
+      );
 
       // Cabo da linha lateral convergente
-      drawQuadStrip(gfx, l1.cx + 2, l1.midY, l2.cx + 2, l2.midY, 3, NET_16BIT_PALETTE.SHADOW_DARK, 0.8);
-      drawQuadStrip(gfx, l1.cx + 2, l1.midY, l2.cx + 2, l2.midY, 2, NET_16BIT_PALETTE.ROPE_LIGHT, 1.0);
+      drawQuadStrip(
+        gfx,
+        l1.cx + 2,
+        l1.midY,
+        l2.cx + 2,
+        l2.midY,
+        3,
+        NET_16BIT_PALETTE.SHADOW_DARK,
+        0.8
+      );
+      drawQuadStrip(
+        gfx,
+        l1.cx + 2,
+        l1.midY,
+        l2.cx + 2,
+        l2.midY,
+        2,
+        NET_16BIT_PALETTE.ROPE_LIGHT,
+        1.0
+      );
 
       // Cabo ventral convergente
-      drawQuadStrip(gfx, l1.cx, l1.endY - 2, l2.cx, l2.endY - 2, 3, NET_16BIT_PALETTE.SHADOW_DARK, 0.8);
-      drawQuadStrip(gfx, l1.cx, l1.endY - 2, l2.cx, l2.endY - 2, 2, NET_16BIT_PALETTE.ROPE_LIGHT, 1.0);
+      drawQuadStrip(
+        gfx,
+        l1.cx,
+        l1.endY - 2,
+        l2.cx,
+        l2.endY - 2,
+        3,
+        NET_16BIT_PALETTE.SHADOW_DARK,
+        0.8
+      );
+      drawQuadStrip(
+        gfx,
+        l1.cx,
+        l1.endY - 2,
+        l2.cx,
+        l2.endY - 2,
+        2,
+        NET_16BIT_PALETTE.ROPE_LIGHT,
+        1.0
+      );
     }
   }
 
   // 4. 3 Pontas de corda arrebentadas e assimétricas saindo do nó da cauda (ox = -34 até -56)
   const tailKnotX = centerX - 34; // 34
-  const tailKnotY = centerY;      // 27
+  const tailKnotY = centerY; // 27
 
   if (typeof gfx.drawPolygon === "function") {
     // Ponta 1 (superior/longa até ox = -56, x = 12)
-    drawQuadStrip(gfx, tailKnotX, tailKnotY, tailKnotX - 10, tailKnotY - 4, 3, NET_16BIT_PALETTE.SHADOW_DARK, 1.0);
-    drawQuadStrip(gfx, tailKnotX - 10, tailKnotY - 4, tailKnotX - 22, tailKnotY - 6, 3, NET_16BIT_PALETTE.SHADOW_DARK, 1.0);
-    drawQuadStrip(gfx, tailKnotX, tailKnotY, tailKnotX - 10, tailKnotY - 4, 2, NET_16BIT_PALETTE.ROPE_LIGHT, 1.0);
-    drawQuadStrip(gfx, tailKnotX - 10, tailKnotY - 4, tailKnotX - 22, tailKnotY - 6, 2, NET_16BIT_PALETTE.ROPE_LIGHT, 1.0);
+    drawQuadStrip(
+      gfx,
+      tailKnotX,
+      tailKnotY,
+      tailKnotX - 10,
+      tailKnotY - 4,
+      3,
+      NET_16BIT_PALETTE.SHADOW_DARK,
+      1.0
+    );
+    drawQuadStrip(
+      gfx,
+      tailKnotX - 10,
+      tailKnotY - 4,
+      tailKnotX - 22,
+      tailKnotY - 6,
+      3,
+      NET_16BIT_PALETTE.SHADOW_DARK,
+      1.0
+    );
+    drawQuadStrip(
+      gfx,
+      tailKnotX,
+      tailKnotY,
+      tailKnotX - 10,
+      tailKnotY - 4,
+      2,
+      NET_16BIT_PALETTE.ROPE_LIGHT,
+      1.0
+    );
+    drawQuadStrip(
+      gfx,
+      tailKnotX - 10,
+      tailKnotY - 4,
+      tailKnotX - 22,
+      tailKnotY - 6,
+      2,
+      NET_16BIT_PALETTE.ROPE_LIGHT,
+      1.0
+    );
 
     // Ponta 2 (mediana/ondulada)
-    drawQuadStrip(gfx, tailKnotX, tailKnotY, tailKnotX - 8, tailKnotY + 2, 3, NET_16BIT_PALETTE.SHADOW_DARK, 1.0);
-    drawQuadStrip(gfx, tailKnotX - 8, tailKnotY + 2, tailKnotX - 16, tailKnotY + 1, 3, NET_16BIT_PALETTE.SHADOW_DARK, 1.0);
-    drawQuadStrip(gfx, tailKnotX, tailKnotY, tailKnotX - 8, tailKnotY + 2, 2, NET_16BIT_PALETTE.GHOST_CYAN, 1.0);
-    drawQuadStrip(gfx, tailKnotX - 8, tailKnotY + 2, tailKnotX - 16, tailKnotY + 1, 2, NET_16BIT_PALETTE.GHOST_CYAN, 1.0);
+    drawQuadStrip(
+      gfx,
+      tailKnotX,
+      tailKnotY,
+      tailKnotX - 8,
+      tailKnotY + 2,
+      3,
+      NET_16BIT_PALETTE.SHADOW_DARK,
+      1.0
+    );
+    drawQuadStrip(
+      gfx,
+      tailKnotX - 8,
+      tailKnotY + 2,
+      tailKnotX - 16,
+      tailKnotY + 1,
+      3,
+      NET_16BIT_PALETTE.SHADOW_DARK,
+      1.0
+    );
+    drawQuadStrip(
+      gfx,
+      tailKnotX,
+      tailKnotY,
+      tailKnotX - 8,
+      tailKnotY + 2,
+      2,
+      NET_16BIT_PALETTE.GHOST_CYAN,
+      1.0
+    );
+    drawQuadStrip(
+      gfx,
+      tailKnotX - 8,
+      tailKnotY + 2,
+      tailKnotX - 16,
+      tailKnotY + 1,
+      2,
+      NET_16BIT_PALETTE.GHOST_CYAN,
+      1.0
+    );
 
     // Ponta 3 (inferior/curta)
-    drawQuadStrip(gfx, tailKnotX, tailKnotY, tailKnotX - 7, tailKnotY + 6, 3, NET_16BIT_PALETTE.SHADOW_DARK, 1.0);
-    drawQuadStrip(gfx, tailKnotX - 7, tailKnotY + 6, tailKnotX - 18, tailKnotY + 7, 3, NET_16BIT_PALETTE.SHADOW_DARK, 1.0);
-    drawQuadStrip(gfx, tailKnotX, tailKnotY, tailKnotX - 7, tailKnotY + 6, 2, NET_16BIT_PALETTE.ROPE_LIGHT, 1.0);
-    drawQuadStrip(gfx, tailKnotX - 7, tailKnotY + 6, tailKnotX - 18, tailKnotY + 7, 2, NET_16BIT_PALETTE.ROPE_LIGHT, 1.0);
+    drawQuadStrip(
+      gfx,
+      tailKnotX,
+      tailKnotY,
+      tailKnotX - 7,
+      tailKnotY + 6,
+      3,
+      NET_16BIT_PALETTE.SHADOW_DARK,
+      1.0
+    );
+    drawQuadStrip(
+      gfx,
+      tailKnotX - 7,
+      tailKnotY + 6,
+      tailKnotX - 18,
+      tailKnotY + 7,
+      3,
+      NET_16BIT_PALETTE.SHADOW_DARK,
+      1.0
+    );
+    drawQuadStrip(
+      gfx,
+      tailKnotX,
+      tailKnotY,
+      tailKnotX - 7,
+      tailKnotY + 6,
+      2,
+      NET_16BIT_PALETTE.ROPE_LIGHT,
+      1.0
+    );
+    drawQuadStrip(
+      gfx,
+      tailKnotX - 7,
+      tailKnotY + 6,
+      tailKnotX - 18,
+      tailKnotY + 7,
+      2,
+      NET_16BIT_PALETTE.ROPE_LIGHT,
+      1.0
+    );
   }
 
   // 5. Nós escuros (3x3 px em 0x11171A com centro 0xF5E6C8) nos cruzamentos da silhueta
@@ -518,9 +706,7 @@ export function setupWhaleNetOverlay(
           : (baleia as any));
 
       const nativeSprite =
-        typeof spriteNode.getNativeNode === "function"
-          ? spriteNode.getNativeNode()
-          : spriteNode;
+        typeof spriteNode.getNativeNode === "function" ? spriteNode.getNativeNode() : spriteNode;
 
       if (nativeBaleia && typeof nativeBaleia.addChild === "function") {
         if ("sortableChildren" in nativeBaleia) {
@@ -538,7 +724,9 @@ export function setupWhaleNetOverlay(
         (baleia as any).addChild(spriteNode);
         isChildAttachedToContainer = true;
       } else if (typeof (targetEngine as any).getStageRoot === "function") {
-        const stageRoot = (targetEngine as any).getStageRoot() as { addChild?: (node: unknown) => void };
+        const stageRoot = (targetEngine as any).getStageRoot() as {
+          addChild?: (node: unknown) => void;
+        };
         if (stageRoot && typeof stageRoot.addChild === "function") {
           stageRoot.addChild(spriteNode);
         }
@@ -899,7 +1087,10 @@ export function setupWhaleNetOverlay(
         netOverlaySprite.setPosition(targetWhale.pos.x + trunkTailOffsetLocalX, targetWhale.pos.y);
       }
 
-      if (typeof netOverlaySprite.setRotation === "function" && typeof targetWhale.angle === "number") {
+      if (
+        typeof netOverlaySprite.setRotation === "function" &&
+        typeof targetWhale.angle === "number"
+      ) {
         netOverlaySprite.setRotation((targetWhale.angle * Math.PI) / 180);
       }
     }

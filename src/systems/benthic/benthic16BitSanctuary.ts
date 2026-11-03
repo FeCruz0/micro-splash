@@ -297,13 +297,62 @@ export function draw16BitAnemone(
 
   // 4. Coroa de tentáculos ondulantes radiados (tentáculos externos e internos)
   const tentacles = [
-    { x1: columnX - 1, y1: columnY, x2: columnX - 12, y2: columnY - 14, tipX: columnX - 14, tipY: columnY - 16 },
-    { x1: columnX + 3, y1: columnY - 2, x2: columnX - 6, y2: columnY - 18, tipX: columnX - 8, tipY: columnY - 21 },
-    { x1: columnX + 8, y1: columnY - 3, x2: columnX + 2, y2: columnY - 22, tipX: columnX + 1, tipY: columnY - 25 },
-    { x1: columnX + 14, y1: columnY - 3, x2: columnX + 14, y2: columnY - 24, tipX: columnX + 14, tipY: columnY - 27 },
-    { x1: columnX + 20, y1: columnY - 3, x2: columnX + 25, y2: columnY - 22, tipX: columnX + 27, tipY: columnY - 25 },
-    { x1: columnX + 25, y1: columnY - 2, x2: columnX + 34, y2: columnY - 18, tipX: columnX + 36, tipY: columnY - 21 },
-    { x1: columnX + columnW, y1: columnY, x2: columnX + columnW + 11, y2: columnY - 14, tipX: columnX + columnW + 13, tipY: columnY - 16 },
+    {
+      x1: columnX - 1,
+      y1: columnY,
+      x2: columnX - 12,
+      y2: columnY - 14,
+      tipX: columnX - 14,
+      tipY: columnY - 16,
+    },
+    {
+      x1: columnX + 3,
+      y1: columnY - 2,
+      x2: columnX - 6,
+      y2: columnY - 18,
+      tipX: columnX - 8,
+      tipY: columnY - 21,
+    },
+    {
+      x1: columnX + 8,
+      y1: columnY - 3,
+      x2: columnX + 2,
+      y2: columnY - 22,
+      tipX: columnX + 1,
+      tipY: columnY - 25,
+    },
+    {
+      x1: columnX + 14,
+      y1: columnY - 3,
+      x2: columnX + 14,
+      y2: columnY - 24,
+      tipX: columnX + 14,
+      tipY: columnY - 27,
+    },
+    {
+      x1: columnX + 20,
+      y1: columnY - 3,
+      x2: columnX + 25,
+      y2: columnY - 22,
+      tipX: columnX + 27,
+      tipY: columnY - 25,
+    },
+    {
+      x1: columnX + 25,
+      y1: columnY - 2,
+      x2: columnX + 34,
+      y2: columnY - 18,
+      tipX: columnX + 36,
+      tipY: columnY - 21,
+    },
+    {
+      x1: columnX + columnW,
+      y1: columnY,
+      x2: columnX + columnW + 11,
+      y2: columnY - 14,
+      tipX: columnX + columnW + 13,
+      tipY: columnY - 16,
+    },
   ];
 
   if (typeof gfx.drawLine === "function") {

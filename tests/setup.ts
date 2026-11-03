@@ -24,5 +24,3 @@ if (typeof globalThis.navigator === "undefined") {
     configurable: true,
   });
 }
-
-

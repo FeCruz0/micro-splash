@@ -22,9 +22,7 @@ const SOFTWARE_RENDERER_SUBSTRINGS = [
   "software rasterizer",
 ] as const;
 
-export function detectGpuCapabilities(
-  customCanvas?: HTMLCanvasElement
-): GpuCapabilitiesReport {
+export function detectGpuCapabilities(customCanvas?: HTMLCanvasElement): GpuCapabilitiesReport {
   if (!customCanvas && typeof document === "undefined") {
     return {
       isSoftwareRenderer: false,
@@ -41,10 +39,9 @@ export function detectGpuCapabilities(
       (canvas.getContext("experimental-webgl") as WebGLRenderingContext | null);
 
     if (!gl) {
-      reportWarning(
-        "[MicroSplash:PERF] Contexto WebGL indisponível no navegador.",
-        { canvasPresent: !!canvas }
-      );
+      reportWarning("[MicroSplash:PERF] Contexto WebGL indisponível no navegador.", {
+        canvasPresent: !!canvas,
+      });
       return {
         isSoftwareRenderer: true,
         renderer: "WebGL Unavailable",
@@ -57,8 +54,7 @@ export function detectGpuCapabilities(
 
     const debugInfo = gl.getExtension("WEBGL_debug_renderer_info");
     if (debugInfo) {
-      renderer =
-        gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) || renderer;
+      renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) || renderer;
       vendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL) || vendor;
     } else {
       renderer = gl.getParameter(gl.RENDERER) || renderer;

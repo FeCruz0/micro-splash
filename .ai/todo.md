@@ -59,6 +59,7 @@ Alvo: v1.30.0 (Estabilização de 60 FPS, Eliminação do Clamp de 10 FPS, Level
 ## 📋 Lista de Tarefas Atômicas
 
 ### Etapa 1: Correção do Ticker, Timestep Fixo & Telemetria Real de FPS
+
 - [x] **1.1 Desacoplar Cálculo de FPS da Variável `dt`**:
   - Implementado `src/utils/frameRateMonitor.ts` consumindo delta temporal real via `performance.now()` e janela circular móvel.
   - Integrado `frameRateMonitor` em `src/scenes/gameScene.ts` fornecendo telemetria em tempo real imune a clamps de timestep.
@@ -68,6 +69,7 @@ Alvo: v1.30.0 (Estabilização de 60 FPS, Eliminação do Clamp de 10 FPS, Level
   - Preservada compatibilidade da ordem canônica com culling otimizado e telemetria de orçamento de quadro.
 
 ### Etapa 2: Registro Universal no Spatial Culling & Desativação por Bioma
+
 - [x] **2.1 Integrar Ramos PixiJS ao `SpatialCullingManager`**:
   - Adicionado `cullingManager?.registerEntity` para `stem` e `leaf` em `src/systems/benthicFloorSystem.ts` e `segment` em `src/systems/iceSurface.ts`.
 - [x] **2.2 Trava de Ciclo de Vida por Bioma em Subsistemas**:
@@ -76,18 +78,21 @@ Alvo: v1.30.0 (Estabilização de 60 FPS, Eliminação do Clamp de 10 FPS, Level
   - `SpatialCullingManager.update()` estendido para invocar `targetObject.setVisible(isVisible)` nativamente em nós `IRenderNode` e ler `getPosition()`.
 
 ### Etapa 3: Level Streaming por Setores Geográficos
+
 - [x] **3.1 Setorização Espacial de Obstáculos (`proceduralObstacles.ts`)**:
   - Entidades procedurais vinculadas ao `cullingManager` com early-return imediato em `hidden`.
 - [x] **3.2 Pool e Reutilização de Entidades Procedurais**:
   - Partículas e bolhas integradas ao pooling com suspensão de loops.
 
 ### Etapa 4: Calibração de Resolução & Bootstrap da Nova Engine
+
 - [x] **4.1 Normalização de Densidade de Pixels (`RenderEngineAdapter.ts`)**:
   - Limitado `resolution` padrão ao teto de `1.5` de `devicePixelRatio` para poupar fillrate em telas 4K/Retina.
 - [x] **4.2 Ativação Limpa do `RenderEngineAdapter`**:
   - Nós PixiJS conectados nativamente ao ciclo de culling frustum.
 
 ### Etapa 5: Validação, Testes Automatizados & Profiling
+
 - [x] **5.1 Testes Unitários de Timestep & Culling**:
   - Criada suíte `tests/systems/phase66_fps_optimization.test.ts` (6 novos testes 100% aprovados).
 - [x] **5.2 Validação de Não-Regressão**:

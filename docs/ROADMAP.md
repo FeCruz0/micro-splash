@@ -979,6 +979,7 @@ _Objetivo: Elevar a sensação tátil e o acabamento premium do jogo mediante mi
   - Testes unitários para temporizações de tween, comportamento de fallback em modo de movimento reduzido e garantia de não-bloqueio de interação.
 
 ### ⚡ FASE 66: Otimização de CPU, Zero-Allocation & Deep Culling
+
 _Objetivo: Eliminar alocações dinâmicas na heap e GC spikes a 60 FPS no loop de simulação e particionamento espacial._
 
 - [x] **66.1 Hashing Numérico Bitwise no `SpatialHashGrid` (`src/systems/spatialHashGrid.ts`):**
@@ -990,12 +991,14 @@ _Objetivo: Eliminar alocações dinâmicas na heap e GC spikes a 60 FPS no loop 
   - Guardas de pré-atribuição no HUD, telemetria e contadores para prevenir recomputação de texturas no PixiJS.
 
 ### 💡 FASE 67: Raios Volumétricos de Luz (God Rays Submarinos)
+
 _Objetivo: Implementar iluminação volumétrica oceânica de alta fidelidade visual com culling por bioma e zero alocação._
 
 - [x] **67.1 Iluminação Volumétrica Dinâmica (`src/systems/volumetricRaysSystem.ts`):**
   - Feixes de luz solar penetrando a coluna d'água com ondulação harmônica, atenuação por profundidade e conformidade de movimento reduzido.
 
 ### 🪸 FASE 68: Fisiografia, Gorgônias & Fauna do Estreito do Boqueirão
+
 _Objetivo: Modelar o relevo escarpado do Boqueirão de Arraial do Cabo com costões de granito, fendas tectônicas, diques e gorgônias 16-bits._
 
 - [x] **68.1 Geometria e Costões Orgânicos do Boqueirão (`src/systems/canyon/canyonGeometry.ts`):**
@@ -1005,6 +1008,7 @@ _Objetivo: Modelar o relevo escarpado do Boqueirão de Arraial do Cabo com cost�
   - Ticker consolidado único (`boqueirao_fauna_ticker`) para tartarugas marinhas e peixes de passagem com pré-bake de texturas.
 
 ### 🛡️ FASE 69: Erradicação de Física Nativa em Geometria Estática & Pipeline PixiJS v8
+
 _Objetivo: Extirpar componentes de colisão estática da engine clássica e acelerar o grafo de renderização WebGL._
 
 - [x] **69.1 Supressão de `k.area()` e `k.body()` em Obstáculos Fixos:**
@@ -1013,4 +1017,3 @@ _Objetivo: Extirpar componentes de colisão estática da engine clássica e acel
   - Corte do cálculo matricial e chamadas de desenho no WebGL para nós invisíveis no `PixiNodes.ts`.
 - [x] **69.3 Supressão de Interatividade e Z-Sorting sob Demanda:**
   - Palco e nós configurados com `eventMode = "none"` e `interactiveChildren = false`; desativação de `sortableChildren` contínuo com ordenação invocada apenas em mutações reais de `zIndex`.
-

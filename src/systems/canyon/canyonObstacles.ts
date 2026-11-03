@@ -5,7 +5,11 @@ import type {
   CanyonVector2D,
   CanyonGameObject,
 } from "./canyonTypes";
-import type { IRenderEngine, IGraphicsNode, ISpriteNode } from "../../engine/contracts/INTERFACE_CONTRACTS";
+import type {
+  IRenderEngine,
+  IGraphicsNode,
+  ISpriteNode,
+} from "../../engine/contracts/INTERFACE_CONTRACTS";
 import { isRenderEngine } from "../../engine/adapters/LegacyBridge";
 import { getActiveRenderEngine } from "../../engine/adapters/RenderEngineAdapter";
 
@@ -125,13 +129,13 @@ export function setupCanyonObstacles<
 
   // 1.2 Fendas submarinas profundas e fraturas tectônicas (boqueirao_fissure)
   const fissurePositions = [
-    { x: rampUpEndX + 80,  h: 45, w: 5,  tilt: -12 },
-    { x: rampUpEndX + 210, h: 55, w: 6,  tilt: 8 },
-    { x: rampUpEndX + 350, h: 40, w: 4,  tilt: -6 },
-    { x: rampUpEndX + 490, h: 60, w: 6,  tilt: 14 },
-    { x: rampUpEndX + 650, h: 50, w: 5,  tilt: -10 },
-    { x: rampUpEndX + 820, h: 52, w: 6,  tilt: 7 },
-    { x: rampUpEndX + 950, h: 42, w: 4,  tilt: -8 },
+    { x: rampUpEndX + 80, h: 45, w: 5, tilt: -12 },
+    { x: rampUpEndX + 210, h: 55, w: 6, tilt: 8 },
+    { x: rampUpEndX + 350, h: 40, w: 4, tilt: -6 },
+    { x: rampUpEndX + 490, h: 60, w: 6, tilt: 14 },
+    { x: rampUpEndX + 650, h: 50, w: 5, tilt: -10 },
+    { x: rampUpEndX + 820, h: 52, w: 6, tilt: 7 },
+    { x: rampUpEndX + 950, h: 42, w: 4, tilt: -8 },
   ];
   for (const fp of fissurePositions) {
     k.add([
@@ -172,13 +176,7 @@ export function setupCanyonObstacles<
     { x: rampUpEndX + 1050, y: valleyFloorY + 3 },
   ];
   for (const up of urchinPockets) {
-    k.add([
-      k.circle(3),
-      k.pos(up.x, up.y),
-      k.color(18, 18, 22),
-      k.z(4),
-      "boqueirao_urchin",
-    ]);
+    k.add([k.circle(3), k.pos(up.x, up.y), k.color(18, 18, 22), k.z(4), "boqueirao_urchin"]);
   }
 
   // =========================================================================
@@ -186,16 +184,72 @@ export function setupCanyonObstacles<
   // =========================================================================
   const gorgonianWallPositions = [
     // Parede Esquerda (face inclinada de x=0, y=190 até x=150, y=340)
-    { x: rampUpEndX + 30, y: 205, tilt: 35, col: [38, 198, 218], dark: [0, 131, 143], tip: [255, 202, 40] },
-    { x: rampUpEndX + 70, y: 245, tilt: 35, col: [255, 112, 67], dark: [191, 54, 12], tip: [255, 202, 40] },
-    { x: rampUpEndX + 110, y: 290, tilt: 35, col: [171, 71, 188], dark: [92, 34, 104], tip: [128, 222, 234] },
-    { x: rampUpEndX + 145, y: 335, tilt: 20, col: [38, 198, 218], dark: [0, 131, 143], tip: [255, 202, 40] },
+    {
+      x: rampUpEndX + 30,
+      y: 205,
+      tilt: 35,
+      col: [38, 198, 218],
+      dark: [0, 131, 143],
+      tip: [255, 202, 40],
+    },
+    {
+      x: rampUpEndX + 70,
+      y: 245,
+      tilt: 35,
+      col: [255, 112, 67],
+      dark: [191, 54, 12],
+      tip: [255, 202, 40],
+    },
+    {
+      x: rampUpEndX + 110,
+      y: 290,
+      tilt: 35,
+      col: [171, 71, 188],
+      dark: [92, 34, 104],
+      tip: [128, 222, 234],
+    },
+    {
+      x: rampUpEndX + 145,
+      y: 335,
+      tilt: 20,
+      col: [38, 198, 218],
+      dark: [0, 131, 143],
+      tip: [255, 202, 40],
+    },
 
     // Parede Direita (face inclinada de x=490, y=340 até x=640, y=190)
-    { x: rampUpEndX + rightWallOffsetX + 610, y: 205, tilt: -35, col: [255, 112, 67], dark: [191, 54, 12], tip: [255, 202, 40] },
-    { x: rampUpEndX + rightWallOffsetX + 570, y: 245, tilt: -35, col: [38, 198, 218], dark: [0, 131, 143], tip: [255, 202, 40] },
-    { x: rampUpEndX + rightWallOffsetX + 530, y: 290, tilt: -35, col: [171, 71, 188], dark: [92, 34, 104], tip: [128, 222, 234] },
-    { x: rampUpEndX + rightWallOffsetX + 495, y: 335, tilt: -20, col: [38, 198, 218], dark: [0, 131, 143], tip: [255, 202, 40] },
+    {
+      x: rampUpEndX + rightWallOffsetX + 610,
+      y: 205,
+      tilt: -35,
+      col: [255, 112, 67],
+      dark: [191, 54, 12],
+      tip: [255, 202, 40],
+    },
+    {
+      x: rampUpEndX + rightWallOffsetX + 570,
+      y: 245,
+      tilt: -35,
+      col: [38, 198, 218],
+      dark: [0, 131, 143],
+      tip: [255, 202, 40],
+    },
+    {
+      x: rampUpEndX + rightWallOffsetX + 530,
+      y: 290,
+      tilt: -35,
+      col: [171, 71, 188],
+      dark: [92, 34, 104],
+      tip: [128, 222, 234],
+    },
+    {
+      x: rampUpEndX + rightWallOffsetX + 495,
+      y: 335,
+      tilt: -20,
+      col: [38, 198, 218],
+      dark: [0, 131, 143],
+      tip: [255, 202, 40],
+    },
   ];
 
   for (const gwp of gorgonianWallPositions) {
@@ -501,4 +555,3 @@ export function setupCanyonObstacles<
 
   return anemones;
 }
-

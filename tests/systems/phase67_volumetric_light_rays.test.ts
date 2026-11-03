@@ -4,10 +4,7 @@ import {
   getRaySegmentPolygonVertices,
   resolveBiomeLightColor,
 } from "../../src/utils/volumetricRayGeometry";
-import {
-  calculateGodRayWidth,
-  setupLightRaysSystem,
-} from "../../src/systems/lightRaysSystem";
+import { calculateGodRayWidth, setupLightRaysSystem } from "../../src/systems/lightRaysSystem";
 import type {
   IRenderEngine,
   IGraphicsNode,

@@ -497,4 +497,3 @@ Para blindar o frame time contra picos de Garbage Collector e manter 60 FPS crav
    - Congelamento completo de entidades ocultas fora do frustum (`targetObject.paused = true`).
 6. **Dirty-Checking Rigoroso em Textos**:
    - Guardas de pré-atribuição (`if (node.text !== newText)`) em labels de HUD, telemetria e pontuação, evitando recálculo de texturas no PixiJS.
-
