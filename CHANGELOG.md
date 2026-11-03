@@ -7,6 +7,36 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [1.28.0] - 2026-11-03 — Otimização Profunda de Pipeline, Zero-Allocation & Erradicação de Física Estática (Fases 66 a 69)
+
+### Adicionado & Otimizado
+
+- **Erradicação de Física Nativa em Geometria Estática (`src/systems/canyon/canyonGeometry.ts`)**:
+  - Remoção de componentes `k.area()` e `k.body({ isStatic: true })` em todas as paredes, degraus abissais, vale central do Boqueirão e colisor da Ilha do Farol.
+  - Transferência integral da detecção física para o `SpatialHashGrid` $O(1)$ (`collisions.ts`), blindando a simulação contra loops internos da engine.
+  - Rebaixamento fisiográfico das cristas do Boqueirão de `Y=120` para `Y=190`, ampliando a passagem superior para o nado confortável da baleia.
+  - Isolamento semântico de tags: `boqueirao_rock_collider` (8 degraus de rampa), `boqueirao_wall_collider` (paredões) e `boqueirao_valley_collider` (fundo).
+- **Otimizações no Pipeline Gráfico PixiJS v8 (`src/engine/adapters/PixiNodes.ts`, `RenderEngineAdapter.ts`)**:
+  - Acoplamento de `this.container.renderable = visible` no método `setVisible(visible)` para corte imediato de cálculo matricial e draw calls no WebGL.
+  - Desativação global de interatividade e monitoramento de ponteiro nos nós do grafo (`eventMode = "none"`, `interactiveChildren = false`).
+  - Desativação do z-sorting contínuo a cada tick (`sortableChildren = false`), aplicando ordenação via `sortChildren()` sob demanda apenas quando houver alteração real de `zIndex`.
+- **Zero-Allocation e Hashing Numérico no `SpatialHashGrid` (`src/systems/spatialHashGrid.ts`)**:
+  - Hashing bitwise de 32 bits `(cx << 16) | (cy & 0xFFFF)` eliminando criação contínua de strings temporárias.
+  - Reutilização de buffers internos pré-alocados (`queryResult`, `querySeen`, `cellKeysBuffer`), zerando alocações na heap a cada frame.
+  - Suporte a `isStatic: true` na inserção de itens, abortando 100% de recálculos em geometrias fixas.
+- **Deep Culling & Consolidação de Tickers da Fauna (`src/systems/canyon/canyonObstacles.ts`, `spatialCullingSystem.ts`)**:
+  - Unificação de dezenas de callbacks individuais `onUpdate` da fauna em um único ticker central (`boqueirao_fauna_ticker`) com laços indexados clássicos e culling por distância euclidiana.
+  - Pré-bake de texturas de tartarugas e peixes de passagem via `generateTexture` com resolução 0.5 e scaleMode `nearest`.
+  - Congelamento completo da lógica de entidades fora da janela de simulação ativa (`targetObject.paused = true`).
+  - Redução de partículas e garantia de auto-destruição com `k.lifespan()` nas correntes oceânicas.
+- **Micro-Otimizações Matemáticas e Dirty-Checking de Texto**:
+  - Eliminação de alocações transitórias de vetores em cáusticas, partículas e sonar da baleia.
+  - Dirty-checking rigoroso antes de atribuições de texto no HUD e telemetria (`if (node.text !== newText)`).
+- **Conformidade da Base de Testes Automatizados**:
+  - Atualização e expansão da suíte para **91 arquivos e 713 testes automatizados 100% aprovados** no Vitest.
+
+---
+
 ## [1.27.0] - 2026-10-28 — Ocultação de Recursos em Desenvolvimento (Fases 62 & 63)
 
 ### Modificado & Otimizado

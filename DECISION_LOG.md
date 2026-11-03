@@ -72,3 +72,40 @@ Este documento registra formalmente as decisões arquiteturais fundamentais adot
 - **Consequências:**
   - **Positivas:** Zero tempo de inatividade no ambiente Docker; integridade contínua do pipeline de CI (`npm run check`); possibilidade de commits atômicos e reversão granular.
   - **Negativas:** Coexistência temporária de duas dependências no `package.json` durante o período de transição.
+
+---
+
+### ADR 005: Erradicação da Física Clássica em Geometria Estática em Favor do `SpatialHashGrid`
+
+- **Status:** Aprovado e Vigente ✅
+- **Data:** 2026-11-03
+- **Contexto:**
+  O relevo do Boqueirão (paredões escarpados, degraus abissais, vale central e montanha da Ilha do Farol) instanciou milhares de blocos com componentes nativos do Kaboom (`k.area()`, `k.body({ isStatic: true })`). A cada tick da engine, o Kaboom executava rotinas internas de colisão de corpos rígidos em toda a geometria fixa, estrangulando o orçamento da CPU e reduzindo o framerate a patamares inaceitáveis (< 15 FPS).
+- **Decisão:**
+  1. Erradicar integralmente os componentes `k.area()` e `k.body({ isStatic: true })` de todas as entidades de geometria e relevo do cânion.
+  2. Delegar a detecção e resolução de colisões exclusivamente ao `SpatialHashGrid` O(1) já existente, inserindo as AABBs estáticas com a flag `isStatic: true`.
+  3. No `SpatialHashGrid.update()`, ignorar imediatamente chamadas de reposicionamento em itens estáticos (`existing.isStatic`), poupando 100% de ciclos computacionais.
+- **Consequências:**
+  - **Positivas:** Redução dramática da carga de CPU do motor Kaboom; ausência de loops internos de física; resposta de colisão O(1) imediata e determinística.
+  - **Negativas:** Exige registro explícito das caixas delimitadoras no grid espacial no momento da geração procedural.
+
+---
+
+### ADR 006: Otimização de Pipeline PixiJS v8, Z-Sorting sob Demanda e Zero-Allocation na Heap
+
+- **Status:** Aprovado e Vigente ✅
+- **Data:** 2026-11-03
+- **Contexto:**
+  Mesmo com o particionamento espacial, picos de Garbage Collector (GC Spikes) e sobrecarga no grafo de cena do PixiJS degradavam a estabilidade a 60 FPS devido a:
+  1. Reordenação contínua de mais de 1.300 objetos por `zIndex` a cada frame (`sortableChildren = true`).
+  2. Cálculos matriciais e transformações em objetos fora da tela (`visible = false` não impedia o processamento na CPU).
+  3. Hit-testing e eventos de ponteiro/mouse calculados desnecessariamente para entidades estáticas e nós gráficos decorativos.
+  4. Alocação recorrente de arrays e chaves de strings (`cx + ":" + cy`) no `SpatialHashGrid` e em rotinas de partículas.
+- **Decisão:**
+  1. **PixiJS Pipeline Culling:** Acoplar `this.container.renderable = visible` no método `setVisible(visible)` do adapter `PixiNodes.ts`, cortando o nó na raiz do pipeline WebGL.
+  2. **Supressão de Eventos:** Configurar `eventMode = "none"` e `interactiveChildren = false` nos nós do grafo e no palco nativo.
+  3. **Z-Sorting sob Demanda:** Desativar `sortableChildren = false` contínuo no palco e acionar `parent.sortChildren()` exclusivamente quando houver mutação efetiva de `zIndex`.
+  4. **Zero-Allocation Espacial:** Converter chaves de células para hashing numérico bitwise de 32 bits `(cx << 16) | (cy & 0xFFFF)` e reutilizar buffers internos fixos (`queryResult`, `querySeen`, `cellKeysBuffer`), eliminando instanciacões temporárias no loop de renderização e colisão.
+- **Consequências:**
+  - **Positivas:** Framerate cravado em 60 FPS com latência de frame estável (p95 < 16.6ms); eliminação de picos de Garbage Collection; renderização WebGL limpa e escalável.
+  - **Negativas:** Requer disciplina estrita de buffers reutilizáveis e verificação atenta de mutações nos testes unitários.

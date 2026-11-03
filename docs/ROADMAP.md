@@ -977,3 +977,40 @@ _Objetivo: Elevar a sensação tátil e o acabamento premium do jogo mediante mi
   - Reforçar a sinalização de entrada em novos biomas com vinheta suave e cartão sutil de apresentação com fade-in/fade-out, validando que o frame time permaneça estritamente dentro da meta estável da Fase 53.
 - [x] **65.5 Suíte de Testes de Motion & Micro-Interações (`tests/ui/phase65_ui_motion.test.ts`):**
   - Testes unitários para temporizações de tween, comportamento de fallback em modo de movimento reduzido e garantia de não-bloqueio de interação.
+
+### ⚡ FASE 66: Otimização de CPU, Zero-Allocation & Deep Culling
+_Objetivo: Eliminar alocações dinâmicas na heap e GC spikes a 60 FPS no loop de simulação e particionamento espacial._
+
+- [x] **66.1 Hashing Numérico Bitwise no `SpatialHashGrid` (`src/systems/spatialHashGrid.ts`):**
+  - Chaves de células convertidas de strings (`cx:cy`) para inteiros de 32 bits `(cx << 16) | (cy & 0xFFFF)`.
+  - Reutilização de buffers internos pré-alocados (`queryResult`, `querySeen`, `cellKeysBuffer`).
+- [x] **66.2 Deep Culling com Congelamento (`src/systems/spatialCullingSystem.ts`):**
+  - Suspensão da lógica de atualização (`targetObject.paused = true`) para entidades fora da janela de simulação ativa.
+- [x] **66.3 Dirty-Checking em Rótulos de Texto (`src/ui/`):**
+  - Guardas de pré-atribuição no HUD, telemetria e contadores para prevenir recomputação de texturas no PixiJS.
+
+### 💡 FASE 67: Raios Volumétricos de Luz (God Rays Submarinos)
+_Objetivo: Implementar iluminação volumétrica oceânica de alta fidelidade visual com culling por bioma e zero alocação._
+
+- [x] **67.1 Iluminação Volumétrica Dinâmica (`src/systems/volumetricRaysSystem.ts`):**
+  - Feixes de luz solar penetrando a coluna d'água com ondulação harmônica, atenuação por profundidade e conformidade de movimento reduzido.
+
+### 🪸 FASE 68: Fisiografia, Gorgônias & Fauna do Estreito do Boqueirão
+_Objetivo: Modelar o relevo escarpado do Boqueirão de Arraial do Cabo com costões de granito, fendas tectônicas, diques e gorgônias 16-bits._
+
+- [x] **68.1 Geometria e Costões Orgânicos do Boqueirão (`src/systems/canyon/canyonGeometry.ts`):**
+  - Formação contínua de paredões sem outlines intrusivos, cristas rebaixadas para Y=190 garantindo passagem fluida da baleia, fendas profundas e diques de diabásio.
+- [x] **68.2 Fauna e Flora Submarina (`src/systems/canyon/canyonObstacles.ts`):**
+  - Gorgônias multicoloridas nas paredes rochosas, costões escarpados, bioincrustações de algas calcárias Lithothamnion, ouriços e tufos de anêmonas vivas.
+  - Ticker consolidado único (`boqueirao_fauna_ticker`) para tartarugas marinhas e peixes de passagem com pré-bake de texturas.
+
+### 🛡️ FASE 69: Erradicação de Física Nativa em Geometria Estática & Pipeline PixiJS v8
+_Objetivo: Extirpar componentes de colisão estática da engine clássica e acelerar o grafo de renderização WebGL._
+
+- [x] **69.1 Supressão de `k.area()` e `k.body()` em Obstáculos Fixos:**
+  - Erradicação de física clássica nas rochas e falésias do Boqueirão e Ilha do Farol, delegando a detecção estritamente ao `SpatialHashGrid` O(1) via flag `isStatic: true`.
+- [x] **69.2 Culling no Pipeline PixiJS WebGL (`renderable = visible`):**
+  - Corte do cálculo matricial e chamadas de desenho no WebGL para nós invisíveis no `PixiNodes.ts`.
+- [x] **69.3 Supressão de Interatividade e Z-Sorting sob Demanda:**
+  - Palco e nós configurados com `eventMode = "none"` e `interactiveChildren = false`; desativação de `sortableChildren` contínuo com ordenação invocada apenas em mutações reais de `zIndex`.
+

@@ -462,3 +462,39 @@ Para elevar a sensação tátil e o acabamento premium do jogo sem comprometer a
 4. **Transições Ambientais de Bioma & Acessibilidade (`src/systems/`)**:
    - `biomeVignetteSystem.ts`: Exibição cinematográfica de cartões narrativos de fronteira com fade-in suave (0.35s), permanência pedagógica e fade-out (0.45s), com desativação de tweens em modo de movimento reduzido.
    - `biomeTransitionSystem.ts`: Cálculo puro e livre de alocações transitórias de atenuação suave (_smoothstep_ de 300m) em zonas de transição entre biomas.
+
+---
+
+## ⚡ 15. Erradicação de Física Clássica em Geometria Estática (`canyonGeometry.ts`)
+
+Para desonerar o ciclo principal de CPU e eliminar gargalos internos da engine Kaboom:
+
+1. **Remoção de `k.area()` e `k.body({ isStatic: true })` em Obstáculos Fixos**:
+   - As rampas de subida/descida, degraus profundos, paredões do Boqueirão e colisor da Ilha do Farol não utilizam mais os componentes nativos de física do Kaboom.
+   - As colisões são computadas de forma $O(1)$ exclusivamente pelo `SpatialHashGrid` através de consultas AABB na rotina do jogador (`collisions.ts`).
+2. **Marcação Estática (`isStatic: true`) no `SpatialHashGrid`**:
+   - Entidades estáticas inseridas no grid espacial possuem `isStatic: true`, abortando qualquer recálculo de células em chamadas de `update()`.
+3. **Segmentação e Isolamento de Colisores**:
+   - Colisores de rampa identificados estritamente como `boqueirao_rock_collider` (8 instâncias), paredes como `boqueirao_wall_collider` e vale como `boqueirao_valley_collider`.
+
+---
+
+## 🚀 16. Otimização de Pipeline PixiJS v8, Z-Sorting sob Demanda & Zero-Allocation
+
+Para blindar o frame time contra picos de Garbage Collector e manter 60 FPS cravados no ambiente WebGL/PixiJS v8:
+
+1. **Culling no Pipeline WebGL (`renderable = visible`)**:
+   - No adapter `PixiNodes.ts`, o método `setVisible(visible)` atualiza concomitantemente `this.container.visible` e `this.container.renderable`. Entidades invisíveis têm seus cálculos matriciais e draw calls abortados na raiz do WebGL.
+2. **Desativação de Interatividade Global no Grafo de Apresentação**:
+   - Nós base (`PixiContainerNode`, `PixiSpriteNode`) e o palco nativo (`app.stage`) são instanciados com `eventMode = "none"` e `interactiveChildren = false`, eliminando custos de hit-testing e monitoramento de ponteiro na CPU.
+3. **Z-Sorting sob Demanda**:
+   - Desativação da reordenação automática contínua (`stage.sortableChildren = false`). O método `setZIndex` invoca `parent.sortChildren()` exclusivamente quando houver alteração real do índice de profundidade.
+4. **Zero-Allocation Espacial (Hashing Bitwise de 32-bit & Buffers Reutilizáveis)**:
+   - Substituição de strings (`cx:cy`) por inteiros de 32 bits `(cx << 16) | (cy & 0xFFFF)` como chaves no `SpatialHashGrid`.
+   - Reutilização de arrays e Sets fixos internos (`queryResult`, `querySeen`, `cellKeysBuffer`), eliminando alocações na heap a cada tick.
+5. **Consolidação de Tickers da Fauna & Deep Culling**:
+   - Fauna do Boqueirão unificada em um único ticker (`boqueirao_fauna_ticker`) com laços indexados clássicos e culling matemático por distância euclidiana.
+   - Congelamento completo de entidades ocultas fora do frustum (`targetObject.paused = true`).
+6. **Dirty-Checking Rigoroso em Textos**:
+   - Guardas de pré-atribuição (`if (node.text !== newText)`) em labels de HUD, telemetria e pontuação, evitando recálculo de texturas no PixiJS.
+

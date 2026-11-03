@@ -74,11 +74,12 @@ O _Micro Splash_ prioriza a acessibilidade desde a sua concepção:
 ## 🛠️ Stack Tecnológica
 
 - **Linguagem:** [TypeScript 5](https://www.typescriptlang.org/) (Strict Mode)
-- **Engine 2D:** [Kaboom.js](https://kaboomjs.com/)
+- **Engine Gráfica & Apresentação:** [PixiJS v8](https://pixijs.com/) via arquitetura Adapter (`IRenderEngine`), com suporte híbrido ao runtime do [Kaboom.js](https://kaboomjs.com/)
+- **Particionamento Espacial & Física:** `SpatialHashGrid` 2D $O(1)$ determinístico com hashing bitwise e zero alocação na heap
 - **Áudio:** Web Audio API nativa com síntese procedural, limiter dinâmico, espacialização estéreo 2D e acústica convolutiva
 - **Validação de Schemas:** [Zod](https://zod.dev/) para integridade estrita de dados
-- **Build Tool & Dev Server:** [Vite 6](https://vitejs.dev/)
-- **Testes Unitários:** [Vitest](https://vitest.dev/) (73 suítes e 551 testes automatizados) com `@vitest/coverage-v8`
+- **Build Tool & Dev Server:** [Vite](https://vitejs.dev/)
+- **Testes Automatizados:** [Vitest](https://vitest.dev/) (91 suítes e 713 testes automatizados 100% aprovados) com `@vitest/coverage-v8`
 - **Linters & Formatadores:** ESLint 9 Flat Config + Prettier
 - **Containerização:** Docker Multi-stage + Nginx Alpine (imagem de apenas ~21.2 MB)
 
