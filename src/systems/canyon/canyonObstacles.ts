@@ -108,6 +108,79 @@ export function setupCanyonObstacles<
     }
   }
 
+  // 1.1 Costões rochosos escarpados de granito (boqueirao_crag)
+  const cragCount = 12;
+  for (let c = 0; c < cragCount; c++) {
+    const cragX = rampUpEndX + 60 + c * 85;
+    const cragW = 18 + (c % 3) * 6;
+    const cragH = 12 + (c % 4) * 5;
+    k.add([
+      k.rect(cragW, cragH, { radius: 2 }),
+      k.pos(cragX, valleyFloorY - cragH + 2),
+      k.color(65, 75, 88),
+      k.z(3),
+      "boqueirao_crag",
+    ]);
+  }
+
+  // 1.2 Fendas submarinas profundas e fraturas tectônicas (boqueirao_fissure)
+  const fissurePositions = [
+    { x: rampUpEndX + 80,  h: 45, w: 5,  tilt: -12 },
+    { x: rampUpEndX + 210, h: 55, w: 6,  tilt: 8 },
+    { x: rampUpEndX + 350, h: 40, w: 4,  tilt: -6 },
+    { x: rampUpEndX + 490, h: 60, w: 6,  tilt: 14 },
+    { x: rampUpEndX + 650, h: 50, w: 5,  tilt: -10 },
+    { x: rampUpEndX + 820, h: 52, w: 6,  tilt: 7 },
+    { x: rampUpEndX + 950, h: 42, w: 4,  tilt: -8 },
+  ];
+  for (const fp of fissurePositions) {
+    k.add([
+      k.rect(fp.w, fp.h, { radius: 1 }),
+      k.pos(fp.x, valleyFloorY + 4),
+      k.color(14, 20, 28),
+      k.rotate(fp.tilt),
+      k.opacity(0.95),
+      k.z(3),
+      "boqueirao_fissure",
+    ]);
+  }
+
+  // 1.3 Bioincrustações de algas calcárias rosadas/aroxeadas (Lithothamnion)
+  const crustCount = 14;
+  for (let c = 0; c < crustCount; c++) {
+    const crustX = rampUpEndX + 45 + c * 75;
+    const crustW = 24 + (c % 4) * 8;
+    const crustH = 3 + (c % 3) * 1.5;
+    k.add([
+      k.rect(crustW, crustH, { radius: 1.5 }),
+      k.pos(crustX, valleyFloorY - 1 + (c % 3) * 1.2),
+      k.color(175 + (c % 3) * 10, 95 + (c % 4) * 8, 130 + (c % 2) * 15),
+      k.opacity(0.88),
+      k.z(3),
+      "boqueirao_bioincrustation",
+    ]);
+  }
+
+  // 1.4 Ouriços-pretos (Echinometra lucunter) em tocas e concavidades
+  const urchinPockets = [
+    { x: rampUpEndX + 150, y: valleyFloorY + 2 },
+    { x: rampUpEndX + 270, y: valleyFloorY + 5 },
+    { x: rampUpEndX + 430, y: valleyFloorY + 3 },
+    { x: rampUpEndX + 610, y: valleyFloorY + 4 },
+    { x: rampUpEndX + 790, y: valleyFloorY + 2 },
+    { x: rampUpEndX + 930, y: valleyFloorY + 5 },
+    { x: rampUpEndX + 1050, y: valleyFloorY + 3 },
+  ];
+  for (const up of urchinPockets) {
+    k.add([
+      k.circle(3),
+      k.pos(up.x, up.y),
+      k.color(18, 18, 22),
+      k.z(4),
+      "boqueirao_urchin",
+    ]);
+  }
+
   // =========================================================================
   // 2. GORGÔNIAS 16-BITS NAS PAREDES INCLINADAS DO CÂNION (Fase 68)
   // =========================================================================

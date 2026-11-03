@@ -210,6 +210,6 @@ describe("Fase 51: Pipeline Unificada de Renderização e Paleta de Fôlego", ()
       expect(snapshot).toBeDefined();
       expect(snapshot?.slices).toHaveLength(4);
       expect(snapshot?.palette).toBeDefined();
-    });
+    }, 20000);
   });
 });

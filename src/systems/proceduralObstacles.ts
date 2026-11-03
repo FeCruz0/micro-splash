@@ -257,7 +257,7 @@ export function generateProceduralLayout(
     netPositions.push({ x, y });
   });
 
-  const nurseryTrashCount = 12 + Math.floor(rand() * 3);
+  const nurseryTrashCount = 16 + Math.floor(rand() * 3);
   const nurseryTrashStep = 4100 / nurseryTrashCount;
   for (let i = 0; i < nurseryTrashCount; i++) {
     const x = Math.round(25200 + i * nurseryTrashStep + (rand() - 0.5) * 80);
@@ -295,7 +295,7 @@ export function generateProceduralLayout(
     endX: 26900,
     y: 80,
     height: 260,
-    force: 80,
+    force: 140,
     type: "favorable",
   });
 

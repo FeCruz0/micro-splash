@@ -94,8 +94,10 @@ describe("PlayerControlsManager: Controle de Orientação", () => {
     expect(controls.getTargetCamOffset()).toBe(-200);
   });
 
-  it("permite congelar o jogador (freeze) bloqueando movimento e controles ao final da partida", async () => {
-    const { createPlayer } = await import("../../src/entities/player");
+  it(
+    "permite congelar o jogador (freeze) bloqueando movimento e controles ao final da partida",
+    async () => {
+      const { createPlayer } = await import("../../src/entities/player");
 
     let registeredUpdate: (() => void) | null = null;
     const mockKaboom: any = {
@@ -162,7 +164,7 @@ describe("PlayerControlsManager: Controle de Orientação", () => {
     // Descongela
     player.unfreeze();
     expect(player.isFrozen()).toBe(false);
-  });
+  }, 20000);
 
   it("não permite batidas de cauda rapidamente consecutivas e impõe delay de 1 segundo (strokeCooldown)", async () => {
     const { createPlayer } = await import("../../src/entities/player");

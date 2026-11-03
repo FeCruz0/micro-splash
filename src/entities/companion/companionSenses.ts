@@ -142,7 +142,14 @@ export function createCompanionSenses<
 
       const candidates: TGameObj[] = spatialGrid
         ? spatialGrid.queryAABB(hazardAABB)
-        : emptyCandidates;
+        : typeof k.get === "function"
+          ? [
+              ...(k.get(TAGS.NET) as unknown as TGameObj[]),
+              ...(k.get(TAGS.OBSTACLE) as unknown as TGameObj[]),
+              ...(k.get(TAGS.TRASH) as unknown as TGameObj[]),
+              ...(k.get("ice_block") as unknown as TGameObj[]),
+            ]
+          : emptyCandidates;
 
       let closestHazard: TGameObj | null = null;
       let shortestHazardDist: number = hazardAheadRange;
@@ -192,7 +199,9 @@ export function createCompanionSenses<
 
       const availableKrills: TGameObj[] = spatialGrid
         ? spatialGrid.queryAABB(krillAABB)
-        : emptyCandidates;
+        : typeof k.get === "function"
+          ? (k.get(TAGS.KRILL) as unknown as TGameObj[])
+          : emptyCandidates;
       let bestTarget: TGameObj | null = null;
       let shortestDist: number = aheadRange;
 

@@ -70,7 +70,7 @@ export const DEFAULT_OCEAN_CURRENTS: CurrentZone[] = [
   // 3. Correnteza Contrária 2 (Travessia profunda - fundo do mar)
   { startX: 9800, endX: 11400, y: 280, height: 125, force: 185, type: "opposing" },
   // 4. Correnteza do Estreito do Boqueirão (Arraial do Cabo - vão livre do canal submarino)
-  { startX: 25800, endX: 26900, y: 80, height: 260, force: 80, type: "favorable" },
+  { startX: 25800, endX: 26900, y: 80, height: 260, force: 140, type: "favorable" },
 ];
 
 /**

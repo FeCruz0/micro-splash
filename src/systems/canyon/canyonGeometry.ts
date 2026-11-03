@@ -292,7 +292,7 @@ export function setupCanyonGeometry<
       k.opacity(0),
       k.z(3),
       TAGS.OBSTACLE,
-      "boqueirao_rock_collider",
+      "boqueirao_wall_collider",
     ]);
   }
 
@@ -309,7 +309,7 @@ export function setupCanyonGeometry<
       k.opacity(0),
       k.z(3),
       TAGS.OBSTACLE,
-      "boqueirao_rock_collider",
+      "boqueirao_wall_collider",
     ]);
   }
 
@@ -320,7 +320,7 @@ export function setupCanyonGeometry<
     k.opacity(0),
     k.z(3),
     TAGS.OBSTACLE,
-    "boqueirao_rock_collider",
+    "boqueirao_valley_collider",
   ]);
 
   // C. Rampa de Descida Orgânica (26.900m a 27.300m)

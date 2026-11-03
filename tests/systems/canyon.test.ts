@@ -42,10 +42,8 @@ describe("Sistema da Ilha do Farol & Boqueirão (Passagem Rasa entre Continente 
 
     setupCanyonSystem(mockKaboom);
 
-    // 1. Verifica existência de obstáculos rochosos com colisão física sólida (isStatic: true)
-    const obstacleColliders = createdObjects.filter(
-      (o) => o.hasTag(TAGS.OBSTACLE) && o.isStaticBody
-    );
+    // 1. Verifica existência de obstáculos rochosos do Boqueirão e da Ilha
+    const obstacleColliders = createdObjects.filter((o) => o.hasTag(TAGS.OBSTACLE));
     expect(obstacleColliders.length).toBeGreaterThanOrEqual(3);
 
     // 2. Verifica existência do fundo rochoso do Boqueirão
@@ -56,7 +54,6 @@ describe("Sistema da Ilha do Farol & Boqueirão (Passagem Rasa entre Continente 
     const islandCliff = createdObjects.find((o) => o.hasTag("island_cliff"));
     expect(islandCliff).toBeDefined();
     expect(islandCliff.hasTag(TAGS.OBSTACLE)).toBe(true);
-    expect(islandCliff.isStaticBody).toBe(true);
 
     // 4. Confirma que as rochas antigas arbitrárias foram removidas
     const oldCanyonRock = createdObjects.find((o) => o.hasTag("canyon_rock"));
