@@ -32,20 +32,20 @@
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@vitest/coverage-v8": "^4.1.11",
-    "eslint": "^10.11.0",
+    "@vitest/coverage-v8": "^5.0.5",
+    "eslint": "^10.14.0",
     "eslint-config-prettier": "^10.1.8",
     "husky": "^9.1.7",
-    "lint-staged": "^17.5.1",
-    "prettier": "^3.9.9",
-    "typescript": "~6.0.2",
-    "typescript-eslint": "^8.70.1",
-    "vite": "^8.2.2",
-    "vitest": "^4.1.11"
+    "lint-staged": "^17.6.0",
+    "prettier": "^3.9.10",
+    "typescript": "~7.0.2",
+    "typescript-eslint": "^8.72.1",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
   },
   "dependencies": {
     "kaboom": "^3000.1.17",
     "pixi.js": "^8.22.0",
-    "zod": "^4.6.5"
+    "zod": "^4.6.7"
   }
 }
