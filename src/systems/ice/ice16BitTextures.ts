@@ -45,6 +45,10 @@ export function drawBeveled16BitIceBlock(
       h: number,
       opt?: { fill?: { color: number; alpha?: number } }
     ) => void;
+    drawLine?: (
+      pts: { x: number; y: number }[],
+      opt?: { color?: number; width?: number; alpha?: number }
+    ) => void;
   },
   width: number,
   height: number
