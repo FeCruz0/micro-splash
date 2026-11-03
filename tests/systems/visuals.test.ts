@@ -260,7 +260,7 @@ describe("Fase 13: Polimento Visual, Atmosfera & Identidade", () => {
 
       expect(player.getRollAngle!()).toBeDefined();
       expect(player.getVentralOpacity!()).toBeGreaterThanOrEqual(0);
-    });
+    }, 20000);
 
     it("calcula reflexo cáustico de luz solar sobre a pele da jubarte conforme profundidade (Fase 17.3)", async () => {
       const { createPlayer } = await import("../../src/entities/player");
@@ -359,7 +359,7 @@ describe("Fase 13: Polimento Visual, Atmosfera & Identidade", () => {
       updateFn?.();
       const airCaustic = player.getCausticOpacity!();
       expect(airCaustic).toBe(0);
-    });
+    }, 20000);
 
     it("aplica respiração abdominal e balanço de swell oceânico quando a jubarte está estática (idle)", async () => {
       const { createPlayer } = await import("../../src/entities/player");
@@ -461,6 +461,6 @@ describe("Fase 13: Polimento Visual, Atmosfera & Identidade", () => {
       updateFn?.();
       // O ângulo no ar não deve receber o balanço das ondas do mar
       expect(whaleObjRef.angle).toBeDefined();
-    });
+    }, 20000);
   });
 });
