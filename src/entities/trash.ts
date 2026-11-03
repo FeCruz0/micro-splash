@@ -1,41 +1,236 @@
-import type { KaboomCtx, Vec2 } from "kaboom";
-import { GAME_CONFIG, TAGS } from "../config";
+import { GAME_CONFIG, TAGS, ACCESSIBILITY_VISUAL_CONFIG } from "../config";
+import { accessibilitySystem } from "../systems/accessibilitySystem";
+import { getRandomFloat, getRandomInteger } from "../utils/random";
 
-export function createTrash(k: KaboomCtx, position: Vec2) {
+export interface TrashVector2D {
+  x: number;
+  y: number;
+}
+
+export interface TrashGameObject {
+  pos: TrashVector2D;
+  opacity: number;
+  add: (components: unknown[]) => TrashGameObject;
+  onUpdate: (cb: () => void) => void;
+  reveal?: () => void;
+}
+
+export interface TrashEngineContext<TColor = unknown, TVec = TrashVector2D> {
+  add: (components: unknown[]) => unknown;
+  dt: () => number;
+  rect: (w: number, h: number, opt?: { radius?: number }) => unknown;
+  circle: (r: number) => unknown;
+  pos: (x: number | TrashVector2D, y?: number) => unknown;
+  color: (r: number | TColor, g?: number, b?: number) => unknown;
+  outline: (w: number, col: TColor) => unknown;
+  area: (opt?: { shape?: unknown }) => unknown;
+  anchor: (a: "center") => unknown;
+  opacity: (o: number) => unknown;
+  rotate: (a: number) => unknown;
+  rgb: (r: number, g: number, b: number) => TColor;
+  vec2: (x: number, y: number) => TVec;
+  lerp?: (a: number, b: number, t: number) => number;
+  Rect?: new (pos: TVec, w: number, h: number) => unknown;
+}
+
+export interface BiomeTrashPalette {
+  body: [number, number, number];
+  outline: [number, number, number];
+  accent: [number, number, number];
+  cap?: [number, number, number];
+}
+
+/**
+ * Retorna paleta de cores contextual para resíduos plásticos conforme o bioma (Fase 31.4).
+ */
+export function getBiomeTrashPalette(posX: number, isHighContrast = false): BiomeTrashPalette {
+  if (isHighContrast) {
+    return {
+      body: [240, 60, 60],
+      outline: [255, 240, 50],
+      accent: [255, 200, 50],
+      cap: [255, 240, 50],
+    };
+  }
+
+  if (posX < 5000) {
+    // 1. Antártica: plástico desbotado acinzentado polar congelado
+    return {
+      body: [175, 195, 210],
+      outline: [120, 140, 160],
+      accent: [140, 170, 190],
+      cap: [130, 155, 175],
+    };
+  }
+  if (posX < 12000) {
+    // 2. Travessia Pelágica: azul oceânico translúcido
+    return {
+      body: [80, 140, 200],
+      outline: [40, 80, 140],
+      accent: [100, 160, 220],
+      cap: [55, 100, 165],
+    };
+  }
+  if (posX < 25000) {
+    // 3. Costa Urbana e Cânions: vermelho saturado e grafite industrial
+    return {
+      body: [215, 65, 60],
+      outline: [80, 80, 85],
+      accent: [235, 100, 70],
+      cap: [60, 60, 65],
+    };
+  }
+  // 4. Santuário de Arraial: laranja queimado de sol e tons quentes
+  return {
+    body: [235, 155, 90],
+    outline: [180, 105, 55],
+    accent: [245, 190, 130],
+    cap: [210, 120, 60],
+  };
+}
+
+export function createTrash<TColor = unknown, TVec = TrashVector2D>(
+  k: TrashEngineContext<TColor, TVec>,
+  position: TrashVector2D
+): TrashGameObject {
   let revealTimer = 0;
+  const isHighContrast = accessibilitySystem.isHighContrast();
+  const baseOpacity = isHighContrast
+    ? ACCESSIBILITY_VISUAL_CONFIG.HIGH_CONTRAST_OPACITY
+    : ACCESSIBILITY_VISUAL_CONFIG.STANDARD_TRASH_OPACITY;
+  const palette = getBiomeTrashPalette(position.x, isHighContrast);
 
-  const trash = k.add([
-    k.rect(22, 22, { radius: 4 }),
-    k.pos(position),
-    k.color(220, 50, 50),
-    k.outline(1.5, k.rgb(255, 120, 120)),
-    k.area(),
-    k.anchor("center"),
-    k.opacity(0.25), // Camuflado nas águas escuras
-    TAGS.TRASH,
-    {
-      reveal() {
-        revealTimer = GAME_CONFIG.SONAR_REVEAL_DURATION;
+  // 3 tipos procedurais de lixo plástico intercalados
+  const trashType = getRandomInteger(0, 2);
+  let trash: TrashGameObject;
+
+  if (trashType === 0) {
+    // 1. Garrafa PET — corpo vertical com gargalo estreito e tampa calibrada
+    const shapeArea =
+      typeof k.Rect === "function" ? { shape: new k.Rect(k.vec2(-5.5, -14), 11, 26) } : undefined;
+    trash = k.add([
+      k.rect(11, 22, { radius: 3 }),
+      k.pos(position),
+      k.color(palette.body[0], palette.body[1], palette.body[2]),
+      k.outline(
+        isHighContrast ? 2.5 : 1.5,
+        k.rgb(palette.outline[0], palette.outline[1], palette.outline[2])
+      ),
+      k.area(shapeArea),
+      k.anchor("center"),
+      k.opacity(baseOpacity),
+      TAGS.TRASH,
+      {
+        reveal() {
+          revealTimer = GAME_CONFIG.SONAR_REVEAL_DURATION;
+        },
       },
-    },
-  ]);
+    ]) as TrashGameObject;
+    // Gargalo e tampa estreita da garrafa (proporção autêntica)
+    const capColor = palette.cap || palette.outline;
+    trash.add([
+      k.rect(6, 4, { radius: 1 }),
+      k.pos(0, -13),
+      k.color(capColor[0], capColor[1], capColor[2]),
+      k.anchor("center"),
+    ]);
+    // Faixa de rótulo desbotado
+    trash.add([
+      k.rect(11, 6),
+      k.pos(0, 1),
+      k.color(palette.accent[0], palette.accent[1], palette.accent[2]),
+      k.opacity(0.7),
+      k.anchor("center"),
+    ]);
+  } else if (trashType === 1) {
+    // 2. Sacola plástica — corpo flutuante arredondado com alças superiores
+    const shapeArea =
+      typeof k.Rect === "function" ? { shape: new k.Rect(k.vec2(-10, -10), 20, 19) } : undefined;
+    trash = k.add([
+      k.rect(20, 17, { radius: 6 }),
+      k.pos(position),
+      k.color(palette.body[0], palette.body[1], palette.body[2]),
+      k.outline(
+        isHighContrast ? 2.5 : 1.5,
+        k.rgb(palette.outline[0], palette.outline[1], palette.outline[2])
+      ),
+      k.area(shapeArea),
+      k.anchor("center"),
+      k.opacity(
+        isHighContrast
+          ? ACCESSIBILITY_VISUAL_CONFIG.HIGH_CONTRAST_OPACITY
+          : ACCESSIBILITY_VISUAL_CONFIG.ENHANCED_TRASH_OPACITY
+      ),
+      TAGS.TRASH,
+      {
+        reveal() {
+          revealTimer = GAME_CONFIG.SONAR_REVEAL_DURATION;
+        },
+      },
+    ]) as TrashGameObject;
+    // Alças superiores da sacola plástica
+    trash.add([
+      k.rect(14, 4, { radius: 2 }),
+      k.pos(0, -10),
+      k.color(palette.accent[0], palette.accent[1], palette.accent[2]),
+      k.outline(1, k.rgb(palette.outline[0], palette.outline[1], palette.outline[2])),
+      k.anchor("center"),
+    ]);
+  } else {
+    // 3. Copo/Embalagem amassada — geometria irregular com recorte plástico
+    trash = k.add([
+      k.circle(10),
+      k.pos(position),
+      k.color(palette.body[0], palette.body[1], palette.body[2]),
+      k.outline(
+        isHighContrast ? 2.5 : 1.5,
+        k.rgb(palette.outline[0], palette.outline[1], palette.outline[2])
+      ),
+      k.area(),
+      k.anchor("center"),
+      k.opacity(baseOpacity),
+      TAGS.TRASH,
+      {
+        reveal() {
+          revealTimer = GAME_CONFIG.SONAR_REVEAL_DURATION;
+        },
+      },
+    ]) as TrashGameObject;
+    // Vinco de amassamento plástico
+    trash.add([
+      k.rect(8, 3, { radius: 1 }),
+      k.pos(-1, -1),
+      k.color(palette.accent[0], palette.accent[1], palette.accent[2]),
+      k.rotate(25),
+      k.anchor("center"),
+    ]);
+  }
 
   const baseY = position.y;
 
-  // Efeito de flutuação suave e decaimento de revelação
-  let time = Math.random() * 10;
+  // Flutuação suave e decaimento de revelação
+  let time = getRandomFloat(0, 10);
   trash.onUpdate(() => {
+    const rawTrash = trash as unknown as { hidden?: boolean; isVisible?: () => boolean };
+    const isCulled =
+      rawTrash.hidden === true ||
+      (typeof rawTrash.isVisible === "function" && !rawTrash.isVisible());
+    if (isCulled && revealTimer <= 0) return;
+
     time += k.dt();
-    trash.pos.y = baseY + Math.sin(time * 2.2) * 5; // Flutuação senoidal suave ancorada sem deriva
+    trash.pos.y = baseY + Math.sin(time * 2.2) * 5;
 
     if (revealTimer > 0) {
       revealTimer -= k.dt();
-      trash.opacity = k.lerp(0.25, 1, Math.min(1, revealTimer / 1.5));
+      const revealProgress = Math.min(1, revealTimer / 1.5);
+      trash.opacity =
+        typeof k.lerp === "function"
+          ? k.lerp(baseOpacity, 1, revealProgress)
+          : baseOpacity + (1 - baseOpacity) * revealProgress;
     } else {
-      trash.opacity = 0.25;
+      trash.opacity = baseOpacity;
     }
   });
 
   return trash;
 }
-

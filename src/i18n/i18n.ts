@@ -1,0 +1,190 @@
+/**
+ * Sistema de Internacionalização (i18n) e Acessibilidade Linguística
+ * Suporta Português (pt-BR), Inglês (en-US) e Línguas Indígenas Brasileiras (Guarani Nhandewa - gn).
+ * Persiste a preferência no localStorage ('micro_splash_locale').
+ */
+
+import ptBR from "./locales/pt-BR.json";
+import enUS from "./locales/en-US.json";
+import gn from "./locales/gn.json";
+import { readLocalStorageWithSchema, writeLocalStorage } from "../utils/storage";
+import { SupportedLocaleSchema } from "../schemas/storageSchemas";
+
+export type SupportedLocale = "pt-BR" | "en-US" | "gn";
+
+export const LOCALES: Record<SupportedLocale, { label: string; dict: Record<string, unknown> }> = {
+  "pt-BR": {
+    label: "🇧🇷 Português",
+    dict: ptBR,
+  },
+  "en-US": {
+    label: "🇺🇸 English",
+    dict: enUS,
+  },
+  gn: {
+    label: "🌿 Avañe'ẽ (Guarani)",
+    dict: gn,
+  },
+};
+
+const STORAGE_KEY = "micro_splash_locale";
+
+class I18nManager {
+  private currentLocale: SupportedLocale = "pt-BR";
+  private listeners: Array<(locale: SupportedLocale) => void> = [];
+
+  constructor() {
+    this.currentLocale = this.detectInitialLocale();
+  }
+
+  private detectInitialLocale(): SupportedLocale {
+    const saved = readLocalStorageWithSchema(
+      STORAGE_KEY,
+      SupportedLocaleSchema,
+      "" as SupportedLocale
+    );
+    if (saved && LOCALES[saved as SupportedLocale]) {
+      return saved as SupportedLocale;
+    }
+
+    if (typeof navigator !== "undefined" && navigator.language) {
+      const navLang = navigator.language.toLowerCase();
+      if (navLang.startsWith("en")) return "en-US";
+      if (navLang.startsWith("gn")) return "gn";
+    }
+
+    return "pt-BR";
+  }
+
+  public getLocale(): SupportedLocale {
+    return this.currentLocale;
+  }
+
+  public getLocaleLabel(): string {
+    return LOCALES[this.currentLocale]?.label || LOCALES["pt-BR"].label;
+  }
+
+  public setLocale(locale: SupportedLocale): void {
+    if (!LOCALES[locale]) return;
+    this.currentLocale = locale;
+    writeLocalStorage(STORAGE_KEY, locale);
+    this.listeners.forEach((listener) => {
+      try {
+        listener(locale);
+      } catch {}
+    });
+  }
+
+  public cycleNextLocale(): SupportedLocale {
+    const list: SupportedLocale[] = ["pt-BR", "en-US", "gn"];
+    const idx = list.indexOf(this.currentLocale);
+    const nextLocale = list[(idx + 1) % list.length];
+    this.setLocale(nextLocale);
+    return nextLocale;
+  }
+
+  public onLocaleChange(listener: (locale: SupportedLocale) => void): () => void {
+    this.listeners.push(listener);
+    return () => {
+      this.listeners = this.listeners.filter((l) => l !== listener);
+    };
+  }
+
+  /**
+   * Resolve uma chave de tradução dot-separated (ex: 'menu.play')
+   * com fallback transparente para o dicionário padrão pt-BR.
+   */
+  public t(key: string, params?: Record<string, string | number>): string {
+    const activeDict = LOCALES[this.currentLocale]?.dict || ptBR;
+    const fallbackDict = ptBR;
+
+    let val = this.resolvePath(activeDict, key);
+    if (val === undefined) {
+      val = this.resolvePath(fallbackDict, key);
+    }
+
+    if (typeof val !== "string") {
+      return key; // Retorna a própria chave caso não encontrada
+    }
+
+    if (params) {
+      return Object.entries(params).reduce((acc, [paramKey, paramVal]) => {
+        return acc.replace(new RegExp(`\\{${paramKey}\\}`, "g"), String(paramVal));
+      }, val);
+    }
+
+    return val;
+  }
+
+  /**
+   * Retorna a tag BCP-47 compatível para formatação com Intl.
+   */
+  public getIntlLocaleTag(): string {
+    switch (this.currentLocale) {
+      case "en-US":
+        return "en-US";
+      case "gn":
+        return "gn";
+      case "pt-BR":
+      default:
+        return "pt-BR";
+    }
+  }
+
+  /**
+   * Formata um valor numérico de acordo com o padrão cultural do idioma ativo.
+   */
+  public formatNumber(value: number, options?: Intl.NumberFormatOptions): string {
+    try {
+      return new Intl.NumberFormat(this.getIntlLocaleTag(), options).format(value);
+    } catch {
+      return value.toLocaleString();
+    }
+  }
+
+  /**
+   * Formata uma distância em metros ou quilômetros de maneira acessível e internacionalizada.
+   */
+  public formatDistance(meters: number, useKilometersThreshold = 1000): string {
+    const safeMeters = Math.max(0, meters);
+    if (safeMeters >= useKilometersThreshold) {
+      const km = safeMeters / 1000;
+      const formattedKm = this.formatNumber(km, {
+        minimumFractionDigits: 1,
+        maximumFractionDigits: 1,
+      });
+      return `${formattedKm} km`;
+    }
+    const formattedMeters = this.formatNumber(Math.round(safeMeters));
+    return `${formattedMeters} m`;
+  }
+
+  /**
+   * Formata uma data segundo as regras culturais do idioma ativo.
+   */
+  public formatDate(date: Date | number, options?: Intl.DateTimeFormatOptions): string {
+    const targetDate = typeof date === "number" ? new Date(date) : date;
+    try {
+      return new Intl.DateTimeFormat(this.getIntlLocaleTag(), options).format(targetDate);
+    } catch {
+      return targetDate.toLocaleDateString();
+    }
+  }
+
+  private resolvePath(obj: unknown, path: string): unknown {
+    return path.split(".").reduce<unknown>((acc, part) => {
+      return acc && typeof acc === "object" && part in acc
+        ? (acc as Record<string, unknown>)[part]
+        : undefined;
+    }, obj);
+  }
+}
+
+export const i18n = new I18nManager();
+export const t = (key: string, params?: Record<string, string | number>) => i18n.t(key, params);
+export const formatNumber = (val: number, opts?: Intl.NumberFormatOptions) =>
+  i18n.formatNumber(val, opts);
+export const formatDistance = (meters: number, threshold?: number) =>
+  i18n.formatDistance(meters, threshold);
+export const formatDate = (date: Date | number, opts?: Intl.DateTimeFormatOptions) =>
+  i18n.formatDate(date, opts);

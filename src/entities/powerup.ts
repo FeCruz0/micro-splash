@@ -1,5 +1,5 @@
-import type { GameObj, KaboomCtx, Vec2 } from "kaboom";
-import { createBubbleVent } from "./bubbleVent";
+import { createBubbleVent, type BubbleVentObj, type BubbleVentEngineContext } from "./bubbleVent";
+import type { Vector2D } from "../engine/contracts/INTERFACE_CONTRACTS";
 
 export type PowerUpType = "air_pocket" | "tailwind";
 
@@ -31,7 +31,11 @@ export const POWERUP_CONFIGS: Record<PowerUpType, PowerUpData> = {
 /**
  * Cria elemento ambiental benéfico (Bolsão de Ar natural ou Correnteza)
  */
-export function createPowerUp(k: KaboomCtx, pos: Vec2, type: PowerUpType): GameObj {
+export function createPowerUp<TObj = BubbleVentObj>(
+  k: BubbleVentEngineContext<TObj>,
+  pos: Vector2D | { x: number; y: number },
+  type: PowerUpType
+): TObj {
   if (type === "air_pocket") {
     return createBubbleVent(k, pos, 220);
   }

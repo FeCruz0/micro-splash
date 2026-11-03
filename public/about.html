@@ -1,0 +1,745 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Micro Splash — A Jornada da Baleia-Jubarte | Sobre o Projeto Educativo</title>
+    <meta
+      name="description"
+      content="Conheça o projeto educativo Micro Splash: um jogo arcade e de bioacústica sobre a migração da baleia-jubarte da Antártica a Arraial do Cabo. Recursos para escolas, totens e biologia marinha."
+    />
+    <link rel="canonical" href="https://fecruz0.github.io/micro-splash/about.html" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://fecruz0.github.io/micro-splash/about.html" />
+    <meta property="og:title" content="Sobre o Micro Splash — Educação e Conservação Marinha" />
+    <meta
+      property="og:description"
+      content="Descubra a ciência, a rota migratória e os recursos pedagógicos do Micro Splash para feiras de ciências e escolas."
+    />
+    <meta property="og:image" content="https://fecruz0.github.io/micro-splash/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <style>
+      :root {
+        --bg-abyssal: #06122a;
+        --bg-surface: #0a1f44;
+        --bg-card: rgba(12, 35, 75, 0.7);
+        --bg-card-hover: rgba(18, 52, 110, 0.85);
+        --border-glass: rgba(56, 189, 248, 0.25);
+        --border-glass-hover: rgba(56, 189, 248, 0.6);
+        --text-primary: #f0f9ff;
+        --text-secondary: #94a3b8;
+        --text-muted: #64748b;
+        --cyan-glow: #38bdf8;
+        --cyan-vibrant: #0284c7;
+        --gold-glow: #fbbf24;
+        --emerald-glow: #34d399;
+        --font-heading: "Outfit", sans-serif;
+        --font-body: "Inter", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        background-color: var(--bg-abyssal);
+        color: var(--text-primary);
+        font-family: var(--font-body);
+        line-height: 1.6;
+        background-image:
+          radial-gradient(circle at 50% 0%, rgba(14, 116, 144, 0.3) 0%, transparent 60%),
+          radial-gradient(circle at 10% 30%, rgba(2, 132, 199, 0.15) 0%, transparent 40%),
+          radial-gradient(circle at 90% 70%, rgba(56, 189, 248, 0.1) 0%, transparent 50%);
+        background-attachment: fixed;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+
+      a {
+        color: var(--cyan-glow);
+        text-decoration: none;
+        transition: color 0.2s ease;
+      }
+
+      a:hover {
+        color: #7dd3fc;
+        text-decoration: underline;
+      }
+
+      /* Navbar */
+      .navbar {
+        position: sticky;
+        top: 0;
+        z-index: 100;
+        background: rgba(6, 18, 42, 0.85);
+        backdrop-filter: blur(16px);
+        border-bottom: 1px solid var(--border-glass);
+        padding: 1rem 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .nav-brand {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-family: var(--font-heading);
+        font-size: 1.35rem;
+        font-weight: 800;
+        color: #fff;
+        text-decoration: none;
+      }
+
+      .nav-brand span {
+        color: var(--cyan-glow);
+      }
+
+      .nav-links {
+        display: flex;
+        gap: 1.5rem;
+        align-items: center;
+        list-style: none;
+      }
+
+      .nav-links a {
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+      }
+
+      .nav-links a:hover {
+        color: var(--text-primary);
+        text-decoration: none;
+      }
+
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.65rem 1.4rem;
+        border-radius: 9999px;
+        font-family: var(--font-heading);
+        font-weight: 700;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        text-decoration: none !important;
+        border: none;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #0284c7, #38bdf8);
+        color: #041226;
+        box-shadow: 0 4px 20px rgba(56, 189, 248, 0.35);
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px) scale(1.02);
+        box-shadow: 0 6px 28px rgba(56, 189, 248, 0.55);
+        color: #041226;
+      }
+
+      .btn-secondary {
+        background: rgba(14, 116, 144, 0.25);
+        color: var(--text-primary);
+        border: 1px solid var(--border-glass);
+      }
+
+      .btn-secondary:hover {
+        background: rgba(14, 116, 144, 0.45);
+        border-color: var(--cyan-glow);
+        transform: translateY(-2px);
+      }
+
+      /* Container */
+      .container {
+        max-width: 1140px;
+        margin: 0 auto;
+        padding: 3rem 1.5rem;
+      }
+
+      /* Hero */
+      .hero {
+        text-align: center;
+        padding: 4rem 1rem 5rem;
+      }
+
+      .badge-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.35rem 1rem;
+        background: rgba(56, 189, 248, 0.12);
+        border: 1px solid var(--border-glass);
+        border-radius: 9999px;
+        color: var(--cyan-glow);
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      .hero h1 {
+        font-family: var(--font-heading);
+        font-size: clamp(2.2rem, 5vw, 3.8rem);
+        font-weight: 800;
+        line-height: 1.15;
+        margin-bottom: 1.25rem;
+        background: linear-gradient(135deg, #ffffff 40%, #7dd3fc 85%, #fbbf24 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+
+      .hero p {
+        font-size: clamp(1.05rem, 2vw, 1.25rem);
+        color: var(--text-secondary);
+        max-width: 780px;
+        margin: 0 auto 2.5rem;
+      }
+
+      .hero-actions {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-bottom: 3.5rem;
+      }
+
+      .hero-preview {
+        max-width: 900px;
+        margin: 0 auto;
+        border-radius: 16px;
+        overflow: hidden;
+        border: 2px solid var(--border-glass);
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6), 0 0 40px rgba(56, 189, 248, 0.2);
+        transition: transform 0.4s ease, border-color 0.4s ease;
+      }
+
+      .hero-preview:hover {
+        transform: translateY(-4px);
+        border-color: var(--cyan-glow);
+      }
+
+      .hero-preview img {
+        width: 100%;
+        display: block;
+        height: auto;
+      }
+
+      /* Sections */
+      .section-title {
+        text-align: center;
+        margin-bottom: 3rem;
+      }
+
+      .section-title h2 {
+        font-family: var(--font-heading);
+        font-size: 2.2rem;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 0.5rem;
+      }
+
+      .section-title p {
+        color: var(--text-secondary);
+        font-size: 1.05rem;
+        max-width: 620px;
+        margin: 0 auto;
+      }
+
+      /* Grid Cards */
+      .grid-4 {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 4rem;
+      }
+
+      .card {
+        background: var(--bg-card);
+        border: 1px solid var(--border-glass);
+        border-radius: 16px;
+        padding: 2rem;
+        backdrop-filter: blur(12px);
+        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        display: flex;
+        flex-direction: column;
+      }
+
+      .card:hover {
+        background: var(--bg-card-hover);
+        border-color: var(--border-glass-hover);
+        transform: translateY(-4px);
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+      }
+
+      .card-icon {
+        font-size: 2.2rem;
+        margin-bottom: 1rem;
+      }
+
+      .card h3 {
+        font-family: var(--font-heading);
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 0.75rem;
+      }
+
+      .card p {
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+        line-height: 1.6;
+        flex-grow: 1;
+      }
+
+      .card-tag {
+        display: inline-block;
+        margin-top: 1rem;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--cyan-glow);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+
+      /* Dual Column Split */
+      .split-box {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2.5rem;
+        align-items: center;
+        background: rgba(10, 31, 68, 0.5);
+        border: 1px solid var(--border-glass);
+        border-radius: 20px;
+        padding: 3rem;
+        margin-bottom: 4rem;
+      }
+
+      @media (max-width: 800px) {
+        .split-box {
+          grid-template-columns: 1fr;
+          padding: 2rem;
+        }
+      }
+
+      .split-box h3 {
+        font-family: var(--font-heading);
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 1rem;
+      }
+
+      .split-box p {
+        color: var(--text-secondary);
+        margin-bottom: 1.25rem;
+      }
+
+      .check-list {
+        list-style: none;
+        margin-bottom: 1.5rem;
+      }
+
+      .check-list li {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.6rem;
+        color: var(--text-primary);
+        font-size: 0.95rem;
+        margin-bottom: 0.6rem;
+      }
+
+      .check-list li span {
+        color: var(--emerald-glow);
+        font-weight: bold;
+      }
+
+      /* QR Code Box */
+      .qr-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 2rem;
+        text-align: center;
+        color: #06122a;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      }
+
+      .qr-container svg {
+        width: 180px;
+        height: 180px;
+        margin-bottom: 1rem;
+      }
+
+      .qr-container p {
+        color: #334155;
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin: 0;
+      }
+
+      /* Kiosk Keyboard Shortcuts */
+      .kbd-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+      }
+
+      .kbd-table th,
+      .kbd-table td {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid rgba(56, 189, 248, 0.15);
+        font-size: 0.9rem;
+      }
+
+      .kbd-table th {
+        text-align: left;
+        color: var(--cyan-glow);
+        font-weight: 600;
+      }
+
+      kbd {
+        background: rgba(14, 116, 144, 0.4);
+        border: 1px solid var(--border-glass);
+        border-radius: 6px;
+        padding: 0.2rem 0.5rem;
+        font-family: monospace;
+        font-size: 0.85rem;
+        color: #fff;
+      }
+
+      /* Footer */
+      footer {
+        background: #030a18;
+        border-top: 1px solid var(--border-glass);
+        padding: 3rem 2rem 2rem;
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 0.9rem;
+      }
+
+      .footer-links {
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        margin-bottom: 1.5rem;
+        list-style: none;
+      }
+
+      .footer-links a {
+        color: var(--text-secondary);
+        font-weight: 500;
+      }
+
+      .footer-links a:hover {
+        color: var(--cyan-glow);
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Navbar -->
+    <nav class="navbar" id="top-nav">
+      <a href="/" class="nav-brand" id="brand-logo">
+        🐋 <span>Micro Splash</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="#sobre" id="link-sobre">Sobre</a></li>
+        <li><a href="#biologia" id="link-biologia">A Ciência</a></li>
+        <li><a href="#professores" id="link-professores">Educadores</a></li>
+        <li><a href="#totem" id="link-totem">Totens & Kiosks</a></li>
+        <li>
+          <a href="/" class="btn btn-primary" id="btn-jogar-nav">🎮 Jogar Agora</a>
+        </li>
+      </ul>
+    </nav>
+
+    <main>
+      <!-- Hero -->
+      <section class="hero container" id="sobre">
+        <div class="badge-pill" id="hero-badge">
+          🌊 Educação, Bioacústica & Conservação Marinha
+        </div>
+        <h1 id="hero-title">A Grande Migração Oceânica na Ponta dos Seus Dedos</h1>
+        <p id="hero-desc">
+          O <strong>Micro Splash</strong> é uma experiência interativa e arcade projetada para escolas,
+          feiras de ciências e amantes da vida marinha. Guie uma jovem baleia-jubarte
+          (<em>Megaptera novaeangliae</em>) da Antártica a Arraial do Cabo, aprendendo sobre bioacústica,
+          hidrodinâmica e os impactos das ameaças humanas nos oceanos.
+        </p>
+        <div class="hero-actions">
+          <a href="/" class="btn btn-primary" id="hero-btn-play">
+            🎮 Jogar no Navegador
+          </a>
+          <a href="#totem" class="btn btn-secondary" id="hero-btn-kiosk">
+            🖥️ Guia para Totens & Tablets
+          </a>
+        </div>
+
+        <div class="hero-preview" id="preview-card">
+          <img
+            src="/og-image.png"
+            alt="Preview do jogo Micro Splash com a rota da baleia-jubarte da Antártica a Arraial do Cabo"
+            id="hero-preview-img"
+          />
+        </div>
+      </section>
+
+      <!-- Seção 1: A Ciência e o Que a Jubarte Ensina -->
+      <section class="container" id="biologia">
+        <div class="section-title">
+          <div class="badge-pill">Alinhado à BNCC & Ecologia</div>
+          <h2>O Que a Jubarte Ensina?</h2>
+          <p>
+            Quatro pilares oceanográficos integrados à mecânica e ao design de áudio do jogo.
+          </p>
+        </div>
+
+        <div class="grid-4">
+          <div class="card" id="card-pilar-migracao">
+            <div class="card-icon">❄️</div>
+            <h3>Rota Polar de 4.000 km</h3>
+            <p>
+              As jubartes passam o verão antártico acumulando reservas energéticas através do consumo
+              de até 2 toneladas diárias de krill. Durante a migração para águas tropicais, permanecem
+              em jejum metabólico por meses seguidos.
+            </p>
+            <div class="card-tag">Fisiologia & Cetologia</div>
+          </div>
+
+          <div class="card" id="card-pilar-bioacustica">
+            <div class="card-icon">🎶</div>
+            <h3>Bioacústica & Canal SOFAR</h3>
+            <p>
+              O mar é escuro, mas rico em frequências sonoras. O jogo simula proceduralmente o canto das
+              baleias e a camada do Canal SOFAR (Sound Fixing and Ranging), permitindo que ondas acústicas
+              viajem por centenas de quilômetros.
+            </p>
+            <div class="card-tag">Física Acústica Marinha</div>
+          </div>
+
+          <div class="card" id="card-pilar-ameacas">
+            <div class="card-icon">⚠️</div>
+            <h3>Ameaças Antrópicas Reais</h3>
+            <p>
+              O jogador vivencia os riscos reais da costa moderna: redes de pesca fantasma esquecidas
+              no fundo do mar, ingestão de plásticos urbanos e o perigo de abalroamento em rotas de navios cargueiros.
+            </p>
+            <div class="card-tag">Consciência Ambiental</div>
+          </div>
+
+          <div class="card" id="card-pilar-ressurgencia">
+            <div class="card-icon">🌊</div>
+            <h3>A Ressurgência de Arraial</h3>
+            <p>
+              O clímax em Arraial do Cabo e Cabo Frio demonstra a Corrente das Malvinas trazendo
+              águas profundas ricas em fitoplâncton e nutrientes à superfície, criando um berçário ideal para as mães e filhotes.
+            </p>
+            <div class="card-tag">Oceanografia Dinâmica</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Seção 2: Espaço do Educador -->
+      <section class="container" id="professores">
+        <div class="split-box">
+          <div>
+            <div class="badge-pill">Em Sala de Aula</div>
+            <h3>Recursos para Professores & Feiras</h3>
+            <p>
+              O Micro Splash foi pensado desde o primeiro dia para apoiar aulas práticas de Ciências e Biologia no Ensino Fundamental II e Ensino Médio.
+            </p>
+            <ul class="check-list">
+              <li><span>✓</span> Mais de 20 perguntas de quiz contextualizadas aos biomas navegados.</li>
+              <li><span>✓</span> Alinhamento direto às competências da BNCC (EF07CI07, EF08CI16 e EM13CNT206).</li>
+              <li><span>✓</span> CMS Lite para adicionar perguntas e fatos personalizados da sua região.</li>
+              <li><span>✓</span> Modo de Apresentação interativo (atalho [P]) com navegação livre de biomas.</li>
+            </ul>
+            <a href="/tools/editor.html" class="btn btn-secondary" id="btn-cms-link">
+              ✏️ Acessar CMS Lite de Conteúdo
+            </a>
+          </div>
+
+          <div class="qr-container" id="qr-box">
+            <!-- QR Code Vetorial SVG -->
+            <svg viewBox="0 0 100 100" fill="#06122a">
+              <rect x="0" y="0" width="30" height="30" fill="#06122a" />
+              <rect x="5" y="5" width="20" height="20" fill="#ffffff" />
+              <rect x="10" y="10" width="10" height="10" fill="#06122a" />
+
+              <rect x="70" y="0" width="30" height="30" fill="#06122a" />
+              <rect x="75" y="5" width="20" height="20" fill="#ffffff" />
+              <rect x="80" y="10" width="10" height="10" fill="#06122a" />
+
+              <rect x="0" y="70" width="30" height="30" fill="#06122a" />
+              <rect x="5" y="75" width="20" height="20" fill="#ffffff" />
+              <rect x="10" y="80" width="10" height="10" fill="#06122a" />
+
+              <!-- Padrões internos do QR code -->
+              <rect x="38" y="10" width="8" height="8" />
+              <rect x="52" y="10" width="8" height="8" />
+              <rect x="38" y="24" width="8" height="8" />
+              <rect x="52" y="24" width="8" height="8" />
+              <rect x="15" y="38" width="8" height="8" />
+              <rect x="29" y="38" width="8" height="8" />
+              <rect x="43" y="38" width="8" height="8" />
+              <rect x="57" y="38" width="8" height="8" />
+              <rect x="71" y="38" width="8" height="8" />
+              <rect x="85" y="38" width="8" height="8" />
+              <rect x="38" y="52" width="8" height="8" />
+              <rect x="52" y="52" width="8" height="8" />
+              <rect x="66" y="52" width="8" height="8" />
+              <rect x="38" y="70" width="8" height="8" />
+              <rect x="52" y="70" width="8" height="8" />
+              <rect x="66" y="70" width="8" height="8" />
+              <rect x="80" y="70" width="8" height="8" />
+              <rect x="45" y="85" width="8" height="8" />
+              <rect x="75" y="85" width="8" height="8" />
+            </svg>
+            <p>Aponte a câmera do tablet ou celular para jogar instantaneamente</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Seção 3: Totens e Atalhos Kiosk -->
+      <section class="container" id="totem">
+        <div class="section-title">
+          <div class="badge-pill">Exposição Pública</div>
+          <h2>Modo Kiosk para Totens & Museus</h2>
+          <p>
+            O Micro Splash funciona offline, tem suporte nativo a telas touch, gamepads USB/Bluetooth e atalhos rápidos de manutenção.
+          </p>
+        </div>
+
+        <div class="split-box">
+          <div>
+            <h3>Como Configurar um Totem</h3>
+            <p>
+              Para configurar um navegador em tela cheia travada em feiras, abra o Google Chrome ou Microsoft Edge com os seguintes parâmetros de linha de comando:
+            </p>
+            <p>
+              <code>chrome.exe --kiosk --disable-pinch --overscroll-history-navigation=0 "http://localhost:8080"</code>
+            </p>
+            <p style="margin-top: 1rem;">
+              O jogo detecta automaticamente se há inatividade no menu inicial e inicia uma demonstração de nado natural com a jubarte.
+            </p>
+          </div>
+
+          <div>
+            <h3>Atalhos Universais de Teclado</h3>
+            <table class="kbd-table" id="table-shortcuts">
+              <thead>
+                <tr>
+                  <th>Atalho</th>
+                  <th>Ação no Jogo</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><kbd>Espaço</kbd> ou <kbd>W</kbd> / <kbd>↑</kbd></td>
+                  <td>Batida de cauda (impulso para cima)</td>
+                </tr>
+                <tr>
+                  <td><kbd>E</kbd> ou <kbd>Enter</kbd></td>
+                  <td>Sonar bioacústico omnidirecional</td>
+                </tr>
+                <tr>
+                  <td><kbd>F11</kbd></td>
+                  <td>Alternar Tela Cheia nativa</td>
+                </tr>
+                <tr>
+                  <td><kbd>F3</kbd></td>
+                  <td>Painel de Diagnóstico em tempo real (FPS, RAM, Posição)</td>
+                </tr>
+                <tr>
+                  <td><kbd>P</kbd></td>
+                  <td>Modo Apresentação (seleção livre de biomas para aulas)</td>
+                </tr>
+                <tr>
+                  <td><kbd>F2</kbd></td>
+                  <td>Reinício forçado imediato da partida</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Seção 4: Privacidade e Acessibilidade -->
+      <section class="container" id="privacidade">
+        <div class="grid-4">
+          <div class="card">
+            <div class="card-icon">🔒</div>
+            <h3>Privacidade & LGPD</h3>
+            <p>
+              Sem cookies de rastreamento de terceiros, sem coleta de dados pessoais e sem publicidade. 100% dos recordes são salvos localmente no seu dispositivo.
+            </p>
+            <a href="/docs/PRIVACIDADE.md" class="card-tag">Ver Política LGPD →</a>
+          </div>
+
+          <div class="card">
+            <div class="card-icon">♿</div>
+            <h3>WCAG 2.1 AA</h3>
+            <p>
+              Suporte a navegação 100% por teclado, narração em voz sintetizada (TTS), 3 filtros para daltonismo e modo de movimento reduzido.
+            </p>
+            <div class="card-tag">Acessibilidade Total</div>
+          </div>
+
+          <div class="card">
+            <div class="card-icon">📶</div>
+            <h3>PWA Offline-First</h3>
+            <p>
+              Instale na tela inicial como um aplicativo nativo. Funciona perfeitamente em barcos, escolas rurais ou locais sem sinal de internet.
+            </p>
+            <div class="card-tag">Tecnologia Service Worker</div>
+          </div>
+
+          <div class="card">
+            <div class="card-icon">🏛️</div>
+            <h3>Instituto Baleia Jubarte</h3>
+            <p>
+              Reconhecimento e apoio aos pesquisadores do Projeto Baleia Jubarte que dedicam suas vidas ao monitoramento e conservação da espécie.
+            </p>
+            <a href="https://www.baleiajubarte.org.br" target="_blank" rel="noopener noreferrer" class="card-tag">Conhecer o Instituto ↗</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+      <ul class="footer-links">
+        <li><a href="/">Jogar</a></li>
+        <li><a href="/about.html">Sobre</a></li>
+        <li><a href="/tools/editor.html">CMS Educacional</a></li>
+        <li><a href="https://github.com/FeCruz0/micro-splash" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+        <li><a href="/docs/PRIVACIDADE.md">Privacidade</a></li>
+      </ul>
+      <p>
+        Micro Splash — Desenvolvido com foco em preservação marinha e educação ambiental. Licença MIT © 2026 Felipe Cruz.
+      </p>
+    </footer>
+  </body>
+</html>

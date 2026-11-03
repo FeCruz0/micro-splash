@@ -1,0 +1,62 @@
+{
+  "menu": {
+    "title": "MICRO SPLASH",
+    "subtitle": "A Jornada da Baleia-Jubarte",
+    "play": "INICIAR MIGRAÇÃO",
+    "mode_select": "MODOS DE JOGO",
+    "options": "OPÇÕES & ACESSIBILIDADE",
+    "codex": "DIÁRIO DE BORDO (CODEX)",
+    "leaderboard": "RECORDE & SALÃO DA FAMA",
+    "about": "SOBRE O PROJETO EDUCATIVO",
+    "quit": "SAIR"
+  },
+  "options": {
+    "title": "OPÇÕES & ACESSIBILIDADE",
+    "soundtrack": "TRILHA SONORA",
+    "sfx": "EFEITOS SONOROS (SFX)",
+    "haptics": "VIBRAÇÃO HÁPTICA",
+    "tts": "NARRAÇÃO EM VOZ (TTS)",
+    "color_mode": "MODO DE COR / DALTONISMO",
+    "reduced_motion": "MOVIMENTO REDUZIDO",
+    "font_scale": "TAMANHO DA FONTE",
+    "language": "IDIOMA / LÍNGUA",
+    "clear_data": "APAGAR DADOS (LGPD)",
+    "close": "VOLTAR",
+    "on": "LIGADO",
+    "off": "DESLIGADO"
+  },
+  "hud": {
+    "oxygen": "OXIGÊNIO",
+    "speed": "VELOCIDADE",
+    "distance": "{dist}m",
+    "score": "PONTOS",
+    "breach_ready": "SALTO PRONTO! [ESPAÇO]",
+    "low_oxygen_alert": "ALERTA: SUBA À SUPERFÍCIE PARA RESPIRAR!",
+    "net_trapped": "PRESA NA REDE! PRESSIONE [ESPAÇO] REPETIDAMENTE!"
+  },
+  "biomes": {
+    "antarctica": "Oceano Antártico (Águas Polares)",
+    "pelagic": "Oceano Pelágico Aberto",
+    "urban_coast": "Costa Urbana e Plataforma",
+    "canyons": "Canyons Submarinos Profundos",
+    "arraial": "Santuário de Arraial do Cabo (Ressurgência)"
+  },
+  "game_over": {
+    "title": "FIM DA JORNADA",
+    "rescue_title": "RESGATE PELO BARCO INSTITUCIONAL",
+    "cause_oxygen": "Falta de oxigênio prolongada no mergulho.",
+    "cause_net": "Aprisionamento por rede de pesca fantasma.",
+    "restart": "TENTAR NOVAMENTE",
+    "menu": "MENU PRINCIPAL"
+  },
+  "victory": {
+    "title": "MIGRAÇÃO CONCLUÍDA!",
+    "subtitle": "Você alcançou com sucesso o berçário de Arraial do Cabo!",
+    "score": "Pontuação Final: {score}",
+    "distance": "Distância Navegada: {distance}m",
+    "time": "Tempo de Viagem: {time}s",
+    "wisdom": "Sabedoria Ancestral Concedida:",
+    "play_again": "JOGAR NOVAMENTE",
+    "share": "COMPARTILHAR VITÓRIA"
+  }
+}

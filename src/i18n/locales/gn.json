@@ -1,0 +1,62 @@
+{
+  "menu": {
+    "title": "MICRO SPLASH",
+    "subtitle": "Piraju Guasu Guata (A Jornada da Jubarte)",
+    "play": "ÑEPYRŨ (INICIAR)",
+    "mode_select": "MBA'EICHA ÑEMBOSARÁI",
+    "options": "MBA'ERENDY (OPÇÕES)",
+    "codex": "ARANDU KUATIA (CODEX)",
+    "leaderboard": "TENONDEGUA (RECORDES)",
+    "about": "MARANDU (SOBRE O JOGO)",
+    "quit": "OSẼ (SAIR)"
+  },
+  "options": {
+    "title": "MBA'ERENDY HA TEKO",
+    "soundtrack": "MBORAI (TRILHA SONORA)",
+    "sfx": "HYAPU (SFX)",
+    "haptics": "RYSYI (VIBRAÇÃO)",
+    "tts": "ÑE'Ẽ RYAPU (TTS)",
+    "color_mode": "SA'Y (DALTONISMO)",
+    "reduced_motion": "KUKU'I (MOVIMENTO)",
+    "font_scale": "TAI GUASU (FONTE)",
+    "language": "AVAÑE'Ẽ (IDIOMA)",
+    "clear_data": "MBOPOTĨ MBA'EKUAARÃ (LGPD)",
+    "close": "JEVY (VOLTAR)",
+    "on": "MYENDY",
+    "off": "MBOGUE"
+  },
+  "hud": {
+    "oxygen": "PYTU (AR/OXIGÊNIO)",
+    "speed": "PY'AE (VELOCIDADE)",
+    "distance": "{dist}m",
+    "score": "PONTO",
+    "breach_ready": "POPO KUAARÃ! [ESPAÇO]",
+    "low_oxygen_alert": "EJEUPI! EIKOTEVE PYTU!",
+    "net_trapped": "ÑUHA PYHY! EPYVOI [ESPAÇO]!"
+  },
+  "biomes": {
+    "antarctica": "Y Ro'ysã Para (Águas Antárticas)",
+    "pelagic": "Para Guasu (Oceano Pelágico)",
+    "urban_coast": "Tava Y Rembe'y (Costa Urbana)",
+    "canyons": "Yvykua Pypuku (Canyons Abissais)",
+    "arraial": "Ypytũ Porã Arraial (Ressurgência)"
+  },
+  "game_over": {
+    "title": "GUATA PAHA",
+    "rescue_title": "PYTYVÕ YGARATA RUPIVE",
+    "cause_oxygen": "Opáma pytu pypukúpe.",
+    "cause_net": "Ñuha pirakutuhárape jeheka.",
+    "restart": "EHA'Ã JEVY",
+    "menu": "MENU TENONDE"
+  },
+  "victory": {
+    "title": "GUATA HU'Ã!",
+    "subtitle": "Reguahẽ porãite Arraial do Cabo berçário-pe!",
+    "score": "Ponto Hu'ã: {score}",
+    "distance": "Guata Pukukue: {distance}m",
+    "time": "Ára: {time}s",
+    "wisdom": "Tupã Arandu Jeheka:",
+    "play_again": "EÑEMBOSARÁI JEVY",
+    "share": "EMUASÃI VY'A"
+  }
+}

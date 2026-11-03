@@ -1,24 +1,67 @@
-import type { KaboomCtx } from "kaboom";
-import { GAME_CONFIG, TAGS } from "../config";
+import { GAME_CONFIG } from "../config";
 import { audioSystem } from "./audioSystem";
 import { getParticlePool } from "./particlePool";
 import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
+import { getActivePlayerObject } from "../entities/player";
+import { getRandomFloat } from "../utils/random";
+import { getSpatialCullingManager, type CullableTargetObject } from "./spatialCullingSystem";
+
+export interface PenguinVector2D {
+  x: number;
+  y: number;
+}
+
+export interface PenguinGameObject {
+  pos: PenguinVector2D;
+  scale: { x: number; y: number } | number | unknown;
+  angle?: number;
+  opacity?: number;
+  hidden?: boolean;
+  add: (components: unknown[]) => PenguinGameObject;
+  onUpdate?: (cb: () => void) => void;
+}
+
+export interface PenguinEngineContext<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = PenguinVector2D,
+> {
+  add: (components: unknown[]) => unknown;
+  destroy: (obj: TDestroyable) => void;
+  dt: () => number;
+  onUpdate: (cb: () => void) => void;
+  rect: (w: number, h: number, opt?: { radius?: number }) => unknown;
+  circle: (r: number) => unknown;
+  polygon: (pts: TVec[]) => unknown;
+  pos: (x: number, y: number) => unknown;
+  color: (r: number | TColor, g?: number, b?: number) => unknown;
+  scale: (s: TVec | number) => unknown;
+  anchor: (a: "center") => unknown;
+  opacity: (o: number) => unknown;
+  z: (v: number) => unknown;
+  rgb?: (r: number, g: number, b: number) => TColor;
+  vec2: (x: number, y: number) => TVec;
+}
 
 /**
- * Sistema de Colônias Residentes de Pinguins-de-Magalhães em Loop Contínuo (Fase 9.5)
- * Colônias distribuídas pelo Oceano Antártico (0m a 5.000m):
- *   - Colônia 1 (Largada Antártica): 180m a 720m (Loop de 540m - VISÍVEL DESDE O INÍCIO DO JOGO)
- *   - Colônia 2 (Fendas Glaciais Médias): 1.350m a 2.050m (Loop de 700m)
- *   - Colônia 3 (Geleiras Profundas): 2.900m a 3.700m (Loop de 800m)
- *   - Colônia 4 (Borda Polar & Saída Mar Aberto): 4.400m a 5.250m (Loop de 850m)
- * 
- * Cada colônia já habita o cenário e executa um percurso pré-programado permanente:
- * nada até o ponto de retorno, salta fora d'água no meio da rota (porpoising),
- * executa mergulho suave em U de 180° e volta para o início, repetindo o loop infinitamente.
+ * Sistema de Colônias Residentes de Pinguins-de-Magalhães (*Spheniscus magellanicus*) em Loop Contínuo.
+ *
+ * Modela o ecossistema polar antártico (0m a 5.000m) através de bandos autônomos (Fase 9.5):
+ * 1. Quatro colônias familiares distribuídas ao longo das fendas glaciais antárticas.
+ * 2. Comportamento de Porpoising: os pinguins alternam nado veloz subaquático com saltos rasantes
+ *    fora da lâmina d'água para respirar e reduzir o arrasto hidrodinâmico em alta velocidade.
+ * 3. Inteligência de Bando (Flocking/Boid): os indivíduos mantêm espaçamento elástico,
+ *    curvas em U sincronizadas e emissão de micro-bolhas de mergulho.
+ *
+ * @param k - Instância do contexto agnóstico do motor.
  */
-export function setupPenguinFlockSystem(k: KaboomCtx) {
+export function setupPenguinFlockSystem<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = PenguinVector2D,
+>(k: PenguinEngineContext<TDestroyable, TColor, TVec>) {
   let isSystemActive = true;
-  const allPenguinBodies: any[] = [];
+  const allPenguinBodies: PenguinGameObject[] = [];
 
   const COLONIES = [
     {
@@ -64,68 +107,71 @@ export function setupPenguinFlockSystem(k: KaboomCtx) {
   ];
 
   COLONIES.forEach((colony) => {
-    const penguins: any[] = [];
+    const penguins: Array<{
+      obj: PenguinGameObject;
+      wing: PenguinGameObject;
+      baseOffsetX: number;
+      baseOffsetY: number;
+      swimPhase: number;
+      isLeaping: boolean;
+      leapProgress: number;
+      leapDelay: number;
+    }> = [];
 
     for (let i = 0; i < colony.count; i++) {
-      const pOffsetX = -i * 26 - Math.random() * 8;
-      const pOffsetY = (i % 2 === 0 ? -9 : 9) + (Math.random() - 0.5) * 6;
+      const pOffsetX = -i * 18 - getRandomFloat(0, 5);
+      const pOffsetY = (i % 2 === 0 ? -6 : 6) + getRandomFloat(-2, 2);
 
-      // Corpo em torpedo do pinguim
+      // Corpo em torpedo do pinguim (proporção biológica 14x5px para escala com a jubarte de 108px)
       const pBody = k.add([
-        k.rect(22, 9, { radius: 3 }),
+        k.rect(14, 5, { radius: 2 }),
         k.pos(colony.initialX + pOffsetX, GAME_CONFIG.SEA_LEVEL + colony.depth + pOffsetY),
-        k.color(18, 20, 24), // Dorso preto
+        k.color(12, 14, 18), // Dorso preto de alto contraste
         k.anchor("center"),
         k.scale(k.vec2(colony.initialDir, 1)),
         k.z(13),
         "penguin",
-      ]);
+      ]) as PenguinGameObject;
 
       // Ventre branco brilhante
       pBody.add([
-        k.rect(15, 4, { radius: 1.5 }),
-        k.pos(-1, 2),
-        k.color(248, 248, 252),
+        k.rect(10, 2.5, { radius: 1 }),
+        k.pos(-0.5, 1),
+        k.color(255, 255, 255),
         k.anchor("center"),
       ]);
 
       // Faixa facial branca do Pinguim-de-Magalhães
-      pBody.add([
-        k.circle(1.8),
-        k.pos(5, -2),
-        k.color(240, 245, 255),
-      ]);
+      pBody.add([k.circle(1.2), k.pos(3.5, -1.2), k.color(245, 250, 255)]);
 
       // Bico âmbar
       pBody.add([
-        k.rect(5, 2.2, { radius: 1 }),
-        k.pos(12, 0),
-        k.color(220, 160, 40),
+        k.rect(3, 1.5, { radius: 0.8 }),
+        k.pos(7.5, 0),
+        k.color(230, 165, 40),
         k.anchor("center"),
       ]);
 
       // Asa / Nadadeira
       const wing = pBody.add([
-        k.polygon([k.vec2(0, 0), k.vec2(-4, 6), k.vec2(-8, 1)]),
-        k.pos(1, 1),
-        k.color(14, 16, 20),
-      ]);
+        k.polygon([k.vec2(0, 0), k.vec2(-2.5, 4), k.vec2(-5, 0.8)]),
+        k.pos(0.5, 0.5),
+        k.color(10, 12, 16),
+      ]) as PenguinGameObject;
 
       // Patas
-      pBody.add([
-        k.rect(4, 2),
-        k.pos(-11, 2),
-        k.color(210, 120, 50),
-        k.anchor("center"),
-      ]);
+      pBody.add([k.rect(2.5, 1.5), k.pos(-7, 1.2), k.color(215, 120, 45), k.anchor("center")]);
 
       allPenguinBodies.push(pBody);
+      const cullingManager = getSpatialCullingManager();
+      cullingManager?.registerEntity(pBody as unknown as CullableTargetObject, () => flockX);
+
       penguins.push({
         obj: pBody,
         wing,
         baseOffsetX: pOffsetX,
         baseOffsetY: pOffsetY,
-        swimPhase: Math.random() * Math.PI * 2,
+        swimPhase: getRandomFloat(0, Math.PI * 2),
         isLeaping: false,
         leapProgress: 0,
         leapDelay: i * 0.12, // cascata de saltos sincronizados
@@ -149,7 +195,26 @@ export function setupPenguinFlockSystem(k: KaboomCtx) {
       if (!isSystemActive) return;
 
       const dt = k.dt();
-      const player = k.get(TAGS.PLAYER)[0];
+      const player = getActivePlayerObject();
+      const playerX = player ? player.pos.x : 0;
+      const isFlockVisible = Math.abs(flockX - playerX) < 1400;
+
+      if (!isFlockVisible) {
+        if (turnState === "cruise") {
+          flockX += dir * colony.speed * dt;
+          if (dir === 1 && flockX >= colony.maxX) {
+            flockX = colony.maxX;
+            dir = -1;
+          } else if (dir === -1 && flockX <= colony.minX) {
+            flockX = colony.minX;
+            dir = 1;
+          }
+        }
+        penguins.forEach((p) => {
+          if (!p.obj.hidden) p.obj.hidden = true;
+        });
+        return;
+      }
 
       // 1. Simulação do Loop Pré-Programado
       if (turnState === "cruise") {
@@ -167,7 +232,7 @@ export function setupPenguinFlockSystem(k: KaboomCtx) {
 
             if (player && soundTimer >= 3.0 && Math.abs(flockX - player.pos.x) < 600) {
               soundTimer = 0;
-              audioSystem.playPenguinChirp();
+              audioSystem.playPenguinChirp(flockX, player.pos.x);
             }
           }
         }
@@ -213,19 +278,17 @@ export function setupPenguinFlockSystem(k: KaboomCtx) {
       const turnYOffset = turnState === "turn" ? Math.sin(p * Math.PI) * 22 : 0;
 
       // Fator de formação contínuo (zero saltos instantâneos)
-      const formationFactor = turnState === "turn" 
-        ? turnFromDir * Math.cos(p * Math.PI) 
-        : dir;
+      const formationFactor = turnState === "turn" ? turnFromDir * Math.cos(p * Math.PI) : dir;
 
       // Escala horizontal em perspectiva 3D
       const currentFacing = turnState === "turn" ? (p < 0.5 ? turnFromDir : targetDir) : dir;
-      const scaleSquash = turnState === "turn" ? Math.max(0.2, Math.abs(Math.cos(p * Math.PI))) : 1.0;
+      const scaleSquash =
+        turnState === "turn" ? Math.max(0.2, Math.abs(Math.cos(p * Math.PI))) : 1.0;
       const effectiveScaleX = currentFacing * scaleSquash;
 
       // Inclinação suave do corpo na curva
-      const turnPitchAngle = turnState === "turn" 
-        ? currentFacing * Math.sin(p * Math.PI * 2) * 15 
-        : 0;
+      const turnPitchAngle =
+        turnState === "turn" ? currentFacing * Math.sin(p * Math.PI * 2) * 15 : 0;
 
       soundTimer += dt;
 
@@ -246,14 +309,17 @@ export function setupPenguinFlockSystem(k: KaboomCtx) {
             // Respingos na quebra da água
             if (player && Math.abs(penguin.obj.pos.x - player.pos.x) < 700) {
               if (penguin.leapProgress < 0.15 || penguin.leapProgress > 0.85) {
-                if (Math.random() < 0.3) {
+                if (getRandomFloat(0, 1) < 0.3) {
                   const splashPos = k.vec2(penguin.obj.pos.x, GAME_CONFIG.SEA_LEVEL + 2);
                   const pool = getParticlePool();
                   if (pool) {
                     pool.spawnCircle({
                       pos: splashPos,
                       radius: 1.2,
-                      color: k.rgb(220, 240, 255),
+                      color:
+                        typeof k.rgb === "function"
+                          ? k.rgb(220, 240, 255)
+                          : { r: 220, g: 240, b: 255 },
                       opacity: 0.8,
                       z: 14,
                       vel: k.vec2(0, -25),
@@ -263,15 +329,17 @@ export function setupPenguinFlockSystem(k: KaboomCtx) {
                   } else {
                     const splash = k.add([
                       k.circle(1.2),
-                      k.pos(splashPos),
+                      k.pos(splashPos.x, splashPos.y),
                       k.color(220, 240, 255),
                       k.opacity(0.8),
                       k.z(14),
-                    ]);
-                    splash.onUpdate(() => {
-                      splash.pos.y -= dt * 25;
-                      splash.opacity -= dt * 3.0;
-                      if (splash.opacity <= 0) k.destroy(splash);
+                    ]) as PenguinGameObject;
+                    k.onUpdate(() => {
+                      if (splash.opacity !== undefined) {
+                        splash.pos.y -= dt * 25;
+                        splash.opacity -= dt * 3.0;
+                        if (splash.opacity <= 0) k.destroy(splash as unknown as TDestroyable);
+                      }
                     });
                   }
                 }
@@ -286,9 +354,16 @@ export function setupPenguinFlockSystem(k: KaboomCtx) {
         // Posicionamento contínuo
         const waveY = Math.sin(penguin.swimPhase) * 4;
         penguin.obj.pos.x = flockX + penguin.baseOffsetX * formationFactor;
-        penguin.obj.pos.y = GAME_CONFIG.SEA_LEVEL + colony.depth + penguin.baseOffsetY + waveY + leapY + turnYOffset;
+        penguin.obj.pos.y =
+          GAME_CONFIG.SEA_LEVEL + colony.depth + penguin.baseOffsetY + waveY + leapY + turnYOffset;
 
-        penguin.obj.scale.x = effectiveScaleX;
+        if (
+          typeof penguin.obj.scale === "object" &&
+          penguin.obj.scale !== null &&
+          "x" in penguin.obj.scale
+        ) {
+          (penguin.obj.scale as { x: number; y: number }).x = effectiveScaleX;
+        }
 
         if (penguin.isLeaping && penguin.leapProgress >= 0) {
           penguin.obj.angle = -dir * leapPitch;
@@ -300,14 +375,18 @@ export function setupPenguinFlockSystem(k: KaboomCtx) {
 
         // Trilha de bolhas subaquáticas
         if (player && Math.abs(penguin.obj.pos.x - player.pos.x) < 900) {
-          if (!penguin.isLeaping && Math.random() < 0.12) {
-            const bubblePos = k.vec2(penguin.obj.pos.x - currentFacing * 12, penguin.obj.pos.y + (Math.random() - 0.5) * 4);
+          if (!penguin.isLeaping && getRandomFloat(0, 1) < 0.12) {
+            const bubblePos = k.vec2(
+              penguin.obj.pos.x - currentFacing * 12,
+              penguin.obj.pos.y + getRandomFloat(-2, 2)
+            );
             const pool = getParticlePool();
             if (pool) {
               pool.spawnCircle({
                 pos: bubblePos,
                 radius: 1.0,
-                color: k.rgb(210, 240, 255),
+                color:
+                  typeof k.rgb === "function" ? k.rgb(210, 240, 255) : { r: 210, g: 240, b: 255 },
                 opacity: 0.65,
                 z: 11,
                 vel: k.vec2(-currentFacing * 20, -15),
@@ -317,16 +396,18 @@ export function setupPenguinFlockSystem(k: KaboomCtx) {
             } else {
               const bubble = k.add([
                 k.circle(1.0),
-                k.pos(bubblePos),
+                k.pos(bubblePos.x, bubblePos.y),
                 k.color(210, 240, 255),
                 k.opacity(0.65),
                 k.z(11),
-              ]);
-              bubble.onUpdate(() => {
-                bubble.pos.x -= currentFacing * dt * 20;
-                bubble.pos.y -= dt * 15;
-                bubble.opacity -= dt * 2.5;
-                if (bubble.opacity <= 0) k.destroy(bubble);
+              ]) as PenguinGameObject;
+              k.onUpdate(() => {
+                if (bubble.opacity !== undefined) {
+                  bubble.pos.x -= currentFacing * dt * 20;
+                  bubble.pos.y -= dt * 15;
+                  bubble.opacity -= dt * 2.5;
+                  if (bubble.opacity <= 0) k.destroy(bubble as unknown as TDestroyable);
+                }
               });
             }
           }
@@ -368,5 +449,3 @@ export function setupPenguinFlockSystem(k: KaboomCtx) {
     isActive: () => isSystemActive,
   };
 }
-
-

@@ -1,0 +1,62 @@
+{
+  "menu": {
+    "title": "MICRO SPLASH",
+    "subtitle": "The Humpback Whale's Epic Migration",
+    "play": "START MIGRATION",
+    "mode_select": "GAME MODES",
+    "options": "OPTIONS & ACCESSIBILITY",
+    "codex": "EXPEDITION LOG (CODEX)",
+    "leaderboard": "HIGH SCORES & HALL OF FAME",
+    "about": "ABOUT THE EDUCATIONAL PROJECT",
+    "quit": "QUIT"
+  },
+  "options": {
+    "title": "OPTIONS & ACCESSIBILITY",
+    "soundtrack": "SOUNDTRACK",
+    "sfx": "SOUND EFFECTS (SFX)",
+    "haptics": "HAPTIC VIBRATION",
+    "tts": "VOICE NARRATION (TTS)",
+    "color_mode": "COLOR PALETTE / COLORBLIND",
+    "reduced_motion": "REDUCED MOTION",
+    "font_scale": "FONT SIZE",
+    "language": "LANGUAGE",
+    "clear_data": "ERASE DATA (PRIVACY/GDPR)",
+    "close": "BACK",
+    "on": "ON",
+    "off": "OFF"
+  },
+  "hud": {
+    "oxygen": "OXYGEN",
+    "speed": "SPEED",
+    "distance": "{dist}m",
+    "score": "SCORE",
+    "breach_ready": "BREACH READY! [SPACE]",
+    "low_oxygen_alert": "WARNING: SURFACE TO BREATHE OXYGEN!",
+    "net_trapped": "TRAPPED IN GHOST NET! TAP [SPACE] REPEATEDLY!"
+  },
+  "biomes": {
+    "antarctica": "Southern Ocean (Antarctic Sea Ice)",
+    "pelagic": "Open Pelagic Ocean",
+    "urban_coast": "Urban Coast & Continental Shelf",
+    "canyons": "Deep Submarine Canyons",
+    "arraial": "Arraial do Cabo Nursery (Upwelling)"
+  },
+  "game_over": {
+    "title": "JOURNEY'S END",
+    "rescue_title": "RESCUED BY RESEARCH VESSEL",
+    "cause_oxygen": "Oxygen depletion during prolonged deep dive.",
+    "cause_net": "Entanglement in abandoned ghost fishing net.",
+    "restart": "TRY AGAIN",
+    "menu": "MAIN MENU"
+  },
+  "victory": {
+    "title": "MIGRATION COMPLETED!",
+    "subtitle": "You safely reached the Arraial do Cabo breeding sanctuary!",
+    "score": "Final Score: {score}",
+    "distance": "Distance Traveled: {distance}m",
+    "time": "Travel Time: {time}s",
+    "wisdom": "Ancestral Wisdom Unlocked:",
+    "play_again": "PLAY AGAIN",
+    "share": "SHARE VICTORY"
+  }
+}

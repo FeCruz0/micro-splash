@@ -1,0 +1,7 @@
+#!/usr/bin/env sh
+if command -v npx >/dev/null 2>&1; then
+  npx lint-staged
+  npm test
+elif command -v docker >/dev/null 2>&1 && docker ps --format '{{.Names}}' | grep -q "micro-splash-app-1"; then
+  docker exec -i micro-splash-app-1 npm test
+fi

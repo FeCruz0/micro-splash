@@ -1,110 +1,345 @@
-import kaboom, { type GameObj } from "kaboom";
+/**
+ * Sistema de Iluminação Subaquática: God Rays & Cáusticos — Micro Splash
+ *
+ * Refatorado para o Adapter Pattern (PixiJS v8 / Micro Splash Engine).
+ * Desacoplado de geometrias rígidas de 90° e normalizado para cross-browser (Chrome ANGLE vs Firefox WebRender).
+ */
+
 import { GAME_CONFIG } from "../config";
+import { getSpatialCullingManager } from "./spatialCullingSystem";
+import type { IRenderEngine, IGraphicsNode } from "../engine/contracts/INTERFACE_CONTRACTS";
+import {
+  isRenderEngine,
+  resolveCameraX,
+  type LegacyEngineBridge,
+} from "../engine/adapters/LegacyBridge";
+import {
+  createVolumetricRayProfile,
+  getRaySegmentPolygonVertices,
+  resolveBiomeLightColor,
+  type RayGeometryProfile,
+} from "../utils/volumetricRayGeometry";
+
+/**
+ * Calcula a largura volumétrica do feixe solar (Fase 30.4: 8px a 18px).
+ */
+export function calculateGodRayWidth(rayIndex: number): number {
+  return 8 + (rayIndex % 4) * 3.2;
+}
+
+interface GodRayData {
+  readonly baseXOffset: number;
+  readonly pulseSpeed: number;
+  readonly pulsePhase: number;
+  readonly angleOffsetDeg: number;
+}
+
+interface CausticData {
+  readonly index: number;
+}
+
+interface LegacyLightObj {
+  pos: { x: number; y: number };
+  angle?: number;
+  color?: unknown;
+  opacity?: number;
+  hidden?: boolean;
+}
+
+interface LegacyRaySegment {
+  readonly obj: LegacyLightObj;
+  readonly relativeAlpha: number;
+}
+
+interface LegacyRayGroup {
+  readonly segments: readonly LegacyRaySegment[];
+  readonly baseXOffset: number;
+  readonly pulseSpeed: number;
+  readonly pulsePhase: number;
+  readonly angleOffsetDeg: number;
+}
+
+function drawVolumetricRay(
+  node: IGraphicsNode,
+  profile: RayGeometryProfile,
+  color: readonly [number, number, number]
+): void {
+  for (let index = 0; index < profile.segments.length; index++) {
+    const segment = profile.segments[index];
+    const vertices = getRaySegmentPolygonVertices(segment);
+    node.drawPolygon(vertices, {
+      fill: {
+        color,
+        alpha: segment.relativeAlpha,
+      },
+    });
+  }
+}
 
 /**
  * Sistema de Iluminação Subaquática: God Rays (Feixes Volumétricos) & Cáusticos de Superfície
  * Traz atmosfera cinematográfica e sensação de profundidade através da luz solar filtrada na água.
  */
-export function setupLightRaysSystem(k: ReturnType<typeof kaboom>) {
+export function setupLightRaysSystem(engineOrContext: IRenderEngine | LegacyEngineBridge): void {
+  const isPixi = isRenderEngine(engineOrContext);
   const rayCount = 15;
-  const godRays: GameObj[] = [];
-
-  // Criação dos feixes ultrafinos e cristalinos de luz solar (1.5px a 3.5px de largura)
-  for (let i = 0; i < rayCount; i++) {
-    const baseWidth = 1.5 + (i % 3) * 1.0;
-    const baseAngle = -18 + (i * 2.6); // Ângulos graduais
-
-    const ray = k.add([
-      k.rect(baseWidth, 420),
-      k.pos(0, GAME_CONFIG.SEA_LEVEL),
-      k.rotate(baseAngle),
-      k.color(210, 245, 255),
-      k.opacity(0.08),
-      k.anchor("top"),
-      k.z(-2), // Atrás da baleia, krill e lixo, mas sobre o fundo
-      "god_ray",
-      {
-        baseXOffset: -60 + i * (k.width() / (rayCount - 1) + 10),
-        pulseSpeed: 0.6 + (i % 5) * 0.2,
-        pulsePhase: i * 0.85,
-        angleOffset: baseAngle,
-      },
-    ]);
-
-    godRays.push(ray);
-  }
-
-  // Cáusticos de Superfície: finos feixes ondulatórios de refração da luz solar sob o nível do mar
   const causticSegments = 10;
-  const caustics: GameObj[] = [];
+  const screenWidth = isPixi
+    ? engineOrContext.getDimensions().width
+    : typeof engineOrContext.width === "function"
+      ? engineOrContext.width()
+      : 640;
 
-  for (let c = 0; c < causticSegments; c++) {
-    const caustic = k.add([
-      k.rect(k.width() / causticSegments + 10, 4, { radius: 2 }),
-      k.pos(c * (k.width() / causticSegments), GAME_CONFIG.SEA_LEVEL + 2),
-      k.color(240, 255, 255),
-      k.opacity(0.14),
-      k.z(1),
-      "caustic_surface",
-      {
-        index: c,
-      },
-    ]);
-    caustics.push(caustic);
-  }
+  let isSystemVisible = true;
 
-  let time = 0;
+  if (isPixi) {
+    const stageRoot = engineOrContext.getStageRoot();
+    const godRays: { node: IGraphicsNode; profile: RayGeometryProfile; data: GodRayData }[] = [];
+    const caustics: { node: IGraphicsNode; data: CausticData }[] = [];
 
-  k.onUpdate(() => {
-    time += k.dt();
-    const camX = k.camPos().x;
-    const screenLeft = camX - k.width() / 2;
+    for (let index = 0; index < rayCount; index++) {
+      const baseWidth = calculateGodRayWidth(index);
+      const baseAngleDeg = -18 + index * 2.6;
+      const profile = createVolumetricRayProfile(baseWidth);
 
-    // Fator de intensidade de luz solar baseado no bioma:
-    // 0m - 5.000m (Antártica): Luz muito fria e sutil (0.04 - 0.08) filtrada pelo gelo
-    // 5.000m - 12.000m (Atlântico Sul): Luz intermediária (0.08 - 0.12)
-    // 12.000m - 19.000m (Costa Urbana): Luz abafada/esverdeada pela turbidez (0.06 - 0.10)
-    // 19.000m - 27.000m (Arraial do Cabo): Luz dourada/turquesa cristalina radiante (0.16 - 0.28)
-    let biomeLightFactor = 0.08;
-    let rayColor = k.rgb(190, 230, 255);
+      const graphicsNode = engineOrContext.createGraphics("god_ray");
+      drawVolumetricRay(graphicsNode, profile, [120, 195, 235]);
+      graphicsNode.setPosition(0, GAME_CONFIG.SEA_LEVEL);
+      graphicsNode.setRotation((baseAngleDeg * Math.PI) / 180);
+      graphicsNode.setOpacity(0.04);
+      graphicsNode.setZIndex(-2);
+      stageRoot.addChild(graphicsNode);
 
-    if (camX < 5000) {
-      biomeLightFactor = 0.05;
-      rayColor = k.rgb(160, 210, 255); // Azul polar
-    } else if (camX < 12000) {
-      biomeLightFactor = 0.10;
-      rayColor = k.rgb(180, 230, 255);
-    } else if (camX < 19000) {
-      biomeLightFactor = 0.07;
-      rayColor = k.rgb(180, 220, 210); // Leve tom urbano
-    } else {
-      // Ressurgência e Santuário de Arraial: águas caribenhas límpidas e raios dourados
-      biomeLightFactor = 0.22;
-      rayColor = k.rgb(255, 250, 210); // Dourado solar cintilante
+      godRays.push({
+        node: graphicsNode,
+        profile,
+        data: {
+          baseXOffset: -60 + index * (screenWidth / (rayCount - 1) + 10),
+          pulseSpeed: 0.6 + (index % 5) * 0.2,
+          pulsePhase: index * 0.85,
+          angleOffsetDeg: baseAngleDeg,
+        },
+      });
     }
 
-    // Atualiza raios de sol volumétricos
-    godRays.forEach((ray) => {
-      // Segue a câmera com oscilação orgânica horizontal e de ângulo
-      const sway = Math.sin(time * ray.pulseSpeed + ray.pulsePhase);
-      const angleSway = Math.cos(time * 0.6 + ray.pulsePhase) * 4;
+    const causticWidth = screenWidth / causticSegments + 10;
+    for (let c = 0; c < causticSegments; c++) {
+      const g = engineOrContext.createGraphics("caustic_surface");
+      g.drawRoundedRect(0, 0, causticWidth, 4, 2, {
+        fill: { color: [220, 245, 255], alpha: 1 },
+      });
+      g.setPosition(c * (screenWidth / causticSegments), GAME_CONFIG.SEA_LEVEL + 2);
+      g.setOpacity(0.1);
+      g.setZIndex(1);
+      stageRoot.addChild(g);
 
-      ray.pos.x = screenLeft + ray.baseXOffset + sway * 25;
-      ray.angle = ray.angleOffset + angleSway;
-      ray.color = rayColor;
+      caustics.push({ node: g, data: { index: c } });
+    }
 
-      // Pulsação suave de intensidade
-      const pulseOpacity = (0.7 + sway * 0.3) * biomeLightFactor;
-      ray.opacity = Math.max(0.02, Math.min(0.35, pulseOpacity));
+    const cullingManager = getSpatialCullingManager();
+    if (cullingManager) {
+      cullingManager.registerSubsystem({
+        id: "light_rays_system",
+        getBounds: () => ({ minX: 0, maxX: 30000 }),
+        setVisible: (visible: boolean) => {
+          isSystemVisible = visible;
+          for (let index = 0; index < godRays.length; index++) {
+            godRays[index].node.setVisible(visible);
+          }
+          for (let index = 0; index < caustics.length; index++) {
+            caustics[index].node.setVisible(visible);
+          }
+        },
+      });
+    }
+
+    let time = 0;
+    let lastColor: readonly [number, number, number] | null = null;
+
+    engineOrContext.getTicker().add((deltaTimeInSeconds: number) => {
+      if (!isSystemVisible) return;
+      time += deltaTimeInSeconds;
+
+      const cameraXPosition = resolveCameraX(engineOrContext);
+      const screenLeft = cameraXPosition - screenWidth / 2;
+      const atmospheric = resolveBiomeLightColor(cameraXPosition);
+
+      if (lastColor !== atmospheric.rayColor) {
+        lastColor = atmospheric.rayColor;
+        for (let index = 0; index < godRays.length; index++) {
+          const { node, profile } = godRays[index];
+          node.clear();
+          drawVolumetricRay(node, profile, atmospheric.rayColor);
+        }
+      }
+
+      for (let index = 0; index < godRays.length; index++) {
+        const { node, data } = godRays[index];
+        const sway = Math.sin(time * data.pulseSpeed + data.pulsePhase);
+        const angleSwayInDegrees = Math.cos(time * 0.6 + data.pulsePhase) * 4;
+
+        node.setPosition(screenLeft + data.baseXOffset + sway * 25, GAME_CONFIG.SEA_LEVEL);
+        node.setRotation(((data.angleOffsetDeg + angleSwayInDegrees) * Math.PI) / 180);
+
+        const pulseOpacity = (0.75 + sway * 0.25) * atmospheric.lightFactor;
+        node.setOpacity(Math.max(0.015, Math.min(0.06, pulseOpacity)));
+      }
+
+      for (let index = 0; index < caustics.length; index++) {
+        const { node, data } = caustics[index];
+        const offsetC = data.index * (screenWidth / causticSegments);
+        const yPos = GAME_CONFIG.SEA_LEVEL + 4 + Math.sin(time * 2.5 + data.index * 1.2) * 5;
+        node.setPosition(screenLeft + offsetC, yPos);
+        const opacity =
+          (0.1 + Math.sin(time * 3.0 + data.index * 0.8) * 0.06) * (atmospheric.lightFactor * 4.0);
+        node.setOpacity(opacity);
+      }
     });
+  } else {
+    // Modo Legacy Kaboom Bridge
+    const legacyCtx = engineOrContext;
+    const godRays: LegacyRayGroup[] = [];
 
-    // Atualiza cáusticos de refração na superfície
-    caustics.forEach((c) => {
-      const offsetC = c.index * (k.width() / causticSegments);
-      c.pos.x = screenLeft + offsetC;
-      c.pos.y = GAME_CONFIG.SEA_LEVEL + 4 + Math.sin(time * 2.5 + c.index * 1.2) * 5;
-      c.opacity = (0.12 + Math.sin(time * 3.0 + c.index * 0.8) * 0.08) * (biomeLightFactor * 4.5);
-      c.color = rayColor;
+    for (let index = 0; index < rayCount; index++) {
+      const baseWidth = calculateGodRayWidth(index);
+      const baseAngleDeg = -18 + index * 2.6;
+      const profile = createVolumetricRayProfile(baseWidth);
+      const segmentObjects: LegacyRaySegment[] = [];
+
+      for (let s = 0; s < profile.segments.length; s++) {
+        const segment = profile.segments[s];
+        const rawVertices = getRaySegmentPolygonVertices(segment);
+        const points =
+          typeof legacyCtx.vec2 === "function"
+            ? rawVertices.map((vertex) => legacyCtx.vec2!(vertex.x, vertex.y))
+            : rawVertices;
+
+        const segmentObj = legacyCtx.add([
+          legacyCtx.polygon(points),
+          legacyCtx.pos(0, GAME_CONFIG.SEA_LEVEL),
+          legacyCtx.color(120, 195, 235),
+          legacyCtx.opacity(0.04 * segment.relativeAlpha),
+          legacyCtx.z(-2),
+          "god_ray_segment",
+        ]) as unknown as LegacyLightObj;
+
+        if (typeof segmentObj.angle === "number") {
+          segmentObj.angle = baseAngleDeg;
+        }
+
+        segmentObjects.push({
+          obj: segmentObj,
+          relativeAlpha: segment.relativeAlpha,
+        });
+      }
+
+      godRays.push({
+        segments: segmentObjects,
+        baseXOffset: -60 + index * (screenWidth / (rayCount - 1) + 10),
+        pulseSpeed: 0.6 + (index % 5) * 0.2,
+        pulsePhase: index * 0.85,
+        angleOffsetDeg: baseAngleDeg,
+      });
+    }
+
+    const caustics: (LegacyLightObj & { readonly index: number })[] = [];
+    const causticWidth = screenWidth / causticSegments + 10;
+
+    for (let c = 0; c < causticSegments; c++) {
+      const caustic = legacyCtx.add([
+        legacyCtx.rect(causticWidth, 4, { radius: 2 }),
+        legacyCtx.pos(c * (screenWidth / causticSegments), GAME_CONFIG.SEA_LEVEL + 2),
+        legacyCtx.color(220, 245, 255),
+        legacyCtx.opacity(0.1),
+        legacyCtx.z(1),
+        "caustic_surface",
+        {
+          index: c,
+        },
+      ]) as unknown as LegacyLightObj & { readonly index: number };
+      caustics.push(caustic);
+    }
+
+    const cullingManager = getSpatialCullingManager();
+    if (cullingManager) {
+      cullingManager.registerSubsystem({
+        id: "light_rays_system",
+        getBounds: () => ({ minX: 0, maxX: 30000 }),
+        setVisible: (visible: boolean) => {
+          isSystemVisible = visible;
+          for (let index = 0; index < godRays.length; index++) {
+            const segments = godRays[index].segments;
+            for (let s = 0; s < segments.length; s++) {
+              segments[s].obj.hidden = !visible;
+            }
+          }
+          for (let index = 0; index < caustics.length; index++) {
+            caustics[index].hidden = !visible;
+          }
+        },
+      });
+    }
+
+    let time = 0;
+    let lastRayColorKey: string | null = null;
+
+    legacyCtx.onUpdate(() => {
+      if (!isSystemVisible) return;
+      time += legacyCtx.dt();
+      const cameraXPosition = legacyCtx.camPos ? legacyCtx.camPos().x : 0;
+      const screenLeft = cameraXPosition - screenWidth / 2;
+      const atmospheric = resolveBiomeLightColor(cameraXPosition);
+
+      const colorKey = `${atmospheric.rayColor[0]}_${atmospheric.rayColor[1]}_${atmospheric.rayColor[2]}`;
+      if (colorKey !== lastRayColorKey) {
+        lastRayColorKey = colorKey;
+        const resolvedColor =
+          typeof legacyCtx.rgb === "function"
+            ? legacyCtx.rgb(
+                atmospheric.rayColor[0],
+                atmospheric.rayColor[1],
+                atmospheric.rayColor[2]
+              )
+            : atmospheric.rayColor;
+
+        for (let index = 0; index < godRays.length; index++) {
+          const segments = godRays[index].segments;
+          for (let s = 0; s < segments.length; s++) {
+            segments[s].obj.color = resolvedColor;
+          }
+        }
+        for (let index = 0; index < caustics.length; index++) {
+          caustics[index].color = resolvedColor;
+        }
+      }
+
+      for (let index = 0; index < godRays.length; index++) {
+        const ray = godRays[index];
+        const sway = Math.sin(time * ray.pulseSpeed + ray.pulsePhase);
+        const angleSway = Math.cos(time * 0.6 + ray.pulsePhase) * 4;
+        const currentX = screenLeft + ray.baseXOffset + sway * 25;
+        const currentAngle = ray.angleOffsetDeg + angleSway;
+        const pulseOpacity = (0.75 + sway * 0.25) * atmospheric.lightFactor;
+        const baseOpacity = Math.max(0.015, Math.min(0.06, pulseOpacity));
+
+        const segments = ray.segments;
+        for (let s = 0; s < segments.length; s++) {
+          const seg = segments[s];
+          seg.obj.pos.x = currentX;
+          seg.obj.pos.y = GAME_CONFIG.SEA_LEVEL;
+          seg.obj.angle = currentAngle;
+          seg.obj.opacity = baseOpacity * seg.relativeAlpha;
+        }
+      }
+
+      for (let index = 0; index < caustics.length; index++) {
+        const c = caustics[index];
+        const offsetC = c.index * (screenWidth / causticSegments);
+        c.pos.x = screenLeft + offsetC;
+        c.pos.y = GAME_CONFIG.SEA_LEVEL + 4 + Math.sin(time * 2.5 + c.index * 1.2) * 5;
+        c.opacity =
+          (0.1 + Math.sin(time * 3.0 + c.index * 0.8) * 0.06) * (atmospheric.lightFactor * 4.0);
+      }
     });
-  });
+  }
 }

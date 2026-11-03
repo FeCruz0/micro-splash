@@ -1,4 +1,3 @@
-import type { KaboomCtx } from "kaboom";
 import { GAME_CONFIG } from "../config";
 import type { PlayerController } from "../entities/player";
 import { audioSystem } from "./audioSystem";
@@ -14,6 +13,43 @@ export interface PresentationPoint {
   techDesc: string;
 }
 
+export interface PresentationUiObject {
+  hidden?: boolean;
+  color?: unknown;
+  scale?: { x: number; y: number } | unknown;
+  width?: number;
+  height?: number;
+  text?: string;
+  outline?: { color?: unknown; width?: number };
+  opacity?: number;
+  destroy?(): void;
+  onHoverUpdate?(callback: () => void): unknown;
+  onHoverEnd?(callback: () => void): unknown;
+  onClick?(callback: () => void): unknown;
+  add?(components?: unknown): PresentationUiObject;
+}
+
+export interface PresentationEngineContext {
+  width(): number;
+  height(): number;
+  add(components?: unknown): PresentationUiObject;
+  rect(width: number, height: number, options?: unknown): unknown;
+  pos(x: number, y: number): unknown;
+  pos(position: { x: number; y: number }): unknown;
+  color(...args: unknown[]): unknown;
+  rgb(red: number, green: number, blue: number): unknown;
+  outline(width: number, color: unknown): unknown;
+  opacity(alpha: number): unknown;
+  anchor(anchorPoint: "center" | "topleft" | "left" | "right" | "top"): unknown;
+  fixed(): unknown;
+  z(zIndex: number): unknown;
+  area(): unknown;
+  text(content: string, options?: unknown): unknown;
+  destroy(target: unknown): void;
+  vec2(x: number, y: number): Parameters<PlayerController["setSpeed"]>[0];
+  camPos(x?: number | { x: number; y: number }, y?: number): { x: number; y: number };
+}
+
 export const PRESENTATION_POINTS: PresentationPoint[] = [
   {
     biomeIndex: 1,
@@ -21,9 +57,11 @@ export const PRESENTATION_POINTS: PresentationPoint[] = [
     x: 120,
     y: GAME_CONFIG.SEA_LEVEL + 50,
     ecoTitle: "Fotoperíodo Polar & Berçário Glacial",
-    ecoDesc: "O gelo marinho antártico serve de abrigo térmico contra orcas e berçário de microalgas essenciais para a proliferação massiva do krill.",
+    ecoDesc:
+      "O gelo marinho antártico serve de abrigo térmico contra orcas e berçário de microalgas essenciais para a proliferação massiva do krill.",
     techTitle: "Quebra Top-Down de Gelo & Física Modular",
-    techDesc: "Camada de 40+ blocos com detecção vetorial estrita por cima, estilhaços gerados via Object Pooling e fendas dinâmicas de respiração registradas no gameState.",
+    techDesc:
+      "Camada de 40+ blocos com detecção vetorial estrita por cima, estilhaços gerados via Object Pooling e fendas dinâmicas de respiração registradas no gameState.",
   },
   {
     biomeIndex: 2,
@@ -31,9 +69,11 @@ export const PRESENTATION_POINTS: PresentationPoint[] = [
     x: 5600,
     y: GAME_CONFIG.SEA_LEVEL + 75,
     ecoTitle: "Comportamento de Cardumes & Vácuo Hidrodinâmico",
-    ecoDesc: "Cetáceos e golfinhos-rotadores utilizam a esteira hidrodinâmica (drafting) da líder para poupar até 60% de energia metabólica na travessia oceânica.",
+    ecoDesc:
+      "Cetáceos e golfinhos-rotadores utilizam a esteira hidrodinâmica (drafting) da líder para poupar até 60% de energia metabólica na travessia oceânica.",
     techTitle: "Boids Flocking Kinematics & U-Turns Orgânicos",
-    techDesc: "Cardumes com cinemática contínua sem física custosa: interpolação senoidal da formação, perspectiva 3D na virada e saltos acrobáticos em cascata sincronizada.",
+    techDesc:
+      "Cardumes com cinemática contínua sem física custosa: interpolação senoidal da formação, perspectiva 3D na virada e saltos acrobáticos em cascata sincronizada.",
   },
   {
     biomeIndex: 3,
@@ -41,9 +81,11 @@ export const PRESENTATION_POINTS: PresentationPoint[] = [
     x: 12600,
     y: GAME_CONFIG.SEA_LEVEL + 45,
     ecoTitle: "Poluição Acústica & Impacto de Hidrocarbonetos",
-    ecoDesc: "Ruídos de hélices e motores de cargueiros propagam pelo canal SOFAR e desorientam o biosonar; o petróleo obstrui o espiráculo impedindo a recarga de ar.",
+    ecoDesc:
+      "Ruídos de hélices e motores de cargueiros propagam pelo canal SOFAR e desorientam o biosonar; o petróleo obstrui o espiráculo impedindo a recarga de ar.",
     techTitle: "FSM Autônoma & Anéis de Interferência Harmônica",
-    techDesc: "Navios cargueiros em patrulha autônoma com dispersor periódico de resíduos sólidos e emissor de ondas acústicas que exercem repulsão física sobre a baleia.",
+    techDesc:
+      "Navios cargueiros em patrulha autônoma com dispersor periódico de resíduos sólidos e emissor de ondas acústicas que exercem repulsão física sobre a baleia.",
   },
   {
     biomeIndex: 4,
@@ -51,9 +93,11 @@ export const PRESENTATION_POINTS: PresentationPoint[] = [
     x: 19300,
     y: GAME_CONFIG.SEA_LEVEL + 90,
     ecoTitle: "A Ressurgência de Cabo Frio (Upwelling)",
-    ecoDesc: "Ventos de NE empurram as águas superficiais e forçam a ascensão da ACAS (Água Central do Atlântico Sul), gelada e carregada de nitratos e fosfatos.",
+    ecoDesc:
+      "Ventos de NE empurram as águas superficiais e forçam a ascensão da ACAS (Água Central do Atlântico Sul), gelada e carregada de nitratos e fosfatos.",
     techTitle: "Propulsão Vetorial Dinâmica & Iluminação Volumétrica",
-    techDesc: "Jatos ascendentes periódicos com vetores de força diagonal, spawn dinâmico de enxames de krill e raios solares translúcidos renderizados em paralaxe 2.5D.",
+    techDesc:
+      "Jatos ascendentes periódicos com vetores de força diagonal, spawn dinâmico de enxames de krill e raios solares translúcidos renderizados em paralaxe 2.5D.",
   },
   {
     biomeIndex: 5,
@@ -61,9 +105,11 @@ export const PRESENTATION_POINTS: PresentationPoint[] = [
     x: 25600,
     y: GAME_CONFIG.SEA_LEVEL + 35,
     ecoTitle: "Santuário de Reprodução & O Salto Majestoso",
-    ecoDesc: "A Enseada de Arraial do Cabo oferece águas abrigadas ideais para amamentação. O salto fora d'água (breach) serve para comunicação e desparasitação.",
+    ecoDesc:
+      "A Enseada de Arraial do Cabo oferece águas abrigadas ideais para amamentação. O salto fora d'água (breach) serve para comunicação e desparasitação.",
     techTitle: "Breach System & Clímax Balístico",
-    techDesc: "Breach System: congelamento suave dos controles ao ultrapassar o Boqueirão, arco gravitacional aéreo com rotação de 360°, câmera lenta e splash de celebração.",
+    techDesc:
+      "Breach System: congelamento suave dos controles ao ultrapassar o Boqueirão, arco gravitacional aéreo com rotação de 360°, câmera lenta e splash de celebração.",
   },
 ];
 
@@ -76,18 +122,18 @@ export function getConceptByDistance(x: number): PresentationPoint {
 }
 
 export class PresentationModeManager {
-  private k: KaboomCtx;
+  private k: PresentationEngineContext;
   private playerController: PlayerController;
   private isPresentationOpen = false;
   private isPaused = false;
-  private container: any = null;
-  private ecoText: any = null;
-  private techText: any = null;
-  private biomeLabel: any = null;
-  private pauseBtnText: any = null;
+  private container: PresentationUiObject | null = null;
+  private ecoText: PresentationUiObject | null = null;
+  private techText: PresentationUiObject | null = null;
+  private biomeLabel: PresentationUiObject | null = null;
+  private pauseBtnText: PresentationUiObject | null = null;
   private keydownListener: ((e: KeyboardEvent) => void) | null = null;
 
-  constructor(k: KaboomCtx, playerController: PlayerController) {
+  constructor(k: PresentationEngineContext, playerController: PlayerController) {
     this.k = k;
     this.playerController = playerController;
     this.setupGlobalShortcut();
@@ -182,6 +228,7 @@ export class PresentationModeManager {
       this.playerController.setSpeed(this.k.vec2(100, 0));
       this.k.camPos(point.x + 160, this.k.camPos().y);
       audioSystem.updateBiomeTrack(point.x);
+      audioSystem.updateDepthAcoustics(point.y);
     }
     this.updateContent();
   }
@@ -224,14 +271,10 @@ export class PresentationModeManager {
     const h = this.k.height();
 
     // Container raiz fixo na tela com alta prioridade visual
-    this.container = this.k.add([
-      this.k.pos(0, 0),
-      this.k.fixed(),
-      this.k.z(350),
-    ]);
+    this.container = this.k.add([this.k.pos(0, 0), this.k.fixed(), this.k.z(350)]);
 
     // 1. BARRA SUPERIOR DE TELETRANSPORTE & CONTROLE
-    const topBar = this.container.add([
+    const topBar = this.container.add?.([
       this.k.rect(w, 54),
       this.k.pos(0, 0),
       this.k.color(6, 16, 32),
@@ -241,78 +284,99 @@ export class PresentationModeManager {
       this.k.fixed(),
     ]);
 
-    topBar.add([
-      this.k.text("🎙️ MODO APRESENTAÇÃO GUIADA (JURADOS/PROFESSORES)", { size: 11, font: "sans-serif" }),
-      this.k.pos(12, 10),
-      this.k.color(255, 220, 90),
-    ]);
+    if (topBar) {
+      topBar.add?.([
+        this.k.text("🎙️ MODO APRESENTAÇÃO GUIADA (JURADOS/PROFESSORES)", {
+          size: 13,
+          font: "Outfit",
+        }),
+        this.k.pos(12, 8),
+        this.k.color(255, 220, 90),
+      ]);
 
-    topBar.add([
-      this.k.text("Saltar Biomas [Teclas 1 a 5] | Fechar [Ctrl+P / ESC]", { size: 9, font: "sans-serif" }),
-      this.k.pos(12, 28),
-      this.k.color(140, 195, 240),
-    ]);
+      topBar.add?.([
+        this.k.text("Saltar Biomas [Teclas 1 a 5] | Fechar [Ctrl+P / ESC]", {
+          size: 10.5,
+          font: "Inter",
+        }),
+        this.k.pos(12, 28),
+        this.k.color(140, 195, 240),
+      ]);
 
-    // Botões de Teletransporte dos 5 Biomas
-    const btnStartX = Math.max(340, w - 440);
-    PRESENTATION_POINTS.forEach((pt, i) => {
-      const bX = btnStartX + i * 62;
-      const b = topBar.add([
-        this.k.rect(58, 32, { radius: 6 }),
-        this.k.pos(bX, 11),
-        this.k.color(18, 55, 95),
-        this.k.outline(1.5, this.k.rgb(0, 210, 255)),
+      // Botões de Teletransporte dos 5 Biomas
+      const btnStartX = Math.max(340, w - 440);
+      PRESENTATION_POINTS.forEach((pt, i) => {
+        const bX = btnStartX + i * 62;
+        const b = topBar.add?.([
+          this.k.rect(58, 34, { radius: 6 }),
+          this.k.pos(bX, 9),
+          this.k.color(18, 55, 95),
+          this.k.outline(1.5, this.k.rgb(0, 210, 255)),
+          this.k.area(),
+        ]);
+
+        if (b) {
+          b.add?.([
+            this.k.text(`[${pt.biomeIndex}]`, { size: 10.5, font: "Outfit" }),
+            this.k.pos(29, 9),
+            this.k.color(255, 230, 120),
+            this.k.anchor("center"),
+          ]);
+
+          b.add?.([
+            this.k.text(pt.name.slice(0, 7), { size: 8.5, font: "Inter" }),
+            this.k.pos(29, 23),
+            this.k.color(200, 240, 255),
+            this.k.anchor("center"),
+          ]);
+
+          if (typeof b.onClick === "function") {
+            b.onClick(() => {
+              this.jumpToBiome(pt.biomeIndex);
+            });
+          }
+          if (typeof b.onHoverUpdate === "function") {
+            b.onHoverUpdate(() => {
+              b.color = this.k.rgb(30, 90, 160);
+            });
+          }
+          if (typeof b.onHoverEnd === "function") {
+            b.onHoverEnd(() => {
+              b.color = this.k.rgb(18, 55, 95);
+            });
+          }
+        }
+      });
+
+      // Botão de Pausa Didática
+      const pauseBtn = topBar.add?.([
+        this.k.rect(98, 34, { radius: 6 }),
+        this.k.pos(w - 110, 9),
+        this.k.color(28, 70, 45),
+        this.k.outline(1.5, this.k.rgb(80, 240, 150)),
         this.k.area(),
       ]);
 
-      b.add([
-        this.k.text(`[${pt.biomeIndex}]`, { size: 9, font: "sans-serif" }),
-        this.k.pos(29, 9),
-        this.k.color(255, 230, 120),
-        this.k.anchor("center"),
-      ]);
+      if (pauseBtn) {
+        this.pauseBtnText =
+          pauseBtn.add?.([
+            this.k.text("⏸️ PAUSA", { size: 11, font: "Outfit" }),
+            this.k.pos(49, 17),
+            this.k.color(230, 255, 235),
+            this.k.anchor("center"),
+          ]) ?? null;
 
-      b.add([
-        this.k.text(pt.name.slice(0, 7), { size: 7, font: "sans-serif" }),
-        this.k.pos(29, 21),
-        this.k.color(200, 240, 255),
-        this.k.anchor("center"),
-      ]);
-
-      b.onClick(() => {
-        this.jumpToBiome(pt.biomeIndex);
-      });
-      b.onHoverUpdate(() => {
-        b.color = this.k.rgb(30, 90, 160);
-      });
-      b.onHoverEnd(() => {
-        b.color = this.k.rgb(18, 55, 95);
-      });
-    });
-
-    // Botão de Pausa Didática
-    const pauseBtn = topBar.add([
-      this.k.rect(98, 32, { radius: 6 }),
-      this.k.pos(w - 110, 11),
-      this.k.color(28, 70, 45),
-      this.k.outline(1.5, this.k.rgb(80, 240, 150)),
-      this.k.area(),
-    ]);
-
-    this.pauseBtnText = pauseBtn.add([
-      this.k.text("⏸️ PAUSA", { size: 9, font: "sans-serif" }),
-      this.k.pos(49, 16),
-      this.k.color(230, 255, 235),
-      this.k.anchor("center"),
-    ]);
-
-    pauseBtn.onClick(() => {
-      this.togglePause();
-    });
+        if (typeof pauseBtn.onClick === "function") {
+          pauseBtn.onClick(() => {
+            this.togglePause();
+          });
+        }
+      }
+    }
 
     // 2. PAINEL DIDÁTICO INFERIOR (CONCEITO ECOLÓGICO vs CONCEITO COMPUTACIONAL)
-    const panelH = 92;
-    const bottomPanel = this.container.add([
+    const panelH = 104;
+    const bottomPanel = this.container.add?.([
       this.k.rect(w, panelH),
       this.k.pos(0, h - panelH),
       this.k.color(8, 18, 38),
@@ -321,36 +385,41 @@ export class PresentationModeManager {
       this.k.fixed(),
     ]);
 
-    this.biomeLabel = bottomPanel.add([
-      this.k.text("SETOR: ANTÁRTICA (0m)", { size: 10, font: "sans-serif" }),
-      this.k.pos(15, 6),
-      this.k.color(255, 220, 80),
-    ]);
+    if (bottomPanel) {
+      this.biomeLabel =
+        bottomPanel.add?.([
+          this.k.text("SETOR: ANTÁRTICA (0m)", { size: 12.5, font: "Outfit" }),
+          this.k.pos(15, 6),
+          this.k.color(255, 220, 80),
+        ]) ?? null;
 
-    // Coluna 1: Conceito Ecológico
-    const colW = (w - 30) / 2;
-    this.ecoText = bottomPanel.add([
-      this.k.text("", {
-        size: 8.5,
-        font: "sans-serif",
-        width: colW - 10,
-        lineSpacing: 3,
-      }),
-      this.k.pos(15, 24),
-      this.k.color(140, 250, 210),
-    ]);
+      // Coluna 1: Conceito Ecológico
+      const colW = (w - 30) / 2;
+      this.ecoText =
+        bottomPanel.add?.([
+          this.k.text("", {
+            size: 10.5,
+            font: "Inter",
+            width: colW - 10,
+            lineSpacing: 3.5,
+          }),
+          this.k.pos(15, 26),
+          this.k.color(140, 250, 210),
+        ]) ?? null;
 
-    // Coluna 2: Engenharia de Software
-    this.techText = bottomPanel.add([
-      this.k.text("", {
-        size: 8.5,
-        font: "sans-serif",
-        width: colW - 10,
-        lineSpacing: 3,
-      }),
-      this.k.pos(15 + colW, 24),
-      this.k.color(255, 215, 130),
-    ]);
+      // Coluna 2: Engenharia de Software
+      this.techText =
+        bottomPanel.add?.([
+          this.k.text("", {
+            size: 10.5,
+            font: "Inter",
+            width: colW - 10,
+            lineSpacing: 3.5,
+          }),
+          this.k.pos(15 + colW, 26),
+          this.k.color(255, 215, 130),
+        ]) ?? null;
+    }
   }
 
   public destroy(): void {
@@ -369,7 +438,10 @@ export class PresentationModeManager {
 
 let activePresentationManager: PresentationModeManager | null = null;
 
-export function initPresentationMode(k: KaboomCtx, playerController: PlayerController): PresentationModeManager {
+export function initPresentationMode(
+  k: PresentationEngineContext,
+  playerController: PlayerController
+): PresentationModeManager {
   if (activePresentationManager) {
     activePresentationManager.destroy();
   }

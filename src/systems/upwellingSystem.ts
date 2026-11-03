@@ -1,98 +1,230 @@
-import type { KaboomCtx } from "kaboom";
 import { GAME_CONFIG, TAGS } from "../config";
 import { createKrill } from "../entities/krill";
 import type { PlayerController } from "../entities/player";
+import { safeShake } from "../utils/camera";
+import { getRandomFloat } from "../utils/random";
 
-export function setupUpwellingSystem(k: KaboomCtx, playerController: PlayerController) {
-    let upwellingTimer = 0;
-    let isUpwellingActive = false;
-    let upwellingEventTimer = 0;
-    let eventOriginXPosition = 0;
+/**
+ * Calcula o impulso vertical da ressurgência sobre a baleia com trava de superfície.
+ * Se a baleia estiver a menos de UPWELLING_SURFACE_LOCK_DISTANCE abaixo da linha d'água
+ * (SEA_LEVEL), qualquer componente ascendente (forceY < 0) é zerado: o salto para fora
+ * d'água só ocorre pela velocidade própria do jogador.
+ */
+export function computeUpwellingVerticalForce(
+  playerY: number,
+  forceY: number = GAME_CONFIG.UPWELLING_COLLISION_FORCE_Y
+): number {
+  const lockLimitY = GAME_CONFIG.SEA_LEVEL + GAME_CONFIG.UPWELLING_SURFACE_LOCK_DISTANCE;
+  if (forceY < 0 && playerY <= lockLimitY) return 0;
+  return forceY;
+}
 
-    k.onUpdate(() => {
-        // só produz ressurgencia se baleia não estiver desmaiando
-        if (playerController.isFainting()) return;
+export interface UpwellingVector2D {
+  x: number;
+  y: number;
+}
 
-        const currentXPosition = playerController.gameObj.pos.x;
-        const isInUpwellingZone =
-            currentXPosition >= GAME_CONFIG.UPWELLING_ZONE_START &&
-            currentXPosition <= GAME_CONFIG.UPWELLING_ZONE_END;
+export interface UpwellingGameObject<TColor = unknown> {
+  pos: UpwellingVector2D;
+  opacity?: number;
+  add: (components: unknown[]) => UpwellingGameObject<TColor>;
+  onUpdate: (cb: () => void) => void;
+}
 
-        // se estiver fora da zona de ressurgência (19.000m - 25.000m), reseta timer e não inicia novos eventos
-        if (!isInUpwellingZone) {
-            upwellingTimer = 0;
-            return;
-        }
+export interface UpwellingEngineContext<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = UpwellingVector2D,
+> {
+  add: (components: unknown[]) => unknown;
+  destroy: (obj: TDestroyable) => void;
+  dt: () => number;
+  height: () => number;
+  onUpdate: (cb: () => void) => void;
+  onCollideUpdate: (
+    tag1: string,
+    tag2: string,
+    cb: (obj1: unknown, obj2: unknown) => void
+  ) => unknown;
+  rect: (w: number, h: number, opt?: { radius?: number }) => unknown;
+  circle: (r: number) => unknown;
+  scale: (s: number | UpwellingVector2D) => unknown;
+  pos: (x: number | UpwellingVector2D, y?: number) => unknown;
+  color: (r: number | TColor, g?: number, b?: number) => unknown;
+  opacity: (o: number) => unknown;
+  outline: (w: number, col: TColor) => unknown;
+  rotate: (angle: number) => unknown;
+  area: (opt?: { scale?: TVec }) => unknown;
+  anchor: (a: "center") => unknown;
+  z: (v: number) => unknown;
+  rand: (min: number, max: number) => number;
+  choose: <T>(arr: T[]) => T;
+  rgb: (r: number, g: number, b: number) => TColor;
+  vec2: (x: number, y: number) => TVec;
+  clamp: (val: number, min: number, max: number) => number;
+  shake?: (amount: number) => void;
+}
 
-        upwellingTimer += k.dt();
+export function createUpwellingStream<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = UpwellingVector2D,
+>(
+  k: UpwellingEngineContext<TDestroyable, TColor, TVec>,
+  spawnXPosition: number,
+  spawnYPosition: number
+) {
+  const upwellingStream = k.add([
+    k.rect(36, 84),
+    k.pos(spawnXPosition, spawnYPosition),
+    k.color(0, 220, 255),
+    k.opacity(0),
+    k.rotate(-25), // 25º de inclinação ascendente
+    k.area({ scale: k.vec2(4, 10) }),
+    k.anchor("center"),
+    k.z(-1),
+    TAGS.UPWELLING_STREAM,
+    "upwelling_stream_parent",
+  ]) as UpwellingGameObject<TColor>;
 
-        // ativa ressurgencia a cada 18 segundos
-        if (upwellingTimer >= GAME_CONFIG.UPWELLING_INTERVAL && !isUpwellingActive) {
-            isUpwellingActive = true;
-            upwellingEventTimer = GAME_CONFIG.UPWELLING_DURATION;
-            upwellingTimer = 0;
-            eventOriginXPosition = currentXPosition;
-            k.shake(2); // leve tremida na tela
-        }
+  const strands: UpwellingGameObject<TColor>[] = [];
+  const strandCount = 6;
+  for (let strandIndex = 0; strandIndex < strandCount; strandIndex++) {
+    const strandOffsetX = (strandIndex - (strandCount - 1) / 2) * 5.5;
+    const strandAngle = (strandIndex - (strandCount - 1) / 2) * 2.2;
 
-        // ativa ressurgencia (4 segundos)
-        if (isUpwellingActive) {
-            upwellingEventTimer -= k.dt();
+    const baseSegment = upwellingStream.add([
+      k.rect(4, 30, { radius: 2 }),
+      k.pos(strandOffsetX, 20),
+      k.color(0, 210, 255),
+      k.opacity(0.55),
+      k.rotate(strandAngle),
+      k.anchor("center"),
+      "upwelling_strand_base",
+    ]);
 
-            // fluxo de agua ascendente na diagonal para direita
-            if (Math.random() < 0.4) {
-                const spawnXPosition = eventOriginXPosition + (Math.random() * 400 - 100);
-                const spawnYPosition = k.height() - 40;
+    const middleSegment = upwellingStream.add([
+      k.rect(3.5, 30, { radius: 1.5 }),
+      k.pos(strandOffsetX + strandAngle * 0.4, -8),
+      k.color(60, 225, 255),
+      k.opacity(0.35),
+      k.rotate(strandAngle),
+      k.anchor("center"),
+      "upwelling_strand_mid",
+    ]);
 
-                const upwellingStream = k.add([
-                    k.rect(30, 80, { radius: 10 }),
-                    k.pos(spawnXPosition, spawnYPosition),
-                    k.color(0, 220, 255),
-                    k.opacity(0.4),
-                    k.rotate(-25), // 25º de inclinação
-                    k.area({ scale: k.vec2(4, 10) }),
-                    k.anchor("center"),
-                    k.z(-1),
-                    k.outline(3, k.rgb(255, 255, 255)), // Borda branca
-                    TAGS.UPWELLING_STREAM,
-                ]);
+    const topSegment = upwellingStream.add([
+      k.rect(3, 25, { radius: 1.5 }),
+      k.pos(strandOffsetX + strandAngle * 0.8, -34),
+      k.color(160, 245, 255),
+      k.opacity(0.18),
+      k.rotate(strandAngle),
+      k.anchor("center"),
+      "upwelling_strand_top",
+    ]);
 
-                let streamTime = 0;
-                upwellingStream.onUpdate(() => {
-                    streamTime += k.dt();
-                    // move jato diagonalmente para direita e para cima
-                    upwellingStream.pos.x += k.dt() * GAME_CONFIG.UPWELLING_PUSH_X;
-                    upwellingStream.pos.y += k.dt() * GAME_CONFIG.UPWELLING_PUSH_Y;
-                    upwellingStream.pos.x += Math.sin(streamTime * 4) * 0.8 // oscilação
+    strands.push(baseSegment, middleSegment, topSegment);
+  }
 
-                    upwellingStream.opacity -= k.dt() * 0.2;
-                    if (upwellingStream.pos.y <= -50 || upwellingStream.opacity <= 0) {
-                        k.destroy(upwellingStream);
-                    }
-                });
-            }
+  let streamTime = 0;
+  let streamLifetime = 1.0;
+  upwellingStream.onUpdate(() => {
+    const deltaTime = k.dt();
+    streamTime += deltaTime;
+    // move jato diagonalmente para direita e para cima
+    upwellingStream.pos.x += deltaTime * GAME_CONFIG.UPWELLING_PUSH_X;
+    upwellingStream.pos.y += deltaTime * GAME_CONFIG.UPWELLING_PUSH_Y;
+    upwellingStream.pos.x += Math.sin(streamTime * 4) * 0.8; // oscilação orgânica
 
-            // gera cardume de krill na area
-            if (Math.random() < 0.005) {
-                const krillXPosition = eventOriginXPosition + 300 + Math.random() * 200;
-                const krillYPosition = k.height() - 100 - Math.random() * 200;
-                createKrill(k, k.vec2(krillXPosition, krillYPosition));
-            }
+    streamLifetime -= deltaTime * 0.25;
+    for (let strandIndex = 0; strandIndex < strands.length; strandIndex++) {
+      const strand = strands[strandIndex];
+      if (strand.opacity !== undefined) {
+        strand.opacity = Math.max(0, strand.opacity - deltaTime * 0.12);
+      }
+    }
+    if (upwellingStream.pos.y <= -50 || streamLifetime <= 0) {
+      k.destroy(upwellingStream as unknown as TDestroyable);
+    }
+  });
 
-            if (upwellingEventTimer <=0) {
-                isUpwellingActive = false;
-            }
-        }
-    });
+  return { upwellingStream, strands };
+}
 
-    // física: ressurgencia empurra baleia
-    k.onCollideUpdate(TAGS.PLAYER, TAGS.UPWELLING_STREAM, (_player, _upwellingStream) => {
-        const currentVelocity = playerController.getSpeed();
-        playerController.setSpeed(
-            k.vec2(
-                k.clamp(currentVelocity.x + 10, -GAME_CONFIG.MAX_SPEED, GAME_CONFIG.MAX_SPEED),
-                k.clamp(currentVelocity.y - 14, -GAME_CONFIG.MAX_SPEED, GAME_CONFIG.MAX_SPEED)
-            )
-        );
-    });
+export function setupUpwellingSystem<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = UpwellingVector2D,
+>(k: UpwellingEngineContext<TDestroyable, TColor, TVec>, playerController: PlayerController) {
+  let upwellingTimer = 0;
+  let isUpwellingActive = false;
+  let upwellingEventTimer = 0;
+  let eventOriginXPosition = 0;
+
+  k.onUpdate(() => {
+    // só produz ressurgencia se baleia não estiver desmaiando
+    if (playerController.isFainting()) return;
+
+    const currentXPosition = playerController.gameObj.pos.x;
+    const isInUpwellingZone =
+      currentXPosition >= GAME_CONFIG.UPWELLING_ZONE_START &&
+      currentXPosition <= GAME_CONFIG.UPWELLING_ZONE_END;
+
+    // se estiver fora da zona de ressurgência (19.000m - 25.000m), reseta timer e não inicia novos eventos
+    if (!isInUpwellingZone) {
+      upwellingTimer = 0;
+      return;
+    }
+
+    upwellingTimer += k.dt();
+
+    // ativa ressurgencia a cada 18 segundos
+    if (upwellingTimer >= GAME_CONFIG.UPWELLING_INTERVAL && !isUpwellingActive) {
+      isUpwellingActive = true;
+      upwellingEventTimer = GAME_CONFIG.UPWELLING_DURATION;
+      upwellingTimer = 0;
+      eventOriginXPosition = currentXPosition;
+      safeShake(k, 2); // leve tremida na tela com guarda de acessibilidade
+    }
+
+    // ativa ressurgencia (4 segundos)
+    if (isUpwellingActive) {
+      const deltaTime = k.dt();
+      upwellingEventTimer -= deltaTime;
+      const normalizedDeltaTime = deltaTime * 60;
+
+      // fluxo de agua ascendente na diagonal para direita independente de taxa de quadros
+      if (getRandomFloat(0, 1) < 0.4 * normalizedDeltaTime) {
+        const spawnXPosition = eventOriginXPosition + getRandomFloat(-100, 300);
+        const spawnYPosition = k.height() - 40;
+        createUpwellingStream(k, spawnXPosition, spawnYPosition);
+      }
+
+      // gera cardume de krill na area independente de taxa de quadros
+      if (getRandomFloat(0, 1) < 0.005 * normalizedDeltaTime) {
+        const krillXPosition = eventOriginXPosition + 300 + getRandomFloat(0, 200);
+        const krillYPosition = k.height() - 100 - getRandomFloat(0, 200);
+        createKrill(k, k.vec2(krillXPosition, krillYPosition));
+      }
+
+      if (upwellingEventTimer <= 0) {
+        isUpwellingActive = false;
+      }
+    }
+  });
+
+  // física: ressurgencia empurra baleia
+  k.onCollideUpdate(TAGS.PLAYER, TAGS.UPWELLING_STREAM, (_player, _upwellingStream) => {
+    const currentVelocity = playerController.getSpeed();
+    playerController.setSpeed(
+      k.vec2(
+        k.clamp(currentVelocity.x + 10, -GAME_CONFIG.MAX_SPEED, GAME_CONFIG.MAX_SPEED),
+        k.clamp(
+          currentVelocity.y + computeUpwellingVerticalForce(playerController.gameObj.pos.y),
+          -GAME_CONFIG.MAX_SPEED,
+          GAME_CONFIG.MAX_SPEED
+        )
+      ) as unknown as Parameters<PlayerController["setSpeed"]>[0]
+    );
+  });
 }

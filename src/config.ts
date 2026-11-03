@@ -1,33 +1,44 @@
+import { readLocalStorageWithSchema, writeLocalStorage } from "./utils/storage";
+import {
+  ResolutionKeySchema,
+  DisplayModeSchema,
+  LetterboxColorSchema,
+} from "./schemas/storageSchemas";
+
 export const GAME_CONFIG = {
   GRAVITY: 0,
-  SINK_RATE: 20,              // Afundamento suave constante da água
-  MAX_SPEED: 240,             // Teto máximo de velocidade acumulada
-  MAX_STROKE_TIME: 0.5,       // Duração máxima de uma batida de cauda (0.5s)
-  BASE_THRUST: 125,           // Impulso inicial restaurado da batida
-  PEAK_THRUST: 625,           // Adicional de impulso no pico da batida (propulsão vigorosa restaurada)
-  WATER_DRAG: 0.955,          // Resistência da água com perda de momentum acentuada (desacelera rápido da velocidade máxima)
-  ROTATION_SPEED: 40,         // Velocidade de rotação das nadadeiras
-  TRASH_SLOWDOWN: 0.5,        // Fator de desaceleração ao atingir lixo plástico (perde 50% da velocidade)
-  KRILL_BOOST: 1.2,           // Fator de aceleração do cardume krill
-  KRILL_POINTS: 100,          // Pontos por cardume krill
-  OXYGEN_DRAIN_RATE: 5,       // taxa de perde de oxygenio
-  TRASH_OXYGEN_PENALTY: 15,   // penalidade de oxygenio por lixo
-  KRILL_OXYGEN_RESTORE: 15,   // bonus de oxigenio por krill
-  BLACKOUT_GRACE_TIME: 4,     // tempo de tolerancia quando oxygenio é zerado
-  SONAR_RANGE: 650,           // raio expansivo do sonar em 360°
-  SONAR_ANGLE: 360,           // cobertura omnidirecional total
-  SONAR_COOLDOWN: 2.0,        // tempo de recarga entre emissões do sonar
+  SINK_RATE: 15, // Afundamento suave calibrado para permitir subida natural à superfície
+  MAX_SPEED: 240, // Teto máximo de velocidade acumulada
+  MAX_STROKE_TIME: 0.7, // Duração máxima de uma batida de cauda (0.5s)
+  STROKE_COOLDOWN: 1.0, // Intervalo mínimo de 1 segundo entre batidas consecutivas de cauda
+  BASE_THRUST: 140, // Impulso inicial responsivo da batida
+  PEAK_THRUST: 650, // Adicional de impulso no pico da batida
+  WATER_DRAG: 0.968, // Arrasto com planeio hidrodinâmico contínuo entre batidas
+  ROTATION_SPEED: 48, // Velocidade de rotação vertical das nadadeiras
+  TRASH_SLOWDOWN: 0.5, // Fator de desaceleração ao atingir lixo plástico (perde 50% da velocidade)
+  KRILL_BOOST: 1.2, // Fator de aceleração do cardume krill
+  KRILL_POINTS: 100, // Pontos por cardume krill
+  OXYGEN_DRAIN_RATE: 5, // taxa de perde de oxygenio
+  TRASH_OXYGEN_PENALTY: 15, // penalidade de oxygenio por lixo
+  KRILL_OXYGEN_RESTORE: 15, // bonus de oxigenio por krill
+  BLACKOUT_GRACE_TIME: 4, // tempo de tolerancia quando oxygenio é zerado
+  SONAR_RANGE: 650, // raio expansivo do sonar em 360°
+  SONAR_ANGLE: 360, // cobertura omnidirecional total
+  SONAR_COOLDOWN: 2.0, // tempo de recarga entre emissões do sonar
   SONAR_REVEAL_DURATION: 5.5, // tempo de iluminação de objetos escaneados no escuro
   BLOWHOLE_OXYGEN_THRESHOLD: 92, // gatilho do esguicho ao recarregar ar na superfície
-  NET_ESCAPE_COUNT: 5,        // toques no espaço para se soltar da rede
-  UPWELLING_INTERVAL: 18,     // intervalo entre ressurgencias
-  UPWELLING_DURATION: 4,      // duração da ressurgência
-  UPWELLING_PUSH_X: 120,      // força horizontal da ressurgência
-  UPWELLING_PUSH_Y: -150,     // força vertical da ressurgência
+  NET_ESCAPE_COUNT: 5, // toques no espaço para se soltar da rede
+  UPWELLING_INTERVAL: 18, // intervalo entre ressurgencias
+  UPWELLING_DURATION: 4, // duração da ressurgência
+  UPWELLING_PUSH_X: 120, // força horizontal da ressurgência
+  UPWELLING_PUSH_Y: -98, // força vertical da ressurgência (empuxo vigoroso subaquático)
+  UPWELLING_COLLISION_FORCE_Y: -9.0, // impulso vertical por frame sobre a baleia
+  UPWELLING_SURFACE_LOCK_DISTANCE: 55, // px abaixo de SEA_LEVEL onde a correnteza não empurra mais para cima
   UPWELLING_ZONE_START: 19000, // início da zona de ressurgência em Arraial do Cabo (19.000m)
-  UPWELLING_ZONE_END: 25000,   // fim da zona de ressurgência em Arraial do Cabo (25.000m)
+  UPWELLING_ZONE_END: 25000, // fim da zona de ressurgência em Arraial do Cabo (25.000m)
   ROUTE_TOTAL_DISTANCE: 30000, // distancia total do percurso (30.000m - ~4 a 5 min de partida)
-  SEA_LEVEL: 80,               // Nível do mar dobrado para 80px para dar espaço visível ao céu
+  SEA_LEVEL: 80, // Nível do mar dobrado para 80px para dar espaço visível ao céu
+  MAX_DELTA_TIME: 0.1, // Teto máximo de delta time (100ms / 10 FPS) para prevenir tunneling sem penalizar 30-60 FPS
 };
 
 export const TAGS = {
@@ -43,6 +54,53 @@ export const TAGS = {
   AIR_POCKET: "bolsao_ar",
   POWERUP: "powerup",
 };
+
+export type BiomeType = "antartica" | "pelagico" | "costa_urbana" | "canyons" | "arraial";
+
+export interface BiomeBoundary {
+  id: BiomeType;
+  name: string;
+  startDistance: number;
+  endDistance: number;
+}
+
+export const BIOME_BOUNDARIES: readonly BiomeBoundary[] = [
+  { id: "antartica", name: "Antártica (Manhã Polar)", startDistance: 0, endDistance: 5000 },
+  {
+    id: "pelagico",
+    name: "Travessia Pelágica (Pôr do Sol)",
+    startDistance: 5000,
+    endDistance: 12000,
+  },
+  {
+    id: "costa_urbana",
+    name: "Costa Urbana (Noite Estrelada)",
+    startDistance: 12000,
+    endDistance: 19000,
+  },
+  {
+    id: "canyons",
+    name: "Cânions & Ressurgência (Alvorada)",
+    startDistance: 19000,
+    endDistance: 25000,
+  },
+  {
+    id: "arraial",
+    name: "Santuário de Arraial (Manhã Solar)",
+    startDistance: 25000,
+    endDistance: 30000,
+  },
+] as const;
+
+export function getBiomeAtDistance(distanceInMeters: number): BiomeType {
+  for (let index = 0; index < BIOME_BOUNDARIES.length; index++) {
+    const boundary = BIOME_BOUNDARIES[index];
+    if (distanceInMeters < boundary.endDistance) {
+      return boundary.id;
+    }
+  }
+  return "arraial";
+}
 
 export interface BiomeColorStop {
   name: string;
@@ -102,40 +160,228 @@ export const BIOME_COLOR_STOPS: BiomeColorStop[] = [
   },
 ];
 
+export interface ResolutionPreset {
+  width: number;
+  height: number;
+  label: string;
+  aspect: "16:9" | "auto";
+}
+
 export const RESOLUTION_PRESETS = {
-  "1080p": { width: 1920, height: 1080, label: "1920x1080 (1080p Full HD) 🖥️✨" },
-  "720p": { width: 1280, height: 720, label: "1280x720 (720p HD) 🖥️" },
-  "540p": { width: 960, height: 540, label: "960x540 (Equilibrado) 📺" },
-  "450p": { width: 800, height: 450, label: "800x450 (Retrô Clássico) 🕹️" },
+  // Presets 16:9 de Alta Fidelidade (Sem distorção)
+  "4K": { width: 3840, height: 2160, label: "3840x2160 (4K UHD) 📺🌟", aspect: "16:9" },
+  "1440p": { width: 2560, height: 1440, label: "2560x1440 (1440p 2K QHD) 🖥️💎", aspect: "16:9" },
+  "1080p": { width: 1920, height: 1080, label: "1920x1080 (1080p Full HD) 🖥️✨", aspect: "16:9" },
 } as const;
 
-export type ResolutionKey = keyof typeof RESOLUTION_PRESETS;
+export type ResolutionKey = keyof typeof RESOLUTION_PRESETS | "auto";
 
-export function getSavedResolution(): { width: number; height: number; key: ResolutionKey; label: string } {
-  const saved = (typeof localStorage !== "undefined"
-    ? localStorage.getItem("micro_splash_resolution") || "720p"
-    : "720p") as ResolutionKey;
+/**
+ * Retorna a chave de armazenamento individualizada para a resolução da tela nativa do dispositivo (Fase 33.6).
+ */
+export function getDeviceResolutionStorageKey(): string {
+  if (typeof window !== "undefined" && window.screen) {
+    const sw = window.screen.width || 0;
+    const sh = window.screen.height || 0;
+    return `micro_splash_resolution_${sw}x${sh}`;
+  }
+  return "micro_splash_resolution";
+}
 
-  const preset = RESOLUTION_PRESETS[saved] || RESOLUTION_PRESETS["720p"];
+/**
+ * Detecta dinamicamente a resolução nativa da tela do dispositivo (Fase 33.2).
+ */
+export function detectNativeResolution(): { width: number; height: number; detectedLabel: string } {
+  if (typeof window !== "undefined" && window.screen) {
+    const sw = window.screen.width || 1920;
+    const sh = window.screen.height || 1080;
+    return {
+      width: sw,
+      height: sh,
+      detectedLabel: `${sw}×${sh}`,
+    };
+  }
+  return {
+    width: 1920,
+    height: 1080,
+    detectedLabel: "1920×1080",
+  };
+}
+
+/**
+ * Calcula o aspect ratio formatado e o valor numérico para preview proporcional (Fase 33.7).
+ */
+export function calculateAspectRatio(
+  width: number,
+  height: number
+): {
+  ratioText: string;
+  ratioValue: number;
+} {
+  const safeH = Math.max(1, height);
+  const ratioValue = Number((width / safeH).toFixed(2));
+
+  if (Math.abs(ratioValue - 16 / 9) < 0.05) return { ratioText: "16:9", ratioValue };
+  // 21:9 comercial cobre de 2.33 (64:27) a 2.39 (3440×1440 / 43:18)
+  if (Math.abs(ratioValue - 2.39) < 0.08 || Math.abs(ratioValue - 21 / 9) < 0.08) {
+    return { ratioText: "21:9", ratioValue };
+  }
+  if (Math.abs(ratioValue - 32 / 9) < 0.08) return { ratioText: "32:9", ratioValue };
+  if (Math.abs(ratioValue - 4 / 3) < 0.05) return { ratioText: "4:3", ratioValue };
+  if (Math.abs(ratioValue - 3 / 4) < 0.05) return { ratioText: "3:4", ratioValue };
+
+  return {
+    ratioText: `${Math.round(width / 100)}:${Math.round(height / 100)}`,
+    ratioValue,
+  };
+}
+
+/**
+ * Recupera a resolução salva com suporte a persistência por dispositivo e detecção automática (Fase 33.2 e 33.6).
+ */
+export function getSavedResolution(): {
+  width: number;
+  height: number;
+  key: ResolutionKey;
+  label: string;
+  aspect: string;
+} {
+  const deviceKey = getDeviceResolutionStorageKey();
+  const savedDevice = readLocalStorageWithSchema(deviceKey, ResolutionKeySchema, "");
+  const saved =
+    savedDevice ||
+    readLocalStorageWithSchema("micro_splash_resolution", ResolutionKeySchema, "1080p");
+
+  // Modo Automático (Fase 33.2)
+  if (saved === "auto") {
+    const detected = detectNativeResolution();
+    return {
+      width: detected.width,
+      height: detected.height,
+      key: "auto",
+      label: `Auto (Detectado: ${detected.detectedLabel}) 🔍`,
+      aspect: calculateAspectRatio(detected.width, detected.height).ratioText,
+    };
+  }
+
+  const effectiveKey = (
+    saved && saved in RESOLUTION_PRESETS ? saved : "1080p"
+  ) as keyof typeof RESOLUTION_PRESETS;
+  const preset = RESOLUTION_PRESETS[effectiveKey] || RESOLUTION_PRESETS["1080p"];
+
   return {
     width: preset.width,
     height: preset.height,
     label: preset.label,
-    key: saved in RESOLUTION_PRESETS ? saved : "720p",
+    aspect: preset.aspect,
+    key: effectiveKey,
   };
+}
+
+/**
+ * Salva a resolução tanto na chave global quanto na chave do dispositivo atual (Fase 33.6).
+ */
+export function setSavedResolution(key: ResolutionKey): void {
+  const deviceKey = getDeviceResolutionStorageKey();
+  writeLocalStorage(deviceKey, key);
+  writeLocalStorage("micro_splash_resolution", key);
 }
 
 export type DisplayMode = "stretch" | "letterbox";
 
 export function getSavedDisplayMode(): DisplayMode {
-  if (typeof localStorage === "undefined") return "stretch";
-  const saved = localStorage.getItem("micro_splash_display_mode");
-  return saved === "letterbox" ? "letterbox" : "stretch";
+  const mode = readLocalStorageWithSchema(
+    "micro_splash_display_mode",
+    DisplayModeSchema,
+    "stretch"
+  );
+  return mode === "letterbox" ? "letterbox" : "stretch";
 }
 
 export function setSavedDisplayMode(mode: DisplayMode): void {
-  if (typeof localStorage !== "undefined") {
-    localStorage.setItem("micro_splash_display_mode", mode);
-  }
+  writeLocalStorage("micro_splash_display_mode", mode);
 }
 
+export type LetterboxColor = "black" | "ocean";
+
+export function getSavedLetterboxColor(): LetterboxColor {
+  const color = readLocalStorageWithSchema(
+    "micro_splash_letterbox_color",
+    LetterboxColorSchema,
+    "black"
+  );
+  return color === "ocean" ? "ocean" : "black";
+}
+
+export function setSavedLetterboxColor(color: LetterboxColor): void {
+  writeLocalStorage("micro_splash_letterbox_color", color);
+}
+
+export const APP_VERSION = typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "1.3.0";
+
+// --- Design Tokens Tipográficos (Fase 32: Tipografia, Texto & Hierarquia Visual) ---
+export const FONT_TITLE = "Orbitron";
+export const FONT_BODY = "Inter";
+
+export const TEXT_SIZE_DISPLAY = 44; // Logo, Splash monumental
+export const TEXT_SIZE_H1 = 24; // Títulos de tela e modais principais
+export const TEXT_SIZE_H2 = 18; // Subtítulos de seções e categorias
+export const TEXT_SIZE_BODY = 14; // Texto corrido, leituras e opções
+export const TEXT_SIZE_CAPTION = 11; // Badges, dicas de teclado e rodapés
+
+// --- Constantes Segmentadas por Domínio (Fase 48.5) ---
+export const PLAYER_ANIMATION_CONFIG = {
+  STROKE_DOWN_PHASE_THRESHOLD: 0.55,
+  FEED_TIMER_DURATION: 0.55,
+} as const;
+
+export const ACCESSIBILITY_VISUAL_CONFIG = {
+  HIGH_CONTRAST_OPACITY: 0.55,
+  STANDARD_TRASH_OPACITY: 0.25,
+  ENHANCED_TRASH_OPACITY: 0.32,
+} as const;
+
+export const ENVIRONMENT_CONFIG = {
+  BUBBLE_VENT_MAX_LIFE: 0.55,
+  ICE_SURFACE_OPACITY: 0.55,
+  CRAG_WIDTH_FACTOR: 0.55,
+} as const;
+
+// --- Configurações da Baleia-Guia (Fase 56: Tutorial Mimético & Fase 58: Determinismo) ---
+export const COMPANION_CONFIG = {
+  LEAD_DISTANCE_MIN: 120,
+  LEAD_DISTANCE_MAX: 240,
+  END_DISTANCE: 3200,
+  FEED_TARGET_X: 750,
+  BREATHE_TARGET_X: 1460,
+  SONAR_TARGET_X: 2150,
+  FAREWELL_TARGET_X: 3150,
+  BASE_SPEED: 210,
+  MAX_SPEED: 320,
+  SCALE: 0.85,
+  COLLIDER_WIDTH: 91.8,
+  COLLIDER_HEIGHT: 35.7,
+  CRITICAL_OXYGEN: 55,
+  INFINITE_OXYGEN: true,
+  SURFACE_BREATHE_DURATION: 1.2,
+  SURFACE_DETECTION_TOLERANCE: 22,
+  RADAR_INTERVAL: 0.25,
+  RADAR_AHEAD_RANGE: 400,
+  RADAR_VERTICAL_RANGE: 160,
+  ROTATION_SPEED_FACTOR: 0.92,
+  SEABED_OFFSET: 55,
+  STEAM_PARTICLES_COUNT: 28,
+  BASE_GLIDE_DURATION: 1.2,
+  // Fase 60: Co-Migração Autônoma & Ciclo de Vida Contínuo
+  INDEPENDENT_SPEED: 230,
+  HAZARD_AVOID_RANGE: 320,
+  HAZARD_VERTICAL_CLEARANCE: 75,
+  TRAPPED_OXYGEN_DRAIN_MULTIPLIER: 1.4,
+  NET_ESCAPE_DURATION: 2.4,
+  FAINT_SINK_RATE: 22,
+  VICTORY_BREACH_SPEED: 320,
+  // Fase 61: Desacoplamento da Dependência do Jogador & Co-Migração 100% Autônoma
+  AUTONOMOUS_STROKE_PACING: 1.0,
+  AUTONOMOUS_INTRO_DELAY: 1.5,
+  POD_HARMONY_DISTANCE: 250,
+} as const;

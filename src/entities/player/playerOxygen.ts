@@ -1,11 +1,20 @@
-import type { KaboomCtx, Vec2 } from "kaboom";
 import { GAME_CONFIG } from "../../config";
 import { isPositionInIceGap } from "../../systems/iceSurface";
 import { audioSystem } from "../../systems/audioSystem";
-import { spawnBlowholeSpout, spawnOilSpout, spawnPurifyBubbles } from "./playerParticles";
+import {
+  spawnBlowholeSpout,
+  spawnOilSpout,
+  spawnPurifyBubbles,
+  type PlayerParticlesEngineContext,
+} from "./playerParticles";
+import type { PlayerVector2D } from "./types";
+
+export interface PlayerOxygenEngineContext extends PlayerParticlesEngineContext {
+  shake(amount: number): void;
+}
 
 export class PlayerOxygenManager {
-  private k: KaboomCtx;
+  private k: PlayerOxygenEngineContext;
   private oxygen = 100;
   private baseMaxOxygen = 100;
   private krillsEaten = 0;
@@ -15,7 +24,7 @@ export class PlayerOxygenManager {
   private oilCleanTimer = 0;
   private isFainting = false;
 
-  constructor(k: KaboomCtx) {
+  constructor(k: PlayerOxygenEngineContext) {
     this.k = k;
   }
 
@@ -65,7 +74,21 @@ export class PlayerOxygenManager {
     this.isFainting = false;
   }
 
-  public calculateDrainMultiplier(speedLen: number, isDrafting: boolean = false): number {
+  private currentFlowModifier = 1.0;
+
+  public setCurrentFlowModifier(mod: number): void {
+    this.currentFlowModifier = mod;
+  }
+
+  public getCurrentFlowModifier(): number {
+    return this.currentFlowModifier;
+  }
+
+  public calculateDrainMultiplier(
+    speedLen: number,
+    isDrafting: boolean = false,
+    currentFlowModifier: number = this.currentFlowModifier
+  ): number {
     const maxSpeed = GAME_CONFIG.MAX_SPEED * (1 + this.krillsEaten * 0.01);
     const speedRatio = Math.min(1.5, speedLen / maxSpeed);
     // Em repouso (speed = 0): 0.4x (perde 60% menos fôlego)
@@ -73,20 +96,25 @@ export class PlayerOxygenManager {
     // Em velocidade máxima (100%): 1.6x (perde 60% mais fôlego pelo esforço)
     // Em velocidade turbo / boost (150%): até 2.2x
     const speedDrainFactor = 0.4 + speedRatio * 1.2;
-    const draftMult = isDrafting ? 0.60 : 1.0;
-    return speedDrainFactor * draftMult;
+    const draftMult = isDrafting ? 0.6 : 1.0;
+    return speedDrainFactor * draftMult * currentFlowModifier;
   }
 
   public update(
     dt: number,
-    pos: Vec2,
-    currentSpeed: Vec2 | number,
+    pos: PlayerVector2D,
+    currentSpeed: PlayerVector2D | number,
     facingRight: boolean,
     isDrafting: boolean,
     isSereneMode: boolean
   ): void {
     const currentSpeedX = typeof currentSpeed === "number" ? currentSpeed : currentSpeed.x;
-    const speedLen = typeof currentSpeed === "number" ? Math.abs(currentSpeed) : currentSpeed.len();
+    const speedLen =
+      typeof currentSpeed === "number"
+        ? Math.abs(currentSpeed)
+        : typeof currentSpeed.len === "function"
+          ? currentSpeed.len()
+          : Math.hypot(currentSpeed.x, currentSpeed.y);
 
     if (this.spoutCooldown > 0) {
       this.spoutCooldown -= dt;

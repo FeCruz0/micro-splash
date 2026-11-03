@@ -1,5 +1,6 @@
 import type { GameState } from "../systems/state";
 import { GAME_CONFIG } from "../config";
+import { reportError, reportWarning } from "../utils/errorReporter";
 
 export interface VictoryCardData {
   playerName?: string;
@@ -16,12 +17,18 @@ export interface VictoryCardData {
   dateStr?: string;
   quizScore?: number;
   quizCorrectCount?: number;
+  isWeeklyChallenge?: boolean;
+  seed?: number;
+  weekKey?: string;
 }
 
 /**
  * Extrai os dados formatados da vitória a partir de uma instância de GameState.
  */
-export function extractVictoryCardData(gameState: GameState, playerName: string = "Guardião dos Mares"): VictoryCardData {
+export function extractVictoryCardData(
+  gameState: GameState,
+  playerName: string = "Guardião dos Mares"
+): VictoryCardData {
   const finalScore = gameState.calculateFinalScore();
   let rank = "🥉 RANK B - Navegador Aprendiz";
   if (finalScore >= 3500) rank = "🥇 RANK S - Guardião dos Oceanos!";
@@ -49,6 +56,9 @@ export function extractVictoryCardData(gameState: GameState, playerName: string 
     dateStr,
     quizScore: gameState.getQuizScore(),
     quizCorrectCount: gameState.getQuizCorrectCount(),
+    isWeeklyChallenge: gameState.getMode() === "weekly",
+    seed: gameState.getSeed(),
+    weekKey: gameState.getWeekKey(),
   };
 }
 
@@ -58,7 +68,7 @@ export function extractVictoryCardData(gameState: GameState, playerName: string 
  */
 export function createVictoryCardCanvas(data: VictoryCardData): HTMLCanvasElement | null {
   if (typeof document === "undefined") {
-    return false as any;
+    return null;
   }
 
   const canvas = document.createElement("canvas");
@@ -119,7 +129,13 @@ export function createVictoryCardCanvas(data: VictoryCardData): HTMLCanvasElemen
 
   ctx.fillStyle = "#ffd700";
   ctx.font = "bold 20px 'Segoe UI', Arial, sans-serif";
-  ctx.fillText("★ CERTIFICADO OFICIAL DE GUARDIÃO DOS OCEANOS ★", 600, 85);
+  ctx.fillText(
+    data.isWeeklyChallenge
+      ? "★ CERTIFICADO OFICIAL: DESAFIO SEMANAL DA ROTA ★"
+      : "★ CERTIFICADO OFICIAL DE GUARDIÃO DOS OCEANOS ★",
+    600,
+    85
+  );
 
   ctx.fillStyle = "#ffffff";
   ctx.font = "900 44px 'Segoe UI', Arial, sans-serif";
@@ -128,7 +144,9 @@ export function createVictoryCardCanvas(data: VictoryCardData): HTMLCanvasElemen
   ctx.fillStyle = "#a5d8ff";
   ctx.font = "16px 'Segoe UI', Arial, sans-serif";
   ctx.fillText(
-    "Em reconhecimento à conclusão bem-sucedida da Rota Migratória até o Santuário de Arraial do Cabo",
+    data.isWeeklyChallenge
+      ? `Conclusão do Desafio Semanal ${data.weekKey || ""} • Semente Determinística #${data.seed || "42"}`
+      : "Em reconhecimento à conclusão bem-sucedida da Rota Migratória até o Santuário de Arraial do Cabo",
     600,
     168
   );
@@ -158,7 +176,10 @@ export function createVictoryCardCanvas(data: VictoryCardData): HTMLCanvasElemen
 
   ctx.fillStyle = "#a5d8ff";
   ctx.font = "15px 'Segoe UI', Arial, sans-serif";
-  ctx.fillText(`Data: ${data.dateStr || "2026"}   |   Modo: ${data.mode.toUpperCase()}`, 90, 325);
+  const modeDisplay = data.isWeeklyChallenge
+    ? `DESAFIO SEMANAL (${data.weekKey || ""})`
+    : data.mode.toUpperCase();
+  ctx.fillText(`Data: ${data.dateStr || "2026"}   |   Modo: ${modeDisplay}`, 90, 325);
   ctx.restore();
 
   // 6. Placar Central em Destaque (Eco-Score)
@@ -181,11 +202,19 @@ export function createVictoryCardCanvas(data: VictoryCardData): HTMLCanvasElemen
 
   ctx.fillStyle = "#ffd700";
   ctx.font = "bold 46px 'Segoe UI', Arial, sans-serif";
-  ctx.fillText(`${data.finalScore.toLocaleString("pt-BR")} pts`, scoreBoxX + scoreBoxW / 2, scoreBoxY + 80);
+  ctx.fillText(
+    `${data.finalScore.toLocaleString("pt-BR")} pts`,
+    scoreBoxX + scoreBoxW / 2,
+    scoreBoxY + 80
+  );
 
   ctx.fillStyle = "#d0ebff";
   ctx.font = "13px 'Segoe UI', Arial, sans-serif";
-  ctx.fillText(`Recorde Pessoal: ${data.highScore.toLocaleString("pt-BR")} pts`, scoreBoxX + scoreBoxW / 2, scoreBoxY + 105);
+  ctx.fillText(
+    `Recorde Pessoal: ${data.highScore.toLocaleString("pt-BR")} pts`,
+    scoreBoxX + scoreBoxW / 2,
+    scoreBoxY + 105
+  );
   ctx.restore();
 
   // 7. Grade de Estatísticas da Travessia
@@ -203,37 +232,63 @@ export function createVictoryCardCanvas(data: VictoryCardData): HTMLCanvasElemen
   ctx.fillStyle = "#e7f5ff";
 
   // Coluna 1
-  ctx.fillText(`📏 Rota Percorrida: ${GAME_CONFIG.ROUTE_TOTAL_DISTANCE.toLocaleString("pt-BR")}m (100%)`, col1X, gridY + 34);
+  ctx.fillText(
+    `📏 Rota Percorrida: ${GAME_CONFIG.ROUTE_TOTAL_DISTANCE.toLocaleString("pt-BR")}m (100%)`,
+    col1X,
+    gridY + 34
+  );
   ctx.fillText(`⏱️ Duração da Travessia: ${data.elapsedTime} segundos`, col1X, gridY + 65);
   ctx.fillText(`🦐 Biomassa de Krill Coletada: ${data.krillCount} cardumes`, col1X, gridY + 96);
 
   // Coluna 2
   ctx.fillText(`🗑️ Resíduos Plásticos Encontrados: ${data.trashCount}`, col2X, gridY + 34);
-  ctx.fillText(`✨ Salto Majestoso (Breach): ${data.hasBreached ? "Executado (+500 pts)" : "Não"}`, col2X, gridY + 65);
+  ctx.fillText(
+    `✨ Salto Majestoso (Breach): ${data.hasBreached ? "Executado (+500 pts)" : "Não"}`,
+    col2X,
+    gridY + 65
+  );
   ctx.fillText(
     data.quizScore && data.quizScore > 0
       ? `🧪 Quiz Ecológico: ${data.quizCorrectCount || 0}/3 acertos (+${data.quizScore} pts)`
-      : `🧭 Modo de Travessia: ${data.mode === "serene" ? "Sereno" : data.mode === "quick_challenge" ? "Rápido (60s)" : "Padrão"}`,
+      : `🧭 Modo: ${data.isWeeklyChallenge ? "Desafio Semanal 📅" : data.mode === "serene" ? "Sereno" : data.mode === "quick_challenge" ? "Rápido (60s)" : "Padrão"}`,
     col2X,
     gridY + 96
   );
 
   // Coluna 3: Selo Digital de Autenticidade
-  ctx.strokeStyle = "rgba(100, 220, 255, 0.6)";
+  ctx.strokeStyle = data.isWeeklyChallenge ? "#ffd700" : "rgba(100, 220, 255, 0.6)";
+  ctx.lineWidth = data.isWeeklyChallenge ? 2 : 1;
   ctx.strokeRect(col3X + 20, gridY - 10, 270, 115);
-  ctx.fillStyle = "rgba(12, 38, 70, 0.6)";
+  ctx.fillStyle = data.isWeeklyChallenge ? "rgba(18, 48, 60, 0.8)" : "rgba(12, 38, 70, 0.6)";
   ctx.fillRect(col3X + 20, gridY - 10, 270, 115);
 
   ctx.fillStyle = "#ffd700";
   ctx.font = "bold 13px 'Segoe UI', Arial, sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText("PROJETO CONSERVAÇÃO MARINHA", col3X + 155, gridY + 20);
+  ctx.fillText(
+    data.isWeeklyChallenge ? "SELO OFICIAL SEMANAL 📅" : "PROJETO CONSERVAÇÃO MARINHA",
+    col3X + 155,
+    gridY + 20
+  );
   ctx.fillStyle = "#a5d8ff";
   ctx.font = "12px 'Segoe UI', Arial, sans-serif";
-  ctx.fillText("Autenticação Digital Ecológica", col3X + 155, gridY + 45);
+  ctx.fillText(
+    data.isWeeklyChallenge
+      ? `Semana ${data.weekKey || ""} Autenticada`
+      : "Autenticação Digital Ecológica",
+    col3X + 155,
+    gridY + 45
+  );
   ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 14px 'Courier New', monospace";
-  ctx.fillText(`ID: MS-${Math.abs(data.finalScore * 7919).toString(16).toUpperCase()}`, col3X + 155, gridY + 74);
+  ctx.font = "bold 13px 'Courier New', monospace";
+  const certId = data.isWeeklyChallenge
+    ? `ID: MS-W#${data.seed || 0}-${Math.abs(data.finalScore * 7919)
+        .toString(16)
+        .toUpperCase()}`
+    : `ID: MS-${Math.abs(data.finalScore * 7919)
+        .toString(16)
+        .toUpperCase()}`;
+  ctx.fillText(certId, col3X + 155, gridY + 74);
   ctx.restore();
 
   // 8. Mensagem de Sabedoria Ancestral / Conscientização
@@ -284,8 +339,8 @@ export function generateAndDownloadVictoryCard(data: VictoryCardData): boolean {
     link.click();
     document.body.removeChild(link);
     return true;
-  } catch (err) {
-    console.error("Erro ao gerar imagem do cartão de vitória:", err);
+  } catch (error) {
+    reportError("Erro ao gerar imagem do cartão de vitória:", error);
     return false;
   }
 }
@@ -316,8 +371,8 @@ export function getShareText(data: VictoryCardData): string {
     data.mode === "quick_challenge"
       ? "no Desafio Rápido de 60s"
       : data.mode === "serene"
-      ? "no Modo Sereno"
-      : "na Rota Migratória";
+        ? "no Modo Sereno"
+        : "na Rota Migratória";
 
   return (
     `🐋 Concluí a jornada da baleia-jubarte ${modeText} no jogo Micro-Splash!\n` +
@@ -361,13 +416,12 @@ export async function shareVictoryCard(data: VictoryCardData): Promise<boolean> 
       url: typeof window !== "undefined" ? window.location.href : undefined,
     });
     return true;
-  } catch (err: any) {
+  } catch (error: unknown) {
     // Se o usuário cancelou o compartilhamento, não consideramos como erro grave
-    if (err.name === "AbortError") {
+    if (error instanceof Error && error.name === "AbortError") {
       return false;
     }
-    console.warn("Falha no compartilhamento nativo:", err);
+    reportWarning("Falha no compartilhamento nativo:", undefined, error);
     return false;
   }
 }
-

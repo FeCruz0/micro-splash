@@ -1,24 +1,69 @@
-import type { KaboomCtx } from "kaboom";
 import { GAME_CONFIG } from "../config";
 import { audioSystem } from "./audioSystem";
 import type { PlayerController } from "../entities/player";
 import { getParticlePool } from "./particlePool";
 import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
+import { getRandomFloat } from "../utils/random";
+import { getSpatialCullingManager, type CullableTargetObject } from "./spatialCullingSystem";
+
+export interface DolphinVector2D {
+  x: number;
+  y: number;
+  dist?: (other: DolphinVector2D) => number;
+}
+
+export interface DolphinGameObject {
+  pos: DolphinVector2D;
+  scale: { x: number; y: number } | number | unknown;
+  angle?: number;
+  opacity?: number;
+  hidden?: boolean;
+  add: (components: unknown[]) => DolphinGameObject;
+  onUpdate?: (cb: () => void) => void;
+}
+
+export interface DolphinEngineContext<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = DolphinVector2D,
+> {
+  add: (components: unknown[]) => unknown;
+  destroy: (obj: TDestroyable) => void;
+  dt: () => number;
+  time: () => number;
+  onUpdate: (cb: () => void) => void;
+  rect: (w: number, h: number, opt?: { radius?: number }) => unknown;
+  circle: (r: number) => unknown;
+  polygon: (pts: TVec[]) => unknown;
+  pos: (x: number, y: number) => unknown;
+  color: (r: number | TColor, g?: number, b?: number) => unknown;
+  scale: (s: TVec | number) => unknown;
+  anchor: (a: "center") => unknown;
+  opacity: (o: number) => unknown;
+  z: (v: number) => unknown;
+  rgb?: (r: number, g: number, b: number) => TColor;
+  vec2: (x: number, y: number) => TVec;
+}
 
 /**
- * Sistema de Cardumes Residentes de Golfinhos-Rotadores em Loop Contínuo (Fase 9.3)
- * Cardumes distribuídos pela Travessia Oceânica:
- *   - Cardume 1 (Entrada da Travessia & Recifes): 5.400m a 6.500m (Loop de 1.100m)
- *   - Cardume 2 (Alto Mar / Bacia Central): 7.600m a 8.800m (Loop de 1.200m)
- *   - Cardume 3 (Fossas Pelágicas / Pré-Cânion): 10.000m a 11.200m (Loop de 1.200m)
- * 
- * Cada cardume já está no mapa e executa um circuito pré-programado permanente:
- * navega até o ponto de retorno, salta fora d'água no meio da rota, realiza mergulho de U-turn 180°
- * e volta para a origem, repetindo o loop indefinidamente sem sumir do cenário.
+ * Sistema de Cardumes Residentes de Golfinhos-Rotadores (*Stenella longirostris*) e Vácuo Hidrodinâmico (Drafting).
+ *
+ * Reproduz o comportamento biológico cooperativo dos cetáceos pelágicos (Fases 9.3 e 15):
+ * 1. Distribui três pods familiares permanentes ao longo da Travessia Pelágica (5.400m a 11.200m).
+ * 2. Cada cardume navega em patrulha cíclica, executando saltos em arco fora d'água e mergulhos em curva (U-turn).
+ * 3. Dinâmica de Vácuo Hidrodinâmico (*Drafting*): ao nadar emparelhado com o cardume (raio < 120px),
+ *    a esteira de vórtices gerada pelos golfinhos concede bônus de velocidade (+18%) e reduz o esforço metabólico da jubarte.
+ *
+ * @param k - Instância do contexto agnóstico do motor.
+ * @param playerController - Controlador físico da baleia do jogador.
  */
-export function setupDolphinDraftingSystem(k: KaboomCtx, playerController: PlayerController) {
+export function setupDolphinDraftingSystem<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = DolphinVector2D,
+>(k: DolphinEngineContext<TDestroyable, TColor, TVec>, playerController: PlayerController) {
   let isSystemActive = true;
-  const allDolphinBodies: any[] = [];
+  const allDolphinBodies: DolphinGameObject[] = [];
 
   const POD_ROUTES = [
     {
@@ -53,64 +98,73 @@ export function setupDolphinDraftingSystem(k: KaboomCtx, playerController: Playe
   const podDraftingStatus = [false, false, false];
 
   POD_ROUTES.forEach((route, podIndex) => {
-    const dolphins: any[] = [];
+    const dolphins: Array<{
+      obj: DolphinGameObject;
+      tail: DolphinGameObject;
+      offset: { x: number; y: number };
+      index: number;
+    }> = [];
     const offsets = [
       { x: 0, y: 0 },
-      { x: -55, y: -20 },
-      { x: -65, y: 22 },
-      { x: -115, y: 4 },
+      { x: -36, y: -14 },
+      { x: -44, y: 15 },
+      { x: -76, y: 3 },
     ];
 
     offsets.forEach((off, i) => {
-      // Corpo fusiforme do golfinho
+      // Corpo fusiforme do golfinho (proporção biológica 28x9px em relação à jubarte de 108px)
       const dolphin = k.add([
-        k.rect(46, 15, { radius: 6 }),
+        k.rect(28, 9, { radius: 4 }),
         k.pos(route.initialX + off.x, GAME_CONFIG.SEA_LEVEL + route.depth + off.y),
         k.color(68, 108, 148),
         k.anchor("center"),
         k.scale(k.vec2(route.initialDir, 1)),
         k.z(11),
         "dolphin",
-      ]);
+      ]) as DolphinGameObject;
 
       allDolphinBodies.push(dolphin);
 
       // Ventre claro
       dolphin.add([
-        k.rect(34, 5, { radius: 2 }),
-        k.pos(-2, 4),
+        k.rect(20, 3.2, { radius: 1.5 }),
+        k.pos(-1, 2.5),
         k.color(225, 238, 248),
         k.anchor("center"),
       ]);
 
       // Bico / Rostro
       dolphin.add([
-        k.rect(9, 4, { radius: 2 }),
-        k.pos(25, 1),
+        k.rect(5.5, 2.5, { radius: 1 }),
+        k.pos(15.5, 0.8),
         k.color(68, 108, 148),
         k.anchor("center"),
       ]);
 
-      // Nadadeira dorsal curvada
+      // Nadadeira dorsal curvada falcada
       dolphin.add([
-        k.polygon([k.vec2(0, 0), k.vec2(-8, -10), k.vec2(-14, 0)]),
-        k.pos(2, -7),
+        k.polygon([k.vec2(0, 0), k.vec2(-5, -6), k.vec2(-9, 0)]),
+        k.pos(1, -4.5),
         k.color(52, 88, 124),
       ]);
 
       // Nadadeira peitoral
       dolphin.add([
-        k.polygon([k.vec2(0, 0), k.vec2(-6, 8), k.vec2(-10, 2)]),
-        k.pos(8, 5),
+        k.polygon([k.vec2(0, 0), k.vec2(-4, 5), k.vec2(-7, 1.5)]),
+        k.pos(5, 3),
         k.color(52, 88, 124),
       ]);
 
       // Cauda / Flukes
       const tail = dolphin.add([
-        k.polygon([k.vec2(0, 0), k.vec2(-7, -7), k.vec2(-7, 7)]),
-        k.pos(-23, 0),
+        k.polygon([k.vec2(0, 0), k.vec2(-5, -5), k.vec2(-5, 5)]),
+        k.pos(-14, 0),
         k.color(52, 88, 124),
-      ]);
+      ]) as DolphinGameObject;
+
+      allDolphinBodies.push(dolphin);
+      const cullingManager = getSpatialCullingManager();
+      cullingManager?.registerEntity(dolphin as unknown as CullableTargetObject, () => podX);
 
       dolphins.push({ obj: dolphin, tail, offset: off, index: i });
     });
@@ -137,6 +191,25 @@ export function setupDolphinDraftingSystem(k: KaboomCtx, playerController: Playe
 
       const dt = k.dt();
       const player = playerController.gameObj;
+      const playerX = player ? player.pos.x : 0;
+      const isPodVisible = Math.abs(podX - playerX) < 1400;
+
+      if (!isPodVisible) {
+        if (turnState === "cruise") {
+          podX += dir * route.baseSpeed * dt;
+          if (dir === 1 && podX >= route.maxX) {
+            podX = route.maxX;
+            dir = -1;
+          } else if (dir === -1 && podX <= route.minX) {
+            podX = route.minX;
+            dir = 1;
+          }
+        }
+        dolphins.forEach((d) => {
+          if (!d.obj.hidden) d.obj.hidden = true;
+        });
+        return;
+      }
 
       // 1. Simulação do Loop Pré-Programado
       if (turnState === "cruise") {
@@ -193,21 +266,19 @@ export function setupDolphinDraftingSystem(k: KaboomCtx, playerController: Playe
       // 2. Interpolação Matemática da Formação e Perspectiva
       const p = turnState === "turn" ? Math.min(1.0, turnTimer / turnDuration) : 0;
       const turnYOffset = turnState === "turn" ? Math.sin(p * Math.PI) * 45 : 0;
-      
+
       // Fator de formação contínuo: interpola de turnFromDir a targetDir via cosseno
-      const formationFactor = turnState === "turn" 
-        ? turnFromDir * Math.cos(p * Math.PI) 
-        : dir;
+      const formationFactor = turnState === "turn" ? turnFromDir * Math.cos(p * Math.PI) : dir;
 
       // Escala horizontal em perspectiva 3D
       const currentFacing = turnState === "turn" ? (p < 0.5 ? turnFromDir : targetDir) : dir;
-      const scaleSquash = turnState === "turn" ? Math.max(0.18, Math.abs(Math.cos(p * Math.PI))) : 1.0;
+      const scaleSquash =
+        turnState === "turn" ? Math.max(0.18, Math.abs(Math.cos(p * Math.PI))) : 1.0;
       const effectiveScaleX = currentFacing * scaleSquash;
 
       // Inclinação suave do corpo na curva
-      const turnPitchAngle = turnState === "turn" 
-        ? currentFacing * Math.sin(p * Math.PI * 2) * 16 
-        : 0;
+      const turnPitchAngle =
+        turnState === "turn" ? currentFacing * Math.sin(p * Math.PI * 2) * 16 : 0;
 
       let leapYOffset = 0;
       let leapPitch = 0;
@@ -223,14 +294,17 @@ export function setupDolphinDraftingSystem(k: KaboomCtx, playerController: Playe
           // Respingo na água visível se o jogador estiver por perto
           if (player && Math.abs(podX - player.pos.x) < 800) {
             if (leapProgress < 0.12 || leapProgress > 0.88) {
-              if (Math.random() < 0.3) {
-                const splashPos = k.vec2(podX + (Math.random() - 0.5) * 40, GAME_CONFIG.SEA_LEVEL + 3);
+              if (getRandomFloat(0, 1) < 0.3) {
+                const splashPos = k.vec2(podX + getRandomFloat(-20, 20), GAME_CONFIG.SEA_LEVEL + 3);
                 const pool = getParticlePool();
                 if (pool) {
                   pool.spawnCircle({
                     pos: splashPos,
                     radius: 1.8,
-                    color: k.rgb(210, 240, 255),
+                    color:
+                      typeof k.rgb === "function"
+                        ? k.rgb(210, 240, 255)
+                        : { r: 210, g: 240, b: 255 },
                     opacity: 0.85,
                     z: 14,
                     vel: k.vec2(0, -25),
@@ -240,15 +314,20 @@ export function setupDolphinDraftingSystem(k: KaboomCtx, playerController: Playe
                 } else {
                   const splash = k.add([
                     k.circle(1.8),
-                    k.pos(splashPos),
+                    k.pos(splashPos.x, splashPos.y),
                     k.color(210, 240, 255),
                     k.opacity(0.85),
                     k.z(14),
-                  ]);
-                  splash.onUpdate(() => {
-                    splash.pos.y -= dt * 25;
-                    splash.opacity -= dt * 3.5;
-                    if (splash.opacity <= 0) k.destroy(splash);
+                  ]) as DolphinGameObject;
+                  splash.onUpdate = (cb: () => void) => {
+                    cb();
+                  };
+                  k.onUpdate(() => {
+                    if (splash.opacity !== undefined) {
+                      splash.pos.y -= dt * 25;
+                      splash.opacity -= dt * 3.5;
+                      if (splash.opacity <= 0) k.destroy(splash as unknown as TDestroyable);
+                    }
                   });
                 }
               }
@@ -265,11 +344,14 @@ export function setupDolphinDraftingSystem(k: KaboomCtx, playerController: Playe
 
       dolphins.forEach((d, i) => {
         const swimWave = Math.sin(time * 6 + i * 1.2) * 7;
-        const targetY = GAME_CONFIG.SEA_LEVEL + route.depth + d.offset.y + swimWave + leapYOffset + turnYOffset;
+        const targetY =
+          GAME_CONFIG.SEA_LEVEL + route.depth + d.offset.y + swimWave + leapYOffset + turnYOffset;
 
         d.obj.pos.x = podX + d.offset.x * formationFactor;
         d.obj.pos.y = targetY;
-        d.obj.scale.x = effectiveScaleX;
+        if (typeof d.obj.scale === "object" && d.obj.scale !== null && "x" in d.obj.scale) {
+          (d.obj.scale as { x: number; y: number }).x = effectiveScaleX;
+        }
         d.tail.angle = Math.sin(time * 8 + i * 1.2) * 16;
 
         if (isLeaping) {
@@ -285,11 +367,17 @@ export function setupDolphinDraftingSystem(k: KaboomCtx, playerController: Playe
       if (!player) return;
 
       const leadDolphin = dolphins[0].obj;
-      const distToPod = player.pos.dist(leadDolphin.pos);
+      const dx = player.pos.x - leadDolphin.pos.x;
+      const dy = player.pos.y - leadDolphin.pos.y;
+      const distToPod =
+        typeof player.pos.dist === "function"
+          ? player.pos.dist(leadDolphin.pos)
+          : Math.hypot(dx, dy);
 
-      const isAlignedWithPod = dir === 1 
-        ? (player.pos.x <= leadDolphin.pos.x + 85 && player.pos.x >= leadDolphin.pos.x - 180)
-        : (player.pos.x >= leadDolphin.pos.x - 85 && player.pos.x <= leadDolphin.pos.x + 180);
+      const isAlignedWithPod =
+        dir === 1
+          ? player.pos.x <= leadDolphin.pos.x + 85 && player.pos.x >= leadDolphin.pos.x - 180
+          : player.pos.x >= leadDolphin.pos.x - 85 && player.pos.x <= leadDolphin.pos.x + 180;
 
       const isEligibleForDrafting = distToPod < 165 && isAlignedWithPod && turnState === "cruise";
 
@@ -301,7 +389,7 @@ export function setupDolphinDraftingSystem(k: KaboomCtx, playerController: Playe
         clickSoundTimer += dt;
         if (clickSoundTimer >= 3.2) {
           clickSoundTimer = 0;
-          audioSystem.playDolphinClicks();
+          audioSystem.playDolphinClicks(podX, player.pos.x);
         }
       } else {
         if (!podDraftingStatus[0] && !podDraftingStatus[1] && !podDraftingStatus[2]) {
@@ -345,4 +433,3 @@ export function setupDolphinDraftingSystem(k: KaboomCtx, playerController: Playe
     isActive: () => isSystemActive,
   };
 }
-

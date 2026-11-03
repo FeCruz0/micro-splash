@@ -1,9 +1,42 @@
-import type { KaboomCtx } from "kaboom";
 import { createTrash } from "../entities/trash";
 import { createKrill } from "../entities/krill";
 import { createGhostNet } from "../entities/net";
 import { createBubbleVent } from "../entities/bubbleVent";
 import type { CurrentZone } from "./oceanCurrentsSystem";
+import { getRandomInteger } from "../utils/random";
+import { getSpatialCullingManager, type CullableTargetObject } from "./spatialCullingSystem";
+import { getSpatialGrid } from "./spatialHashGrid";
+
+export interface ProceduralVector2D {
+  x: number;
+  y: number;
+}
+
+export interface ProceduralEngineContext<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = ProceduralVector2D,
+> {
+  height: () => number;
+  vec2: (x: number, y: number) => TVec;
+  add: (components: unknown[]) => unknown;
+  destroy: (obj: TDestroyable) => void;
+  dt: () => number;
+  rect: (w: number, h: number, opt?: { radius?: number }) => unknown;
+  circle: (r: number) => unknown;
+  pos: (x: number | { x: number; y: number }, y?: number) => unknown;
+  color: (r: number | TColor, g?: number, b?: number) => unknown;
+  opacity: (o: number) => unknown;
+  outline: (w: number, col: TColor) => unknown;
+  rotate: (angle: number) => unknown;
+  scale: (s: number | { x: number; y: number }) => unknown;
+  area: (opt?: unknown) => unknown;
+  anchor: (a: "center" | "bot" | "topleft" | "botleft") => unknown;
+  z: (v: number) => unknown;
+  rand: (min: number, max: number) => number;
+  choose: <T>(arr: T[]) => T;
+  rgb: (r: number, g: number, b: number) => TColor;
+}
 
 export interface ProceduralObstacleData {
   trashPositions: Array<{ x: number; y: number }>;
@@ -15,6 +48,13 @@ export interface ProceduralObstacleData {
   powerupPositions: Array<{ x: number; y: number; type: "air_pocket" | "tailwind" }>;
 }
 
+/**
+ * Cria um gerador de números pseudoaleatórios determinístico (Park-Miller LCG).
+ * Garante que a mesma semente gere rigorosamente o mesmo layout em qualquer máquina.
+ *
+ * @param seed - Semente inteira inicial (padrão: 42).
+ * @returns Função que retorna um número pseudoaleatório normalizado no intervalo [0, 1).
+ */
 export function createRNG(seed: number = 42) {
   let s = Math.abs(seed) % 2147483647;
   if (s === 0) s = 1;
@@ -24,6 +64,21 @@ export function createRNG(seed: number = 42) {
   };
 }
 
+/**
+ * Gera proceduralmente o layout completo de obstáculos, cardumes de krill, redes fantasmas,
+ * bolsões de ar hidrotermais e correntezas marinhas para todos os 5 biomas da rota (0m a 30.000m).
+ *
+ * Utiliza faixas verticais e densidades calibradas para o equilíbrio ecológico e arcade:
+ * 1. Antártica: Alta concentração de krill, lixo esparso e fendas de gelo.
+ * 2. Travessia Pelágica: Mar aberto de jejum, correntezas velozes e redes oceânicas.
+ * 3. Costa Urbana: Alta densidade de resíduos plásticos, redes de emalhar e tráfego portuário.
+ * 4. Cânions do Boqueirão: Relevo rochoso com bolsões hidrotermais e jatos de ressurgência.
+ * 5. Santuário de Arraial: Águas límpidas, krill superficial e correntes mornas de acolhimento.
+ *
+ * @param seed - Semente de geração determinística (ex: timestamp ou semente semanal).
+ * @param worldHeight - Altura da viewport em pixels para calibração das camadas de profundidade.
+ * @returns Objeto com as coordenadas de todos os elementos distribuídos no mundo.
+ */
 export function generateProceduralLayout(
   seed: number = Date.now(),
   worldHeight: number = 720
@@ -51,7 +106,7 @@ export function generateProceduralLayout(
   // =========================================================================
   // 1. BIOMA 1: ANTÁRTICA (0m - 5.000m)
   // =========================================================================
-  const antarcticKrillCount = 12 + Math.floor(rand() * 4); // 12 a 15
+  const antarcticKrillCount = 20 + Math.floor(rand() * 5); // 20 a 24 cardumes
   const krillStep = 4600 / antarcticKrillCount;
   for (let i = 0; i < antarcticKrillCount; i++) {
     const x = Math.round(350 + i * krillStep + (rand() - 0.5) * 120);
@@ -63,21 +118,31 @@ export function generateProceduralLayout(
   bubbleVentPositions.push({ x: Math.round(2200 + rand() * 200), y: floorNetY, height: 210 });
   bubbleVentPositions.push({ x: Math.round(4100 + rand() * 200), y: floorNetY, height: 220 });
 
-
   // =========================================================================
   // 2. BIOMA 2: TRAVESSIA PELÁGICA (5.000m - 12.000m)
   // =========================================================================
   const oceanNetCount = 6 + Math.floor(rand() * 2); // 6 a 7 redes
   const oceanNetStep = 6400 / oceanNetCount;
-  const oceanNetLayers = [shallowNetY, floorNetY, midNetY1, midNetY2, shallowNetY, floorNetY, midNetY2];
+  const oceanNetLayers = [
+    shallowNetY,
+    floorNetY,
+    midNetY1,
+    midNetY2,
+    shallowNetY,
+    floorNetY,
+    midNetY2,
+  ];
   for (let i = 0; i < oceanNetCount; i++) {
     const x = Math.round(5500 + i * oceanNetStep + (rand() - 0.5) * 150);
     const y = oceanNetLayers[i % oceanNetLayers.length];
     netPositions.push({ x, y });
   }
 
+  // Cardumes pelágicos suplementares na travessia
   krillPositions.push({ x: 6800 + Math.round(rand() * 200), y: midNetY2 });
+  krillPositions.push({ x: 8100 + Math.round(rand() * 200), y: shallowNetY + 20 });
   krillPositions.push({ x: 9200 + Math.round(rand() * 200), y: midNetY1 });
+  krillPositions.push({ x: 10600 + Math.round(rand() * 200), y: midNetY2 });
 
   // Correntes procedurais na travessia (alternando contrárias e favoráveis)
   currentZones.push({
@@ -117,13 +182,13 @@ export function generateProceduralLayout(
   for (let i = 0; i < urbanTrashCount; i++) {
     const x = Math.round(12200 + i * trashStep + (rand() - 0.5) * 80);
     const zone = i % 3;
-    let y = 0;
+    let y: number;
     if (zone === 0) {
       y = Math.round(minY + usableHeight * 0.05 + rand() * (usableHeight * 0.28));
     } else if (zone === 1) {
       y = Math.round(minY + usableHeight * 0.35 + rand() * (usableHeight * 0.32));
     } else {
-      y = Math.round(minY + usableHeight * 0.70 + rand() * (usableHeight * 0.28));
+      y = Math.round(minY + usableHeight * 0.7 + rand() * (usableHeight * 0.28));
     }
     trashPositions.push({ x, y });
   }
@@ -176,33 +241,38 @@ export function generateProceduralLayout(
     type: "opposing",
   });
 
+  // Cardumes nas correntes ricas de nutrientes dos Cânions
+  krillPositions.push({ x: Math.round(20800 + rand() * 200), y: midNetY2 });
+  krillPositions.push({ x: Math.round(23200 + rand() * 200), y: shallowNetY + 15 });
+
   // =========================================================================
   // 5. BIOMA 5: SANTUÁRIO DE ARRAIAL DO CABO (25.000m - 29.500m)
   // =========================================================================
-  const nurseryNetXs = [25400, 26300, 27100, 27900, 28700, 29300];
-  const nurseryNetLayers = [midNetY1, shallowNetY, floorNetY, midNetY2, shallowNetY, floorNetY];
+  // Redes do Santuário (fora da garganta do cânion do Boqueirão 25.600m - 26.900m)
+  const nurseryNetXs = [25200, 27300, 27900, 28700, 29300];
+  const nurseryNetLayers = [midNetY1, floorNetY, midNetY2, shallowNetY, floorNetY];
   nurseryNetXs.forEach((baseX, idx) => {
-    const x = Math.round(baseX + (rand() - 0.5) * 100);
+    const x = Math.round(baseX + (rand() - 0.5) * 80);
     const y = nurseryNetLayers[idx % nurseryNetLayers.length];
     netPositions.push({ x, y });
   });
 
-  const nurseryTrashCount = 14 + Math.floor(rand() * 3);
+  const nurseryTrashCount = 16 + Math.floor(rand() * 3);
   const nurseryTrashStep = 4100 / nurseryTrashCount;
   for (let i = 0; i < nurseryTrashCount; i++) {
     const x = Math.round(25200 + i * nurseryTrashStep + (rand() - 0.5) * 80);
+    // Não polui o estreito natural do Boqueirão (25.600m a 26.900m)
+    if (x >= 25600 && x <= 26900) {
+      continue;
+    }
     const zone = i % 3;
-    let y = 0;
+    let y: number;
     if (zone === 0) {
       y = Math.round(minY + usableHeight * 0.08 + rand() * (usableHeight * 0.25));
     } else if (zone === 1) {
-      y = Math.round(minY + usableHeight * 0.35 + rand() * (usableHeight * 0.30));
+      y = Math.round(minY + usableHeight * 0.35 + rand() * (usableHeight * 0.3));
     } else {
       y = Math.round(minY + usableHeight * 0.68 + rand() * (usableHeight * 0.28));
-    }
-    // No canal raso do Boqueirão da Ilha do Farol (25.600m a 26.900m), o lixo fica na lâmina d'água superior
-    if (x >= 25600 && x <= 26900) {
-      y = Math.min(y, shallowNetY + 10);
     }
     trashPositions.push({ x, y });
   }
@@ -210,18 +280,22 @@ export function generateProceduralLayout(
   // Cardumes de Krill nutritivo no berçário (no Boqueirão, flutua rente à superfície)
   krillPositions.push({ x: Math.round(26000 + rand() * 200), y: shallowNetY });
   krillPositions.push({ x: Math.round(27700 + rand() * 200), y: midNetY2 });
-  krillPositions.push({ x: Math.round(29100 + rand() * 200), y: Math.round(minY + usableHeight * 0.2) });
+  krillPositions.push({
+    x: Math.round(29100 + rand() * 200),
+    y: Math.round(minY + usableHeight * 0.2),
+  });
 
   // Bolsão de Ar sereno no berçário
   bubbleVentPositions.push({ x: Math.round(27200 + rand() * 200), y: floorNetY, height: 230 });
 
-  // Única correnteza favorável no berçário para a aproximação suave da enseada (na superfície do Boqueirão)
+  // Correnteza Forte do Canal do Estreito do Boqueirão (Arraial do Cabo - 25.800m a 26.900m)
+  // Fluxo puramente horizontal simulando a forte corrente do canal submarino entre Pontal e Ilha do Farol
   currentZones.push({
-    startX: Math.round(26200 + (rand() - 0.5) * 150),
-    endX: Math.round(28200 + (rand() - 0.5) * 150),
-    y: shallowNetY + 10,
-    height: 110,
-    force: 180,
+    startX: 25800,
+    endX: 26900,
+    y: 80,
+    height: 260,
+    force: 140,
     type: "favorable",
   });
 
@@ -245,29 +319,89 @@ export function generateProceduralLayout(
   };
 }
 
-export function spawnProceduralLevel(k: KaboomCtx, seed?: number): ProceduralObstacleData {
-  const actualSeed = seed ?? Math.floor(Math.random() * 1000000);
+/**
+ * Instancia e insere no mundo do jogo todas as entidades físicas calculadas pelo layout procedural.
+ *
+ * Cria os componentes de lixo plástico, cardumes de krill, redes fantasmas e colunas de bolhas hidrotermais.
+ *
+ * @param k - Instância do contexto agnóstico do motor.
+ * @param seed - Semente opcional de inicialização (se omitida, gera aleatória).
+ * @returns Objeto com os metadados das posições geradas.
+ */
+export function spawnProceduralLevel<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = ProceduralVector2D,
+>(k: ProceduralEngineContext<TDestroyable, TColor, TVec>, seed?: number): ProceduralObstacleData {
+  const actualSeed = seed ?? getRandomInteger(0, 999999);
   const layout = generateProceduralLayout(actualSeed, k.height());
+  const cullingManager = getSpatialCullingManager();
+  const spatialGrid = getSpatialGrid();
 
   // Instancia Lixos Plásticos
-  layout.trashPositions.forEach((pos) => {
-    createTrash(k, k.vec2(pos.x, pos.y));
-  });
+  const totalTrash = layout.trashPositions.length;
+  for (let i = 0; i < totalTrash; i++) {
+    const pos = layout.trashPositions[i];
+    const trash = createTrash(k, k.vec2(pos.x, pos.y));
+    cullingManager?.registerEntity(trash, () => pos.x, 30);
+    if (spatialGrid) {
+      spatialGrid.insert(`trash_${i}`, trash, {
+        minX: pos.x - 12,
+        minY: pos.y - 12,
+        maxX: pos.x + 12,
+        maxY: pos.y + 12,
+      });
+    }
+  }
 
   // Instancia Krills
-  layout.krillPositions.forEach((pos) => {
-    createKrill(k, k.vec2(pos.x, pos.y));
-  });
+  const totalKrill = layout.krillPositions.length;
+  for (let i = 0; i < totalKrill; i++) {
+    const pos = layout.krillPositions[i];
+    const krill = createKrill(k, k.vec2(pos.x, pos.y));
+    cullingManager?.registerEntity(krill, () => pos.x, 25);
+    if (spatialGrid) {
+      spatialGrid.insert(`krill_${i}`, krill, {
+        minX: pos.x - 10,
+        minY: pos.y - 10,
+        maxX: pos.x + 10,
+        maxY: pos.y + 10,
+      });
+    }
+  }
 
   // Instancia Redes Fantasmas
-  layout.netPositions.forEach((pos) => {
-    createGhostNet(k, k.vec2(pos.x, pos.y));
-  });
+  const totalNets = layout.netPositions.length;
+  for (let i = 0; i < totalNets; i++) {
+    const pos = layout.netPositions[i];
+    const net = createGhostNet(k, k.vec2(pos.x, pos.y));
+    cullingManager?.registerEntity(net, () => pos.x, 60);
+    if (spatialGrid) {
+      spatialGrid.insert(`net_${i}`, net, {
+        minX: pos.x - 25,
+        minY: pos.y - 45,
+        maxX: pos.x + 25,
+        maxY: pos.y + 45,
+      });
+    }
+  }
 
   // Instancia Colunas de Bolhas Naturais (Bolsões de Ar)
-  layout.bubbleVentPositions.forEach((vent) => {
-    createBubbleVent(k, k.vec2(vent.x, vent.y), vent.height ?? 220);
-  });
+  const totalVents = layout.bubbleVentPositions.length;
+  for (let i = 0; i < totalVents; i++) {
+    const vent = layout.bubbleVentPositions[i];
+    const ventHeight = vent.height ?? 220;
+    const ventObj = createBubbleVent(k, k.vec2(vent.x, vent.y), ventHeight) as CullableTargetObject;
+    cullingManager?.registerEntity(ventObj, () => vent.x, 50);
+    if (spatialGrid) {
+      spatialGrid.insert(`vent_${i}`, ventObj, {
+        minX: vent.x - 20,
+        minY: vent.y - ventHeight,
+        maxX: vent.x + 20,
+        maxY: vent.y,
+      });
+    }
+  }
 
   return layout;
 }

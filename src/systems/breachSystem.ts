@@ -1,24 +1,123 @@
-import kaboom from "kaboom";
 import { GAME_CONFIG } from "../config";
 import { audioSystem } from "./audioSystem";
+import { analytics } from "../services/analytics";
+import { safeShake } from "../utils/camera";
+import { getRandomFloat, getRandomChoice } from "../utils/random";
+import { getParticlePool } from "./particlePool";
 import type { PlayerController } from "../entities/player";
 import type { GameState } from "./state";
 
-export interface BreachSystemConfig {
-  k: ReturnType<typeof kaboom>;
-  playerController: PlayerController;
-  gameState: GameState;
-  onBreachComplete: () => void;
+export interface BreachVector2D {
+  x: number;
+  y: number;
+}
+
+export interface BreachGameObject<TColor = unknown> {
+  pos: BreachVector2D;
+  opacity?: number;
+  width?: number;
+  angle?: number;
+  text?: string;
+  color?: TColor;
+  onUpdate: (cb: () => void) => void;
+}
+
+export interface BreachTweenResult {
+  then: (cb: () => void) => unknown;
+}
+
+export interface BreachSplashEngineContext<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = BreachVector2D,
+> {
+  add: (components: unknown[]) => unknown;
+  destroy: (obj: TDestroyable) => void;
+  dt: () => number;
+  pos: (x: number, y: number) => unknown;
+  color: (r: number | TColor, g?: number, b?: number) => unknown;
+  opacity: (o: number) => unknown;
+  outline: (w: number, col: TColor) => unknown;
+  z: (v: number) => unknown;
+  rect: (w: number, h: number, opt?: { radius?: number }) => unknown;
+  circle: (r: number) => unknown;
+  rotate: (a: number) => unknown;
+  anchor: (a: "center") => unknown;
+  rand: (min: number, max: number) => number;
+  rgb: (r: number, g: number, b: number) => TColor;
+  deg2rad: (deg: number) => number;
+  vec2: (x: number, y: number) => TVec;
+  shake?: (amount: number) => void;
+}
+
+export interface BreachEngineContext<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = BreachVector2D,
+> extends BreachSplashEngineContext<TDestroyable, TColor, TVec> {
+  onUpdate: (cb: () => void) => void;
+  width: () => number;
+  text: (
+    content: string,
+    opt?: {
+      size?: number;
+      font?: string;
+      align?: "left" | "center" | "right";
+      lineSpacing?: number;
+    }
+  ) => unknown;
+  fixed: () => unknown;
+  isKeyPressed: (key: "space" | "enter") => boolean;
+  isMousePressed: () => boolean;
+  isTouchStarted?: () => boolean;
+  wait: (secs: number, cb: () => void) => unknown;
+  tween: (
+    from: number,
+    to: number,
+    duration: number,
+    onUpdate: (val: number) => void
+  ) => BreachTweenResult;
 }
 
 /**
- * Sistema do Salto Majestoso (Breach) no Santuário de Arraial do Cabo (Ilha do Farol).
- * Convida o jogador a executar o salto da vitória com a tecla Espaço entre 26.800m e 27.000m.
+ * Configuração de inicialização para o sistema do Salto Majestoso (Breach).
  */
-export function setupBreachSystem(config: BreachSystemConfig) {
-  const { k, playerController, gameState, onBreachComplete } = config;
+export interface BreachSystemConfig<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = BreachVector2D,
+> {
+  /** Instância do contexto agnóstico do motor */
+  k: BreachEngineContext<TDestroyable, TColor, TVec>;
+  /** Controlador físico da baleia do jogador */
+  playerController: PlayerController;
+  /** Estado reativo do jogo (distância, pontuação, etc.) */
+  gameState: GameState;
+  /** Callback acionado após a conclusão cinematográfica do salto e reentrada na água */
+  onBreachComplete: () => void;
+  /** Se deve exibir banner/prompt de texto na tela (desativado na Migração Difícil) */
+  showPrompt?: boolean;
+}
 
-  let promptBanner: any = null;
+/**
+ * Sistema do Salto Majestoso (Breach) no Santuário de Arraial do Cabo.
+ *
+ * Reproduz o clímax da migração das baleias-jubarte:
+ * 1. Ao se aproximar da Ilha do Farol, exibe um banner de incentivo para o salto triunfal.
+ * 2. Ao pressionar Espaço/toque, aplica um impulso vertical balístico que rompe a superfície marinha.
+ * 3. Simula rotação aérea orgânica e splashdown com partículas de espuma, gotas e ondas.
+ * 4. Transiciona suavemente para a tela de vitória ao término do evento.
+ *
+ * @param config - Objeto de configuração contendo o motor, jogador, estado e callback.
+ */
+export function setupBreachSystem<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = BreachVector2D,
+>(config: BreachSystemConfig<TDestroyable, TColor, TVec>) {
+  const { k, playerController, gameState, onBreachComplete, showPrompt = true } = config;
+
+  let promptBanner: BreachGameObject<TColor> | null = null;
   let isBreachTriggered = false;
   let hasLeftWater = false;
   let isBreachFinished = false;
@@ -34,33 +133,38 @@ export function setupBreachSystem(config: BreachSystemConfig) {
 
     // 1. Exibição do Convite Visual ao se aproximar da Ilha do Farol
     if (playerPos.x >= triggerDistance && !isBreachTriggered) {
-      if (!promptBanner) {
-        promptBanner = k.add([
-          k.text("ÁGUAS CALMAS DE ARRAIAL! 🐋\nPRESSIONE [ESPAÇO] OU TOQUE PARA O SALTO MAJESTOSO!", {
-            size: 15,
-            font: "sans-serif",
-            align: "center",
-            lineSpacing: 6,
-          }),
-          k.pos(k.width() / 2, 60),
-          k.color(255, 220, 100),
-          k.outline(3, k.rgb(10, 30, 60)),
-          k.anchor("center"),
-          k.fixed(),
-          k.z(150),
-          k.opacity(1),
-        ]);
-      }
+      if (showPrompt) {
+        if (!promptBanner) {
+          promptBanner = k.add([
+            k.text(
+              "ÁGUAS CALMAS DE ARRAIAL! 🐋\nPRESSIONE [ESPAÇO] OU TOQUE PARA O SALTO MAJESTOSO!",
+              {
+                size: 16,
+                font: "Outfit",
+                align: "center",
+                lineSpacing: 6,
+              }
+            ),
+            k.pos(k.width() / 2, 60),
+            k.color(255, 220, 100),
+            k.outline(3, k.rgb(10, 30, 60)),
+            k.anchor("center"),
+            k.fixed(),
+            k.z(150),
+            k.opacity(1),
+          ]) as BreachGameObject<TColor>;
+        }
 
-      bannerAnimTime += k.dt() * 4;
-      promptBanner.opacity = 0.7 + Math.sin(bannerAnimTime) * 0.3;
+        bannerAnimTime += k.dt() * 4;
+        promptBanner.opacity = 0.7 + Math.sin(bannerAnimTime) * 0.3;
+      }
 
       // Dispara o salto se o jogador pressionar Espaço, Enter, Toque/Clique OU se cruzar a linha de 27.000m
       const isInputTriggered =
         k.isKeyPressed("space") ||
         k.isKeyPressed("enter") ||
         k.isMousePressed() ||
-        (k.isTouchStarted && k.isTouchStarted());
+        (Boolean(k.isTouchStarted) && Boolean(k.isTouchStarted && k.isTouchStarted()));
 
       if (isInputTriggered || playerPos.x >= GAME_CONFIG.ROUTE_TOTAL_DISTANCE) {
         startBreachSequence();
@@ -76,19 +180,37 @@ export function setupBreachSystem(config: BreachSystemConfig) {
         hasLeftWater = true;
 
         // Partículas douradas e de vapor reluzente na trilha aérea da baleia
-        if (Math.random() < 0.6) {
-          const sparkle = k.add([
-            k.circle(k.rand(2, 4)),
-            k.pos(playerPos.x - k.rand(10, 25), playerPos.y + k.rand(-10, 10)),
-            k.color(255, 235, 140),
-            k.opacity(0.85),
-            k.z(15),
-          ]);
-          sparkle.onUpdate(() => {
-            sparkle.opacity -= k.dt() * 1.8;
-            sparkle.pos.y += k.dt() * 15;
-            if (sparkle.opacity <= 0) k.destroy(sparkle);
-          });
+        if (getRandomFloat(0, 1) < 0.6) {
+          const pool = getParticlePool();
+          const pPos = k.vec2(playerPos.x - k.rand(10, 25), playerPos.y + k.rand(-10, 10));
+          const pRadius = k.rand(2, 4);
+          if (pool) {
+            pool.spawnCircle({
+              pos: pPos,
+              radius: pRadius,
+              color: k.rgb(255, 235, 140),
+              opacity: 0.85,
+              z: 15,
+              vel: k.vec2(0, 15),
+              fadeRate: 1.8,
+              maxLife: 0.55,
+            });
+          } else {
+            const sparkle = k.add([
+              k.circle(pRadius),
+              k.pos(pPos.x, pPos.y),
+              k.color(255, 235, 140),
+              k.opacity(0.85),
+              k.z(15),
+            ]) as BreachGameObject<TColor>;
+            sparkle.onUpdate(() => {
+              if (sparkle.opacity !== undefined) {
+                sparkle.opacity -= k.dt() * 1.8;
+                sparkle.pos.y += k.dt() * 15;
+                if (sparkle.opacity <= 0) k.destroy(sparkle as unknown as TDestroyable);
+              }
+            });
+          }
         }
       }
 
@@ -102,14 +224,14 @@ export function setupBreachSystem(config: BreachSystemConfig) {
 
         // Grande estrondo de água e tremor
         audioSystem.playWaterSplash();
-        k.shake(8);
+        safeShake(k, 8);
 
-        // Explosão de gotas e espuma na superfície
-        createWaterSplash(k, k.vec2(playerPos.x, GAME_CONFIG.SEA_LEVEL), 40);
+        // Explosão majestosa de reentrada (Splashdown) em arco simétrico (Fase 31.1)
+        createBreachReentrySplash(k, k.vec2(playerPos.x, GAME_CONFIG.SEA_LEVEL), 24);
 
         // Remove banner se ainda existir
         if (promptBanner) {
-          k.destroy(promptBanner);
+          k.destroy(promptBanner as unknown as TDestroyable);
           promptBanner = null;
         }
 
@@ -127,6 +249,7 @@ export function setupBreachSystem(config: BreachSystemConfig) {
 
     // Registra o salto no estado para conceder o bônus de 500 pts e a Sabedoria Ancestral
     gameState.triggerBreach();
+    analytics.trackBreachTriggered({ distance: gameState.getDistance(), speed: 280 });
 
     // Ativa estado de salto no jogador
     playerController.startBreach();
@@ -135,7 +258,9 @@ export function setupBreachSystem(config: BreachSystemConfig) {
     audioSystem.playBreachLaunch();
 
     // Impulso acrobático para cima e para a frente
-    playerController.setSpeed(k.vec2(280, -480));
+    playerController.setSpeed(
+      k.vec2(280, -480) as unknown as Parameters<PlayerController["setSpeed"]>[0]
+    );
 
     // Primeiro splash ao romper a água
     const playerPos = playerController.gameObj.pos;
@@ -148,7 +273,7 @@ export function setupBreachSystem(config: BreachSystemConfig) {
         if (promptBanner) promptBanner.opacity = val;
       }).then(() => {
         if (promptBanner) {
-          k.destroy(promptBanner);
+          k.destroy(promptBanner as unknown as TDestroyable);
           promptBanner = null;
         }
       });
@@ -157,24 +282,37 @@ export function setupBreachSystem(config: BreachSystemConfig) {
 }
 
 /**
- * Cria partículas de espuma, borrifos e ondulações 16-bits no impacto do mergulho ou rompimento.
+ * Cria partículas de espuma, borrifos balísticos e ondulações 16-bits no impacto do mergulho ou rompimento.
+ *
+ * Gera três camadas de efeitos visuais:
+ * 1. Gotas de spray balístico com gravidade simulada e fade-out.
+ * 2. Ondas de espuma bidirecionais expandindo na superfície d'água.
+ * 3. Micro-bolhas submersas que afundam pelo impacto e retornam à superfície.
+ *
+ * @param k - Instância do contexto agnóstico do motor.
+ * @param pos - Posição do ponto de contato na linha d'água (x, y).
+ * @param particleCount - Quantidade de gotículas balísticas geradas (padrão: 26).
  */
-export function createWaterSplash(k: ReturnType<typeof kaboom>, pos: any, particleCount: number = 26) {
+export function createWaterSplash<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = BreachVector2D,
+>(
+  k: BreachSplashEngineContext<TDestroyable, TColor, TVec>,
+  pos: TVec | { x: number; y: number },
+  particleCount: number = 26
+) {
   // 1. Gotículas de spray em pixel art 16-bits (quadrados angulares com paleta aquática retrô)
   for (let i = 0; i < particleCount; i++) {
     const angle = k.rand(-155, -25);
-    const rad = k.deg2rad(angle);
+    const angleInRadians = k.deg2rad(angle);
     const speed = k.rand(140, 360);
-    const velX = Math.cos(rad) * speed;
-    const velY = Math.sin(rad) * speed;
+    const velX = Math.cos(angleInRadians) * speed;
+    const velY = Math.sin(angleInRadians) * speed;
     const size = k.rand(3, 6);
 
-    const colors = [
-      k.rgb(255, 255, 255),
-      k.rgb(190, 240, 255),
-      k.rgb(120, 215, 255),
-    ];
-    const dropColor = colors[Math.floor(Math.random() * colors.length)];
+    const colors = [k.rgb(255, 255, 255), k.rgb(190, 240, 255), k.rgb(120, 215, 255)];
+    const dropColor = getRandomChoice(colors) ?? colors[0];
 
     const drop = k.add([
       k.rect(size, size),
@@ -183,17 +321,18 @@ export function createWaterSplash(k: ReturnType<typeof kaboom>, pos: any, partic
       k.outline(1, k.rgb(60, 140, 210)),
       k.opacity(0.95),
       k.z(20),
-    ]);
+    ]) as BreachGameObject<TColor>;
 
     let dropVelY = velY;
     drop.onUpdate(() => {
       drop.pos.x += velX * k.dt();
       drop.pos.y += dropVelY * k.dt();
       dropVelY += 560 * k.dt(); // Gravidade sobre a gota
-      drop.opacity -= k.dt() * 1.5;
-
-      if (drop.opacity <= 0 || drop.pos.y > pos.y + 40) {
-        k.destroy(drop);
+      if (drop.opacity !== undefined) {
+        drop.opacity -= k.dt() * 1.5;
+        if (drop.opacity <= 0 || drop.pos.y > pos.y + 40) {
+          k.destroy(drop as unknown as TDestroyable);
+        }
       }
     });
   }
@@ -207,33 +346,213 @@ export function createWaterSplash(k: ReturnType<typeof kaboom>, pos: any, partic
       k.outline(1, k.rgb(100, 180, 240)),
       k.opacity(0.9),
       k.z(19),
-    ]);
+    ]) as BreachGameObject<TColor>;
 
     let foamWidth = 12;
     foam.onUpdate(() => {
       foam.pos.x += dir * 140 * k.dt();
       foamWidth += 45 * k.dt();
       foam.width = foamWidth;
-      foam.opacity -= k.dt() * 2.2;
-      if (foam.opacity <= 0) k.destroy(foam);
+      if (foam.opacity !== undefined) {
+        foam.opacity -= k.dt() * 2.2;
+        if (foam.opacity <= 0) k.destroy(foam as unknown as TDestroyable);
+      }
     });
   });
 
   // 3. Coluna de micro-bolhas submersas afundando e emergindo
+  const pool = getParticlePool();
   for (let b = 0; b < 8; b++) {
-    const bubble = k.add([
-      k.rect(2, 2),
-      k.pos(pos.x + k.rand(-16, 16), pos.y + k.rand(4, 22)),
-      k.color(210, 245, 255),
-      k.opacity(0.85),
-      k.z(18),
-    ]);
+    const bPos = k.vec2(pos.x + k.rand(-16, 16), pos.y + k.rand(4, 22));
+    const bVelY = k.rand(20, 60) - 25;
+    if (pool) {
+      pool.spawnRect({
+        pos: bPos,
+        width: 2,
+        height: 2,
+        color: k.rgb(210, 245, 255),
+        opacity: 0.85,
+        z: 18,
+        vel: k.vec2(0, bVelY),
+        fadeRate: 1.8,
+        maxLife: 0.5,
+      });
+    } else {
+      const bubble = k.add([
+        k.rect(2, 2),
+        k.pos(bPos.x, bPos.y),
+        k.color(210, 245, 255),
+        k.opacity(0.85),
+        k.z(18),
+      ]) as BreachGameObject<TColor>;
 
-    const bVelY = k.rand(20, 60);
-    bubble.onUpdate(() => {
-      bubble.pos.y += bVelY * k.dt() - 25 * k.dt(); // Afunda pelo choque e sobe de volta
-      bubble.opacity -= k.dt() * 1.8;
-      if (bubble.opacity <= 0) k.destroy(bubble);
+      bubble.onUpdate(() => {
+        bubble.pos.y += bVelY * k.dt();
+        if (bubble.opacity !== undefined) {
+          bubble.opacity -= k.dt() * 1.8;
+          if (bubble.opacity <= 0) k.destroy(bubble as unknown as TDestroyable);
+        }
+      });
+    }
+  }
+}
+
+export interface BreachSplashParticleData {
+  dir: number; // -1 (esquerda) ou 1 (direita)
+  velX: number;
+  velY: number;
+  width: number;
+  height: number;
+  gravityY: number;
+}
+
+/**
+ * Função pura que calcula as propriedades cinemáticas simétricas em arco
+ * para o splash de reentrada após o breach (Fase 31.1).
+ */
+export function calculateBreachReentryParticleData(
+  index: number,
+  total: number = 24
+): BreachSplashParticleData {
+  const isLeft = index % 2 === 0;
+  const dir = isLeft ? -1 : 1;
+  const pairIndex = Math.floor(index / 2);
+  const pairsTotal = Math.max(1, Math.ceil(total / 2));
+  const spreadProgress = (pairIndex + 0.5) / pairsTotal; // 0.1 a 0.9
+
+  // Arco simétrico balístico: ângulos de 35° a 75° em relação à horizontal
+  const angleDeg = 35 + spreadProgress * 40;
+  const angleInRadians = (angleDeg * Math.PI) / 180;
+  const speed = 190 + (pairIndex % 3) * 60; // 190 a 310 px/s
+
+  const velX = dir * Math.cos(angleInRadians) * speed;
+  const velY = -Math.sin(angleInRadians) * speed; // impulso para cima
+
+  return {
+    dir,
+    velX,
+    velY,
+    width: 3,
+    height: 8,
+    gravityY: 620,
+  };
+}
+
+/**
+ * Splash de Reentrada da Baleia após o Breach (Fase 31.1):
+ * Dispara 16–24 partículas de respingo em arco simétrico (rect 3×8px brancos com gravidade),
+ * metade para a esquerda e metade para a direita, acompanhadas de cristas de choque na superfície.
+ */
+export function createBreachReentrySplash<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = BreachVector2D,
+>(
+  k: BreachSplashEngineContext<TDestroyable, TColor, TVec>,
+  pos: TVec | { x: number; y: number },
+  particleCount: number = 24
+) {
+  // 1. Partículas retangulares brancas de respingo em arco balístico simétrico (Fase 31.1)
+  for (let i = 0; i < particleCount; i++) {
+    const data = calculateBreachReentryParticleData(i, particleCount);
+    const curVelX = data.velX;
+    let curVelY = data.velY;
+
+    const splashShard = k.add([
+      k.rect(data.width, data.height, { radius: 1 }),
+      k.pos(pos.x + k.rand(-12, 12), pos.y - 2),
+      k.color(255, 255, 255),
+      k.outline(1, k.rgb(180, 240, 255)),
+      k.opacity(0.95),
+      k.rotate(Math.atan2(curVelY, curVelX) * (180 / Math.PI) + 90),
+      k.anchor("center"),
+      k.z(21),
+      "breach_reentry_splash",
+    ]) as BreachGameObject<TColor>;
+
+    splashShard.onUpdate(() => {
+      const dt = k.dt();
+      curVelY += data.gravityY * dt;
+      splashShard.pos.x += curVelX * dt;
+      splashShard.pos.y += curVelY * dt;
+      splashShard.angle = Math.atan2(curVelY, curVelX) * (180 / Math.PI) + 90;
+      if (splashShard.opacity !== undefined) {
+        splashShard.opacity -= dt * 1.4;
+        if (splashShard.opacity <= 0 || splashShard.pos.y > pos.y + 35) {
+          k.destroy(splashShard as unknown as TDestroyable);
+        }
+      }
     });
+  }
+
+  // 2. Ondas de crista de choque de alta velocidade expandindo para ambos os lados
+  [-1, 1].forEach((dir) => {
+    const shockWave = k.add([
+      k.rect(16, 4.5, { radius: 2 }),
+      k.pos(pos.x + dir * 10, pos.y - 1),
+      k.color(240, 252, 255),
+      k.outline(1.5, k.rgb(120, 210, 255)),
+      k.opacity(0.92),
+      k.z(20),
+    ]) as BreachGameObject<TColor>;
+
+    let waveWidth = 16;
+    shockWave.onUpdate(() => {
+      const dt = k.dt();
+      shockWave.pos.x += dir * 210 * dt;
+      waveWidth += 65 * dt;
+      shockWave.width = waveWidth;
+      if (shockWave.opacity !== undefined) {
+        shockWave.opacity -= dt * 2.0;
+        if (shockWave.opacity <= 0) k.destroy(shockWave as unknown as TDestroyable);
+      }
+    });
+  });
+
+  // 3. Spray de micro-gotas circulares no epicentro do impacto
+  const reentryPool = getParticlePool();
+  for (let g = 0; g < 12; g++) {
+    const dPos = k.vec2(pos.x + k.rand(-25, 25), pos.y - k.rand(2, 10));
+    const dVelX = k.rand(-120, 120);
+    const dVelY = k.rand(-180, -90);
+    const dRadius = k.rand(2, 4.5);
+
+    if (reentryPool) {
+      reentryPool.spawnCircle({
+        pos: dPos,
+        radius: dRadius,
+        color: k.rgb(220, 245, 255),
+        opacity: 0.85,
+        z: 20,
+        vel: k.vec2(dVelX, dVelY),
+        gravityY: 520,
+        fadeRate: 1.6,
+        maxLife: 0.65,
+        boundaryY: pos.y + 25,
+        boundaryYMode: "greater",
+      });
+    } else {
+      const drop = k.add([
+        k.circle(dRadius),
+        k.pos(dPos.x, dPos.y),
+        k.color(220, 245, 255),
+        k.opacity(0.85),
+        k.z(20),
+      ]) as BreachGameObject<TColor>;
+      let curDVelY = dVelY;
+
+      drop.onUpdate(() => {
+        const dt = k.dt();
+        curDVelY += 520 * dt;
+        drop.pos.x += dVelX * dt;
+        drop.pos.y += curDVelY * dt;
+        if (drop.opacity !== undefined) {
+          drop.opacity -= dt * 1.6;
+          if (drop.opacity <= 0 || drop.pos.y > pos.y + 25) {
+            k.destroy(drop as unknown as TDestroyable);
+          }
+        }
+      });
+    }
   }
 }

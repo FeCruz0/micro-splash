@@ -1,19 +1,40 @@
-import type { KaboomCtx } from "kaboom";
 import { audioSystem } from "../systems/audioSystem";
+import { accessibilitySystem } from "../systems/accessibilitySystem";
+import { createFocusGroup, type FocusableItem, type LegacyKeyboardNavContext } from "./keyboardNav";
+import { i18n } from "../i18n/i18n";
 import {
-  RESOLUTION_PRESETS,
   type ResolutionKey,
   getSavedResolution,
   getSavedDisplayMode,
-  setSavedDisplayMode,
   type DisplayMode,
+  getSavedLetterboxColor,
+  type LetterboxColor,
 } from "../config";
+import {
+  animateModalEntrance,
+  createResolutionTransitionOverlay,
+  type AnimationEngineContext,
+} from "./animationUtils";
+import type { LegacyOptionsEngineContext, OptionsScreenContext } from "./options/optionsTypes";
+import { renderAudioOptions } from "./options/audioOptionsTab";
+import { renderAccessibilityOptions } from "./options/accessibilityOptionsTab";
+import { renderControlsOptions, renderControlsGuide } from "./options/controlsOptionsTab";
+import { renderGraphicsOptions, renderKioskActionButtons } from "./options/kioskOptionsTab";
+import { renderOptionsHeader, renderColumnTitles } from "./options/optionsNavigation";
 
-export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
+export interface ShowOptionsEngineContext {
+  width(): number;
+  height(): number;
+  add(components?: unknown): unknown;
+}
+
+export function showOptionsScreen(k: ShowOptionsEngineContext, onBack: () => void) {
+  const engine = k as unknown as LegacyOptionsEngineContext;
   audioSystem.playUiClick();
 
-  const elements: any[] = [];
+  const elements: Array<{ destroy?: () => void } | object> = [];
   let isClosed = false;
+  let isModalOpen = false;
 
   const initialRes = getSavedResolution();
   let currentResKey: ResolutionKey = initialRes.key;
@@ -21,498 +42,193 @@ export function showOptionsScreen(k: KaboomCtx, onBack: () => void) {
   const initialDisplayMode = getSavedDisplayMode();
   let currentDisplayMode: DisplayMode = initialDisplayMode;
 
+  const initialLetterboxColor = getSavedLetterboxColor();
+  let currentLetterboxColor: LetterboxColor = initialLetterboxColor;
+
+  const initialFontScale = accessibilitySystem.getFontScaleKey();
+  const initialLocale = i18n.getLocale();
+
   // Fundo escuro semitransparente (absorve cliques e bloqueia o menu)
-  const backdrop = k.add([
-    k.rect(k.width(), k.height()),
-    k.pos(0, 0),
-    k.color(6, 18, 38),
-    k.opacity(0.94),
-    k.area(),
-    k.fixed(),
-    k.z(300),
+  const backdrop = engine.add([
+    engine.rect(engine.width(), engine.height()),
+    engine.pos(0, 0),
+    engine.color(6, 16, 36),
+    engine.opacity(0.95),
+    engine.area(),
+    engine.fixed(),
+    engine.z(300),
   ]);
   elements.push(backdrop);
 
-  // Card de Opções
-  const cardW = 580;
-  const cardH = 510;
-  const card = k.add([
-    k.rect(cardW, cardH, { radius: 12 }),
-    k.pos(k.width() / 2, k.height() / 2),
-    k.color(12, 35, 75),
-    k.outline(2, k.rgb(80, 200, 255)),
-    k.anchor("center"),
-    k.area(),
-    k.fixed(),
-    k.z(301),
-  ]);
-  elements.push(card);
+  // Card do Modal de Opções com geometria ampla e adaptativa
+  const cardW = Math.min(1000, engine.width() - 24);
+  const cardH = Math.min(650, engine.height() - 20);
+  const cX = engine.width() / 2;
+  const cY = engine.height() / 2;
+  const cardTop = cY - cardH / 2;
 
-  // Título
-  elements.push(k.add([
-    k.text("OPÇÕES ⚙️", { size: 20, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 - 215),
-    k.color(255, 230, 100),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(302),
-  ]));
+  const focusItems: FocusableItem[] = [];
+  let focusGroup: { destroy: () => void } | null = null;
 
   const close = () => {
-    if (isClosed) return;
+    if (isClosed || isModalOpen) return;
     isClosed = true;
     audioSystem.playUiClick();
-    escListener.cancel();
+    if (focusGroup) {
+      focusGroup.destroy();
+      focusGroup = null;
+    }
+    if (typeof window !== "undefined") {
+      window.removeEventListener("keydown", keyHandler);
+    }
     elements.forEach((el) => {
-      try { k.destroy(el); } catch {}
+      try {
+        engine.destroy(el);
+      } catch {}
     });
-    if ((currentResKey !== initialRes.key || currentDisplayMode !== initialDisplayMode) && typeof window !== "undefined") {
-      window.location.reload();
+    if (
+      (currentResKey !== initialRes.key ||
+        currentDisplayMode !== initialDisplayMode ||
+        currentLetterboxColor !== initialLetterboxColor ||
+        accessibilitySystem.getFontScaleKey() !== initialFontScale ||
+        i18n.getLocale() !== initialLocale) &&
+      typeof window !== "undefined"
+    ) {
+      createResolutionTransitionOverlay(engine as unknown as AnimationEngineContext, () => {
+        window.location.reload();
+      });
       return;
     }
     onBack();
   };
 
-  const escListener = k.onKeyPress("escape", close);
+  const { card, closeBtnFocusItem } = renderOptionsHeader(
+    engine,
+    cX,
+    cardTop,
+    cardW,
+    cardH,
+    elements,
+    close,
+    () => !isClosed && !isModalOpen
+  );
+  animateModalEntrance(engine as unknown as AnimationEngineContext, card);
+  focusItems.push(closeBtnFocusItem);
 
-  // Botão fechar [X]
-  const btnX = k.add([
-    k.rect(32, 32, { radius: 6 }),
-    k.pos(k.width() / 2 + cardW / 2 - 26, k.height() / 2 - cardH / 2 + 26),
-    k.color(20, 45, 80),
-    k.outline(1, k.rgb(100, 200, 255)),
-    k.scale(1),
-    k.anchor("center"),
-    k.area(),
-    k.fixed(),
-    k.z(305),
-  ]);
-  elements.push(btnX);
-
-  elements.push(k.add([
-    k.text("✕", { size: 16, font: "sans-serif" }),
-    k.pos(k.width() / 2 + cardW / 2 - 26, k.height() / 2 - cardH / 2 + 26),
-    k.color(255, 255, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(306),
-  ]));
-
-  btnX.onHoverUpdate(() => {
-    btnX.color = k.rgb(180, 50, 50);
-  });
-  btnX.onHoverEnd(() => {
-    btnX.color = k.rgb(20, 45, 80);
-  });
-  btnX.onClick(close);
-
-  // --- CONTROLE DE VOLUME ---
-  elements.push(k.add([
-    k.text("Volume Geral:", { size: 15, font: "sans-serif" }),
-    k.pos(k.width() / 2 - 160, k.height() / 2 - 165),
-    k.color(200, 230, 255),
-    k.anchor("left"),
-    k.fixed(),
-    k.z(302),
-  ]));
-
-  const volumeText = k.add([
-    k.text(`${Math.round(audioSystem.getVolume() * 100)}%`, { size: 16, font: "sans-serif" }),
-    k.pos(k.width() / 2 + 60, k.height() / 2 - 165),
-    k.color(100, 240, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(302),
-  ]);
-  elements.push(volumeText);
-
-  // Botão Diminuir Volume [-]
-  const btnVolDown = k.add([
-    k.rect(36, 32, { radius: 6 }),
-    k.pos(k.width() / 2 + 10, k.height() / 2 - 165),
-    k.color(20, 60, 110),
-    k.outline(1, k.rgb(100, 200, 255)),
-    k.scale(1),
-    k.anchor("center"),
-    k.area(),
-    k.fixed(),
-    k.z(302),
-  ]);
-  elements.push(btnVolDown);
-
-  elements.push(k.add([
-    k.text("-", { size: 20 }),
-    k.pos(k.width() / 2 + 10, k.height() / 2 - 165),
-    k.color(255, 255, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(303),
-  ]));
-
-  btnVolDown.onHoverUpdate(() => {
-    btnVolDown.color = k.rgb(35, 95, 160);
-  });
-  btnVolDown.onHoverEnd(() => {
-    btnVolDown.color = k.rgb(20, 60, 110);
-  });
-
-  btnVolDown.onClick(() => {
-    const newVol = Math.max(0, audioSystem.getVolume() - 0.1);
-    audioSystem.setVolume(newVol);
-    audioSystem.playUiClick();
-    volumeText.text = `${Math.round(newVol * 100)}%`;
-  });
-
-  // Botão Aumentar Volume [+]
-  const btnVolUp = k.add([
-    k.rect(36, 32, { radius: 6 }),
-    k.pos(k.width() / 2 + 110, k.height() / 2 - 165),
-    k.color(20, 60, 110),
-    k.outline(1, k.rgb(100, 200, 255)),
-    k.scale(1),
-    k.anchor("center"),
-    k.area(),
-    k.fixed(),
-    k.z(302),
-  ]);
-  elements.push(btnVolUp);
-
-  elements.push(k.add([
-    k.text("+", { size: 18 }),
-    k.pos(k.width() / 2 + 110, k.height() / 2 - 165),
-    k.color(255, 255, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(303),
-  ]));
-
-  btnVolUp.onHoverUpdate(() => {
-    btnVolUp.color = k.rgb(35, 95, 160);
-  });
-  btnVolUp.onHoverEnd(() => {
-    btnVolUp.color = k.rgb(20, 60, 110);
-  });
-
-  btnVolUp.onClick(() => {
-    const newVol = Math.min(1, audioSystem.getVolume() + 0.1);
-    audioSystem.setVolume(newVol);
-    audioSystem.playUiClick();
-    volumeText.text = `${Math.round(newVol * 100)}%`;
-  });
-
-  // --- TOGGLE DE MÚSICA AMBIENTE ---
-  const btnMusic = k.add([
-    k.rect(340, 34, { radius: 8 }),
-    k.pos(k.width() / 2, k.height() / 2 - 115),
-    k.color(audioSystem.isMusicEnabled() ? k.rgb(20, 90, 140) : k.rgb(50, 60, 70)),
-    k.outline(1, k.rgb(100, 220, 255)),
-    k.scale(1),
-    k.anchor("center"),
-    k.area(),
-    k.fixed(),
-    k.z(302),
-  ]);
-  elements.push(btnMusic);
-
-  const musicText = k.add([
-    k.text(`Música Ambiente: ${audioSystem.isMusicEnabled() ? "LIGADA 🎵" : "DESLIGADA 🔇"}`, { size: 13, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 - 115),
-    k.color(255, 255, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(303),
-  ]);
-  elements.push(musicText);
-
-  btnMusic.onHoverUpdate(() => {
-    btnMusic.scale = k.vec2(1.02, 1.02);
-  });
-  btnMusic.onHoverEnd(() => {
-    btnMusic.scale = k.vec2(1, 1);
-  });
-
-  btnMusic.onClick(() => {
-    const newState = !audioSystem.isMusicEnabled();
-    audioSystem.setMusicEnabled(newState);
-    audioSystem.playUiClick();
-    btnMusic.color = newState ? k.rgb(20, 90, 140) : k.rgb(50, 60, 70);
-    musicText.text = `Música Ambiente: ${newState ? "LIGADA 🎵" : "DESLIGADA 🔇"}`;
-  });
-
-  // --- TOGGLE DE EFEITOS SONOROS (SFX) ---
-  const btnSfx = k.add([
-    k.rect(340, 34, { radius: 8 }),
-    k.pos(k.width() / 2, k.height() / 2 - 68),
-    k.color(audioSystem.isSfxEnabled() ? k.rgb(20, 90, 140) : k.rgb(50, 60, 70)),
-    k.outline(1, k.rgb(100, 220, 255)),
-    k.scale(1),
-    k.anchor("center"),
-    k.area(),
-    k.fixed(),
-    k.z(302),
-  ]);
-  elements.push(btnSfx);
-
-  const sfxText = k.add([
-    k.text(`Efeitos Sonoros: ${audioSystem.isSfxEnabled() ? "LIGADOS 🔊" : "DESLIGADOS 🔇"}`, { size: 13, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 - 68),
-    k.color(255, 255, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(303),
-  ]);
-  elements.push(sfxText);
-
-  btnSfx.onHoverUpdate(() => {
-    btnSfx.scale = k.vec2(1.02, 1.02);
-  });
-  btnSfx.onHoverEnd(() => {
-    btnSfx.scale = k.vec2(1, 1);
-  });
-
-  btnSfx.onClick(() => {
-    const newState = !audioSystem.isSfxEnabled();
-    audioSystem.setSfxEnabled(newState);
-    audioSystem.playUiClick();
-    btnSfx.color = newState ? k.rgb(20, 90, 140) : k.rgb(50, 60, 70);
-    sfxText.text = `Efeitos Sonoros: ${newState ? "LIGADOS 🔊" : "DESLIGADOS 🔇"}`;
-  });
-
-  // --- TOGGLE DE CONTROLES TOUCH NA TELA ---
-  let touchMode = localStorage.getItem("micro_splash_touch_controls") || "auto";
-  const getTouchLabel = (mode: string) => {
-    if (mode === "on") return "Controles Touch: SEMPRE ATIVOS 📱";
-    if (mode === "off") return "Controles Touch: DESATIVADOS ❌";
-    return "Controles Touch: AUTOMÁTICO (Auto-Detect) 📱";
+  // Fechar com ESC
+  const keyHandler = (e: KeyboardEvent) => {
+    if (isClosed || isModalOpen) return;
+    if (e.key === "Escape") {
+      close();
+    }
   };
+  if (typeof window !== "undefined") {
+    window.addEventListener("keydown", keyHandler);
+  }
 
-  const btnTouch = k.add([
-    k.rect(340, 34, { radius: 8 }),
-    k.pos(k.width() / 2, k.height() / 2 - 20),
-    k.color(touchMode === "off" ? k.rgb(50, 60, 70) : k.rgb(20, 90, 140)),
-    k.outline(1, k.rgb(100, 220, 255)),
-    k.scale(1),
-    k.anchor("center"),
-    k.area(),
-    k.fixed(),
-    k.z(302),
-  ]);
-  elements.push(btnTouch);
+  // --- ESTRUTURA EM 2 COLUNAS HARMONIOSAS ---
+  const colGap = 20;
+  const colW = (cardW - 56 - colGap) / 2;
+  const col0X = cX - colW / 2 - colGap / 2;
+  const col1X = cX + colW / 2 + colGap / 2;
+  const headerY = cardTop + 88;
 
-  const touchText = k.add([
-    k.text(getTouchLabel(touchMode), { size: 12, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 - 20),
-    k.color(255, 255, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(303),
-  ]);
-  elements.push(touchText);
+  renderColumnTitles(engine, col0X, col1X, headerY, elements);
 
-  btnTouch.onHoverUpdate(() => {
-    btnTouch.scale = k.vec2(1.02, 1.02);
-  });
-  btnTouch.onHoverEnd(() => {
-    btnTouch.scale = k.vec2(1, 1);
-  });
+  const rowStartY = cardTop + 124;
+  const btnH = 41;
+  const rowGap = 10;
 
-  btnTouch.onClick(() => {
-    if (touchMode === "auto") touchMode = "on";
-    else if (touchMode === "on") touchMode = "off";
-    else touchMode = "auto";
-
-    localStorage.setItem("micro_splash_touch_controls", touchMode);
-    audioSystem.playUiClick();
-    btnTouch.color = touchMode === "off" ? k.rgb(50, 60, 70) : k.rgb(20, 90, 140);
-    touchText.text = getTouchLabel(touchMode);
-  });
-
-  // --- TOGGLE DE RESOLUÇÃO DO JOGO ---
-  const resKeys: ResolutionKey[] = ["1080p", "720p", "540p", "450p"];
-  const getResLabel = (key: ResolutionKey) => `Resolução: ${RESOLUTION_PRESETS[key].label}`;
-
-  const btnRes = k.add([
-    k.rect(340, 32, { radius: 7 }),
-    k.pos(k.width() / 2, k.height() / 2 + 24),
-    k.color(24, 80, 135),
-    k.outline(1, k.rgb(80, 210, 255)),
-    k.scale(1),
-    k.anchor("center"),
-    k.area(),
-    k.fixed(),
-    k.z(302),
-  ]);
-  elements.push(btnRes);
-
-  const resText = k.add([
-    k.text(getResLabel(currentResKey), { size: 11.5, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 + 24),
-    k.color(255, 255, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(303),
-  ]);
-  elements.push(resText);
-
-  const resHintText = k.add([
-    k.text("", { size: 10, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 + 48),
-    k.color(255, 220, 100),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(303),
+  // Dica informativa de reload ao salvar
+  const reloadHintY = cardTop + 424;
+  const resHintText = engine.add([
+    engine.text("", {
+      size: accessibilitySystem.scaleFont(13.5),
+      font: "Inter",
+    }),
+    engine.pos(cX, reloadHintY),
+    engine.color(255, 220, 100),
+    engine.anchor("center"),
+    engine.fixed(),
+    engine.z(303),
   ]);
   elements.push(resHintText);
 
   const updateReloadHint = () => {
-    if (currentResKey !== initialRes.key || currentDisplayMode !== initialDisplayMode) {
-      resHintText.text = "⚠️ A tela será recarregada ao salvar para aplicar as alterações";
+    if (
+      currentResKey !== initialRes.key ||
+      currentDisplayMode !== initialDisplayMode ||
+      currentLetterboxColor !== initialLetterboxColor ||
+      accessibilitySystem.getFontScaleKey() !== initialFontScale ||
+      i18n.getLocale() !== initialLocale
+    ) {
+      resHintText.text =
+        "⚠️ A tela será recarregada ao salvar para aplicar as alterações de sistema";
     } else {
       resHintText.text = "";
     }
   };
 
-  btnRes.onHoverUpdate(() => {
-    btnRes.scale = k.vec2(1.02, 1.02);
+  const context: OptionsScreenContext = {
+    k: engine,
+    elements,
+    focusItems,
+    col0X,
+    col1X,
+    colW,
+    btnH,
+    rowGap,
+    rowStartY,
+    cardTop,
+    cardW,
+    cX,
+    cY,
+    getCurrentResKey: () => currentResKey,
+    setCurrentResKey: (key: ResolutionKey) => {
+      currentResKey = key;
+    },
+    getCurrentDisplayMode: () => currentDisplayMode,
+    setCurrentDisplayMode: (mode: DisplayMode) => {
+      currentDisplayMode = mode;
+    },
+    getCurrentLetterboxColor: () => currentLetterboxColor,
+    setCurrentLetterboxColor: (color: LetterboxColor) => {
+      currentLetterboxColor = color;
+    },
+    updateReloadHint,
+    isClosed: () => isClosed,
+    isModalOpen: () => isModalOpen,
+    setIsModalOpen: (open: boolean) => {
+      isModalOpen = open;
+    },
+    close,
+  };
+
+  // ========================================================
+  // COLUNA 0 (ESQUERDA): ÁUDIO & VÍDEO
+  // ========================================================
+  renderAudioOptions(context);
+  renderGraphicsOptions(context);
+
+  // ========================================================
+  // COLUNA 1 (DIREITA): ACESSIBILIDADE & SISTEMA
+  // ========================================================
+
+  renderAccessibilityOptions(context);
+  renderControlsOptions(context);
+
+  // ========================================================
+  // SEÇÃO INFERIOR: GUIA DE CONTROLES, AÇÕES & LGPD
+  // ========================================================
+  renderControlsGuide(context);
+  renderKioskActionButtons(context);
+
+  // Inicia o grupo de foco por teclado acessível
+  focusGroup = createFocusGroup(engine as unknown as LegacyKeyboardNavContext, {
+    items: focusItems,
+    onEscape: close,
+    initialIndex: focusItems.length - 1, // Inicia focado em Salvar & Voltar
+    ringZ: 315,
+    isEnabled: () => !isClosed && !isModalOpen,
   });
-  btnRes.onHoverEnd(() => {
-    btnRes.scale = k.vec2(1, 1);
-  });
-
-  btnRes.onClick(() => {
-    const currentIdx = resKeys.indexOf(currentResKey);
-    const nextIdx = (currentIdx + 1) % resKeys.length;
-    currentResKey = resKeys[nextIdx];
-    localStorage.setItem("micro_splash_resolution", currentResKey);
-    audioSystem.playUiClick();
-    resText.text = getResLabel(currentResKey);
-    updateReloadHint();
-  });
-
-  // --- MODO DE TELA (SEM BORDAS / PREENCHER) & TELA CHEIA (FULLSCREEN) ---
-  const btnDisplay = k.add([
-    k.rect(195, 30, { radius: 7 }),
-    k.pos(k.width() / 2 - 72, k.height() / 2 + 70),
-    k.color(currentDisplayMode === "stretch" ? k.rgb(18, 105, 80) : k.rgb(50, 65, 85)),
-    k.outline(1, k.rgb(100, 240, 200)),
-    k.anchor("center"),
-    k.area(),
-    k.fixed(),
-    k.z(302),
-  ]);
-  elements.push(btnDisplay);
-
-  const displayText = k.add([
-    k.text(currentDisplayMode === "stretch" ? "Bordas: PREENCHER 🖥️✓" : "Bordas: 16:9 FIXA 📺", { size: 10.5, font: "sans-serif" }),
-    k.pos(k.width() / 2 - 72, k.height() / 2 + 70),
-    k.color(255, 255, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(303),
-  ]);
-  elements.push(displayText);
-
-  btnDisplay.onClick(() => {
-    currentDisplayMode = currentDisplayMode === "stretch" ? "letterbox" : "stretch";
-    setSavedDisplayMode(currentDisplayMode);
-    audioSystem.playUiClick();
-    displayText.text = currentDisplayMode === "stretch" ? "Bordas: PREENCHER 🖥️✓" : "Bordas: 16:9 FIXA 📺";
-    btnDisplay.color = currentDisplayMode === "stretch" ? k.rgb(18, 105, 80) : k.rgb(50, 65, 85);
-    updateReloadHint();
-  });
-
-  const btnFs = k.add([
-    k.rect(135, 30, { radius: 7 }),
-    k.pos(k.width() / 2 + 102, k.height() / 2 + 70),
-    k.color(20, 75, 125),
-    k.outline(1, k.rgb(100, 220, 255)),
-    k.anchor("center"),
-    k.area(),
-    k.fixed(),
-    k.z(302),
-  ]);
-  elements.push(btnFs);
-
-  const fsText = k.add([
-    k.text("Tela Cheia [F11] ⛶", { size: 11, font: "sans-serif" }),
-    k.pos(k.width() / 2 + 102, k.height() / 2 + 70),
-    k.color(255, 255, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(303),
-  ]);
-  elements.push(fsText);
-
-  btnFs.onClick(() => {
-    audioSystem.playUiClick();
-    k.setFullscreen(!k.isFullscreen());
-    fsText.text = k.isFullscreen() ? "Janela 🗗" : "Tela Cheia [F11] ⛶";
-  });
-
-  // --- GUIA DE CONTROLES ---
-  elements.push(k.add([
-    k.rect(480, 68, { radius: 8 }),
-    k.pos(k.width() / 2, k.height() / 2 + 128),
-    k.color(8, 25, 55),
-    k.outline(1, k.rgb(50, 120, 180)),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(302),
-  ]));
-
-  elements.push(k.add([
-    k.text("🎮 GUIA RÁPIDO DE CONTROLES:", { size: 11, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 + 88),
-    k.color(255, 215, 100),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(303),
-  ]));
-
-  elements.push(k.add([
-    k.text("• [Setas/WASD] ou D-Pad Touch: Nadar e inclinar a baleia\n• [Espaço] ou Botão Nado Touch: Impulso de nado\n• [Shift/E] ou Botão Sonar Touch: Biosonar 360°", {
-      size: 11,
-      font: "sans-serif",
-      lineSpacing: 3,
-    }),
-    k.pos(k.width() / 2, k.height() / 2 + 120),
-    k.color(180, 220, 250),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(303),
-  ]));
-
-  // --- BOTÃO VOLTAR ---
-  const btnBack = k.add([
-    k.rect(220, 38, { radius: 8 }),
-    k.pos(k.width() / 2, k.height() / 2 + 195),
-    k.color(16, 120, 180),
-    k.outline(2, k.rgb(100, 240, 255)),
-    k.scale(1),
-    k.anchor("center"),
-    k.area(),
-    k.fixed(),
-    k.z(302),
-  ]);
-  elements.push(btnBack);
-
-  elements.push(k.add([
-    k.text("Salvar & Voltar ↩️", { size: 14, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 + 195),
-    k.color(255, 255, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(303),
-  ]));
-
-  btnBack.onHoverUpdate(() => {
-    btnBack.color = k.rgb(30, 150, 220);
-    btnBack.scale = k.vec2(1.02, 1.02);
-  });
-  btnBack.onHoverEnd(() => {
-    btnBack.color = k.rgb(16, 120, 180);
-    btnBack.scale = k.vec2(1, 1);
-  });
-
-  btnBack.onClick(close);
 }

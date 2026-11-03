@@ -1,3 +1,10 @@
+import {
+  readLocalStorageWithSchema,
+  writeLocalStorage,
+  removeLocalStorageItem,
+} from "../utils/storage";
+import { CumulativeStatsSchema } from "../schemas/storageSchemas";
+
 export interface CumulativeStats {
   totalMigrationsAttempted: number;
   totalMigrationsCompleted: number;
@@ -23,29 +30,15 @@ export const DEFAULT_CUMULATIVE_STATS: CumulativeStats = {
 };
 
 export function getCumulativeStats(): CumulativeStats {
-  try {
-    const raw = localStorage.getItem(STATS_STORAGE_KEY);
-    if (!raw) return { ...DEFAULT_CUMULATIVE_STATS };
-    const parsed = JSON.parse(raw);
-    return {
-      totalMigrationsAttempted: Number(parsed.totalMigrationsAttempted) || 0,
-      totalMigrationsCompleted: Number(parsed.totalMigrationsCompleted) || 0,
-      totalDistanceMeters: Number(parsed.totalDistanceMeters) || 0,
-      totalKrillCollected: Number(parsed.totalKrillCollected) || 0,
-      totalTrashAvoided: Number(parsed.totalTrashAvoided) || 0,
-      totalPlayTimeSeconds: Number(parsed.totalPlayTimeSeconds) || 0,
-      quizzesTaken: Number(parsed.quizzesTaken) || 0,
-      quizCorrectAnswers: Number(parsed.quizCorrectAnswers) || 0,
-    };
-  } catch {
-    return { ...DEFAULT_CUMULATIVE_STATS };
-  }
+  return readLocalStorageWithSchema(
+    STATS_STORAGE_KEY,
+    CumulativeStatsSchema,
+    DEFAULT_CUMULATIVE_STATS
+  );
 }
 
 export function saveCumulativeStats(stats: CumulativeStats): void {
-  try {
-    localStorage.setItem(STATS_STORAGE_KEY, JSON.stringify(stats));
-  } catch {}
+  writeLocalStorage(STATS_STORAGE_KEY, stats);
 }
 
 export function recordMigrationStart(): CumulativeStats {
@@ -83,9 +76,7 @@ export function recordQuizResult(correctCount: number): CumulativeStats {
 }
 
 export function resetCumulativeStats(): void {
-  try {
-    localStorage.removeItem(STATS_STORAGE_KEY);
-  } catch {}
+  removeLocalStorageItem(STATS_STORAGE_KEY);
 }
 
 export function formatDistanceKm(meters: number): string {

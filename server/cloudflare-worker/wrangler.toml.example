@@ -1,0 +1,11 @@
+name = "micro-splash-leaderboard"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+# Para vincular o Cloudflare KV (gratuito até 100.000 leituras/dia):
+# 1. Crie o namespace KV: npx wrangler kv:namespace create "LEADERBOARD_KV"
+# 2. Insira o id retornado abaixo:
+
+[[kv_namespaces]]
+binding = "LEADERBOARD_KV"
+id = "SUA_KV_NAMESPACE_ID_AQUI"

@@ -1,110 +1,203 @@
-import type { KaboomCtx } from "kaboom";
 import { audioSystem } from "../systems/audioSystem";
+import { accessibilitySystem } from "../systems/accessibilitySystem";
 import type { GameState } from "../systems/state";
 import { isTop10Score } from "../systems/leaderboard";
 import { showInitialsInputModal } from "./initialsInputModal";
-import { showQuizModal } from "./quizModal";
-import { showShareModal } from "./shareModal";
-import { extractVictoryCardData } from "./victoryCard";
+import {
+  attachButtonHoverEffect,
+  type AnimationEngineContext,
+  type AnimationUiObject,
+} from "./animationUtils";
+import {
+  animateScoreCounter,
+  attachPulseEffect,
+  type MotionTargetObject,
+  type LegacyScoreCounterContext,
+} from "./shared";
+
+export interface ShowChallengeEndEngineContext {
+  width(): number;
+  height(): number;
+  add(components?: unknown): unknown;
+}
+
+export interface LegacyChallengeEndUiObject {
+  hidden?: boolean;
+  color?: unknown;
+  scale?: { x: number; y: number } | unknown;
+  width?: number;
+  height?: number;
+  text?: string;
+  outline?: { color?: unknown; width?: number };
+  opacity?: number;
+  destroy?(): void;
+  onHoverUpdate(callback: () => void): unknown;
+  onHoverEnd(callback: () => void): unknown;
+  onClick(callback: () => void): unknown;
+}
+
+export interface LegacyChallengeEndEngineContext {
+  width(): number;
+  height(): number;
+  add(components?: unknown): LegacyChallengeEndUiObject;
+  rect(width: number, height: number, options?: unknown): unknown;
+  pos(x: number, y: number): unknown;
+  pos(position: { x: number; y: number }): unknown;
+  color(...args: unknown[]): unknown;
+  rgb(red: number, green: number, blue: number): unknown;
+  outline(width: number, color: unknown): unknown;
+  opacity(alpha: number): unknown;
+  anchor(anchorPoint: "center" | "topleft" | "left" | "right" | "top"): unknown;
+  fixed(): unknown;
+  z(zIndex: number): unknown;
+  area(): unknown;
+  scale(factor: number): unknown;
+  scale(factor: { x: number; y: number }): unknown;
+  text(content: string, options?: unknown): unknown;
+  destroy(target: unknown): void;
+  vec2(x: number, y: number): { x: number; y: number };
+  wait(duration: number, callback: () => void): void;
+  onKeyPress(key: string, callback: () => void): { cancel: () => void };
+}
 
 export function showChallengeEndScreen(
-  k: KaboomCtx,
+  k: ShowChallengeEndEngineContext,
   gameState: GameState,
   onPlayAgain: () => void,
   onReturnMenu: () => void
 ) {
+  const engine = k as unknown as LegacyChallengeEndEngineContext;
   const score = gameState.calculateFinalScore();
   const distance = gameState.getDistance();
   const mode = gameState.getMode();
 
-  if (isTop10Score(score)) {
-    showInitialsInputModal(k, score, distance, mode, () => {
-      renderChallengeEndContent(k, gameState, onPlayAgain, onReturnMenu);
-    });
+  if (isTop10Score(score) || mode === "weekly") {
+    showInitialsInputModal(
+      engine as unknown as Parameters<typeof showInitialsInputModal>[0],
+      score,
+      distance,
+      mode,
+      () => {
+        renderChallengeEndContent(engine, gameState, onPlayAgain, onReturnMenu);
+      },
+      gameState.getWeekKey()
+    );
   } else {
-    renderChallengeEndContent(k, gameState, onPlayAgain, onReturnMenu);
+    renderChallengeEndContent(engine, gameState, onPlayAgain, onReturnMenu);
   }
 }
 
 function renderChallengeEndContent(
-  k: KaboomCtx,
+  k: LegacyChallengeEndEngineContext,
   gameState: GameState,
   onPlayAgain: () => void,
   onReturnMenu: () => void
 ) {
   audioSystem.playVictoryFanfare();
 
-  const elements: any[] = [];
+  const elements: Array<{ destroy?: () => void } | object> = [];
   let isModalOpen = false;
 
   // Fundo escuro com partículas douradas
-  elements.push(k.add([
-    k.rect(k.width(), k.height()),
-    k.pos(0, 0),
-    k.color(6, 18, 38),
-    k.opacity(0.94),
-    k.fixed(),
-    k.z(300),
-  ]));
+  elements.push(
+    k.add([
+      k.rect(k.width(), k.height()),
+      k.pos(0, 0),
+      k.color(6, 18, 38),
+      k.opacity(0.94),
+      k.fixed(),
+      k.z(300),
+    ])
+  );
 
-  const cardW = 580;
-  const cardH = 430;
-  elements.push(k.add([
-    k.rect(cardW, cardH, { radius: 14 }),
-    k.pos(k.width() / 2, k.height() / 2),
-    k.color(12, 35, 75),
-    k.outline(3, k.rgb(255, 180, 50)),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(301),
-  ]));
+  const cardW = Math.min(720, k.width() - 24);
+  const cardH = Math.min(530, k.height() - 20);
+  const centerX = k.width() / 2;
+  const centerY = k.height() / 2;
+
+  elements.push(
+    k.add([
+      k.rect(cardW, cardH, { radius: 16 }),
+      k.pos(centerX, centerY),
+      k.color(12, 35, 75),
+      k.outline(3, k.rgb(255, 180, 50)),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(301),
+    ])
+  );
 
   // Título
-  elements.push(k.add([
-    k.text("TEMPO ESGOTADO! FIM DA RODADA! ⏱️🎉", { size: 18, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 - 165),
-    k.color(255, 215, 60),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(302),
-  ]));
+  elements.push(
+    k.add([
+      k.text("TEMPO ESGOTADO! FIM DA RODADA! ⏱️🎉", {
+        size: accessibilitySystem.scaleFont(25),
+        font: "Outfit",
+      }),
+      k.pos(centerX, centerY - 200),
+      k.color(255, 215, 60),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(302),
+    ])
+  );
 
-  elements.push(k.add([
-    k.text("Migração Rápida (Desafio 60s)", { size: 13, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 - 135),
-    k.color(140, 220, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(302),
-  ]));
+  elements.push(
+    k.add([
+      k.text("Migração Rápida (Desafio 60s)", {
+        size: accessibilitySystem.scaleFont(16),
+        font: "Inter",
+      }),
+      k.pos(centerX, centerY - 165),
+      k.color(140, 220, 255),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(302),
+    ])
+  );
 
   // Placar e Estatísticas
-  elements.push(k.add([
-    k.text(`🦐 Cardumes de Krill Consumidos: ${gameState.getKrillCount()}`, { size: 13.5, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 - 95),
-    k.color(220, 240, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(302),
-  ]));
+  elements.push(
+    k.add([
+      k.text(`🦐 Cardumes de Krill Consumidos: ${gameState.getKrillCount()}`, {
+        size: accessibilitySystem.scaleFont(16),
+        font: "Inter",
+      }),
+      k.pos(centerX, centerY - 118),
+      k.color(220, 240, 255),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(302),
+    ])
+  );
 
-  elements.push(k.add([
-    k.text(`🌊 Distância Percorrida: ${gameState.getDistance()}m`, { size: 13.5, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 - 65),
-    k.color(220, 240, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(302),
-  ]));
+  elements.push(
+    k.add([
+      k.text(`🌊 Distância Percorrida: ${gameState.getDistance()}m`, {
+        size: accessibilitySystem.scaleFont(16),
+        font: "Inter",
+      }),
+      k.pos(centerX, centerY - 86),
+      k.color(220, 240, 255),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(302),
+    ])
+  );
 
-  elements.push(k.add([
-    k.text(`⚠️ Lixo Plástico Colidido: ${gameState.getTrashCount()}`, { size: 13.5, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 - 35),
-    k.color(220, 240, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(302),
-  ]));
+  elements.push(
+    k.add([
+      k.text(`⚠️ Lixo Plástico Colidido: ${gameState.getTrashCount()}`, {
+        size: accessibilitySystem.scaleFont(16),
+        font: "Inter",
+      }),
+      k.pos(centerX, centerY - 54),
+      k.color(220, 240, 255),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(302),
+    ])
+  );
 
   const getScoreText = () => {
     const finalScore = gameState.calculateFinalScore();
@@ -114,9 +207,15 @@ function renderChallengeEndContent(
       : `⭐ Eco-Pontuação da Rodada: ${finalScore} pts`;
   };
 
+  const initialFinalScore = gameState.calculateFinalScore();
+  const initialQuizBonus = gameState.getQuizScore();
+
   const scoreTextObj = k.add([
-    k.text(getScoreText(), { size: 14.5, font: "sans-serif" }),
-    k.pos(k.width() / 2, k.height() / 2 - 5),
+    k.text(getScoreText(), {
+      size: accessibilitySystem.scaleFont(18),
+      font: "Outfit",
+    }),
+    k.pos(centerX, centerY - 16),
     k.color(255, 230, 110),
     k.anchor("center"),
     k.fixed(),
@@ -124,17 +223,22 @@ function renderChallengeEndContent(
   ]);
   elements.push(scoreTextObj);
 
+  animateScoreCounter(k as unknown as LegacyScoreCounterContext, scoreTextObj, initialFinalScore, {
+    prefix: initialQuizBonus > 0 ? "⭐ Eco-Pontuação: " : "⭐ Eco-Pontuação da Rodada: ",
+    suffix: initialQuizBonus > 0 ? ` pts (+${initialQuizBonus} Bônus Quiz)` : " pts",
+  });
+
   // Botão 1: Desafio Ecológico (Quiz)
   let quizCompleted = gameState.getQuizScore() > 0;
-  const keyListeners: any[] = [];
+  const keyListeners: Array<{ cancel: () => void }> = [];
   let canInteract = false;
   k.wait(0.35, () => {
     canInteract = true;
   });
 
   const btnQuiz = k.add([
-    k.rect(340, 32, { radius: 7 }),
-    k.pos(k.width() / 2, k.height() / 2 + 38),
+    k.rect(420, 46, { radius: 9 }),
+    k.pos(centerX, centerY + 36),
     k.color(quizCompleted ? k.rgb(18, 95, 60) : k.rgb(25, 125, 185)),
     k.outline(1.5, quizCompleted ? k.rgb(90, 240, 160) : k.rgb(110, 230, 255)),
     k.anchor("center"),
@@ -145,11 +249,16 @@ function renderChallengeEndContent(
   elements.push(btnQuiz);
 
   const btnQuizLabel = k.add([
-    k.text(quizCompleted ? `Quiz Concluído! (+${gameState.getQuizScore()} pts) ✓` : "🧪 Desafio Ecológico [ENTER] (+300 pts) ▶", {
-      size: 12.5,
-      font: "sans-serif",
-    }),
-    k.pos(k.width() / 2, k.height() / 2 + 38),
+    k.text(
+      quizCompleted
+        ? `Quiz Concluído! (+${gameState.getQuizScore()} pts) ✓`
+        : "🧪 Desafio Ecológico [ENTER] (+300 pts) ▶",
+      {
+        size: accessibilitySystem.scaleFont(15.5),
+        font: "Outfit",
+      }
+    ),
+    k.pos(centerX, centerY + 36),
     k.color(255, 255, 255),
     k.anchor("center"),
     k.fixed(),
@@ -157,30 +266,37 @@ function renderChallengeEndContent(
   ]);
   elements.push(btnQuizLabel);
 
-  btnQuiz.onHoverUpdate(() => {
-    if (!quizCompleted && !isModalOpen) {
-      btnQuiz.color = k.rgb(35, 150, 220);
+  attachButtonHoverEffect(
+    k as unknown as AnimationEngineContext,
+    btnQuiz as unknown as AnimationUiObject,
+    {
+      baseColor: [25, 125, 185],
+      hoverColor: [35, 150, 220],
+      canInteract: () => !quizCompleted && !isModalOpen,
     }
-  });
-  btnQuiz.onHoverEnd(() => {
-    if (!quizCompleted && !isModalOpen) {
-      btnQuiz.color = k.rgb(25, 125, 185);
-    }
-  });
+  );
 
-  const openQuiz = () => {
+  const openQuiz = async () => {
     if (quizCompleted || isModalOpen) return;
     isModalOpen = true;
+    const { showQuizModal } = await import("./quizModal");
     showQuizModal(
-      k,
+      k as unknown as Parameters<typeof showQuizModal>[0],
       gameState,
       (scoreGained, correctCount) => {
         isModalOpen = false;
         quizCompleted = true;
         btnQuiz.color = k.rgb(18, 95, 60);
-        btnQuiz.outline.color = k.rgb(90, 240, 160);
+        if (btnQuiz.outline) {
+          btnQuiz.outline.color = k.rgb(90, 240, 160);
+        }
         btnQuizLabel.text = `Quiz Concluído! +${scoreGained} pts (${correctCount}/3) ✓`;
-        scoreTextObj.text = getScoreText();
+        const updatedScore = gameState.calculateFinalScore();
+        animateScoreCounter(k as unknown as LegacyScoreCounterContext, scoreTextObj, updatedScore, {
+          startValue: initialFinalScore,
+          prefix: "⭐ Eco-Pontuação: ",
+          suffix: ` pts (+${gameState.getQuizScore()} Bônus Quiz)`,
+        });
         btnAgainLabel.text = "Jogar Novamente [ENTER] 🔄";
       },
       () => {
@@ -193,8 +309,8 @@ function renderChallengeEndContent(
 
   // Botão 2: Compartilhar Certificado / Redes Sociais
   const btnShare = k.add([
-    k.rect(340, 32, { radius: 7 }),
-    k.pos(k.width() / 2, k.height() / 2 + 78),
+    k.rect(420, 46, { radius: 9 }),
+    k.pos(centerX, centerY + 90),
     k.color(18, 105, 120),
     k.outline(1.5, k.rgb(90, 235, 235)),
     k.anchor("center"),
@@ -207,10 +323,10 @@ function renderChallengeEndContent(
   elements.push(
     k.add([
       k.text("📲 Compartilhar Certificado & Redes", {
-        size: 12.5,
-        font: "sans-serif",
+        size: accessibilitySystem.scaleFont(15.5),
+        font: "Outfit",
       }),
-      k.pos(k.width() / 2, k.height() / 2 + 78),
+      k.pos(centerX, centerY + 90),
       k.color(255, 255, 255),
       k.anchor("center"),
       k.fixed(),
@@ -218,33 +334,52 @@ function renderChallengeEndContent(
     ])
   );
 
-  btnShare.onHoverUpdate(() => {
-    if (!isModalOpen) btnShare.color = k.rgb(25, 140, 155);
-  });
-  btnShare.onHoverEnd(() => {
-    if (!isModalOpen) btnShare.color = k.rgb(18, 105, 120);
-  });
+  attachButtonHoverEffect(
+    k as unknown as AnimationEngineContext,
+    btnShare as unknown as AnimationUiObject,
+    {
+      baseColor: [18, 105, 120],
+      hoverColor: [25, 140, 155],
+      canInteract: () => !isModalOpen,
+    }
+  );
 
-  btnShare.onClick(() => {
+  btnShare.onClick(async () => {
     if (isModalOpen) return;
     isModalOpen = true;
+    const [{ extractVictoryCardData }, { showShareModal }] = await Promise.all([
+      import("./victoryCard"),
+      import("./shareModal"),
+    ]);
     const cardData = extractVictoryCardData(gameState, "Navegador Rápido");
-    showShareModal(k, cardData, () => {
+    showShareModal(k as unknown as Parameters<typeof showShareModal>[0], cardData, () => {
       isModalOpen = false;
     });
   });
 
+  let pulseHandle: { destroy: () => void } | null = null;
+
   const destroyAll = () => {
+    if (pulseHandle) {
+      pulseHandle.destroy();
+      pulseHandle = null;
+    }
     keyListeners.forEach((l) => {
-      try { if (l && typeof l.cancel === "function") l.cancel(); } catch {}
+      try {
+        if (l && typeof l.cancel === "function") l.cancel();
+      } catch {}
     });
-    elements.forEach((el) => k.destroy(el));
+    elements.forEach((el) => {
+      try {
+        k.destroy(el);
+      } catch {}
+    });
   };
 
   // Botão 3: Jogar Novamente
   const btnAgain = k.add([
-    k.rect(190, 38, { radius: 8 }),
-    k.pos(k.width() / 2 - 105, k.height() / 2 + 130),
+    k.rect(220, 46, { radius: 9 }),
+    k.pos(centerX - 120, centerY + 148),
     k.color(20, 120, 180),
     k.outline(2, k.rgb(100, 240, 255)),
     k.anchor("center"),
@@ -255,8 +390,11 @@ function renderChallengeEndContent(
   elements.push(btnAgain);
 
   const btnAgainLabel = k.add([
-    k.text(quizCompleted ? "Jogar Novamente [ENTER] 🔄" : "Jogar Novamente [R] 🔄", { size: 12, font: "sans-serif" }),
-    k.pos(k.width() / 2 - 105, k.height() / 2 + 130),
+    k.text(quizCompleted ? "Jogar Novamente [ENTER] 🔄" : "Jogar Novamente [R] 🔄", {
+      size: accessibilitySystem.scaleFont(15),
+      font: "Outfit",
+    }),
+    k.pos(centerX - 120, centerY + 148),
     k.color(255, 255, 255),
     k.anchor("center"),
     k.fixed(),
@@ -271,18 +409,24 @@ function renderChallengeEndContent(
     onPlayAgain();
   };
 
-  btnAgain.onHoverUpdate(() => {
-    if (!isModalOpen) btnAgain.color = k.rgb(30, 140, 210);
-  });
-  btnAgain.onHoverEnd(() => {
-    if (!isModalOpen) btnAgain.color = k.rgb(20, 120, 180);
+  attachButtonHoverEffect(
+    k as unknown as AnimationEngineContext,
+    btnAgain as unknown as AnimationUiObject,
+    {
+      baseColor: [20, 120, 180],
+      hoverColor: [30, 140, 210],
+      canInteract: () => canInteract && !isModalOpen,
+    }
+  );
+  pulseHandle = attachPulseEffect(k, btnAgain as unknown as MotionTargetObject, {
+    canInteract: () => canInteract && !isModalOpen,
   });
   btnAgain.onClick(handlePlayAgain);
 
   // Botão 4: Menu Principal
   const btnMenu = k.add([
-    k.rect(190, 38, { radius: 8 }),
-    k.pos(k.width() / 2 + 105, k.height() / 2 + 130),
+    k.rect(220, 46, { radius: 9 }),
+    k.pos(centerX + 120, centerY + 148),
     k.color(30, 60, 100),
     k.outline(2, k.rgb(120, 180, 240)),
     k.anchor("center"),
@@ -292,14 +436,19 @@ function renderChallengeEndContent(
   ]);
   elements.push(btnMenu);
 
-  elements.push(k.add([
-    k.text("Menu Principal [ESC] 🏠", { size: 12, font: "sans-serif" }),
-    k.pos(k.width() / 2 + 105, k.height() / 2 + 130),
-    k.color(255, 255, 255),
-    k.anchor("center"),
-    k.fixed(),
-    k.z(303),
-  ]));
+  elements.push(
+    k.add([
+      k.text("Menu Principal [ESC] 🏠", {
+        size: accessibilitySystem.scaleFont(15),
+        font: "Outfit",
+      }),
+      k.pos(centerX + 120, centerY + 148),
+      k.color(255, 255, 255),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(303),
+    ])
+  );
 
   const handleReturnMenu = () => {
     if (!canInteract || isModalOpen) return;
@@ -308,12 +457,15 @@ function renderChallengeEndContent(
     onReturnMenu();
   };
 
-  btnMenu.onHoverUpdate(() => {
-    if (!isModalOpen) btnMenu.color = k.rgb(45, 80, 130);
-  });
-  btnMenu.onHoverEnd(() => {
-    if (!isModalOpen) btnMenu.color = k.rgb(30, 60, 100);
-  });
+  attachButtonHoverEffect(
+    k as unknown as AnimationEngineContext,
+    btnMenu as unknown as AnimationUiObject,
+    {
+      baseColor: [30, 60, 100],
+      hoverColor: [45, 80, 130],
+      canInteract: () => canInteract && !isModalOpen,
+    }
+  );
   btnMenu.onClick(handleReturnMenu);
 
   const handleEnter = () => {
