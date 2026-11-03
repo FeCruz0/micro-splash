@@ -43,6 +43,28 @@ export interface NetOverlayEngineContext {
   rgb?(r: number, g: number, b: number): unknown;
 }
 
+export interface NetGraphicsContext {
+  drawPolygon?(
+    pts: { x: number; y: number }[],
+    opt?: {
+      fill?: { color: number; alpha?: number };
+      stroke?: { color: number; width?: number; alpha?: number };
+    }
+  ): void;
+  drawRect?(
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    opt?: {
+      fill?: { color: number; alpha?: number };
+      stroke?: { color: number; width?: number; alpha?: number };
+    }
+  ): void;
+  destroy?(): void;
+  [key: string]: unknown;
+}
+
 export interface NetOverlaySpriteNode {
   visible?: boolean;
   alpha?: number;
@@ -104,7 +126,7 @@ export const NET_16BIT_PALETTE = {
  * Todos os vértices são rigorosamente limitados às coordenadas positivas [0, 136] e [0, 54].
  */
 function drawQuadStrip(
-  gfx: IGraphicsNode | any,
+  gfx: IGraphicsNode | NetGraphicsContext,
   x1: number,
   y1: number,
   x2: number,
@@ -193,7 +215,7 @@ export function getWhaleBodyBounds(offsetX: number): WhaleBodyBounds {
  * - 4 chumbos cinzas acompanhando a curva ventral bottomY(x)
  * - Nós escuros 3x3px com centro claro 0xF5E6C8 nos cruzamentos diagonais
  */
-export function drawRetro16BitNetMesh(gfx: IGraphicsNode | any): void {
+export function drawRetro16BitNetMesh(gfx: IGraphicsNode | NetGraphicsContext): void {
   const centerX = 68;
   const centerY = 27;
 
@@ -574,27 +596,41 @@ export function resolveRenderEngine(engineContext?: unknown): IRenderEngine | nu
     return engineContext;
   }
   if (engineContext && typeof engineContext === "object") {
-    if ("renderEngine" in engineContext && isRenderEngine((engineContext as any).renderEngine)) {
-      return (engineContext as any).renderEngine;
+    const ctx = engineContext as {
+      renderEngine?: unknown;
+      getRenderEngine?: () => unknown;
+      createGraphics?: unknown;
+      createSprite?: unknown;
+    };
+    if ("renderEngine" in ctx && isRenderEngine(ctx.renderEngine)) {
+      return ctx.renderEngine;
     }
-    if (
-      "getRenderEngine" in engineContext &&
-      typeof (engineContext as any).getRenderEngine === "function"
-    ) {
-      const e = (engineContext as any).getRenderEngine();
+    if ("getRenderEngine" in ctx && typeof ctx.getRenderEngine === "function") {
+      const e = ctx.getRenderEngine();
       if (isRenderEngine(e)) return e;
     }
     // Se o próprio engineContext tiver createGraphics e createSprite, ele é o motor do teste/contexto!
-    if ("createGraphics" in engineContext && "createSprite" in engineContext) {
+    if ("createGraphics" in ctx && "createSprite" in ctx) {
       return engineContext as unknown as IRenderEngine;
     }
   }
   const active = getActiveRenderEngine();
-  if (active && isRenderEngine(active) && (active as any).isInitialized) {
+  if (
+    active &&
+    isRenderEngine(active) &&
+    (active as unknown as { isInitialized?: boolean }).isInitialized
+  ) {
     return active;
   }
-  const globalEngine = (globalThis as any)?.__MICRO_SPLASH_RENDER_ENGINE;
-  if (isRenderEngine(globalEngine) && (globalEngine as any).isInitialized) {
+  const globalEngine = (
+    typeof globalThis !== "undefined"
+      ? (globalThis as unknown as Record<string, unknown>).__MICRO_SPLASH_RENDER_ENGINE
+      : null
+  ) as IRenderEngine | null;
+  if (
+    isRenderEngine(globalEngine) &&
+    (globalEngine as unknown as { isInitialized?: boolean }).isInitialized
+  ) {
     return globalEngine;
   }
   return null;
@@ -605,22 +641,26 @@ export function resolveRenderEngine(engineContext?: unknown): IRenderEngine | nu
  */
 export function create16BitNetTexture(engineContext: unknown): unknown | null {
   const engine = resolveRenderEngine(engineContext) ?? (engineContext as NetOverlayEngineContext);
+  const engObj = engine as unknown as {
+    createGraphics?: (id?: string) => unknown;
+    generateTexture?: (
+      target: unknown,
+      options?: { resolution?: number; scaleMode?: "nearest" | "linear" }
+    ) => unknown;
+  };
   if (
     !engine ||
-    typeof (engine as any).createGraphics !== "function" ||
-    typeof (engine as any).generateTexture !== "function"
+    typeof engObj.createGraphics !== "function" ||
+    typeof engObj.generateTexture !== "function"
   ) {
     return null;
   }
 
   try {
-    const tempGfx = (engine as any).createGraphics("whale_net_mesh_bake") as {
-      destroy?: () => void;
-      [key: string]: unknown;
-    };
+    const tempGfx = engObj.createGraphics("whale_net_mesh_bake") as NetGraphicsContext;
     drawRetro16BitNetMesh(tempGfx);
 
-    const bakedTexture = (engine as any).generateTexture(tempGfx, {
+    const bakedTexture = engObj.generateTexture(tempGfx, {
       resolution: 0.5,
       scaleMode: "nearest",
     });
@@ -666,12 +706,14 @@ export function setupWhaleNetOverlay(
   // 1. Tenta pré-bake da textura 16-bits via IRenderEngine
   const bakedTexture = create16BitNetTexture(targetEngine);
 
-  if (bakedTexture && typeof (targetEngine as any).createSprite === "function") {
+  const engSpriteCreator = targetEngine as unknown as {
+    createSprite?: (tex: unknown, id?: string) => NetOverlaySpriteNode;
+    getStageRoot?: () => { addChild?: (node: unknown) => void };
+  };
+
+  if (bakedTexture && typeof engSpriteCreator.createSprite === "function") {
     try {
-      const spriteNode = (targetEngine as any).createSprite(
-        bakedTexture,
-        "whale_net_overlay"
-      ) as NetOverlaySpriteNode;
+      const spriteNode = engSpriteCreator.createSprite(bakedTexture, "whale_net_overlay");
 
       // Âncora centralizada
       if (typeof spriteNode.setAnchor === "function") {
@@ -698,35 +740,47 @@ export function setupWhaleNetOverlay(
       spriteNode.z = 999;
 
       // Tenta acoplar diretamente como filho do container nativo da baleia (Pixi)
-      const nativeBaleia =
-        (baleia as any).node ??
-        (baleia as any)._pixiNode ??
-        (typeof (baleia as any).getNativeNode === "function"
-          ? (baleia as any).getNativeNode()
-          : (baleia as any));
+      const baleiaWithNodes = baleia as unknown as {
+        node?: unknown;
+        _pixiNode?: unknown;
+        getNativeNode?: () => unknown;
+        addChild?: (c: unknown) => void;
+        sortableChildren?: boolean;
+      };
 
-      const nativeSprite =
-        typeof spriteNode.getNativeNode === "function" ? spriteNode.getNativeNode() : spriteNode;
+      const nativeBaleia = (baleiaWithNodes.node ??
+        baleiaWithNodes._pixiNode ??
+        (typeof baleiaWithNodes.getNativeNode === "function"
+          ? baleiaWithNodes.getNativeNode()
+          : baleiaWithNodes)) as {
+        addChild?: (child: unknown) => void;
+        sortableChildren?: boolean;
+      };
+
+      const nativeSprite = (
+        typeof (spriteNode as unknown as { getNativeNode?: () => unknown }).getNativeNode ===
+        "function"
+          ? (spriteNode as unknown as { getNativeNode: () => unknown }).getNativeNode()
+          : spriteNode
+      ) as { zIndex?: number } | null;
 
       if (nativeBaleia && typeof nativeBaleia.addChild === "function") {
         if ("sortableChildren" in nativeBaleia) {
           nativeBaleia.sortableChildren = true;
         }
         if (nativeSprite && typeof nativeSprite === "object") {
-          (nativeSprite as any).zIndex = 999;
+          nativeSprite.zIndex = 999;
         }
         nativeBaleia.addChild(nativeSprite);
         isChildAttachedToContainer = true;
-      } else if (typeof (baleia as any).addChild === "function") {
-        if ("sortableChildren" in baleia) {
-          (baleia as any).sortableChildren = true;
+      } else if (typeof baleiaWithNodes.addChild === "function") {
+        if ("sortableChildren" in baleiaWithNodes) {
+          baleiaWithNodes.sortableChildren = true;
         }
-        (baleia as any).addChild(spriteNode);
+        baleiaWithNodes.addChild(spriteNode);
         isChildAttachedToContainer = true;
-      } else if (typeof (targetEngine as any).getStageRoot === "function") {
-        const stageRoot = (targetEngine as any).getStageRoot() as {
-          addChild?: (node: unknown) => void;
-        };
+      } else if (typeof engSpriteCreator.getStageRoot === "function") {
+        const stageRoot = engSpriteCreator.getStageRoot();
         if (stageRoot && typeof stageRoot.addChild === "function") {
           stageRoot.addChild(spriteNode);
         }
@@ -740,14 +794,26 @@ export function setupWhaleNetOverlay(
 
   // 2. Fallback via sub-elementos vazados se não houver sprite Pixi (zero preenchimento de fundo)
   if (!netOverlaySprite) {
-    let attachedChild: any = null;
-    const attachedChildren: any[] = [];
+    interface FallbackChildNode {
+      hidden?: boolean;
+      opacity?: number;
+      pos?: { x: number; y: number };
+      angle?: number;
+      scale?: { x: number; y: number };
+      destroy?: () => void;
+    }
+    let attachedChild: FallbackChildNode | null = null;
+    const attachedChildren: FallbackChildNode[] = [];
 
-    if (typeof (baleia as any)?.add === "function") {
+    const baleiaObj = baleia as unknown as {
+      add?: (components: unknown[]) => FallbackChildNode;
+    };
+
+    if (typeof baleiaObj?.add === "function") {
       try {
-        const kObj = (engineContext as any) ?? {};
+        const kObj = (engineContext as NetOverlayEngineContext) ?? {};
         // Container raiz transparente acoplado à baleia (sem nenhum rect de preenchimento)
-        attachedChild = (baleia as any).add([
+        attachedChild = baleiaObj.add([
           typeof kObj.pos === "function" ? kObj.pos(-20, 0) : {},
           typeof kObj.z === "function" ? kObj.z(999) : {},
           "whale_net_overlay",
@@ -767,7 +833,7 @@ export function setupWhaleNetOverlay(
 
           if (typeof kObj.rect === "function") {
             // Borda escura do laço
-            const borderLoop = (baleia as any).add([
+            const borderLoop = baleiaObj.add([
               kObj.rect(4, loopHeight),
               typeof kObj.pos === "function" ? kObj.pos(lox - 20, loopCenterY) : {},
               typeof kObj.anchor === "function" ? kObj.anchor("center") : {},
@@ -781,7 +847,7 @@ export function setupWhaleNetOverlay(
             }
 
             // Tira de corda do laço
-            const strandLoop = (baleia as any).add([
+            const strandLoop = baleiaObj.add([
               kObj.rect(2, loopHeight),
               typeof kObj.pos === "function" ? kObj.pos(lox - 20, loopCenterY) : {},
               typeof kObj.anchor === "function" ? kObj.anchor("center") : {},
@@ -811,7 +877,7 @@ export function setupWhaleNetOverlay(
 
           for (const lineY of [dorsalY, lateralY, ventralY]) {
             if (typeof kObj.rect === "function") {
-              const cable = (baleia as any).add([
+              const cable = baleiaObj.add([
                 kObj.rect(spanW, 2),
                 typeof kObj.pos === "function" ? kObj.pos(midX - 20, lineY) : {},
                 typeof kObj.anchor === "function" ? kObj.anchor("center") : {},
@@ -837,7 +903,7 @@ export function setupWhaleNetOverlay(
 
           for (const ky of [bMid.topY + 6, midY, bMid.bottomY - 6]) {
             if (typeof kObj.rect === "function") {
-              const knot = (baleia as any).add([
+              const knot = baleiaObj.add([
                 kObj.rect(3, 3),
                 typeof kObj.pos === "function" ? kObj.pos(midX - 20, ky) : {},
                 typeof kObj.anchor === "function" ? kObj.anchor("center") : {},
@@ -862,7 +928,7 @@ export function setupWhaleNetOverlay(
           const floatY = fBounds.topY - 3 + yJitter;
 
           if (typeof kObj.rect === "function") {
-            const floatBody = (baleia as any).add([
+            const floatBody = baleiaObj.add([
               kObj.rect(8, 4),
               typeof kObj.pos === "function" ? kObj.pos(fox - 20, floatY) : {},
               typeof kObj.anchor === "function" ? kObj.anchor("center") : {},
@@ -878,7 +944,7 @@ export function setupWhaleNetOverlay(
               attachedChildren.push(floatBody);
             }
 
-            const floatCenter = (baleia as any).add([
+            const floatCenter = baleiaObj.add([
               kObj.rect(4, 2),
               typeof kObj.pos === "function" ? kObj.pos(fox - 20, floatY) : {},
               typeof kObj.anchor === "function" ? kObj.anchor("center") : {},
@@ -900,7 +966,7 @@ export function setupWhaleNetOverlay(
           const sinkerY = sBounds.bottomY + 3;
 
           if (typeof kObj.rect === "function") {
-            const sinker = (baleia as any).add([
+            const sinker = baleiaObj.add([
               kObj.rect(5, 5),
               typeof kObj.pos === "function" ? kObj.pos(sox - 20, sinkerY) : {},
               typeof kObj.anchor === "function" ? kObj.anchor("center") : {},
@@ -925,7 +991,7 @@ export function setupWhaleNetOverlay(
           { dx: -12, dy: 6, len: 10 },
         ]) {
           if (typeof kObj.rect === "function") {
-            const frayStrand = (baleia as any).add([
+            const frayStrand = baleiaObj.add([
               kObj.rect(fray.len, 2),
               typeof kObj.pos === "function" ? kObj.pos(-34 - 20 + fray.dx / 2, fray.dy) : {},
               typeof kObj.anchor === "function" ? kObj.anchor("center") : {},
@@ -1016,7 +1082,8 @@ export function setupWhaleNetOverlay(
   }
 
   // Acopla referência pública na baleia
-  (baleia as any).netOverlaySprite = netOverlaySprite;
+  (baleia as unknown as { netOverlaySprite?: NetOverlaySpriteNode | null }).netOverlaySprite =
+    netOverlaySprite;
 
   /**
    * Atualização contínua com feedback físico de aprisionamento:
@@ -1101,7 +1168,8 @@ export function setupWhaleNetOverlay(
       netOverlaySprite.destroy();
     }
     netOverlaySprite = null;
-    (baleia as any).netOverlaySprite = null;
+    (baleia as unknown as { netOverlaySprite?: NetOverlaySpriteNode | null }).netOverlaySprite =
+      null;
   }
 
   return {

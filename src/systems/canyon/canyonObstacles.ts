@@ -17,7 +17,21 @@ import { getActiveRenderEngine } from "../../engine/adapters/RenderEngineAdapter
  * Desenha a tartaruga marinha (Chelonia mydas) de forma limpa e leve:
  * UM ÚNICO retângulo verde (68, 108, 64) 34x18 com raio 8.
  */
-export function draw16BitSeaTurtle(gfx: IGraphicsNode | any): void {
+export function draw16BitSeaTurtle(
+  gfx:
+    | IGraphicsNode
+    | {
+        drawRoundedRect?: (
+          x: number,
+          y: number,
+          w: number,
+          h: number,
+          r: number,
+          opt?: unknown
+        ) => void;
+        drawRect?: (x: number, y: number, w: number, h: number, opt?: unknown) => void;
+      }
+): void {
   if (typeof gfx.drawRoundedRect === "function") {
     gfx.drawRoundedRect(-17, -9, 34, 18, 8, { fill: { color: 0x446c40, alpha: 1.0 } });
   } else if (typeof gfx.drawRect === "function") {
@@ -29,7 +43,21 @@ export function draw16BitSeaTurtle(gfx: IGraphicsNode | any): void {
  * Desenha o peixe de passagem de forma limpa e leve:
  * UM ÚNICO retângulo azul (130, 165, 195) 28x10 com raio 5.
  */
-export function draw16BitPassageFish(gfx: IGraphicsNode | any): void {
+export function draw16BitPassageFish(
+  gfx:
+    | IGraphicsNode
+    | {
+        drawRoundedRect?: (
+          x: number,
+          y: number,
+          w: number,
+          h: number,
+          r: number,
+          opt?: unknown
+        ) => void;
+        drawRect?: (x: number, y: number, w: number, h: number, opt?: unknown) => void;
+      }
+): void {
   if (typeof gfx.drawRoundedRect === "function") {
     gfx.drawRoundedRect(-14, -5, 28, 10, 5, { fill: { color: 0x82a5c3, alpha: 1.0 } });
   } else if (typeof gfx.drawRect === "function") {
@@ -43,22 +71,29 @@ export function draw16BitPassageFish(gfx: IGraphicsNode | any): void {
 function resolveEngine(engineContext?: unknown): IRenderEngine | null {
   if (isRenderEngine(engineContext)) return engineContext;
   if (engineContext && typeof engineContext === "object") {
-    if ("renderEngine" in engineContext && isRenderEngine((engineContext as any).renderEngine)) {
-      return (engineContext as any).renderEngine;
+    const ctx = engineContext as {
+      renderEngine?: unknown;
+      getRenderEngine?: () => unknown;
+      createGraphics?: unknown;
+      createSprite?: unknown;
+    };
+    if ("renderEngine" in ctx && isRenderEngine(ctx.renderEngine)) {
+      return ctx.renderEngine;
     }
-    if (
-      "getRenderEngine" in engineContext &&
-      typeof (engineContext as any).getRenderEngine === "function"
-    ) {
-      const e = (engineContext as any).getRenderEngine();
+    if ("getRenderEngine" in ctx && typeof ctx.getRenderEngine === "function") {
+      const e = ctx.getRenderEngine();
       if (isRenderEngine(e)) return e;
     }
-    if ("createGraphics" in engineContext && "createSprite" in engineContext) {
+    if ("createGraphics" in ctx && "createSprite" in ctx) {
       return engineContext as unknown as IRenderEngine;
     }
   }
   const active = getActiveRenderEngine();
-  if (active && isRenderEngine(active) && (active as any).isInitialized) {
+  if (
+    active &&
+    isRenderEngine(active) &&
+    (active as unknown as { isInitialized?: boolean }).isInitialized
+  ) {
     return active;
   }
   return null;
@@ -335,16 +370,22 @@ export function setupCanyonObstacles<
       const turtleGfx = realEngine.createGraphics("turtle_bake");
       draw16BitSeaTurtle(turtleGfx);
       bakedTurtleTex = realEngine.generateTexture(turtleGfx, bakeOptions);
-      if (typeof (turtleGfx as any).destroy === "function") {
-        (turtleGfx as any).destroy();
+      if (
+        turtleGfx &&
+        typeof (turtleGfx as unknown as { destroy?: () => void }).destroy === "function"
+      ) {
+        (turtleGfx as unknown as { destroy: () => void }).destroy();
       }
 
       // Pre-bake do Peixe de Passagem
       const fishGfx = realEngine.createGraphics("passage_fish_bake");
       draw16BitPassageFish(fishGfx);
       bakedFishTex = realEngine.generateTexture(fishGfx, bakeOptions);
-      if (typeof (fishGfx as any).destroy === "function") {
-        (fishGfx as any).destroy();
+      if (
+        fishGfx &&
+        typeof (fishGfx as unknown as { destroy?: () => void }).destroy === "function"
+      ) {
+        (fishGfx as unknown as { destroy: () => void }).destroy();
       }
 
       if (typeof realEngine.getStageRoot === "function") {

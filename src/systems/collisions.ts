@@ -129,7 +129,16 @@ export function setupCollisions<TDestroyable = unknown>(
     }
 
     // Força imediatamente visibilidade total e opacidade 1.0 do overlay na baleia, ignorando o sonar
-    const rawPlayer = (player ?? playerController.gameObj) as unknown as { netOverlaySprite?: any };
+    const rawPlayer = (player ?? playerController.gameObj) as unknown as {
+      netOverlaySprite?: {
+        visible?: boolean;
+        hidden?: boolean;
+        opacity?: number;
+        alpha?: number;
+        setVisible?: (v: boolean) => void;
+        setOpacity?: (a: number) => void;
+      };
+    };
     const overlay = rawPlayer?.netOverlaySprite;
     if (overlay) {
       overlay.visible = true;

@@ -191,24 +191,26 @@ export const LITHOTHAMNION_SPAWN_X = [
  * Enriquece o leito oceânico com ecossistemas autênticos e física suave de ondulação subaquática.
  */
 export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyEngineBridge): void {
+  const engineCandidate = engineOrContext as { renderEngine?: unknown };
   const candidateEngine: unknown = isRenderEngine(engineOrContext)
     ? engineOrContext
-    : isRenderEngine((engineOrContext as any)?.renderEngine)
-      ? (engineOrContext as any).renderEngine
+    : isRenderEngine(engineCandidate?.renderEngine)
+      ? engineCandidate.renderEngine
       : getActiveRenderEngine();
 
   let realEngine: IRenderEngine | null = isRenderEngine(candidateEngine) ? candidateEngine : null;
   let isPixi = false;
 
   if (realEngine) {
+    const engineWithInit = realEngine as unknown as { isInitialized?: boolean };
     if (
-      ("isInitialized" in realEngine && (realEngine as any).isInitialized) ||
-      !("isInitialized" in realEngine)
+      ("isInitialized" in engineWithInit && engineWithInit.isInitialized) ||
+      !("isInitialized" in engineWithInit)
     ) {
       try {
         realEngine.getStageRoot();
         isPixi = true;
-      } catch (_e) {
+      } catch {
         isPixi = false;
         realEngine = null;
       }
@@ -1293,11 +1295,9 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
             if (reefFish.hidden) return;
             const t = legacyCtx.time();
             const swimCycle = t * reefFish.swimSpeed * 2.2 + reefFish.phase;
-            if (
-              typeof (reefFish as any).angle === "number" ||
-              (reefFish as any).angle !== undefined
-            ) {
-              (reefFish as any).angle = Math.sin(swimCycle) * 6.5;
+            const fishObj = reefFish as unknown as { angle?: number };
+            if (typeof fishObj.angle === "number" || fishObj.angle !== undefined) {
+              fishObj.angle = Math.sin(swimCycle) * 6.5;
             }
             reefFish.pos.x =
               reefFish.basePos.x + Math.sin(t * reefFish.swimSpeed + reefFish.phase) * 22;

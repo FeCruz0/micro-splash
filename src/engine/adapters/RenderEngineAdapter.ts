@@ -5,7 +5,7 @@
  * Fornece ciclo de vida seguro no DOM para o ambiente Docker/Vite e bridge de Ticker normalizado.
  */
 
-import { Application, Sprite, Texture } from "pixi.js";
+import { Application, Container, Sprite, Texture } from "pixi.js";
 import type {
   IRenderEngine,
   IRenderNode,
@@ -122,9 +122,9 @@ export class RenderEngineAdapter implements IRenderEngine {
   private viewportHeight: number = 600;
 
   constructor() {
-    activeRenderEngineInstance = this;
+    setActiveRenderEngine(this);
     if (typeof globalThis !== "undefined") {
-      (globalThis as any).__MICRO_SPLASH_RENDER_ENGINE = this;
+      (globalThis as unknown as Record<string, unknown>).__MICRO_SPLASH_RENDER_ENGINE = this;
     }
   }
 
@@ -258,7 +258,7 @@ export class RenderEngineAdapter implements IRenderEngine {
         : target;
     try {
       const tex = this.application.renderer.generateTexture({
-        target: nativeTarget as any,
+        target: nativeTarget as Container,
         resolution: options?.resolution ?? 0.5,
         textureSourceOptions: {
           scaleMode: options?.scaleMode ?? "nearest",

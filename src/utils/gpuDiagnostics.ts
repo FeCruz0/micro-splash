@@ -78,7 +78,7 @@ export function detectGpuCapabilities(customCanvas?: HTMLCanvasElement): GpuCapa
       renderer,
       vendor,
     };
-  } catch (error) {
+  } catch {
     return {
       isSoftwareRenderer: false,
       renderer: "Error Querying WebGL",
