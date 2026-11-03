@@ -59,27 +59,40 @@ export const ARRAIAL_16BIT_PALETTE = {
   FISH_EYE_SPECULAR: 0xffffff,
 } as const;
 
-export interface SanctuaryGraphicsContext {
-  drawRect?(
-    x: number,
-    y: number,
-    w: number,
-    h: number,
-    opt?: { fill?: { color: number; alpha?: number } }
-  ): void;
-  drawRoundedRect?(
-    x: number,
-    y: number,
-    w: number,
-    h: number,
-    r: number,
-    opt?: { fill?: { color: number; alpha?: number } }
-  ): void;
-  drawPolygon?(
-    pts: { x: number; y: number }[],
-    opt?: { fill?: { color: number; alpha?: number } }
-  ): void;
-}
+import type {
+  IGraphicsNode,
+  LineStyle,
+  GraphicStyle,
+} from "../../engine/contracts/INTERFACE_CONTRACTS";
+
+export type SanctuaryGraphicsContext =
+  | IGraphicsNode
+  | {
+      drawRect?(
+        x: number,
+        y: number,
+        w: number,
+        h: number,
+        opt?: GraphicStyle | { fill?: { color: number; alpha?: number } }
+      ): void;
+      drawRoundedRect?(
+        x: number,
+        y: number,
+        w: number,
+        h: number,
+        r: number,
+        opt?: GraphicStyle | { fill?: { color: number; alpha?: number } }
+      ): void;
+      drawPolygon?(
+        pts: readonly { x: number; y: number }[],
+        opt?: GraphicStyle | { fill?: { color: number; alpha?: number } }
+      ): void;
+      drawLine?(
+        pts: readonly { x: number; y: number }[],
+        opt?: LineStyle | { color?: number; width?: number; alpha?: number }
+      ): void;
+      destroy?(): void;
+    };
 
 export interface SanctuaryTextureEngineContext {
   createGraphics(id?: string): SanctuaryGraphicsContext;
