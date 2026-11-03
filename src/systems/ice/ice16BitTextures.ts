@@ -19,7 +19,7 @@ export const ICE_16BIT_PALETTE = {
 } as const;
 
 export interface IceTextureEngineContext {
-  createGraphics(id?: string): any;
+  createGraphics(id?: string): unknown;
   generateTexture?(
     target: unknown,
     options?: { resolution?: number; scaleMode?: "nearest" | "linear" }
@@ -29,7 +29,26 @@ export interface IceTextureEngineContext {
 /**
  * Desenha a silhueta chanfrada de um bloco de gelo 16-bits em múltiplas camadas.
  */
-export function drawBeveled16BitIceBlock(gfx: any, width: number, height: number): void {
+export function drawBeveled16BitIceBlock(
+  gfx: {
+    drawPolygon?: (
+      pts: { x: number; y: number }[],
+      opt?: {
+        fill?: { color: number; alpha?: number };
+        stroke?: { color: number; width?: number; alpha?: number };
+      }
+    ) => void;
+    drawRect?: (
+      x: number,
+      y: number,
+      w: number,
+      h: number,
+      opt?: { fill?: { color: number; alpha?: number } }
+    ) => void;
+  },
+  width: number,
+  height: number
+): void {
   // 1. Camada 1: Base Submersa Azul-Profundo (0x4A86E8) com chanfro inferior
   const submergedTopY = Math.round(height * 0.55);
   const bottomBevel = 4;
@@ -142,7 +161,19 @@ export function drawBeveled16BitIceBlock(gfx: any, width: number, height: number
 /**
  * Desenha um paredão vertical de iceberg 16-bits em múltiplas camadas.
  */
-export function draw16BitIcebergWall(gfx: any, width: number, height: number): void {
+export function draw16BitIcebergWall(
+  gfx: {
+    drawRect?: (
+      x: number,
+      y: number,
+      w: number,
+      h: number,
+      opt?: { fill?: { color: number; alpha?: number } }
+    ) => void;
+  },
+  width: number,
+  height: number
+): void {
   const submergedY = Math.round(height * 0.45);
 
   // 1. Base submersa azul-profundo (0x4A86E8)
@@ -210,32 +241,38 @@ export function create16BitIceTextures(engine: IceTextureEngineContext): {
 
   try {
     // 1. Pre-bake do bloco de gelo modular (120x40)
-    const tempBlockG = engine.createGraphics("ice_block_16bit_bake");
+    const tempBlockG = engine.createGraphics("ice_block_16bit_bake") as Parameters<
+      typeof drawBeveled16BitIceBlock
+    >[0] & { destroy?: () => void };
     drawBeveled16BitIceBlock(tempBlockG, 120, 40);
-    iceBlockTexture = engine.generateTexture(tempBlockG, {
+    const generatedBlock = engine.generateTexture(tempBlockG, {
       resolution: 0.5,
       scaleMode: "nearest",
     });
+    iceBlockTexture = generatedBlock ?? null;
     if (tempBlockG && typeof tempBlockG.destroy === "function") {
       tempBlockG.destroy();
     }
   } catch {
-    iceBlockTexture = null;
+    // ignore
   }
 
   try {
     // 2. Pre-bake do paredão de iceberg (360x300)
-    const tempWallG = engine.createGraphics("iceberg_wall_16bit_bake");
+    const tempWallG = engine.createGraphics("iceberg_wall_16bit_bake") as Parameters<
+      typeof draw16BitIcebergWall
+    >[0] & { destroy?: () => void };
     draw16BitIcebergWall(tempWallG, 360, 300);
-    icebergWallTexture = engine.generateTexture(tempWallG, {
+    const generatedWall = engine.generateTexture(tempWallG, {
       resolution: 0.5,
       scaleMode: "nearest",
     });
+    icebergWallTexture = generatedWall ?? null;
     if (tempWallG && typeof tempWallG.destroy === "function") {
       tempWallG.destroy();
     }
   } catch {
-    icebergWallTexture = null;
+    // ignore
   }
 
   return { iceBlockTexture, icebergWallTexture };

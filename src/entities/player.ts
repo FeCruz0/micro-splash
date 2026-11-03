@@ -624,7 +624,18 @@ export function createPlayer(
 
     trapInNet: (count: number) => {
       trapMgr.trapInNet(count);
-      const overlay = (baleia as any).netOverlaySprite;
+      const overlay = (
+        baleia as unknown as {
+          netOverlaySprite?: {
+            visible?: boolean;
+            hidden?: boolean;
+            opacity?: number;
+            alpha?: number;
+            setVisible?: (v: boolean) => void;
+            setOpacity?: (a: number) => void;
+          };
+        }
+      ).netOverlaySprite;
       if (overlay) {
         overlay.visible = true;
         overlay.hidden = false;
@@ -637,7 +648,18 @@ export function createPlayer(
 
     addTrapCount: (count: number) => {
       trapMgr.addTrapCount(count);
-      const overlay = (baleia as any).netOverlaySprite;
+      const overlay = (
+        baleia as unknown as {
+          netOverlaySprite?: {
+            visible?: boolean;
+            hidden?: boolean;
+            opacity?: number;
+            alpha?: number;
+            setVisible?: (v: boolean) => void;
+            setOpacity?: (a: number) => void;
+          };
+        }
+      ).netOverlaySprite;
       if (overlay) {
         overlay.visible = true;
         overlay.hidden = false;

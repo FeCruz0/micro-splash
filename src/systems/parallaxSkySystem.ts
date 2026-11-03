@@ -364,8 +364,9 @@ function createCloudObject(
     "sky_cloud",
   ]) as SkyRenderObject;
 
-  if (typeof (rawCloud as any).add === "function") {
-    (rawCloud as any).add([
+  const cloudObj = rawCloud as unknown as { add?: (components: unknown[]) => void };
+  if (typeof cloudObj.add === "function") {
+    cloudObj.add([
       engineOrContext.rect(options.width - 6, options.height * 0.55, {
         radius: (options.height * 0.55) / 2,
       }),

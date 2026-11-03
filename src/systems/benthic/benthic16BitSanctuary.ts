@@ -59,8 +59,30 @@ export const ARRAIAL_16BIT_PALETTE = {
   FISH_EYE_SPECULAR: 0xffffff,
 } as const;
 
+export interface SanctuaryGraphicsContext {
+  drawRect?(
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    opt?: { fill?: { color: number; alpha?: number } }
+  ): void;
+  drawRoundedRect?(
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    r: number,
+    opt?: { fill?: { color: number; alpha?: number } }
+  ): void;
+  drawPolygon?(
+    pts: { x: number; y: number }[],
+    opt?: { fill?: { color: number; alpha?: number } }
+  ): void;
+}
+
 export interface SanctuaryTextureEngineContext {
-  createGraphics(id?: string): any;
+  createGraphics(id?: string): SanctuaryGraphicsContext;
   generateTexture?(
     target: unknown,
     options?: { resolution?: number; scaleMode?: "nearest" | "linear" }
@@ -72,7 +94,7 @@ export interface SanctuaryTextureEngineContext {
  * e recorre a drawRect em contextos gráficos mínimos.
  */
 function fillRoundedBlock(
-  gfx: any,
+  gfx: SanctuaryGraphicsContext,
   x: number,
   y: number,
   w: number,
@@ -94,7 +116,7 @@ function fillRoundedBlock(
  * escura com borda clara no topo, pólipos brilhantes e base rochosa escura.
  */
 export function draw16BitBrainCoral(
-  gfx: any,
+  gfx: SanctuaryGraphicsContext,
   mainColor: number,
   baseColor: number,
   highlightColor: number,
@@ -163,7 +185,7 @@ export function draw16BitBrainCoral(
  * (nenhum polígono sólido).
  */
 export function draw16BitGorgonianFan(
-  gfx: any,
+  gfx: SanctuaryGraphicsContext,
   mainColor: number,
   baseColor: number,
   accentTipColor: number,
@@ -239,7 +261,7 @@ export function draw16BitGorgonianFan(
  * - Coroa de tentáculos ondulantes radiados com pontas luminosas e núcleos claros
  */
 export function draw16BitAnemone(
-  gfx: any,
+  gfx: SanctuaryGraphicsContext,
   bodyColor: number,
   baseColor: number,
   tentacleColor: number,
@@ -388,7 +410,7 @@ export function draw16BitAnemone(
  * Desenha um tentáculo individual 16-bits para anêmonas animadas dinâmicas.
  */
 export function draw16BitAnemoneTentacle(
-  gfx: any,
+  gfx: SanctuaryGraphicsContext,
   tentacleColor: number,
   tipColor: number,
   width: number = 8,
@@ -425,7 +447,7 @@ export function draw16BitAnemoneTentacle(
  * aberturas de ósculo e sombreamento basal.
  */
 export function draw16BitSponge(
-  gfx: any,
+  gfx: SanctuaryGraphicsContext,
   mainColor: number,
   baseColor: number,
   osculumColor: number,
@@ -497,7 +519,7 @@ export function draw16BitSponge(
  * - Olho pixelado anatômico (esclera branca, pupila preta, brilho especular puro)
  */
 export function draw16BitReefFish(
-  gfx: any,
+  gfx: SanctuaryGraphicsContext,
   bodyColor: number,
   finColor: number,
   stripeColor: number,

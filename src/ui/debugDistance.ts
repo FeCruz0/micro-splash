@@ -372,7 +372,7 @@ export function createDebugDistanceUI(
     resInfoText.setVisible(!isSerene);
     container.addChild(resInfoText);
 
-    let cachedFpsText = "-- FPS";
+    const cachedFpsText = "-- FPS";
 
     return {
       getContainer: (): { hidden?: boolean; [key: string]: unknown } =>
