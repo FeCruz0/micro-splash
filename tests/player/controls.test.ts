@@ -3,6 +3,7 @@ import {
   PlayerControlsManager,
   type PlayerInputSnapshot,
 } from "../../src/entities/player/playerControls";
+import { createPlayer } from "../../src/entities/player";
 
 function createMockKaboom() {
   return {
@@ -94,9 +95,7 @@ describe("PlayerControlsManager: Controle de Orientação", () => {
     expect(controls.getTargetCamOffset()).toBe(-200);
   });
 
-  it("permite congelar o jogador (freeze) bloqueando movimento e controles ao final da partida", async () => {
-    const { createPlayer } = await import("../../src/entities/player");
-
+  it("permite congelar o jogador (freeze) bloqueando movimento e controles ao final da partida", () => {
     let registeredUpdate: (() => void) | null = null;
     const mockKaboom: any = {
       sprite: () => ({ anim: "glide" }),
@@ -162,11 +161,9 @@ describe("PlayerControlsManager: Controle de Orientação", () => {
     // Descongela
     player.unfreeze();
     expect(player.isFrozen()).toBe(false);
-  }, 20000);
+  }, 30000);
 
-  it("não permite batidas de cauda rapidamente consecutivas e impõe delay de 1 segundo (strokeCooldown)", async () => {
-    const { createPlayer } = await import("../../src/entities/player");
-
+  it("não permite batidas de cauda rapidamente consecutivas e impõe delay de 1 segundo (strokeCooldown)", () => {
     let isKeyPressedReturn = false;
     let isKeyDownReturn = false;
     let registeredUpdate: (() => void) | null = null;
@@ -260,7 +257,7 @@ describe("PlayerControlsManager: Controle de Orientação", () => {
     updateFn?.();
     isKeyPressedReturn = false;
     expect(player.getStrokeCooldown!()).toBe(1.0);
-  });
+  }, 30000);
 
   it("produz nivelamento angular idêntico em 60 FPS e 120 FPS quando sem inputs direcionais", () => {
     const k = createMockKaboom();

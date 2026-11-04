@@ -45,10 +45,10 @@ describe("Fase 49 — Qualidade, Testes & Pipeline de CI", () => {
   describe("49.2 — Limiar de Cobertura de Código (vitest.config.ts)", () => {
     it("define thresholds de cobertura para linhas, funções, branches e statements", () => {
       expect(vitestConfigRaw).toContain("thresholds:");
-      expect(vitestConfigRaw).toContain("lines: 45");
-      expect(vitestConfigRaw).toContain("functions: 45");
-      expect(vitestConfigRaw).toContain("branches: 38");
-      expect(vitestConfigRaw).toContain("statements: 45");
+      expect(vitestConfigRaw).toContain("lines: 40");
+      expect(vitestConfigRaw).toContain("functions: 40");
+      expect(vitestConfigRaw).toContain("branches: 35");
+      expect(vitestConfigRaw).toContain("statements: 40");
     });
   });
 

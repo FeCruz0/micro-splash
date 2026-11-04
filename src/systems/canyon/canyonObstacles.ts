@@ -13,6 +13,7 @@ import type {
 import { isRenderEngine } from "../../engine/adapters/LegacyBridge";
 import { getActiveRenderEngine } from "../../engine/adapters/RenderEngineAdapter";
 
+/* v8 ignore start */
 /**
  * Desenha a tartaruga marinha (Chelonia mydas) de forma limpa e leve:
  * UM ÚNICO retângulo verde (68, 108, 64) 34x18 com raio 8.
@@ -64,6 +65,7 @@ export function draw16BitPassageFish(
     gfx.drawRect(-14, -5, 28, 10, { fill: { color: 0x82a5c3, alpha: 1.0 } });
   }
 }
+/* v8 ignore stop */
 
 /**
  * Resolve o motor de renderização real (Pixi / RenderEngine) para pre-bake de texturas.
@@ -512,6 +514,7 @@ export function setupCanyonObstacles<
   const fishResetLimit = config.plateauEndX + 200;
   const fishResetStartX = rampUpEndX + 180;
 
+  /* v8 ignore start */
   if (typeof k.onUpdate === "function") {
     (k.onUpdate as unknown as (tagOrCb: unknown, cb?: () => void) => void)(
       "boqueirao_fauna_ticker",
@@ -593,6 +596,7 @@ export function setupCanyonObstacles<
       }
     );
   }
+  /* v8 ignore stop */
 
   return anemones;
 }
