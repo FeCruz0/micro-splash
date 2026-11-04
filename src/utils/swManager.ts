@@ -15,7 +15,11 @@ export function initServiceWorker(onUpdateAvailable?: () => void): void {
 
   window.addEventListener("load", async () => {
     try {
-      const registration = await navigator.serviceWorker.register("/sw.js");
+      const base = import.meta.env.BASE_URL ?? "/";
+      const swPath = `${base.endsWith("/") ? base : `${base}/`}sw.js`;
+      const registration = await navigator.serviceWorker.register(swPath, {
+        scope: base,
+      });
       registrationInstance = registration;
       reportInformation("Service Worker registrado com sucesso.");
 

@@ -49,13 +49,44 @@ async function trimCache(cacheName, maxItems = MAX_DYNAMIC_CACHE_ITEMS) {
   }
 }
 
+function getScopeBase() {
+  if (self.registration && self.registration.scope) {
+    try {
+      return new URL(self.registration.scope).pathname;
+    } catch {
+      // Ignora erro de parsing em ambientes sem suporte
+    }
+  }
+  try {
+    return new URL("./", self.location.href).pathname;
+  } catch {
+    return "/";
+  }
+}
+
+function resolveAssetUrl(assetPath) {
+  const scopeBase = getScopeBase().replace(/\/+$/, "");
+  if (assetPath === "/") {
+    return scopeBase ? `${scopeBase}/` : "/";
+  }
+  const cleanPath = assetPath.startsWith("/") ? assetPath.slice(1) : assetPath;
+  return scopeBase ? `${scopeBase}/${cleanPath}` : `/${cleanPath}`;
+}
+
 // Instalação: Pré-cacheia os assets estruturais essenciais
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(CACHE_NAME)
-      .then((cache) => {
-        return cache.addAll(PRECACHE_ASSETS);
+      .then(async (cache) => {
+        const resolvedAssets = PRECACHE_ASSETS.map(resolveAssetUrl);
+        await Promise.allSettled(
+          resolvedAssets.map((url) =>
+            cache.add(url).catch(() => {
+              // Pre-cache tolerante para que 404 pontual não impeça a instalação do SW
+            })
+          )
+        );
       })
       .then(() => {
         return self.skipWaiting();
@@ -105,9 +136,17 @@ self.addEventListener("fetch", (event) => {
         .catch(async () => {
           const cachedResponse = await caches.match(event.request);
           if (cachedResponse) return cachedResponse;
-          const indexResponse = (await caches.match("/index.html")) || (await caches.match("/"));
+          const indexResponse =
+            (await caches.match(resolveAssetUrl("/index.html"))) ||
+            (await caches.match(resolveAssetUrl("/"))) ||
+            (await caches.match("/index.html")) ||
+            (await caches.match("/"));
           if (indexResponse) return indexResponse;
-          return (await caches.match("/offline.html")) || Response.error();
+          return (
+            (await caches.match(resolveAssetUrl("/offline.html"))) ||
+            (await caches.match("/offline.html")) ||
+            Response.error()
+          );
         })
     );
     return;

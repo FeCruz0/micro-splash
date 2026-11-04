@@ -21,13 +21,20 @@ export interface AssetLoaderEngineContext {
   loadSprite(name: string, src: string, opt?: SpriteLoadOptions): unknown;
 }
 
+function getAssetPath(relativePath: string): string {
+  const base = import.meta.env.BASE_URL ?? "/";
+  const cleanBase = base.endsWith("/") ? base : `${base}/`;
+  const cleanPath = relativePath.startsWith("/") ? relativePath.slice(1) : relativePath;
+  return `${cleanBase}${cleanPath}`;
+}
+
 /**
  * Carrega e configura todas as tipografias vetoriais do jogo.
  */
 export function loadGameFonts(k: AssetLoaderEngineContext): void {
-  k.loadFont("Inter", "/fonts/Inter-SemiBold.ttf", { size: 64, filter: "linear" });
-  k.loadFont("Outfit", "/fonts/Outfit-Bold.ttf", { size: 64, filter: "linear" });
-  k.loadFont("Orbitron", "/fonts/Orbitron-Bold.ttf", { size: 64, filter: "linear" });
+  k.loadFont("Inter", getAssetPath("/fonts/Inter-SemiBold.ttf"), { size: 64, filter: "linear" });
+  k.loadFont("Outfit", getAssetPath("/fonts/Outfit-Bold.ttf"), { size: 64, filter: "linear" });
+  k.loadFont("Orbitron", getAssetPath("/fonts/Orbitron-Bold.ttf"), { size: 64, filter: "linear" });
 }
 
 /**
@@ -35,7 +42,7 @@ export function loadGameFonts(k: AssetLoaderEngineContext): void {
  */
 export function loadGameSprites(k: AssetLoaderEngineContext): void {
   // Baleia Principal - 16 quadros de animação (Fase 44)
-  k.loadSprite("baleia", "/sprites/whale.png", {
+  k.loadSprite("baleia", getAssetPath("/sprites/whale.png"), {
     sliceX: 16,
     sliceY: 1,
     anims: {
@@ -49,7 +56,7 @@ export function loadGameSprites(k: AssetLoaderEngineContext): void {
   });
 
   // Fauna de Fundo e Cenário (Fase 11 / Polimento Visual)
-  k.loadSprite("orca_bg", "/sprites/orca_bg.png", {
+  k.loadSprite("orca_bg", getAssetPath("/sprites/orca_bg.png"), {
     sliceX: 4,
     sliceY: 1,
     anims: {
@@ -57,7 +64,7 @@ export function loadGameSprites(k: AssetLoaderEngineContext): void {
     },
   });
 
-  k.loadSprite("jubarte_bg", "/sprites/humpback_bg.png", {
+  k.loadSprite("jubarte_bg", getAssetPath("/sprites/humpback_bg.png"), {
     sliceX: 4,
     sliceY: 1,
     anims: {
@@ -65,7 +72,7 @@ export function loadGameSprites(k: AssetLoaderEngineContext): void {
     },
   });
 
-  k.loadSprite("cachalote_bg", "/sprites/cachalote_bg.png", {
+  k.loadSprite("cachalote_bg", getAssetPath("/sprites/cachalote_bg.png"), {
     sliceX: 4,
     sliceY: 1,
     anims: {

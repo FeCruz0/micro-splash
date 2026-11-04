@@ -1,7 +1,10 @@
 import { defineConfig } from "vite";
 import packageJson from "./package.json" with { type: "json" };
 
+declare const process: { env: Record<string, string | undefined> };
+
 export default defineConfig({
+  base: process.env.BASE_URL ?? "/micro-splash/",
   define: {
     __APP_VERSION__: JSON.stringify(packageJson.version),
   },
