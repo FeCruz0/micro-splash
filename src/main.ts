@@ -77,8 +77,10 @@ if (typeof window !== "undefined" && "serviceWorker" in navigator) {
     }
   } else {
     window.addEventListener("load", () => {
+      const base = import.meta.env.BASE_URL ?? "/";
+      const swPath = `${base.endsWith("/") ? base : `${base}/`}sw.js`;
       navigator.serviceWorker
-        .register("/sw.js")
+        .register(swPath, { scope: base })
         .then((registration) => {
           reportInformation(
             `[PWA] Micro Splash Service Worker ativo (Escopo: ${registration.scope})`
