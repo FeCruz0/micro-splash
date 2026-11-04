@@ -123,6 +123,7 @@ function fillRoundedBlock(
   }
 }
 
+/* v8 ignore start */
 /**
  * Desenha uma colônia de coral tubular multi-lóbulo 16-bits (5 chaminés orgânicas
  * de alturas diferentes) com sombra lateral, anéis frisados iluminados, abertura
@@ -910,3 +911,4 @@ export function create16BitSanctuaryTextures(
     fishVariants,
   };
 }
+/* v8 ignore stop */

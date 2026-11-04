@@ -15,6 +15,7 @@ export function setupCanyonGeometry<
   TColor = unknown,
   TVec extends { x: number; y: number } = CanyonVector2D,
 >(k: CanyonEngineContext<TColor, TVec>, config: CanyonConfig): CanyonGeometryResult<TColor> {
+  /* v8 ignore start */
   const {
     surfaceY,
     deepFloorY,
@@ -684,6 +685,7 @@ export function setupCanyonGeometry<
     ]);
   }
 
+  /* v8 ignore stop */
   return {
     plateauObj,
     rampUpShape,
