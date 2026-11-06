@@ -1,4 +1,5 @@
 import { GAME_CONFIG, TAGS } from "../config";
+import type { IScene, ISceneManager } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { createPlayer } from "../entities/player";
 import { createRescueBoat } from "../entities/boat";
 import { setupCollisions } from "../systems/collisions";
@@ -146,565 +147,644 @@ type GameSceneSubsystemEngine = Parameters<typeof createPlayer>[0] &
   Parameters<typeof createCompanionWhale>[0] &
   GameSceneEngineContext;
 
-export function registerGameScene(rawK: GameSceneEngineContext): void {
+export function registerGameScene(
+  rawK: GameSceneEngineContext,
+  sceneManager?: ISceneManager
+): void {
+  if (sceneManager) {
+    sceneManager.registerScene(createGameScene(rawK, sceneManager));
+    return;
+  }
+
+  const legacyScene = createGameScene(rawK);
+  if (typeof rawK.scene === "function") {
+    rawK.scene("game", (options: GameOptions = { mode: "standard" }) => {
+      legacyScene.enter(options);
+    });
+  }
+}
+
+export function createGameScene(
+  rawK: GameSceneEngineContext,
+  sceneManager?: ISceneManager
+): IScene {
   const k = rawK as unknown as GameSceneSubsystemEngine;
-  k.scene("game", (options: GameOptions = { mode: "standard" }) => {
-    let isGameFinished = false;
-    k.setGravity(GAME_CONFIG.GRAVITY);
+  let activeSceneCleanupCallbacks: Array<() => void> = [];
+  let updateGameLoopHandler: ((deltaTimeInSeconds: number) => void) | null = null;
 
-    // Posição inicial no mapa com base no modo selecionado
-    let initialX = 120;
-    if (options.mode === "quick_challenge") {
-      if (options.startBiome === 2)
-        initialX = 12200; // Costa Urbana
-      else if (options.startBiome === 3)
-        initialX = 19200; // Arraial do Cabo
-      else initialX = 120; // Antártica
-    }
+  return {
+    name: "game",
+    enter: (transitionData?: unknown) => {
+      activeSceneCleanupCallbacks = [];
+      const options: GameOptions = (transitionData as GameOptions | undefined) ?? {
+        mode: "standard",
+      };
+      let isGameFinished = false;
+      k.setGravity(GAME_CONFIG.GRAVITY);
 
-    // Overlay de Fade-In para suavizar a entrada no jogo
-    const fadeOverlay = k.add([
-      k.rect(k.width(), k.height()),
-      k.pos(0, 0),
-      k.color(6, 18, 42),
-      k.opacity(1),
-      k.fixed(),
-      k.z(100),
-    ]) as GameSceneUiObject;
+      const navigateToMenu = (): void => {
+        if (sceneManager) {
+          void sceneManager.loadScene("menu");
+        } else if (typeof k.go === "function") {
+          k.go("menu");
+        }
+      };
 
-    k.tween(
-      1,
-      0,
-      0.8,
-      (val) => {
-        fadeOverlay.opacity = val;
-      },
-      k.easings.easeOutQuad
-    ).then(() => {
-      k.destroy(fadeOverlay);
-    });
+      const navigateToGame = (restartOptions?: GameOptions): void => {
+        if (sceneManager) {
+          void sceneManager.loadScene("game", restartOptions);
+        } else if (typeof k.go === "function") {
+          k.go("game", restartOptions);
+        }
+      };
 
-    // Limites do mar
-    const oceanFloor = k.add([
-      k.rect(k.width() * 2, 60),
-      k.pos(-k.width() / 2, k.height() - 40),
-      k.area(),
-      k.body({ isStatic: true }),
-      k.color(20, 50, 120),
-    ]) as GameSceneUiObject;
+      const registerSceneLeaveHook = (cleanupCallback: () => void): void => {
+        activeSceneCleanupCallbacks.push(cleanupCallback);
+      };
 
-    // Área do céu acima do nível do mar (0px a 80px)
-    const skyBand = k.add([
-      k.rect(k.width() * 2, GAME_CONFIG.SEA_LEVEL),
-      k.pos(-k.width() / 2, 0),
-      k.color(120, 190, 245),
-      k.z(-10),
-      "sky",
-    ]) as GameSceneUiObject;
+      const originalOnSceneLeave = k.onSceneLeave;
+      k.onSceneLeave = ((cleanupCallback: () => void) => {
+        registerSceneLeaveHook(cleanupCallback);
+        if (typeof originalOnSceneLeave === "function") {
+          return originalOnSceneLeave(cleanupCallback);
+        }
+      }) as unknown as typeof k.onSceneLeave;
 
-    // Tag da superfície posicionada no nível do mar (80px) - Sistema Ondulado Orgânico (Fase 29.1)
-    const waterSurface = createWaterSurfaceSystem(k);
-    k.onSceneLeave(() => {
-      waterSurface.destroy();
-    });
+      // Posição inicial no mapa com base no modo selecionado
+      let initialX = 120;
+      if (options.mode === "quick_challenge") {
+        if (options.startBiome === 2)
+          initialX = 12200; // Costa Urbana
+        else if (options.startBiome === 3)
+          initialX = 19200; // Arraial do Cabo
+        else initialX = 120; // Antártica
+      }
 
-    // 1. Instancia Controles Touch, Estado, Jogador e UI de Debug
-    const touchControls = setupTouchControls(k);
-    k.onSceneLeave(() => {
-      touchControls.destroy();
-    });
-    const gameState = createGameState(options);
-    const playerController = createPlayer(
-      k,
-      initialX,
-      options.mode === "serene",
-      touchControls.state
-    );
-    const debugDistanceUI = createDebugDistanceUI(k, playerController);
-    k.onSceneLeave(() => {
-      debugDistanceUI.destroy();
-    });
-
-    // Na Migração Serena, o HUD exibido é o Debug HUD com telemetria completa, ativo por padrão.
-    // Na Migração Difícil, a tela começa sem HUD, podendo ser ativado pelo jogador a qualquer momento com F8.
-    if (options.mode === "serene") {
-      debugDistanceUI.setVisible(true);
-    }
-
-    // HUD adicional de modo no topo direito
-    let timerUI: GameSceneUiObject | null = null;
-    if (options.mode === "quick_challenge") {
-      timerUI = k.add([
-        k.text("⏱️ 60s", { size: 16.5, font: "Outfit" }),
-        k.pos(k.width() - 110, 18),
-        k.color(255, 220, 80),
+      // Overlay de Fade-In para suavizar a entrada no jogo
+      const fadeOverlay = k.add([
+        k.rect(k.width(), k.height()),
+        k.pos(0, 0),
+        k.color(6, 18, 42),
+        k.opacity(1),
         k.fixed(),
-        k.z(150),
+        k.z(100),
       ]) as GameSceneUiObject;
-    } else if (options.mode === "serene") {
-      k.add([
-        k.text("🌸 Migração Serena (∞)", { size: 14.5, font: "Outfit" }),
-        k.pos(k.width() - 190, 18),
-        k.color(140, 255, 200),
-        k.fixed(),
-        k.z(150),
-      ]);
-    } else if (options.mode === "weekly") {
-      k.add([
-        k.text(`📅 Desafio Semanal (#${options.seed || "Semanal"})`, {
-          size: 14.5,
-          font: "Outfit",
-        }),
-        k.pos(k.width() - 260, 18),
-        k.color(255, 220, 80),
-        k.fixed(),
-        k.z(150),
-      ]);
-    }
 
-    // 1.5. Registra Início da Jornada no Dashboard Coletivo (Fase 16) e Analytics (Fase 27)
-    recordMigrationStart();
-    analytics.trackGameStarted(options.mode, audioSystem.getSoundtrackMode());
-    let isStatsRecorded = false;
-    const recordEndOnce = (completed: boolean) => {
-      if (isStatsRecorded) return;
-      isStatsRecorded = true;
-      recordMigrationEnd(
-        gameState.getDistance(),
-        gameState.getKrillCount(),
-        gameState.getTrashCount(),
-        gameState.getElapsedTime(),
-        completed
-      );
-      if (completed) {
-        analytics.trackMigrationCompleted({
-          score: gameState.getScore(),
-          distance: gameState.getDistance(),
-          timeSeconds: gameState.getElapsedTime(),
-          biomesPassed: 5,
-        });
-      } else {
-        analytics.trackMigrationAbandoned({
-          distance: gameState.getDistance(),
-          cause: "oxygen",
-          biome: gameState.getCurrentBiome(),
-        });
-      }
-    };
-
-    // 2.5. Inicializa Núcleo de Otimização & Performance (Fase 15 & 39) e Apresentação (Fase 16)
-    const particlePool = initParticlePool(k);
-    const biomeManager = initBiomeLifecycleManager(k);
-    const spatialCulling = initSpatialCullingManager(k, 600);
-    const presentationMode = initPresentationMode(k, playerController);
-    const spatialGrid = initSpatialGrid<unknown>({ cellSize: 200 });
-    k.onSceneLeave(() => {
-      spatialGrid.clear();
-    });
-
-    // Trava escala da câmera permanentemente em 1.0 (Zero Dynamic Zoom)
-    if (typeof k.camScale === "function") {
-      if (typeof k.vec2 === "function") {
-        k.camScale(k.vec2(1.0, 1.0));
-      } else {
-        (k.camScale as (s: unknown) => void)(1.0);
-      }
-    }
-
-    // 2. Instancia obstáculos, krill, redes e bolsões de ar procedurais (com semente determinística caso informada)
-    const obstacleData = loadLevelLayout(k, true, options.seed);
-
-    // 3. Inicializa os Sistemas dos 5 Biomas e Correntezas Oceânicas Procedurais
-    setupIceSurfaceSystem(k, playerController);
-    setupBackgroundFaunaSystem(k);
-    setupShipNoiseSystem(k, playerController);
-    setupOceanCurrentsSystem(k, playerController, obstacleData?.currentZones);
-    setupCanyonSystem(k);
-    setupOceanFloorSystem(k);
-    setupLightRaysSystem(k);
-    setupParallaxSkySystem(k);
-    setupBenthicFloorSystem(k);
-    setupOilSpillSystem(k, playerController);
-    setupDolphinDraftingSystem(k, playerController);
-    setupPenguinFlockSystem(k);
-    setupWeatherSystem(k, playerController);
-
-    // Fase 20: Imersão Visual Avançada
-    setupDynamicShadowSystem(k, playerController);
-    setupBioluminescenceSystem(k, playerController);
-    // Vinhetas de localização e marcos geográficos exclusivas da Migração Serena
-    if (options.mode === "serene") {
-      setupBiomeVignetteSystem(k, playerController);
-    }
-    const sereneInsights = setupSereneInsightsSystem(k, options.mode === "serene");
-
-    // Fase 56 & 60: Baleia-Guia / Co-Migrante - Tutorial Mimético e Co-Migração Serena
-    const isCoMigrationMode = options.mode === "serene";
-    if ((initialX < 3200 || isCoMigrationMode) && shouldSpawnCompanionWhale(options.mode)) {
-      const companionWhale = createCompanionWhale(k, playerController, {
-        spatialGrid,
-        mode: options.mode,
-        isCoMigration: isCoMigrationMode,
-        autonomyMode: isCoMigrationMode ? "autonomous" : "guided",
-        infiniteOxygen: true,
+      k.tween(
+        1,
+        0,
+        0.8,
+        (val) => {
+          fadeOverlay.opacity = val;
+        },
+        k.easings.easeOutQuad
+      ).then(() => {
+        k.destroy(fadeOverlay);
       });
+
+      // Limites do mar
+      const oceanFloor = k.add([
+        k.rect(k.width() * 2, 60),
+        k.pos(-k.width() / 2, k.height() - 40),
+        k.area(),
+        k.body({ isStatic: true }),
+        k.color(20, 50, 120),
+      ]) as GameSceneUiObject;
+
+      // Área do céu acima do nível do mar (0px a 80px)
+      const skyBand = k.add([
+        k.rect(k.width() * 2, GAME_CONFIG.SEA_LEVEL),
+        k.pos(-k.width() / 2, 0),
+        k.color(120, 190, 245),
+        k.z(-10),
+        "sky",
+      ]) as GameSceneUiObject;
+
+      // Tag da superfície posicionada no nível do mar (80px) - Sistema Ondulado Orgânico (Fase 29.1)
+      const waterSurface = createWaterSurfaceSystem(k);
       k.onSceneLeave(() => {
-        companionWhale.destroy();
+        waterSurface.destroy();
       });
-    }
 
-    setupCinematicCameraSystem(k, playerController);
+      // 1. Instancia Controles Touch, Estado, Jogador e UI de Debug
+      const touchControls = setupTouchControls(k);
+      k.onSceneLeave(() => {
+        touchControls.destroy();
+      });
+      const gameState = createGameState(options);
+      const playerController = createPlayer(
+        k,
+        initialX,
+        options.mode === "serene",
+        touchControls.state
+      );
+      const debugDistanceUI = createDebugDistanceUI(k, playerController);
+      k.onSceneLeave(() => {
+        debugDistanceUI.destroy();
+      });
 
-    // Fase 29: Superfície, Céu & Atmosfera
-    setupAuroraSystem(k);
-    setupAbyssalFogSystem(k);
-    setupCoastalSurfSystem(k);
-
-    // Fase 30: Fundo Submarino, Iluminação & Identidade dos Obstáculos
-    setupMarineSnowSystem(k);
-    setupDepthDarknessSystem(k, playerController);
-
-    // 4. Inicializa áudio da migração e atalhos
-    audioSystem.startMigrationAudio(initialX);
-
-    const resumeAudioOnInteraction = () => {
-      audioSystem.resumeIfSuspended();
-    };
-
-    k.onKeyPress(resumeAudioOnInteraction);
-    k.onMousePress(resumeAudioOnInteraction);
-
-    // Tecla 'E': Sonar acústico (aciona insight pedagógico no modo sereno)
-    k.onKeyPress("e", () => {
+      // Na Migração Serena, o HUD exibido é o Debug HUD com telemetria completa, ativo por padrão.
+      // Na Migração Difícil, a tela começa sem HUD, podendo ser ativado pelo jogador a qualquer momento com F8.
       if (options.mode === "serene") {
-        sereneInsights?.trigger("sonar_communication");
+        debugDistanceUI.setVisible(true);
       }
-    });
 
-    // Tecla 'M': Silenciar / Ativar Som
-    k.onKeyPress("m", () => {
-      resumeAudioOnInteraction();
-      audioSystem.toggleMute();
-    });
-
-    // Teclas 'F8' e 'F3': Alterna o Painel de Telemetria e Diagnóstico de Desenvolvedor
-    const toggleDebugMenu = () => {
-      if (k.debug) {
-        k.debug.paused = false;
+      // HUD adicional de modo no topo direito
+      let timerUI: GameSceneUiObject | null = null;
+      if (options.mode === "quick_challenge") {
+        timerUI = k.add([
+          k.text("⏱️ 60s", { size: 16.5, font: "Outfit" }),
+          k.pos(k.width() - 110, 18),
+          k.color(255, 220, 80),
+          k.fixed(),
+          k.z(150),
+        ]) as GameSceneUiObject;
+      } else if (options.mode === "serene") {
+        k.add([
+          k.text("🌸 Migração Serena (∞)", { size: 14.5, font: "Outfit" }),
+          k.pos(k.width() - 190, 18),
+          k.color(140, 255, 200),
+          k.fixed(),
+          k.z(150),
+        ]);
+      } else if (options.mode === "weekly") {
+        k.add([
+          k.text(`📅 Desafio Semanal (#${options.seed || "Semanal"})`, {
+            size: 14.5,
+            font: "Outfit",
+          }),
+          k.pos(k.width() - 260, 18),
+          k.color(255, 220, 80),
+          k.fixed(),
+          k.z(150),
+        ]);
       }
-      debugDistanceUI.toggle();
-    };
 
-    k.onKeyPress("f8", toggleDebugMenu);
-    k.onKeyPress("f3", toggleDebugMenu);
-
-    // 5. Ativa colisões, ressurgência e o clímax do Salto Majestoso (Breach)
-    setupCollisions(k, playerController, gameState);
-    setupUpwellingSystem(k, playerController);
-
-    setupBreachSystem({
-      k: k as unknown as Parameters<typeof setupBreachSystem>[0]["k"],
-      playerController,
-      gameState,
-      showPrompt: options.mode === "serene",
-      onBreachComplete: () => {
-        if (!isGameFinished) {
-          isGameFinished = true;
-          recordEndOnce(true);
-          presentationMode.destroy();
-          sereneInsights?.destroy();
-          playerController.freeze();
-          audioSystem.pauseAmbient();
-          showVictoryScreen(k, gameState, () => {
-            audioSystem.stopMigrationAudio();
-            k.go("menu");
+      // 1.5. Registra Início da Jornada no Dashboard Coletivo (Fase 16) e Analytics (Fase 27)
+      recordMigrationStart();
+      analytics.trackGameStarted(options.mode, audioSystem.getSoundtrackMode());
+      let isStatsRecorded = false;
+      const recordEndOnce = (completed: boolean) => {
+        if (isStatsRecorded) return;
+        isStatsRecorded = true;
+        recordMigrationEnd(
+          gameState.getDistance(),
+          gameState.getKrillCount(),
+          gameState.getTrashCount(),
+          gameState.getElapsedTime(),
+          completed
+        );
+        if (completed) {
+          analytics.trackMigrationCompleted({
+            score: gameState.getScore(),
+            distance: gameState.getDistance(),
+            timeSeconds: gameState.getElapsedTime(),
+            biomesPassed: 5,
+          });
+        } else {
+          analytics.trackMigrationAbandoned({
+            distance: gameState.getDistance(),
+            cause: "oxygen",
+            biome: gameState.getCurrentBiome(),
           });
         }
-      },
-    });
+      };
 
-    let isRescueSequenceStarted = false;
-    let cachedEntityCount = 0;
-    let entityCountThrottleTimer = 0;
+      // 2.5. Inicializa Núcleo de Otimização & Performance (Fase 15 & 39) e Apresentação (Fase 16)
+      const particlePool = initParticlePool(k);
+      const biomeManager = initBiomeLifecycleManager(k);
+      const spatialCulling = initSpatialCullingManager(k, 600);
+      const presentationMode = initPresentationMode(k, playerController);
+      const spatialGrid = initSpatialGrid<unknown>({ cellSize: 200 });
+      k.onSceneLeave(() => {
+        spatialGrid.clear();
+      });
 
-    // 6. Orquestrador Central de Fases & Profiling (Fase 58 & 59)
-    const systemRunner = new SystemRunner();
-    const frameBudgetMonitor = new FrameBudgetMonitor();
-    const frameRateMonitor = new FrameRateMonitor(30);
-    systemRunner.setProfiler((phase, ms) => frameBudgetMonitor.recordPhaseDuration(phase, ms));
-
-    const handleVisibilityChange = () => {
-      if (typeof document !== "undefined" && document.visibilityState === "visible") {
-        frameRateMonitor.reset();
-      }
-    };
-    if (typeof document !== "undefined") {
-      document.addEventListener("visibilitychange", handleVisibilityChange);
-    }
-
-    k.onSceneLeave(() => {
-      if (typeof document !== "undefined") {
-        document.removeEventListener("visibilitychange", handleVisibilityChange);
-      }
-      systemRunner.clear();
-      frameBudgetMonitor.reset();
-      frameRateMonitor.reset();
-    });
-
-    // Fase 1: INPUT
-    systemRunner.register(
-      "input",
-      () => {
-        const pad = gamepadSystem.pollGamepadState();
-        if (pad.pausePressed) {
-          presentationMode.togglePause();
+      // Trava escala da câmera permanentemente em 1.0 (Zero Dynamic Zoom)
+      if (typeof k.camScale === "function") {
+        if (typeof k.vec2 === "function") {
+          k.camScale(k.vec2(1.0, 1.0));
+        } else {
+          (k.camScale as (s: unknown) => void)(1.0);
         }
-      },
-      { id: "gamepad_input" }
-    );
+      }
 
-    // Fase 2: PHYSICS
-    let spatialGridSyncTimer = 0;
-    systemRunner.register(
-      "physics",
-      (dt) => {
-        particlePool.update(dt);
+      // 2. Instancia obstáculos, krill, redes e bolsões de ar procedurais (com semente determinística caso informada)
+      const obstacleData = loadLevelLayout(k, true, options.seed);
 
-        spatialGridSyncTimer += dt;
-        if (spatialGridSyncTimer >= 0.5) {
-          spatialGridSyncTimer = 0;
-          spatialGrid.clear();
-          const krills = typeof k.get === "function" ? k.get(TAGS.KRILL) : [];
-          for (let i = 0; i < krills.length; i++) {
-            const krill = krills[i];
-            if (krill && krill.pos) {
-              spatialGrid.insert(`krill_${krill.id ?? i}`, krill, {
-                minX: krill.pos.x - 8,
-                minY: krill.pos.y - 8,
-                maxX: krill.pos.x + 8,
-                maxY: krill.pos.y + 8,
-              });
-            }
-          }
-        }
-      },
-      { id: "particle_simulation" }
-    );
+      // 3. Inicializa os Sistemas dos 5 Biomas e Correntezas Oceânicas Procedurais
+      setupIceSurfaceSystem(k, playerController);
+      setupBackgroundFaunaSystem(k);
+      setupShipNoiseSystem(k, playerController);
+      setupOceanCurrentsSystem(k, playerController, obstacleData?.currentZones);
+      setupCanyonSystem(k);
+      setupOceanFloorSystem(k);
+      setupLightRaysSystem(k);
+      setupParallaxSkySystem(k);
+      setupBenthicFloorSystem(k);
+      setupOilSpillSystem(k, playerController);
+      setupDolphinDraftingSystem(k, playerController);
+      setupPenguinFlockSystem(k);
+      setupWeatherSystem(k, playerController);
 
-    // Fase 3: AI & Pedagogy
-    systemRunner.register(
-      "ai",
-      (dt) => {
-        if (isGameFinished || playerController.isFainting()) return;
-        const playerXPosition = playerController.gameObj.pos.x;
-        gameState.update(dt, playerXPosition);
+      // Fase 20: Imersão Visual Avançada
+      setupDynamicShadowSystem(k, playerController);
+      setupBioluminescenceSystem(k, playerController);
+      // Vinhetas de localização e marcos geográficos exclusivas da Migração Serena
+      if (options.mode === "serene") {
+        setupBiomeVignetteSystem(k, playerController);
+      }
+      const sereneInsights = setupSereneInsightsSystem(k, options.mode === "serene");
 
+      // Fase 56 & 60: Baleia-Guia / Co-Migrante - Tutorial Mimético e Co-Migração Serena
+      const isCoMigrationMode = options.mode === "serene";
+      if ((initialX < 3200 || isCoMigrationMode) && shouldSpawnCompanionWhale(options.mode)) {
+        const companionWhale = createCompanionWhale(k, playerController, {
+          spatialGrid,
+          mode: options.mode,
+          isCoMigration: isCoMigrationMode,
+          autonomyMode: isCoMigrationMode ? "autonomous" : "guided",
+          infiniteOxygen: true,
+        });
+        k.onSceneLeave(() => {
+          companionWhale.destroy();
+        });
+      }
+
+      setupCinematicCameraSystem(k, playerController);
+
+      // Fase 29: Superfície, Céu & Atmosfera
+      setupAuroraSystem(k);
+      setupAbyssalFogSystem(k);
+      setupCoastalSurfSystem(k);
+
+      // Fase 30: Fundo Submarino, Iluminação & Identidade dos Obstáculos
+      setupMarineSnowSystem(k);
+      setupDepthDarknessSystem(k, playerController);
+
+      // 4. Inicializa áudio da migração e atalhos
+      audioSystem.startMigrationAudio(initialX);
+
+      const resumeAudioOnInteraction = () => {
+        audioSystem.resumeIfSuspended();
+      };
+
+      k.onKeyPress(resumeAudioOnInteraction);
+      k.onMousePress(resumeAudioOnInteraction);
+
+      // Tecla 'E': Sonar acústico (aciona insight pedagógico no modo sereno)
+      k.onKeyPress("e", () => {
         if (options.mode === "serene") {
-          sereneInsights?.update(dt);
-
-          gameState.checkFacts(playerXPosition, (fact) => {
-            showFactPopup(k, fact);
-          });
-
-          // Gatilhos pedagógicos dinâmicos da Migração Serena
-          if (playerController.gameObj.pos.y <= GAME_CONFIG.SEA_LEVEL + 6) {
-            sereneInsights?.trigger("surface_breathing");
-          }
-          if (playerController.getSpeed().len() > 80) {
-            sereneInsights?.trigger("tail_propulsion");
-          }
-          if (playerXPosition >= 180 && playerXPosition <= 500) {
-            sereneInsights?.trigger("ice_gap_breathing");
-          }
-          if (playerXPosition >= 7000 && playerXPosition <= 11000) {
-            sereneInsights?.trigger("dolphin_drafting");
-          }
-          if (playerXPosition >= 19500 && playerXPosition <= 24000) {
-            sereneInsights?.trigger("upwelling_currents");
-          }
-          if (playerXPosition >= 26500) {
-            sereneInsights?.trigger("nursery_sanctuary");
-          }
+          sereneInsights?.trigger("sonar_communication");
         }
-      },
-      { id: "ai_and_pedagogy" }
-    );
+      });
 
-    // Fase 4: COLLISION & Conditions
-    systemRunner.register(
-      "collision",
-      () => {
-        if (isGameFinished) return;
-        const playerXPosition = playerController.gameObj.pos.x;
+      // Tecla 'M': Silenciar / Ativar Som
+      k.onKeyPress("m", () => {
+        resumeAudioOnInteraction();
+        audioSystem.toggleMute();
+      });
 
-        // Fallback de segurança para conclusão caso alcance ou ultrapasse a rota
-        if (playerXPosition >= GAME_CONFIG.ROUTE_TOTAL_DISTANCE) {
-          isGameFinished = true;
-          recordEndOnce(true);
-          presentationMode.destroy();
-          sereneInsights?.destroy();
-          playerController.freeze();
-          audioSystem.pauseAmbient();
-          showVictoryScreen(k, gameState, () => {
-            audioSystem.stopMigrationAudio();
-            k.go("menu");
-          });
-          return;
+      // Teclas 'F8' e 'F3': Alterna o Painel de Telemetria e Diagnóstico de Desenvolvedor
+      const toggleDebugMenu = () => {
+        if (k.debug) {
+          k.debug.paused = false;
         }
+        debugDistanceUI.toggle();
+      };
 
-        // Checagem de resgate caso a baleia tenha desmaiado
-        if (playerController.isFainting() && !isRescueSequenceStarted && !isGameFinished) {
-          if (
-            playerXPosition >= GAME_CONFIG.ROUTE_TOTAL_DISTANCE - 400 ||
-            playerController.isBreaching()
-          ) {
-            return;
-          }
+      k.onKeyPress("f8", toggleDebugMenu);
+      k.onKeyPress("f3", toggleDebugMenu);
 
-          isRescueSequenceStarted = true;
-          audioSystem.pauseAmbient();
-          createRescueBoat(k, playerController.gameObj.pos);
+      // 5. Ativa colisões, ressurgência e o clímax do Salto Majestoso (Breach)
+      setupCollisions(k, playerController, gameState);
+      setupUpwellingSystem(k, playerController);
 
-          k.wait(3.5, () => {
-            recordEndOnce(false);
+      setupBreachSystem({
+        k: k as unknown as Parameters<typeof setupBreachSystem>[0]["k"],
+        playerController,
+        gameState,
+        showPrompt: options.mode === "serene",
+        onBreachComplete: () => {
+          if (!isGameFinished) {
+            isGameFinished = true;
+            recordEndOnce(true);
             presentationMode.destroy();
             sereneInsights?.destroy();
             playerController.freeze();
-            showRescueScreen(k, gameState, () => {
+            audioSystem.pauseAmbient();
+            showVictoryScreen(k, gameState, () => {
               audioSystem.stopMigrationAudio();
-              k.go("menu");
+              navigateToMenu();
             });
-          });
-        }
-      },
-      { id: "collision_and_endings" }
-    );
-
-    // Fase 5: CULLING & Lifecycle
-    systemRunner.register(
-      "culling",
-      () => {
-        const playerXPosition = playerController.gameObj.pos.x;
-        const currentCameraPosition = typeof k.camPos === "function" ? k.camPos() : k.vec2(0, 0);
-        biomeManager.update(playerXPosition);
-        spatialCulling.update(currentCameraPosition.x);
-      },
-      { id: "spatial_and_biome_culling" }
-    );
-
-    // Fase 6: RENDER & UI
-    systemRunner.register(
-      "render",
-      (dt) => {
-        if (isGameFinished) return;
-
-        const playerXPosition = playerController.gameObj.pos.x;
-        const currentCameraPosition = typeof k.camPos === "function" ? k.camPos() : k.vec2(0, 0);
-        const currentScreenWidth = typeof k.width === "function" ? k.width() : 1280;
-        const currentScreenHeight = typeof k.height === "function" ? k.height() : 720;
-
-        // Atualiza o cronômetro do Desafio Rápido de 1 Minuto
-        if (timerUI && options.mode === "quick_challenge") {
-          const remaining = gameState.getTimeRemaining();
-          timerUI.text = `⏱️ ${remaining}s`;
-          if (remaining <= 10) {
-            timerUI.color = k.rgb(255, 80, 80);
           }
+        },
+      });
 
-          if (gameState.isTimeUp() && !isGameFinished) {
+      let isRescueSequenceStarted = false;
+      let cachedEntityCount = 0;
+      let entityCountThrottleTimer = 0;
+
+      // 6. Orquestrador Central de Fases & Profiling (Fase 58 & 59)
+      const systemRunner = new SystemRunner();
+      const frameBudgetMonitor = new FrameBudgetMonitor();
+      const frameRateMonitor = new FrameRateMonitor(30);
+      systemRunner.setProfiler((phase, ms) => frameBudgetMonitor.recordPhaseDuration(phase, ms));
+
+      const handleVisibilityChange = () => {
+        if (typeof document !== "undefined" && document.visibilityState === "visible") {
+          frameRateMonitor.reset();
+        }
+      };
+      if (typeof document !== "undefined") {
+        document.addEventListener("visibilitychange", handleVisibilityChange);
+      }
+
+      k.onSceneLeave(() => {
+        if (typeof document !== "undefined") {
+          document.removeEventListener("visibilitychange", handleVisibilityChange);
+        }
+        systemRunner.clear();
+        frameBudgetMonitor.reset();
+        frameRateMonitor.reset();
+      });
+
+      // Fase 1: INPUT
+      systemRunner.register(
+        "input",
+        () => {
+          const pad = gamepadSystem.pollGamepadState();
+          if (pad.pausePressed) {
+            presentationMode.togglePause();
+          }
+        },
+        { id: "gamepad_input" }
+      );
+
+      // Fase 2: PHYSICS
+      let spatialGridSyncTimer = 0;
+      systemRunner.register(
+        "physics",
+        (dt) => {
+          particlePool.update(dt);
+
+          spatialGridSyncTimer += dt;
+          if (spatialGridSyncTimer >= 0.5) {
+            spatialGridSyncTimer = 0;
+            spatialGrid.clear();
+            const krills = typeof k.get === "function" ? k.get(TAGS.KRILL) : [];
+            for (let i = 0; i < krills.length; i++) {
+              const krill = krills[i];
+              if (krill && krill.pos) {
+                spatialGrid.insert(`krill_${krill.id ?? i}`, krill, {
+                  minX: krill.pos.x - 8,
+                  minY: krill.pos.y - 8,
+                  maxX: krill.pos.x + 8,
+                  maxY: krill.pos.y + 8,
+                });
+              }
+            }
+          }
+        },
+        { id: "particle_simulation" }
+      );
+
+      // Fase 3: AI & Pedagogy
+      systemRunner.register(
+        "ai",
+        (dt) => {
+          if (isGameFinished || playerController.isFainting()) return;
+          const playerXPosition = playerController.gameObj.pos.x;
+          gameState.update(dt, playerXPosition);
+
+          if (options.mode === "serene") {
+            sereneInsights?.update(dt);
+
+            gameState.checkFacts(playerXPosition, (fact) => {
+              showFactPopup(k, fact);
+            });
+
+            // Gatilhos pedagógicos dinâmicos da Migração Serena
+            if (playerController.gameObj.pos.y <= GAME_CONFIG.SEA_LEVEL + 6) {
+              sereneInsights?.trigger("surface_breathing");
+            }
+            if (playerController.getSpeed().len() > 80) {
+              sereneInsights?.trigger("tail_propulsion");
+            }
+            if (playerXPosition >= 180 && playerXPosition <= 500) {
+              sereneInsights?.trigger("ice_gap_breathing");
+            }
+            if (playerXPosition >= 7000 && playerXPosition <= 11000) {
+              sereneInsights?.trigger("dolphin_drafting");
+            }
+            if (playerXPosition >= 19500 && playerXPosition <= 24000) {
+              sereneInsights?.trigger("upwelling_currents");
+            }
+            if (playerXPosition >= 26500) {
+              sereneInsights?.trigger("nursery_sanctuary");
+            }
+          }
+        },
+        { id: "ai_and_pedagogy" }
+      );
+
+      // Fase 4: COLLISION & Conditions
+      systemRunner.register(
+        "collision",
+        () => {
+          if (isGameFinished) return;
+          const playerXPosition = playerController.gameObj.pos.x;
+
+          // Fallback de segurança para conclusão caso alcance ou ultrapasse a rota
+          if (playerXPosition >= GAME_CONFIG.ROUTE_TOTAL_DISTANCE) {
             isGameFinished = true;
-            recordEndOnce(false);
+            recordEndOnce(true);
             presentationMode.destroy();
+            sereneInsights?.destroy();
             playerController.freeze();
             audioSystem.pauseAmbient();
-            showChallengeEndScreen(
-              k,
-              gameState,
-              () => {
-                k.go("game", options);
-              },
-              () => {
-                audioSystem.stopMigrationAudio();
-                k.go("menu");
-              }
-            );
+            showVictoryScreen(k, gameState, () => {
+              audioSystem.stopMigrationAudio();
+              navigateToMenu();
+            });
             return;
           }
-        }
 
-        // Telemetria do Debug HUD
-        if (debugDistanceUI.isVisible()) {
-          entityCountThrottleTimer += dt;
-          if (entityCountThrottleTimer >= 0.5 || cachedEntityCount === 0) {
-            entityCountThrottleTimer = 0;
-            cachedEntityCount = k.get("*").length;
+          // Checagem de resgate caso a baleia tenha desmaiado
+          if (playerController.isFainting() && !isRescueSequenceStarted && !isGameFinished) {
+            if (
+              playerXPosition >= GAME_CONFIG.ROUTE_TOTAL_DISTANCE - 400 ||
+              playerController.isBreaching()
+            ) {
+              return;
+            }
+
+            isRescueSequenceStarted = true;
+            audioSystem.pauseAmbient();
+            createRescueBoat(k, playerController.gameObj.pos);
+
+            k.wait(3.5, () => {
+              recordEndOnce(false);
+              presentationMode.destroy();
+              sereneInsights?.destroy();
+              playerController.freeze();
+              showRescueScreen(k, gameState, () => {
+                audioSystem.stopMigrationAudio();
+                navigateToMenu();
+              });
+            });
+          }
+        },
+        { id: "collision_and_endings" }
+      );
+
+      // Fase 5: CULLING & Lifecycle
+      systemRunner.register(
+        "culling",
+        () => {
+          const playerXPosition = playerController.gameObj.pos.x;
+          const currentCameraPosition = typeof k.camPos === "function" ? k.camPos() : k.vec2(0, 0);
+          biomeManager.update(playerXPosition);
+          spatialCulling.update(currentCameraPosition.x);
+        },
+        { id: "spatial_and_biome_culling" }
+      );
+
+      // Fase 6: RENDER & UI
+      systemRunner.register(
+        "render",
+        (dt) => {
+          if (isGameFinished) return;
+
+          const playerXPosition = playerController.gameObj.pos.x;
+          const currentCameraPosition = typeof k.camPos === "function" ? k.camPos() : k.vec2(0, 0);
+          const currentScreenWidth = typeof k.width === "function" ? k.width() : 1280;
+          const currentScreenHeight = typeof k.height === "function" ? k.height() : 720;
+
+          // Atualiza o cronômetro do Desafio Rápido de 1 Minuto
+          if (timerUI && options.mode === "quick_challenge") {
+            const remaining = gameState.getTimeRemaining();
+            timerUI.text = `⏱️ ${remaining}s`;
+            if (remaining <= 10) {
+              timerUI.color = k.rgb(255, 80, 80);
+            }
+
+            if (gameState.isTimeUp() && !isGameFinished) {
+              isGameFinished = true;
+              recordEndOnce(false);
+              presentationMode.destroy();
+              playerController.freeze();
+              audioSystem.pauseAmbient();
+              showChallengeEndScreen(
+                k,
+                gameState,
+                () => {
+                  navigateToGame(options);
+                },
+                () => {
+                  audioSystem.stopMigrationAudio();
+                  navigateToMenu();
+                }
+              );
+              return;
+            }
           }
 
-          const stats = particlePool.getStats();
-          const frameMetrics = frameRateMonitor.tick();
-          const activeMods = biomeManager.getActiveModules();
-          const modsText = activeMods.length > 0 ? activeMods.join(", ") : "Transição";
-          const cullingStats = spatialCulling.getStats();
-          const snapshot = frameBudgetMonitor.getSnapshot(frameMetrics.frameTimeMs);
-          const budgetStatus = snapshot.isBudgetExceeded ? "⚠️ Overrun" : "Budget OK";
+          // Telemetria do Debug HUD
+          if (debugDistanceUI.isVisible()) {
+            entityCountThrottleTimer += dt;
+            if (entityCountThrottleTimer >= 0.5 || cachedEntityCount === 0) {
+              entityCountThrottleTimer = 0;
+              cachedEntityCount = k.get("*").length;
+            }
 
-          debugDistanceUI.update(playerXPosition, {
-            fps: frameMetrics.fps,
-            entities: cachedEntityCount,
-            activeParticles: stats.activeCircles + stats.activeRects,
-            totalParticles: stats.totalCircles + stats.totalRects,
-            activeModules: modsText,
-            frameTimeMs: frameMetrics.frameTimeMs,
-            visibleEntities: cullingStats.visibleEntities,
-            culledEntities: cullingStats.culledEntities,
-            budgetStatus,
-          });
+            const stats = particlePool.getStats();
+            const frameMetrics = frameRateMonitor.tick();
+            const activeMods = biomeManager.getActiveModules();
+            const modsText = activeMods.length > 0 ? activeMods.join(", ") : "Transição";
+            const cullingStats = spatialCulling.getStats();
+            const snapshot = frameBudgetMonitor.getSnapshot(frameMetrics.frameTimeMs);
+            const budgetStatus = snapshot.isBudgetExceeded ? "⚠️ Overrun" : "Budget OK";
+
+            debugDistanceUI.update(playerXPosition, {
+              fps: frameMetrics.fps,
+              entities: cachedEntityCount,
+              activeParticles: stats.activeCircles + stats.activeRects,
+              totalParticles: stats.totalCircles + stats.totalRects,
+              activeModules: modsText,
+              frameTimeMs: frameMetrics.frameTimeMs,
+              visibleEntities: cullingStats.visibleEntities,
+              culledEntities: cullingStats.culledEntities,
+              budgetStatus,
+            });
+          }
+
+          // Atualização de Trilha e Ressonância Acústica Subaquática
+          if (!playerController.isFainting()) {
+            audioSystem.updateBiomeTrack(playerXPosition);
+            audioSystem.updateDepthAcoustics(playerController.gameObj.pos.y);
+          }
+
+          // Posicionamento de limites e cores do oceano
+          oceanFloor.pos.x = currentCameraPosition.x - currentScreenWidth;
+          oceanFloor.pos.y = currentScreenHeight - 40;
+          waterSurface.updatePosition(currentCameraPosition.x);
+          skyBand.pos.x = currentCameraPosition.x - currentScreenWidth;
+          updateOceanColors(k, playerXPosition, waterSurface, oceanFloor, skyBand);
+        },
+        { id: "render_and_ui" }
+      );
+
+      // 7. Loop Principal da Cena de Jogo (Fases canônicas via SystemRunner)
+      updateGameLoopHandler = (deltaTimeInSeconds: number) => {
+        if (k.debug && k.debug.paused) {
+          k.debug.paused = false;
         }
 
-        // Atualização de Trilha e Ressonância Acústica Subaquática
-        if (!playerController.isFainting()) {
-          audioSystem.updateBiomeTrack(playerXPosition);
-          audioSystem.updateDepthAcoustics(playerController.gameObj.pos.y);
+        if (isGameFinished) {
+          return;
         }
 
-        // Posicionamento de limites e cores do oceano
-        oceanFloor.pos.x = currentCameraPosition.x - currentScreenWidth;
-        oceanFloor.pos.y = currentScreenHeight - 40;
-        waterSurface.updatePosition(currentCameraPosition.x);
-        skyBand.pos.x = currentCameraPosition.x - currentScreenWidth;
-        updateOceanColors(k, playerXPosition, waterSurface, oceanFloor, skyBand);
-      },
-      { id: "render_and_ui" }
-    );
-
-    // 7. Loop Principal da Cena de Jogo (Fases canônicas via SystemRunner)
-    k.onUpdate((passedDeltaTime?: number) => {
-      if (k.debug && k.debug.paused) {
-        k.debug.paused = false;
-      }
-
-      if (isGameFinished) {
-        return;
-      }
-
-      // Se estiver em Pausa Didática (Modo Apresentação F16), congela física e atualiza o painel
-      if (presentationMode.isDidacticPaused()) {
+        // Se estiver em Pausa Didática (Modo Apresentação F16), congela física e atualiza o painel
+        if (presentationMode.isDidacticPaused()) {
+          presentationMode.update();
+          return;
+        }
         presentationMode.update();
-        return;
+
+        // Despacho determinístico de todas as fases canônicas:
+        // input -> physics -> ai -> collision -> culling -> render
+        systemRunner.run(deltaTimeInSeconds);
+      };
+
+      k.onUpdate((passedDeltaTime?: number) => {
+        const rawDeltaTime =
+          typeof passedDeltaTime === "number"
+            ? passedDeltaTime
+            : typeof k.dt === "function"
+              ? k.dt()
+              : 0.0166;
+        const deltaTimeInSeconds = Math.min(Math.max(0, rawDeltaTime), GAME_CONFIG.MAX_DELTA_TIME);
+        if (updateGameLoopHandler) {
+          updateGameLoopHandler(deltaTimeInSeconds);
+        }
+      });
+    },
+    update: (deltaTimeInSeconds: number) => {
+      if (updateGameLoopHandler) {
+        updateGameLoopHandler(deltaTimeInSeconds);
       }
-      presentationMode.update();
-
-      const rawDeltaTime =
-        typeof passedDeltaTime === "number"
-          ? passedDeltaTime
-          : typeof k.dt === "function"
-            ? k.dt()
-            : 0.0166;
-      const deltaTimeInSeconds = Math.min(Math.max(0, rawDeltaTime), GAME_CONFIG.MAX_DELTA_TIME);
-
-      // Despacho determinístico de todas as fases canônicas:
-      // input -> physics -> ai -> collision -> culling -> render
-      systemRunner.run(deltaTimeInSeconds);
-    });
-  });
+    },
+    exit: () => {
+      for (const cleanupCallback of activeSceneCleanupCallbacks) {
+        try {
+          cleanupCallback();
+        } catch (error) {
+          console.error("Erro ao executar cleanup da cena de jogo:", error);
+        }
+      }
+      activeSceneCleanupCallbacks = [];
+      updateGameLoopHandler = null;
+    },
+  };
 }

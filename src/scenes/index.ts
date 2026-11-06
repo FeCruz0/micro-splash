@@ -1,10 +1,27 @@
-import { registerSplashScene, type SplashSceneEngineContext } from "./splashScene";
-import { registerMenuScene, type MenuSceneEngineContext } from "./menuScene";
-import { registerStartScene, type StartSceneEngineContext } from "./startScene";
-import { registerKioskScene, type KioskSceneEngineContext } from "./kioskScene";
-import { registerGameScene, type GameSceneEngineContext } from "./gameScene";
-import { registerRescueScene, type RescueSceneEngineContext } from "./rescueScene";
-import { registerGameOverScene, type GameOverSceneEngineContext } from "./gameoverScene";
+import type { ISceneManager } from "../engine/contracts/INTERFACE_CONTRACTS";
+import {
+  registerSplashScene,
+  createSplashScene,
+  type SplashSceneEngineContext,
+} from "./splashScene";
+import { registerMenuScene, createMenuScene, type MenuSceneEngineContext } from "./menuScene";
+import { registerStartScene, createStartScene, type StartSceneEngineContext } from "./startScene";
+import {
+  registerKioskScene,
+  createKioskSceneInstance,
+  type KioskSceneEngineContext,
+} from "./kioskScene";
+import { registerGameScene, createGameScene, type GameSceneEngineContext } from "./gameScene";
+import {
+  registerRescueScene,
+  createRescueScene,
+  type RescueSceneEngineContext,
+} from "./rescueScene";
+import {
+  registerGameOverScene,
+  createGameOverScene,
+  type GameOverSceneEngineContext,
+} from "./gameoverScene";
 
 export interface AllScenesEngineContext
   extends
@@ -16,24 +33,34 @@ export interface AllScenesEngineContext
     RescueSceneEngineContext,
     GameOverSceneEngineContext {}
 
-export function registerAllScenes(k: AllScenesEngineContext): void {
-  registerSplashScene(k);
-  registerMenuScene(k);
-  registerStartScene(k);
-  registerKioskScene(k);
-  registerGameScene(k);
-  registerRescueScene(k);
-  registerGameOverScene(k);
+export function registerAllScenes(
+  engineContext: AllScenesEngineContext,
+  sceneManager?: ISceneManager
+): void {
+  registerSplashScene(engineContext, sceneManager);
+  registerMenuScene(engineContext, sceneManager);
+  registerStartScene(engineContext, sceneManager);
+  registerKioskScene(engineContext, sceneManager);
+  registerGameScene(engineContext, sceneManager);
+  registerRescueScene(engineContext, sceneManager);
+  registerGameOverScene(engineContext, sceneManager);
 }
 
 export {
   registerSplashScene,
+  createSplashScene,
   registerMenuScene,
+  createMenuScene,
   registerStartScene,
+  createStartScene,
   registerKioskScene,
+  createKioskSceneInstance,
   registerGameScene,
+  createGameScene,
   registerRescueScene,
+  createRescueScene,
   registerGameOverScene,
+  createGameOverScene,
 };
 
 export { loadGameFonts, loadGameSprites, loadAllGameAssets } from "./assetLoader";

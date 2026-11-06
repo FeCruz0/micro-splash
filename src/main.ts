@@ -409,8 +409,8 @@ async function bootstrapRenderEngine(): Promise<void> {
     });
   }
 
-  // Registra todas as cenas modulares do jogo (Fase 37.7)
-  registerAllScenes(engineBridge);
+  // Registra todas as cenas modulares do jogo (Fase 37.7 / Migração IScene Etapa 1.3)
+  registerAllScenes(engineBridge, sceneManager);
 
   // Sincroniza o SceneManager com o ticker único do RenderEngineAdapter
   renderEngine.getTicker().add((dt) => {
@@ -418,7 +418,7 @@ async function bootstrapRenderEngine(): Promise<void> {
   });
 
   // Inicia o jogo na Splash Screen Animada (Fase 13)
-  engineBridge.go("splash");
+  void sceneManager.loadScene("splash");
 }
 
 void bootstrapRenderEngine();

@@ -1,3 +1,4 @@
+import type { IScene, ISceneManager } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { registerMenuScene, type MenuSceneEngineContext } from "./menuScene";
 
 export interface StartSceneEngineContext extends MenuSceneEngineContext {
@@ -6,9 +7,36 @@ export interface StartSceneEngineContext extends MenuSceneEngineContext {
   go(id: string, ...args: unknown[]): unknown;
 }
 
-export function registerStartScene(k: StartSceneEngineContext): void {
-  registerMenuScene(k);
-  k.scene("start", () => {
-    k.go("menu");
-  });
+export function createStartScene(
+  _engineContext: StartSceneEngineContext,
+  sceneManager: ISceneManager
+): IScene {
+  return {
+    name: "start",
+    enter: () => {
+      void sceneManager.loadScene("menu");
+    },
+    update: () => {},
+    exit: () => {},
+  };
+}
+
+export function registerStartScene(
+  engineContext: StartSceneEngineContext,
+  sceneManager?: ISceneManager
+): void {
+  registerMenuScene(engineContext, sceneManager);
+
+  if (sceneManager) {
+    sceneManager.registerScene(createStartScene(engineContext, sceneManager));
+    return;
+  }
+
+  if (typeof engineContext.scene === "function") {
+    engineContext.scene("start", () => {
+      if (typeof engineContext.go === "function") {
+        engineContext.go("menu");
+      }
+    });
+  }
 }
