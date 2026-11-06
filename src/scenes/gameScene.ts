@@ -92,7 +92,7 @@ export interface GameSceneEngineContext {
   onKeyPress(key: string, callback: () => void): unknown;
   onMousePress(callback: () => void): unknown;
   isMousePressed(): boolean;
-  onUpdate(callback: () => void): unknown;
+  onUpdate(callback: (deltaTimeInSeconds?: number) => void): unknown;
   wait(duration: number, callback: () => void): unknown;
   camPos(): { x: number; y: number };
   vec2(x: number, y: number): { x: number; y: number };
@@ -677,8 +677,8 @@ export function registerGameScene(rawK: GameSceneEngineContext): void {
       { id: "render_and_ui" }
     );
 
-    // 7. Loop Principal do Kaboom
-    k.onUpdate(() => {
+    // 7. Loop Principal da Cena de Jogo (Fases canônicas via SystemRunner)
+    k.onUpdate((passedDeltaTime?: number) => {
       if (k.debug && k.debug.paused) {
         k.debug.paused = false;
       }
@@ -694,11 +694,17 @@ export function registerGameScene(rawK: GameSceneEngineContext): void {
       }
       presentationMode.update();
 
-      const rawDeltaTime = typeof k.dt === "function" ? k.dt() : 0.0166;
-      const dt = Math.min(Math.max(0, rawDeltaTime), GAME_CONFIG.MAX_DELTA_TIME);
+      const rawDeltaTime =
+        typeof passedDeltaTime === "number"
+          ? passedDeltaTime
+          : typeof k.dt === "function"
+            ? k.dt()
+            : 0.0166;
+      const deltaTimeInSeconds = Math.min(Math.max(0, rawDeltaTime), GAME_CONFIG.MAX_DELTA_TIME);
 
-      // Despacho determinístico de todas as fases canônicas
-      systemRunner.run(dt);
+      // Despacho determinístico de todas as fases canônicas:
+      // input -> physics -> ai -> collision -> culling -> render
+      systemRunner.run(deltaTimeInSeconds);
     });
   });
 }

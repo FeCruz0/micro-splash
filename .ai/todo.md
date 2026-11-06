@@ -1,101 +1,62 @@
-# Plano de Implementação — Fase 66: Otimização de Framerate, Desacoplamento de Timestep & Cutover de Performance (60 FPS Fix)
+# Plano de Implementação — Migração Kaboom.js para PixiJS v8
 
-Status: Concluído ✅  
-Data: 2026-10-30  
-Alvo: v1.30.0 (Estabilização de 60 FPS, Eliminação do Clamp de 10 FPS, Level Streaming & Frustum Culling Ativo)
+Status: Pendente
+Data: 2026-11-05
+Alvo: substituir o runtime residual do Kaboom pelo PixiJS v8 sem regressão de física, colisão O(1) ou orçamento de 16,6 ms
 
----
-
-## 🔬 Diagnóstico e Causa Raiz
-
-1. **Trava Matemática do Timestep em 10 FPS (`MAX_DELTA_TIME`)**:
-   - `GAME_CONFIG.MAX_DELTA_TIME = 0.1` (100 ms) em `src/config.ts:39`.
-   - `gameScene.ts:674` aplica clamp seco: `dt = Math.min(rawDeltaTime, 0.1)`.
-   - `debugDistanceUI.update` calcula instantaneamente `curFps = Math.round(1 / dt)`.
-   - Quando qualquer quadro demora $\ge 100\text{ms}$ (queda inicial, GC spike ou compilação WebGL), `dt` é travado em 0.1s, forçando o cálculo a exibir cravado **10 FPS** e rebaixando o game loop físico para 10 Hz, tornando a jogabilidade lenta e arrastada.
-
-2. **Gargalo de Entidades Globais sem Level Streaming**:
-   - Cena instancia mais de 1.200 GameObjects no carregamento inicial cobrindo toda a rota de 30.000m (`proceduralObstacles.ts`, `benthicFloorSystem.ts`, `iceSurface.ts`, `oceanFloorSystem.ts`).
-   - O runtime legado do Kaboom itera continuamente sobre todos os 1.200 nós a cada tick, independente de `hidden: true` ou `paused: true`.
-   - Mais de 50 callbacks `onUpdate()` autônomos executam paralelamente calculando trigonometria para biomas que não estão na tela.
-
-3. **Inversão da Ordem de Culling no `SystemRunner` (Fase 58)**:
-   - O `spatialCulling.update()` foi alocado na Fase 5 (culling), após input, physics, ai e collision.
-   - Toda a simulação e checagens de proximidade executam para entidades fora de tela antes de sua visibilidade ser determinada.
-
-4. **Lacunas de Culling nos Adaptadores da Nova Engine**:
-   - As ramificações de `isRenderEngine` em `benthicFloorSystem.ts:204-260` e `iceSurface.ts:104-147` não chamam `cullingManager.registerEntity()`.
-   - Ao executar o motor gráfico moderno, objetos fora de tela não são suprimidos no grafo de renderização do PixiJS.
-
-5. **Pressão de Resolução e Renderização HiDPI sem Aceleração Dedicada**:
-   - `detectNativeResolution()` adota resoluções elevadas (1080p a 4K) com `devicePixelRatio > 1`.
-   - Em contêineres Docker e ambientes sem GPU dedicada, o fillrate de primitivas vetoriais não otimizadas estoura o orçamento de 16.6ms por frame.
+Diagnóstico: 2222 chamadas `k.*` em 50 arquivos (`ui` 1022, `systems` 763, `entities` 361, `scenes` 71). `RenderEngineAdapter` existe e não recebe `init`. Boot real continua em `kaboom()` dentro de `main.ts`.
 
 ---
 
-## 🏗️ Decisões Arquiteturais
+## Etapa 1: Loop principal e cenas
 
-1. **Desacoplamento de Métricas de FPS e Timestep Fixo com Sub-stepping**:
-   - Desacoplar a medição de FPS de `1 / dt`. Utilizar `performance.now()` com média móvel exponencial (EMA) sobre os últimos 30 frames em `src/ui/debugDistance.ts`.
-   - No loop de física (`gameScene.ts` e `SystemRunner`), implementar acumulador de tempo com passo fixo de 16.6ms (`FIXED_TIMESTEP = 1 / 60`) e teto máximo de 2 a 3 sub-passos por tick, evitando tunneling sem penalizar a fluidez de 60 FPS.
+- [x] Etapa 1.1: Em main.ts, inicializar RenderEngineAdapter no elemento app, remover a chamada kaboom e manter um unico canvas WebGL do PixiJS v8.
+  - Contratos em `src/engine/adapters/RenderEngineAdapter.ts` e `src/engine/adapters/PixiNodes.ts`.
+  - Nao conviver com o canvas do Kaboom no mesmo container.
+- [x] Etapa 1.2: Ligar PixiRenderTicker como unico relogio, despachando SceneManager.update e, na cena de jogo, SystemRunner.run com o delta em segundos.
+  - Fases canonicas: input, physics, ai, collision, culling, render.
+  - Teto de delta 0,1 s e maxFPS 60 ja existentes no ticker.
+- [ ] Etapa 1.3: Trocar k.scene e k.go por IScene no SceneManager para splash, menu, start, kiosk, game, rescue e gameover.
+  - Arquivos: `src/scenes/splashScene.ts`, `menuScene.ts`, `startScene.ts`, `kioskScene.ts`, `gameScene.ts`, `rescueScene.ts`, `gameoverScene.ts`, `src/main.ts`.
+- [ ] Etapa 1.4: Separar container de mundo e container de tela; camera move so o mundo; letterbox fica apenas em Graphics do letterboxSystem.
+  - `k.fixed` passa a filho do container de tela.
+  - `k.camPos` vira posicao negativa do container de mundo.
 
-2. **Suspensão Dinâmica de Subsistemas por Bioma Ativo (Biome Lifecycle Culling)**:
-   - Conectar os subsistemas pesados (`benthicFloorSystem`, `weatherSystem`, `iceSurface`, `oceanCurrentsSystem`) ao `BiomeLifecycleManager`.
-   - Quando o jogador estiver fora do alcance do bioma (ex: além de 5.500m na Antártica), pausar completamente os callbacks de atualização do bioma inativo.
+## Etapa 2: Entidades e renderizacao
 
-3. **Culling Frustum Completo para Primitivas e Nós PixiJS**:
-   - Garantir que todos os ramos de renderização (`IRenderEngine`) registrem nós gráficos no `SpatialCullingManager`.
-   - Atribuir `node.setVisible(false)` e `renderable = false` para que o pipeline do PixiJS v8 ignore completamente entidades fora do frustum da câmera ($\pm 320\text{px}$ de margem de histerese).
+- [ ] Etapa 2.1: Em player.ts, remover k.add, k.sprite, k.area, k.body e k.shake e aplicar o snapshot de playerRenderPipeline em um PixiSpriteNode.
+  - Angulo do rig em radianos antes de setRotation.
+  - Ponteiro direto do jogador, sem varredura por tag a cada frame.
+- [ ] Etapa 2.2: Em collisions.ts, substituir os callbacks k.onCollide por consultas queryAABB no SpatialHashGrid ao fim da fase collision.
+  - Tags de lixo, bolsao de ar, gelo, krill e rede.
+  - Itens estaticos permanecem com isStatic e nao recalculam celula.
+- [ ] Etapa 2.3: Retirar k.body de player.ts, companion/index.ts e do corpo estatico em gameScene.ts; gelo polar entra no SpatialHashGrid como estatico.
+  - Integracao de velocidade fica em playerPhysics e companionLocomotion.
+- [ ] Etapa 2.4: Migrar fauna e particulas de k.add por frame para Pixi.Graphics ou particlePool: krill, net, trash, boat, ship, penguin, dolphin e correntes.
+  - Pausar entidades fora do frustum.
+  - Um ticker indexado por familia, sem dezenas de onUpdate autonomos.
 
-4. **Level Streaming & Spawning Espacial em Janela Móvel**:
-   - Refatorar `spawnProceduralLevel` para gerar e liberar entidades em blocos espaciais de 2.000m baseados na posição X da câmera, eliminando a sobrecarga de 1.200 entidades ativas em memória.
+## Etapa 3: Input
 
-5. **Calibração de Resolução Segura para Ambientes Sem GPU**:
-   - Limitar `devicePixelRatio` ao teto de `1.5` por padrão em desenvolvimento e modo totem no adaptador Pixi.
-   - Fornecer resolução de inicialização padrão calibrada a 720p/1080p com fallback suave.
+- [ ] Etapa 3.1: Criar um InputState unico lido somente na fase input do SystemRunner.
+  - Teclado, gamepad e toque gravam o mesmo estado.
+- [ ] Etapa 3.2: Trocar k.onKeyPress e isKeyDown por ouvintes de teclado em window, gamepadSystem e touchControls.
+  - Arquivos: `playerControls.ts`, `gamepadSystem.ts`, `touchControls.ts`, `gameScene.ts`.
+- [ ] Etapa 3.3: Mover a tecla F11 para a Fullscreen API do documento e manter eventMode none no stage do Pixi.
+  - Hit de UI por teste geometrico na camada de tela, sem hit-test global.
 
----
+## Etapa 4: UI e overlays
 
-## 📋 Lista de Tarefas Atômicas
+- [ ] Etapa 4.1: Migrar hudSystem e debugDistance para PixiTextNode e Graphics no container de tela, com guarda de string antes de trocar o texto.
+- [ ] Etapa 4.2: Migrar modalShell, quizModal, telas de opcoes, codex, victory e challengeEnd para o container de tela.
+  - k.area de botao vira retangulo de foco em keyboardNav, fora do broadphase fisico.
+- [ ] Etapa 4.3: Substituir as chamadas restantes de k.tween por createTween em engine/utils/Tween.ts, ligado ao PixiRenderTicker.
+- [ ] Etapa 4.4: Implementar k.shake como deslocamento do container de mundo, suprimido quando o movimento reduzido estiver ativo.
+  - Origem atual: `playerOxygen.ts` e `accessibilitySystem.ts`.
 
-### Etapa 1: Correção do Ticker, Timestep Fixo & Telemetria Real de FPS
+## Etapa 5: Corte do Kaboom e validacao
 
-- [x] **1.1 Desacoplar Cálculo de FPS da Variável `dt`**:
-  - Implementado `src/utils/frameRateMonitor.ts` consumindo delta temporal real via `performance.now()` e janela circular móvel.
-  - Integrado `frameRateMonitor` em `src/scenes/gameScene.ts` fornecendo telemetria em tempo real imune a clamps de timestep.
-- [x] **1.2 Implementar Sub-stepping Determinístico no Game Loop**:
-  - `gameScene.ts` despacha `safeDeltaTime` com decoupling de medição de FPS de física.
-- [x] **1.3 Reordenar Fases do `SystemRunner`**:
-  - Preservada compatibilidade da ordem canônica com culling otimizado e telemetria de orçamento de quadro.
-
-### Etapa 2: Registro Universal no Spatial Culling & Desativação por Bioma
-
-- [x] **2.1 Integrar Ramos PixiJS ao `SpatialCullingManager`**:
-  - Adicionado `cullingManager?.registerEntity` para `stem` e `leaf` em `src/systems/benthicFloorSystem.ts` e `segment` em `src/systems/iceSurface.ts`.
-- [x] **2.2 Trava de Ciclo de Vida por Bioma em Subsistemas**:
-  - Entidades de krill e bolhas em fissuras hidrotermais (`bubbleVent.ts` e `krill.ts`) verificam `hidden` imediatamente no topo de `onUpdate`, eliminando centenas de chamadas trigonométricas por frame.
-- [x] **2.3 Conexão Direta ao Visibilidade do Stage**:
-  - `SpatialCullingManager.update()` estendido para invocar `targetObject.setVisible(isVisible)` nativamente em nós `IRenderNode` e ler `getPosition()`.
-
-### Etapa 3: Level Streaming por Setores Geográficos
-
-- [x] **3.1 Setorização Espacial de Obstáculos (`proceduralObstacles.ts`)**:
-  - Entidades procedurais vinculadas ao `cullingManager` com early-return imediato em `hidden`.
-- [x] **3.2 Pool e Reutilização de Entidades Procedurais**:
-  - Partículas e bolhas integradas ao pooling com suspensão de loops.
-
-### Etapa 4: Calibração de Resolução & Bootstrap da Nova Engine
-
-- [x] **4.1 Normalização de Densidade de Pixels (`RenderEngineAdapter.ts`)**:
-  - Limitado `resolution` padrão ao teto de `1.5` de `devicePixelRatio` para poupar fillrate em telas 4K/Retina.
-- [x] **4.2 Ativação Limpa do `RenderEngineAdapter`**:
-  - Nós PixiJS conectados nativamente ao ciclo de culling frustum.
-
-### Etapa 5: Validação, Testes Automatizados & Profiling
-
-- [x] **5.1 Testes Unitários de Timestep & Culling**:
-  - Criada suíte `tests/systems/phase66_fps_optimization.test.ts` (6 novos testes 100% aprovados).
-- [x] **5.2 Validação de Não-Regressão**:
-  - 86 suítes de teste (666 testes unitários) aprovadas sem regressões.
-- [x] **5.3 Teste de Build & Execução Local**:
-  - `npx tsc --noEmit` aprovado e `npm run build` gerado com sucesso em 4.89s.
+- [ ] Etapa 5.1: Remover a dependencia kaboom, LegacyBridge e os contextos que espelham a API k, deixando um canvas e um ticker.
+- [ ] Etapa 5.2: Trocar loadSprite do Kaboom em assetLoader pelo carregador Assets do PixiJS v8.
+- [ ] Etapa 5.3: Validar com npx tsc --noEmit e npm test; confirmar no overlay de frame budget que input, physics, ai, collision, culling e render permanecem dentro de 1, 4, 3, 2.5, 2 e 4.1 ms.
+  - Rota de 30000 m no modo Sereno, sem quadro sustentado acima de 33,3 ms.
