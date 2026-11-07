@@ -53,6 +53,9 @@ export interface PlayerController<TGameObj = PlayerGameObject, TVector2 = Strict
   setSpeed: (newSpeed: TVector2) => void;
   getOxygen: () => number;
   getMaxOxygen: () => number;
+  getOxygenRatio?: () => number;
+  getOxygenUrgency?: () => "calm" | "warning" | "critical";
+  isLowOxygen?: () => boolean;
   getMaxSpeed: () => number;
   getKrillsEaten: () => number;
   isFainting: () => boolean;

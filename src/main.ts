@@ -41,6 +41,7 @@ type EngineBridgeContext = AllScenesEngineContext &
     renderEngine: RenderEngineAdapter;
     setFullscreen(fullscreen: boolean): void;
     isFullscreen(): boolean;
+    shake(intensity: number): void;
   };
 
 function createPixiBridgeContext(
@@ -146,6 +147,10 @@ function createPixiBridgeContext(
 
     rgb(r, g, b) {
       return [r, g, b] as const;
+    },
+
+    shake(intensity: number) {
+      engine.shake(intensity);
     },
 
     pos(xOrPos: number | { x: number; y: number }, y?: number) {

@@ -9,6 +9,7 @@
 import { accessibilitySystem } from "../systems/accessibilitySystem";
 import type { IRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import type { LegacyEngineBridge } from "../engine/adapters/LegacyBridge";
+import { getActiveRenderEngine } from "../engine/adapters/RenderEngineAdapter";
 
 export { cameraSystem, CameraSystem, type CameraFollowOptions } from "../systems/cameraSystem";
 
@@ -29,13 +30,18 @@ export function safeShake(
 ): void {
   if (!engineOrContext) return;
 
-  const shakeTarget = engineOrContext as CameraShakeContext;
-  if (typeof shakeTarget.shake !== "function") return;
+  if (accessibilitySystem.isReducedMotion()) {
+    return;
+  }
 
-  if (typeof accessibilitySystem.triggerShake === "function") {
-    accessibilitySystem.triggerShake(
-      engineOrContext as Parameters<typeof accessibilitySystem.triggerShake>[0],
-      shakeIntensityInPixels
-    );
+  const shakeTarget = engineOrContext as CameraShakeContext;
+  if (typeof shakeTarget.shake === "function") {
+    shakeTarget.shake(shakeIntensityInPixels);
+    return;
+  }
+
+  const activeRenderEngine = getActiveRenderEngine();
+  if (activeRenderEngine && typeof activeRenderEngine.shake === "function") {
+    activeRenderEngine.shake(shakeIntensityInPixels);
   }
 }

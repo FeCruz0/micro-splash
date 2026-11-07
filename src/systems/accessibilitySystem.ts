@@ -105,7 +105,20 @@ function applyCanvasFilter(mode: ColorMode): void {
 
   ensureSvgFiltersInjected();
 
-  const canvas = document.querySelector("canvas");
+  let canvas: HTMLCanvasElement | null = null;
+  if (typeof globalThis !== "undefined") {
+    const globalEngine = (globalThis as unknown as Record<string, unknown>)
+      .__MICRO_SPLASH_RENDER_ENGINE as {
+      getCanvas?(): HTMLCanvasElement | null;
+    } | undefined;
+    if (globalEngine && typeof globalEngine.getCanvas === "function") {
+      canvas = globalEngine.getCanvas();
+    }
+  }
+
+  if (!canvas) {
+    canvas = document.querySelector("canvas");
+  }
   if (!canvas) return;
 
   switch (mode) {
@@ -122,6 +135,10 @@ function applyCanvasFilter(mode: ColorMode): void {
     default:
       canvas.style.filter = "none";
       break;
+  }
+
+  if (document.body) {
+    document.body.classList.toggle("high-contrast-mode", mode === "high_contrast");
   }
 }
 
@@ -173,6 +190,9 @@ export class AccessibilitySystem {
   public setReducedMotion(mode: ReducedMotionMode): void {
     currentReducedMotion = mode;
     writeLocalStorage(STORAGE_KEY_REDUCED_MOTION, mode);
+    if (typeof document !== "undefined" && document.body) {
+      document.body.classList.toggle("reduced-motion-mode", this.isReducedMotion());
+    }
   }
 
   public cycleReducedMotion(): ReducedMotionMode {
@@ -214,9 +234,29 @@ export class AccessibilitySystem {
     return FONT_SCALE_MULTIPLIERS[currentFontScale] || 1.0;
   }
 
+  private fontScaleListeners = new Set<(newMultiplier: number) => void>();
+
+  public addFontScaleListener(listener: (newMultiplier: number) => void): () => void {
+    this.fontScaleListeners.add(listener);
+    return () => {
+      this.fontScaleListeners.delete(listener);
+    };
+  }
+
   public setFontScale(key: FontScaleKey): void {
     currentFontScale = key;
     writeLocalStorage(STORAGE_KEY_FONT_SCALE, key);
+    const multiplier = this.getFontScale();
+    if (typeof document !== "undefined" && document.documentElement) {
+      document.documentElement.style.setProperty("--ui-font-scale", `${multiplier}`);
+    }
+    for (const listener of this.fontScaleListeners) {
+      try {
+        listener(multiplier);
+      } catch (error) {
+        console.error("[AccessibilitySystem] Erro no listener de escala de fonte:", error);
+      }
+    }
   }
 
   public cycleFontScale(): FontScaleKey {
@@ -242,11 +282,21 @@ export class AccessibilitySystem {
   /**
    * Dispara um tremor de tela (screen shake) respeitando a preferência de movimento reduzido
    */
-  public triggerShake(k: ShakeEngineContext, intensity: number): void {
+  public triggerShake(engineOrContext?: ShakeEngineContext | unknown, intensity: number = 2): void {
     if (this.isReducedMotion()) return;
     try {
-      if (typeof k.shake === "function") {
-        k.shake(intensity);
+      if (engineOrContext && typeof (engineOrContext as ShakeEngineContext).shake === "function") {
+        (engineOrContext as ShakeEngineContext).shake!(intensity);
+        return;
+      }
+      if (typeof globalThis !== "undefined") {
+        const globalEngine = (globalThis as unknown as Record<string, unknown>)
+          .__MICRO_SPLASH_RENDER_ENGINE as {
+          shake?(intensity: number): void;
+        } | undefined;
+        if (globalEngine && typeof globalEngine.shake === "function") {
+          globalEngine.shake(intensity);
+        }
       }
     } catch {}
   }

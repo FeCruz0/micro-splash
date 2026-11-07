@@ -51,7 +51,7 @@ Diagnóstico: 2222 chamadas `k.*` em 50 arquivos (`ui` 1022, `systems` 763, `ent
 - [x] Etapa 4.2: Migrar modalShell, quizModal, telas de opcoes, codex, victory e challengeEnd para o container de tela.
   - k.area de botao vira retangulo de foco em keyboardNav, fora do broadphase fisico.
 - [x] Etapa 4.3: Substituir as chamadas restantes de k.tween por createTween em engine/utils/Tween.ts, ligado ao PixiRenderTicker.
-- [ ] Etapa 4.4: Implementar k.shake como deslocamento do container de mundo, suprimido quando o movimento reduzido estiver ativo.
+- [x] Etapa 4.4: Implementar k.shake como deslocamento do container de mundo, suprimido quando o movimento reduzido estiver ativo.
   - Origem atual: `playerOxygen.ts` e `accessibilitySystem.ts`.
 
 ## Etapa 5: Corte do Kaboom e validacao

@@ -29,6 +29,7 @@ import {
   initScreenLayerGeometryChecker,
   getScreenLayerGeometryChecker,
 } from "../screenLayerGeometryChecker";
+import { accessibilitySystem } from "../../systems/accessibilitySystem";
 
 /**
  * Ticker desacoplado com injeção de deltaTime normalizado e teto de segurança.
@@ -123,6 +124,11 @@ export class RenderEngineAdapter implements IRenderEngine {
   private worldContainer: PixiContainerNode | null = null;
   private screenContainer: PixiContainerNode | null = null;
   private cameraPosition: Vector2D = { x: 0, y: 0 };
+  private shakeOffset: Vector2D = { x: 0, y: 0 };
+  private activeShakeIntensity: number = 0;
+  private shakeDurationRemaining: number = 0;
+  private shakeTotalDuration: number = 0;
+  private shakeCleanupCallback: (() => void) | null = null;
   private tickerAdapter: PixiRenderTicker | null = null;
   private containerElement: HTMLElement | null = null;
   private canvasElement: HTMLCanvasElement | null = null;
@@ -287,9 +293,61 @@ export class RenderEngineAdapter implements IRenderEngine {
 
   setCameraPosition(cameraPositionX: number, cameraPositionY: number): void {
     this.cameraPosition = { x: cameraPositionX, y: cameraPositionY };
+    this.updateWorldContainerPosition();
+  }
+
+  private updateWorldContainerPosition(): void {
     if (this.worldContainer) {
-      this.worldContainer.setPosition(-cameraPositionX, -cameraPositionY);
+      this.worldContainer.setPosition(
+        -this.cameraPosition.x + this.shakeOffset.x,
+        -this.cameraPosition.y + this.shakeOffset.y
+      );
     }
+  }
+
+  shake(shakeIntensityInPixels: number): void {
+    if (accessibilitySystem.isReducedMotion()) {
+      return;
+    }
+    if (shakeIntensityInPixels <= 0) {
+      return;
+    }
+
+    this.activeShakeIntensity = Math.max(this.activeShakeIntensity, shakeIntensityInPixels);
+    this.shakeTotalDuration = 0.2;
+    this.shakeDurationRemaining = this.shakeTotalDuration;
+
+    if (!this.shakeCleanupCallback && this.tickerAdapter) {
+      this.shakeCleanupCallback = this.tickerAdapter.add((deltaTimeInSeconds: number) => {
+        this.shakeDurationRemaining -= deltaTimeInSeconds;
+
+        if (this.shakeDurationRemaining <= 0 || accessibilitySystem.isReducedMotion()) {
+          this.activeShakeIntensity = 0;
+          this.shakeOffset = { x: 0, y: 0 };
+          this.updateWorldContainerPosition();
+          if (this.shakeCleanupCallback) {
+            this.shakeCleanupCallback();
+            this.shakeCleanupCallback = null;
+          }
+          return;
+        }
+
+        const remainingRatio = this.shakeDurationRemaining / this.shakeTotalDuration;
+        const currentIntensity = this.activeShakeIntensity * remainingRatio;
+        const randomAngle = Math.random() * Math.PI * 2;
+        const randomDistance = (Math.random() * 0.5 + 0.5) * currentIntensity;
+
+        this.shakeOffset = {
+          x: Math.cos(randomAngle) * randomDistance,
+          y: Math.sin(randomAngle) * randomDistance,
+        };
+        this.updateWorldContainerPosition();
+      });
+    }
+  }
+
+  getShakeOffset(): Vector2D {
+    return { x: this.shakeOffset.x, y: this.shakeOffset.y };
   }
 
   addNodeToWorld(child: IRenderNode): void {
@@ -394,6 +452,13 @@ export class RenderEngineAdapter implements IRenderEngine {
   }
 
   destroy(): void {
+    if (this.shakeCleanupCallback) {
+      this.shakeCleanupCallback();
+      this.shakeCleanupCallback = null;
+    }
+    this.shakeOffset = { x: 0, y: 0 };
+    this.activeShakeIntensity = 0;
+
     if (this.screenLayerGeometryCheckerInstance) {
       this.screenLayerGeometryCheckerInstance.destroy();
       this.screenLayerGeometryCheckerInstance = null;

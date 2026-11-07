@@ -184,6 +184,8 @@ export interface IRenderEngine {
   getScreenContainer(): IRenderNode;
   getCameraPosition(): Vector2D;
   setCameraPosition(cameraPositionX: number, cameraPositionY: number): void;
+  shake?(intensity: number): void;
+  getShakeOffset?(): Vector2D;
   getTicker(): IRenderTicker;
   getRenderer?(): unknown;
   getStageEventMode?(): string;

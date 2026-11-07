@@ -1,6 +1,7 @@
 import { GAME_CONFIG } from "../../config";
 import { isPositionInIceGap } from "../../systems/iceSurface";
 import { audioSystem } from "../../systems/audioSystem";
+import { safeShake } from "../../utils/camera";
 import {
   spawnBlowholeSpout,
   spawnOilSpout,
@@ -10,7 +11,7 @@ import {
 import type { PlayerVector2D } from "./types";
 
 export interface PlayerOxygenEngineContext extends PlayerParticlesEngineContext {
-  shake(amount: number): void;
+  shake?(amount: number): void;
 }
 
 export class PlayerOxygenManager {
@@ -48,12 +49,27 @@ export class PlayerOxygenManager {
     return this.isOilObstructed;
   }
 
+  public getOxygenRatio(): number {
+    return Math.max(0, Math.min(1, this.oxygen / Math.max(1, this.getMaxOxygen())));
+  }
+
+  public getUrgencyState(): "calm" | "warning" | "critical" {
+    const ratio = this.getOxygenRatio();
+    if (ratio > 0.5) return "calm";
+    if (ratio >= 0.2) return "warning";
+    return "critical";
+  }
+
+  public isLowOxygen(): boolean {
+    return this.oxygen < GAME_CONFIG.BLOWHOLE_OXYGEN_THRESHOLD;
+  }
+
   public setOilObstructed(obstructed: boolean): void {
     if (!this.isOilObstructed && obstructed) {
       this.isOilObstructed = true;
       this.oilCleanTimer = 0;
       audioSystem.playOilChoke();
-      this.k.shake(2);
+      safeShake(this.k, 2);
     }
   }
 
@@ -158,7 +174,7 @@ export class PlayerOxygenManager {
         this.blackoutTimer -= dt;
         if (this.blackoutTimer <= 0) {
           this.isFainting = true;
-          this.k.shake(4);
+          safeShake(this.k, 4);
         }
       }
     } else {
@@ -167,7 +183,7 @@ export class PlayerOxygenManager {
         const hadLowOxygen = this.oxygen < GAME_CONFIG.BLOWHOLE_OXYGEN_THRESHOLD;
         this.oxygen = currentMaxOx;
         this.blackoutTimer = GAME_CONFIG.BLACKOUT_GRACE_TIME;
-        this.k.shake(2);
+        safeShake(this.k, 2);
 
         if (hadLowOxygen && this.spoutCooldown <= 0) {
           this.spoutCooldown = 2.0;
@@ -185,7 +201,7 @@ export class PlayerOxygenManager {
           this.oilCleanTimer = 0;
           audioSystem.playPurifyWhoosh();
           spawnPurifyBubbles(this.k, pos);
-          this.k.shake(2);
+          safeShake(this.k, 2);
         }
       } else {
         this.oilCleanTimer = Math.max(0, this.oilCleanTimer - dt * 0.4);
