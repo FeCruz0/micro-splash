@@ -42,7 +42,7 @@ Diagnóstico: 2222 chamadas `k.*` em 50 arquivos (`ui` 1022, `systems` 763, `ent
   - Teclado, gamepad e toque gravam o mesmo estado.
 - [x] Etapa 3.2: Trocar k.onKeyPress e isKeyDown por ouvintes de teclado em window, gamepadSystem e touchControls.
   - Arquivos: `playerControls.ts`, `gamepadSystem.ts`, `touchControls.ts`, `gameScene.ts`.
-- [ ] Etapa 3.3: Mover a tecla F11 para a Fullscreen API do documento e manter eventMode none no stage do Pixi.
+- [x] Etapa 3.3: Mover a tecla F11 para a Fullscreen API do documento e manter eventMode none no stage do Pixi.
   - Hit de UI por teste geometrico na camada de tela, sem hit-test global.
 
 ## Etapa 4: UI e overlays

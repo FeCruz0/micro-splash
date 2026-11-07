@@ -12,6 +12,13 @@ import type { IRenderNode } from "./engine/contracts/INTERFACE_CONTRACTS";
 import { SceneManager } from "./engine/SceneManager";
 import { createTween, Easings, type EasingFunction } from "./engine/utils/Tween";
 import { detectGpuCapabilities } from "./utils/gpuDiagnostics";
+import {
+  initializeFullscreenHandler,
+  isDocumentFullscreen,
+  requestDocumentFullscreen,
+  exitDocumentFullscreen,
+} from "./systems/fullscreenHandler";
+import { getScreenLayerGeometryChecker } from "./engine/screenLayerGeometryChecker";
 
 // Inicializa observabilidade e proteção contra exceções em totens (Fase 27)
 errorReporter.setupGlobalHandlers();
@@ -180,6 +187,7 @@ function createPixiBridgeContext(
       let isFixedElement = false;
       let positionX = 0;
       let positionY = 0;
+      let anchorPoint: "center" | "topleft" | "left" | "right" | "top" | "botright" = "topleft";
       let entityOpacity = 1;
       let entityZIndex = 0;
       let entityText: string | null = null;
@@ -198,7 +206,35 @@ function createPixiBridgeContext(
         fixed: false,
         exists: () => true,
         onUpdate: (cb: () => void) => context.onUpdate(cb),
-        onClick: (cb: () => void) => context.onMousePress(cb),
+        onClick: (callback: () => void) => {
+          if (isFixedElement && rectWidth !== null && rectHeight !== null) {
+            const activeChecker =
+              engine.isInitialized && typeof engine.getScreenLayerGeometryChecker === "function"
+                ? (engine.getScreenLayerGeometryChecker() as ReturnType<typeof getScreenLayerGeometryChecker>)
+                : getScreenLayerGeometryChecker();
+
+            const buttonWidth = rectWidth;
+            const buttonHeight = rectHeight;
+            const cancelHitTarget = activeChecker.registerHitTarget({
+              id: `entity_screen_button_${Math.random().toString(36).slice(2, 9)}`,
+              bounds: () => {
+                const targetX = anchorPoint === "center" ? positionX - buttonWidth / 2 : positionX;
+                const targetY = anchorPoint === "center" ? positionY - buttonHeight / 2 : positionY;
+                return {
+                  x: targetX,
+                  y: targetY,
+                  width: buttonWidth,
+                  height: buttonHeight,
+                };
+              },
+              zIndex: entityZIndex,
+              onClick: () => callback(),
+            });
+            sceneCleanupCallbacks.push(cancelHitTarget);
+            return { cancel: cancelHitTarget };
+          }
+          return context.onMousePress(callback);
+        },
         onHoverUpdate: () => ({ cancel: () => {} }),
         onHoverEnd: () => ({ cancel: () => {} }),
         play: () => {},
@@ -234,6 +270,8 @@ function createPixiBridgeContext(
             } else if (c.type === "fixed") {
               isFixedElement = true;
               entity.fixed = true;
+            } else if (c.type === "anchor" && typeof c.anchorPoint === "string") {
+              anchorPoint = c.anchorPoint as typeof anchorPoint;
             } else if (c.type === "text" && typeof c.text === "string") {
               entityText = c.text;
               textOptions = (c.options as Record<string, unknown>) ?? null;
@@ -464,16 +502,15 @@ function createPixiBridgeContext(
     },
 
     setFullscreen(fullscreen) {
-      if (typeof document === "undefined") return;
-      if (fullscreen && !document.fullscreenElement) {
-        void document.documentElement.requestFullscreen?.().catch(() => undefined);
-      } else if (!fullscreen && document.fullscreenElement) {
-        void document.exitFullscreen?.().catch(() => undefined);
+      if (fullscreen) {
+        void requestDocumentFullscreen();
+      } else {
+        void exitDocumentFullscreen();
       }
     },
 
     isFullscreen() {
-      return typeof document !== "undefined" && Boolean(document.fullscreenElement);
+      return isDocumentFullscreen();
     },
   };
 
@@ -514,15 +551,8 @@ async function bootstrapRenderEngine(): Promise<void> {
 
   accessibilitySystem.init();
 
-  // Suporte global para alternar Tela Cheia com F11
-  if (typeof window !== "undefined") {
-    window.addEventListener("keydown", (event) => {
-      if (event.key.toLowerCase() === "f11") {
-        event.preventDefault();
-        engineBridge.setFullscreen(!engineBridge.isFullscreen());
-      }
-    });
-  }
+  // Suporte global para alternar Tela Cheia com F11 via Fullscreen API nativa
+  initializeFullscreenHandler();
 
   // Registra todas as cenas modulares do jogo (Fase 37.7 / Migração IScene Etapa 1.3)
   registerAllScenes(engineBridge, sceneManager);

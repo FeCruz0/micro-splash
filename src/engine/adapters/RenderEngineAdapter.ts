@@ -24,6 +24,11 @@ import {
   PixiTextNode,
   parseColor,
 } from "./PixiNodes";
+import {
+  ScreenLayerGeometryChecker,
+  initScreenLayerGeometryChecker,
+  getScreenLayerGeometryChecker,
+} from "../screenLayerGeometryChecker";
 
 /**
  * Ticker desacoplado com injeção de deltaTime normalizado e teto de segurança.
@@ -124,6 +129,7 @@ export class RenderEngineAdapter implements IRenderEngine {
   private initialized: boolean = false;
   private viewportWidth: number = 800;
   private viewportHeight: number = 600;
+  private screenLayerGeometryCheckerInstance: ScreenLayerGeometryChecker | null = null;
 
   constructor() {
     setActiveRenderEngine(this);
@@ -206,14 +212,21 @@ export class RenderEngineAdapter implements IRenderEngine {
     this.stageRoot.addChild(this.worldContainer);
     this.stageRoot.addChild(this.screenContainer);
 
+    const stageEventMode = "none";
     const nativeStage = app.stage as unknown as {
       eventMode?: string;
       interactiveChildren?: boolean;
       sortableChildren?: boolean;
     };
-    nativeStage.eventMode = "none";
+    nativeStage.eventMode = stageEventMode;
     nativeStage.interactiveChildren = false;
     nativeStage.sortableChildren = false;
+
+    this.screenLayerGeometryCheckerInstance = initScreenLayerGeometryChecker({
+      canvasElement: this.canvasElement,
+      virtualWidth: this.viewportWidth,
+      virtualHeight: this.viewportHeight,
+    });
 
     this.tickerAdapter = new PixiRenderTicker(app, RenderEngineAdapter.MAX_DELTA_TIME);
     this.initialized = true;
@@ -224,6 +237,9 @@ export class RenderEngineAdapter implements IRenderEngine {
     this.viewportHeight = height;
     if (this.application?.renderer) {
       this.application.renderer.resize(width, height);
+    }
+    if (this.screenLayerGeometryCheckerInstance) {
+      this.screenLayerGeometryCheckerInstance.setDimensions(width, height);
     }
   }
 
@@ -297,6 +313,17 @@ export class RenderEngineAdapter implements IRenderEngine {
     return this.application?.renderer ?? null;
   }
 
+  getStageEventMode(): string {
+    return "none";
+  }
+
+  getScreenLayerGeometryChecker(): ScreenLayerGeometryChecker {
+    if (!this.screenLayerGeometryCheckerInstance) {
+      this.screenLayerGeometryCheckerInstance = getScreenLayerGeometryChecker();
+    }
+    return this.screenLayerGeometryCheckerInstance;
+  }
+
   generateTexture(
     target: IRenderNode | unknown,
     options?: { resolution?: number; scaleMode?: "nearest" | "linear" }
@@ -367,6 +394,11 @@ export class RenderEngineAdapter implements IRenderEngine {
   }
 
   destroy(): void {
+    if (this.screenLayerGeometryCheckerInstance) {
+      this.screenLayerGeometryCheckerInstance.destroy();
+      this.screenLayerGeometryCheckerInstance = null;
+    }
+
     if (this.tickerAdapter) {
       this.tickerAdapter.destroy();
       this.tickerAdapter = null;

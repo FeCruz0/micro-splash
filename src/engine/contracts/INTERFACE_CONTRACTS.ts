@@ -186,6 +186,8 @@ export interface IRenderEngine {
   setCameraPosition(cameraPositionX: number, cameraPositionY: number): void;
   getTicker(): IRenderTicker;
   getRenderer?(): unknown;
+  getStageEventMode?(): string;
+  getScreenLayerGeometryChecker?(): unknown;
   generateTexture?(
     target: IRenderNode | unknown,
     options?: { resolution?: number; scaleMode?: "nearest" | "linear" }
