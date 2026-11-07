@@ -38,9 +38,9 @@ Diagnóstico: 2222 chamadas `k.*` em 50 arquivos (`ui` 1022, `systems` 763, `ent
 
 ## Etapa 3: Input
 
-- [ ] Etapa 3.1: Criar um InputState unico lido somente na fase input do SystemRunner.
+- [x] Etapa 3.1: Criar um InputState unico lido somente na fase input do SystemRunner.
   - Teclado, gamepad e toque gravam o mesmo estado.
-- [ ] Etapa 3.2: Trocar k.onKeyPress e isKeyDown por ouvintes de teclado em window, gamepadSystem e touchControls.
+- [x] Etapa 3.2: Trocar k.onKeyPress e isKeyDown por ouvintes de teclado em window, gamepadSystem e touchControls.
   - Arquivos: `playerControls.ts`, `gamepadSystem.ts`, `touchControls.ts`, `gameScene.ts`.
 - [ ] Etapa 3.3: Mover a tecla F11 para a Fullscreen API do documento e manter eventMode none no stage do Pixi.
   - Hit de UI por teste geometrico na camada de tela, sem hit-test global.

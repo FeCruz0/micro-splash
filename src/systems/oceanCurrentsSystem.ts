@@ -143,29 +143,6 @@ export function createCurrentVectorLines<
  * @param playerController - Controlador físico da baleia-jubarte.
  * @param zones - Vetor de zonas de correnteza a serem geradas no mundo.
  */
-function resolveCameraX(engineOrContext: unknown): number {
-  if (
-    engineOrContext &&
-    typeof engineOrContext === "object" &&
-    "getCamera" in engineOrContext &&
-    typeof (engineOrContext as { getCamera: () => { getPosition: () => { x: number } } })
-      .getCamera === "function"
-  ) {
-    return (engineOrContext as { getCamera: () => { getPosition: () => { x: number } } })
-      .getCamera()
-      .getPosition().x;
-  }
-  if (
-    engineOrContext &&
-    typeof engineOrContext === "object" &&
-    "camPos" in engineOrContext &&
-    typeof (engineOrContext as { camPos: () => { x: number } }).camPos === "function"
-  ) {
-    return (engineOrContext as { camPos: () => { x: number } }).camPos().x;
-  }
-  return 0;
-}
-
 export function setupOceanCurrentsSystem<
   TDestroyable = unknown,
   TColor = unknown,

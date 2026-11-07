@@ -1,14 +1,19 @@
 import { GAME_CONFIG } from "../../config";
 import type { TouchControlsState } from "../../ui/touchControls";
 import { gamepadSystem } from "../../systems/gamepadSystem";
+import {
+  getInputStateManager,
+  type InputStateManager,
+  type UnifiedInputState,
+} from "../../systems/inputState";
 import type { PlayerGameObject } from "./types";
 
 export interface PlayerControlsEngineContext {
   clamp(val: number, min: number, max: number): number;
   lerp(a: number, b: number, t: number): number;
-  isKeyDown(key?: string): boolean;
-  isKeyPressed(key?: string): boolean;
-  isKeyReleased(key?: string): boolean;
+  isKeyDown?(key?: string): boolean;
+  isKeyPressed?(key?: string): boolean;
+  isKeyReleased?(key?: string): boolean;
 }
 
 export interface PlayerInputSnapshot {
@@ -25,6 +30,7 @@ export interface PlayerInputSnapshot {
 export class PlayerControlsManager {
   private k: PlayerControlsEngineContext;
   private touchState?: TouchControlsState;
+  private inputStateManager: InputStateManager | null = null;
   private facingRight = true;
   private targetCamOffset = 200;
   private angle = 0;
@@ -32,9 +38,18 @@ export class PlayerControlsManager {
   private pitchAngularVelocity = 0;
   private spineCurvature = 0;
 
-  constructor(k: PlayerControlsEngineContext, touchState?: TouchControlsState) {
+  constructor(
+    k: PlayerControlsEngineContext,
+    touchState?: TouchControlsState,
+    inputStateManager?: InputStateManager | null
+  ) {
     this.k = k;
     this.touchState = touchState;
+    this.inputStateManager = inputStateManager ?? null;
+  }
+
+  public setInputStateManager(inputStateManager: InputStateManager | null): void {
+    this.inputStateManager = inputStateManager;
   }
 
   public isFacingRight(): boolean {
@@ -85,36 +100,69 @@ export class PlayerControlsManager {
   }
 
   public pollInputs(strokeTimer: number): PlayerInputSnapshot {
+    const inputManager = this.inputStateManager ?? getInputStateManager();
+    if (inputManager) {
+      const unifiedState: UnifiedInputState = inputManager.getState();
+      return {
+        isStrokePressed: unifiedState.strokePressed,
+        isStrokeDown: unifiedState.strokeDown,
+        isStrokeReleased: unifiedState.strokeReleased,
+        isSonarTriggered: unifiedState.sonarDown || unifiedState.sonarPressed,
+        isLeftDown: unifiedState.moveLeft,
+        isRightDown: unifiedState.moveRight,
+        isUpDown: unifiedState.moveUp,
+        isDownDown: unifiedState.moveDown,
+      };
+    }
+
     const k = this.k;
     const touch = this.touchState;
     const pad = gamepadSystem.pollGamepadState();
 
     const isLeftDown = Boolean(
-      k.isKeyDown("left") || k.isKeyDown("a") || (touch && touch.left) || pad.left
+      (typeof k.isKeyDown === "function" && (k.isKeyDown("left") || k.isKeyDown("a"))) ||
+      (touch && touch.left) ||
+      pad.left
     );
     const isRightDown = Boolean(
-      k.isKeyDown("right") || k.isKeyDown("d") || (touch && touch.right) || pad.right
+      (typeof k.isKeyDown === "function" && (k.isKeyDown("right") || k.isKeyDown("d"))) ||
+      (touch && touch.right) ||
+      pad.right
     );
     const isUpDown = Boolean(
-      k.isKeyDown("up") || k.isKeyDown("w") || (touch && touch.up) || pad.up
+      (typeof k.isKeyDown === "function" && (k.isKeyDown("up") || k.isKeyDown("w"))) ||
+      (touch && touch.up) ||
+      pad.up
     );
     const isDownDown = Boolean(
-      k.isKeyDown("down") || k.isKeyDown("s") || (touch && touch.down) || pad.down
+      (typeof k.isKeyDown === "function" && (k.isKeyDown("down") || k.isKeyDown("s"))) ||
+      (touch && touch.down) ||
+      pad.down
     );
 
     const isStrokePressed = Boolean(
-      k.isKeyPressed("space") || (touch && touch.strokePressed) || pad.strokePressed
+      (typeof k.isKeyPressed === "function" && k.isKeyPressed("space")) ||
+      (touch && touch.strokePressed) ||
+      pad.strokePressed
     );
     const isStrokeDown = Boolean(
-      k.isKeyDown("space") || (touch && touch.strokeDown) || pad.strokeDown
+      (typeof k.isKeyDown === "function" && k.isKeyDown("space")) ||
+      (touch && touch.strokeDown) ||
+      pad.strokeDown
     );
     const isStrokeReleased = Boolean(
-      k.isKeyReleased("space") ||
-      (touch && !touch.strokeDown && strokeTimer > 0 && !k.isKeyDown("space") && !pad.strokeDown)
+      (typeof k.isKeyReleased === "function" && k.isKeyReleased("space")) ||
+      (touch &&
+        !touch.strokeDown &&
+        strokeTimer > 0 &&
+        (!k.isKeyDown || !k.isKeyDown("space")) &&
+        !pad.strokeDown)
     );
 
     const isSonarTriggered = Boolean(
-      k.isKeyDown("shift") || k.isKeyDown("e") || (touch && touch.sonarPressed) || pad.sonarPressed
+      (typeof k.isKeyDown === "function" && (k.isKeyDown("shift") || k.isKeyDown("e"))) ||
+      (touch && touch.sonarPressed) ||
+      pad.sonarPressed
     );
 
     return {

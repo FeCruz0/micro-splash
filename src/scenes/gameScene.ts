@@ -42,7 +42,6 @@ import { initBiomeLifecycleManager } from "../systems/biomeLifecycleManager";
 import { initSpatialCullingManager } from "../systems/spatialCullingSystem";
 import { recordMigrationStart, recordMigrationEnd } from "../systems/cumulativeStats";
 import { initPresentationMode } from "../systems/presentationMode";
-import { gamepadSystem } from "../systems/gamepadSystem";
 import { analytics } from "../services/analytics";
 import { showChallengeEndScreen } from "../ui/challengeEndScreen";
 import { setupSereneInsightsSystem } from "../systems/sereneMigrationInsights";
@@ -53,6 +52,7 @@ import { initSpatialGrid } from "../systems/spatialHashGrid";
 import { FrameBudgetMonitor } from "../systems/frameBudgetMonitor";
 import { FrameRateMonitor } from "../utils/frameRateMonitor";
 import { initEntityFamilyTicker } from "../systems/entityFamilyTicker";
+import { initInputStateManager } from "../systems/inputState";
 
 export interface GameSceneUiObject {
   pos: { x: number; y: number };
@@ -264,17 +264,21 @@ export function createGameScene(
         waterSurface.destroy();
       });
 
-      // 1. Instancia Controles Touch, Estado, Jogador e UI de Debug
+      // 1. Instancia Controles Touch, InputState Unificado, Estado, Jogador e UI de Debug
+      const inputStateManager = initInputStateManager();
       const touchControls = setupTouchControls(k);
+      inputStateManager.setTouchControlsSource(touchControls.state);
       k.onSceneLeave(() => {
         touchControls.destroy();
+        inputStateManager.destroy();
       });
       const gameState = createGameState(options);
       const playerController = createPlayer(
         k,
         initialX,
         options.mode === "serene",
-        touchControls.state
+        touchControls.state,
+        inputStateManager
       );
       const debugDistanceUI = createDebugDistanceUI(k, playerController);
       k.onSceneLeave(() => {
@@ -422,39 +426,8 @@ export function createGameScene(
       setupMarineSnowSystem(k);
       setupDepthDarknessSystem(k, playerController);
 
-      // 4. Inicializa áudio da migração e atalhos
+      // 4. Inicializa áudio da migração
       audioSystem.startMigrationAudio(initialX);
-
-      const resumeAudioOnInteraction = () => {
-        audioSystem.resumeIfSuspended();
-      };
-
-      k.onKeyPress(resumeAudioOnInteraction);
-      k.onMousePress(resumeAudioOnInteraction);
-
-      // Tecla 'E': Sonar acústico (aciona insight pedagógico no modo sereno)
-      k.onKeyPress("e", () => {
-        if (options.mode === "serene") {
-          sereneInsights?.trigger("sonar_communication");
-        }
-      });
-
-      // Tecla 'M': Silenciar / Ativar Som
-      k.onKeyPress("m", () => {
-        resumeAudioOnInteraction();
-        audioSystem.toggleMute();
-      });
-
-      // Teclas 'F8' e 'F3': Alterna o Painel de Telemetria e Diagnóstico de Desenvolvedor
-      const toggleDebugMenu = () => {
-        if (k.debug) {
-          k.debug.paused = false;
-        }
-        debugDistanceUI.toggle();
-      };
-
-      k.onKeyPress("f8", toggleDebugMenu);
-      k.onKeyPress("f3", toggleDebugMenu);
 
       // 5. Ativa ressurgência e o clímax do Salto Majestoso (Breach)
       setupUpwellingSystem(k, playerController);
@@ -520,12 +493,38 @@ export function createGameScene(
       systemRunner.register(
         "input",
         () => {
-          const pad = gamepadSystem.pollGamepadState();
-          if (pad.pausePressed) {
+          const inputState = inputStateManager.update();
+
+          // Desperta AudioContext com qualquer interação
+          if (inputState.anyInteractionPressed) {
+            audioSystem.resumeIfSuspended();
+          }
+
+          // Pausa / Modo Apresentação
+          if (inputState.pausePressed) {
             presentationMode.togglePause();
           }
+
+          // Tecla 'M': Silenciar / Ativar Som
+          if (inputState.toggleMutePressed) {
+            audioSystem.resumeIfSuspended();
+            audioSystem.toggleMute();
+          }
+
+          // Tecla 'E': Sonar acústico (aciona insight pedagógico no modo sereno)
+          if (inputState.sonarInsightTriggered && options.mode === "serene") {
+            sereneInsights?.trigger("sonar_communication");
+          }
+
+          // Teclas 'F8' e 'F3': Alterna o Painel de Telemetria e Diagnóstico de Desenvolvedor
+          if (inputState.toggleDebugTelemetryPressed) {
+            if (k.debug) {
+              k.debug.paused = false;
+            }
+            debugDistanceUI.toggle();
+          }
         },
-        { id: "gamepad_input" }
+        { id: "unified_input_system" }
       );
 
       // Fase 2: PHYSICS

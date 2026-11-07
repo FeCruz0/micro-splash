@@ -18,6 +18,7 @@ import { PlayerOxygenManager } from "./player/playerOxygen";
 import { PlayerPhysicsManager } from "./player/playerPhysics";
 import { PlayerSonarManager, type RevealableTarget } from "./player/playerSonar";
 import { PlayerControlsManager } from "./player/playerControls";
+import { getInputStateManager, type InputStateManager } from "../systems/inputState";
 import {
   spawnBaleenSuction,
   spawnDraftingTrail,
@@ -119,7 +120,8 @@ export function createPlayer(
   k: PlayerEngineContext,
   initialX: number = 120,
   isSereneMode: boolean = false,
-  touchState?: TouchControlsState
+  touchState?: TouchControlsState,
+  inputStateManager?: InputStateManager | null
 ): PlayerController {
   const updateCallbacks: Array<() => void> = [];
   const destroyCallbacks: Array<() => void> = [];
@@ -213,7 +215,7 @@ export function createPlayer(
   const oxygenMgr = new PlayerOxygenManager(k);
   const physicsMgr = new PlayerPhysicsManager(k);
   const sonarMgr = new PlayerSonarManager(k);
-  const controlsMgr = new PlayerControlsManager(k, touchState);
+  const controlsMgr = new PlayerControlsManager(k, touchState, inputStateManager);
 
   let animState: WhaleAnimationState = "idle_swim";
   let feedTimer = 0;
@@ -333,9 +335,11 @@ export function createPlayer(
       }
     } else if (trapMgr.isTrapped()) {
       // 3. Presa em rede fantasma
-      const isStrokePressedNow =
-        (typeof k.isKeyPressed === "function" ? k.isKeyPressed("space") : false) ||
-        (touchState && touchState.strokePressed);
+      const currentInputState = (inputStateManager ?? getInputStateManager())?.getState();
+      const isStrokePressedNow = currentInputState
+        ? currentInputState.strokePressed
+        : (typeof k.isKeyPressed === "function" ? k.isKeyPressed("space") : false) ||
+          Boolean(touchState && touchState.strokePressed);
       if (isStrokePressedNow) {
         const currentRenderEngine = getActiveRenderEngine();
         safeShake(currentRenderEngine ?? (k as unknown as IRenderEngine), 2);
