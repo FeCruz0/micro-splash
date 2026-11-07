@@ -86,7 +86,6 @@ export interface GameSceneEngineContext {
   };
   destroy(target: unknown): void;
   area(options?: unknown): unknown;
-  body(options?: unknown): unknown;
   onSceneLeave(callback: () => void): unknown;
   text(content: string, options?: unknown): unknown;
   onKeyPress(callback: () => void): unknown;
@@ -246,8 +245,6 @@ export function createGameScene(
       const oceanFloor = k.add([
         k.rect(k.width() * 2, 60),
         k.pos(-k.width() / 2, k.height() - 40),
-        k.area(),
-        k.body({ isStatic: true }),
         k.color(20, 50, 120),
       ]) as GameSceneUiObject;
 

@@ -250,6 +250,7 @@ export function setupIceSurfaceSystem(
             pos: { x, y: icePosY },
             width,
             height: iceCollisionHeight,
+            isStatic: true,
             breakIce,
           },
           {
@@ -365,6 +366,29 @@ export function setupIceSurfaceSystem(
       stageRoot.addChild(cliffG);
     }
 
+    const polarIceSpatialGrid = getSpatialGrid();
+    if (polarIceSpatialGrid) {
+      const polarIceWallEntity = {
+        id: "iceberg_wall_static",
+        tag: TAGS.OBSTACLE,
+        pos: { x: wallStartX, y: 0 },
+        width: wallWidth,
+        height: screenH,
+        isStatic: true,
+      };
+      polarIceSpatialGrid.insert(
+        "iceberg_wall_static",
+        polarIceWallEntity,
+        {
+          minX: wallStartX,
+          minY: 0,
+          maxX: wallStartX + wallWidth,
+          maxY: screenH,
+        },
+        true
+      );
+    }
+
     DEFAULT_ICE_GAPS.forEach((gap) => {
       if (gap.start > currentX) {
         createModularIceSpan(currentX, gap.start);
@@ -382,7 +406,6 @@ export function setupIceSurfaceSystem(
       rect(w: number, h: number, opts?: unknown): unknown;
       pos(x: number, y: number): unknown;
       area(opts?: unknown): unknown;
-      body(opts?: unknown): unknown;
       color(r: number, g: number, b: number): unknown;
       rgb(r: number, g: number, b: number): unknown;
       opacity(o: number): unknown;
@@ -411,7 +434,6 @@ export function setupIceSurfaceSystem(
               }),
             ]
           : [typeof legacyCtx.area === "function" ? legacyCtx.area() : null]),
-        typeof legacyCtx.body === "function" ? legacyCtx.body({ isStatic: true }) : null,
         legacyCtx.color(210, 235, 255),
         legacyCtx.opacity(0.96),
         legacyCtx.z(10),
@@ -583,6 +605,9 @@ export function setupIceSurfaceSystem(
       }
 
       if (fallbackSpatialGrid) {
+        const staticSegmentItem = segment as unknown as { isStatic?: boolean; tag?: string };
+        staticSegmentItem.isStatic = true;
+        staticSegmentItem.tag = "ice_block";
         fallbackSpatialGrid.insert(
           fallbackIceBlockIdentifier,
           segment,
@@ -641,13 +666,36 @@ export function setupIceSurfaceSystem(
       legacyCtx.rect(wallWidth, legacyCtx.height()),
       legacyCtx.pos(wallStartX, 0),
       typeof legacyCtx.area === "function" ? legacyCtx.area() : null,
-      typeof legacyCtx.body === "function" ? legacyCtx.body({ isStatic: true }) : null,
       legacyCtx.color(150, 195, 235),
       legacyCtx.opacity(0.95),
       legacyCtx.z(10),
       "iceberg_wall",
       TAGS.OBSTACLE,
     ]);
+
+    const fallbackPolarIceGrid = getSpatialGrid();
+    if (fallbackPolarIceGrid) {
+      const staticIceWallItem = wallObj as unknown as {
+        id?: string;
+        tag?: string;
+        isStatic?: boolean;
+      };
+      staticIceWallItem.id = "polar_ice_wall_barrier_legacy";
+      staticIceWallItem.tag = TAGS.OBSTACLE;
+      staticIceWallItem.isStatic = true;
+      fallbackPolarIceGrid.insert(
+        "polar_ice_wall_barrier_legacy",
+        wallObj,
+        {
+          minX: wallStartX,
+          minY: 0,
+          maxX: wallStartX + wallWidth,
+          maxY: legacyCtx.height(),
+        },
+        true
+      );
+    }
+
     cullingManager?.registerEntity(
       wallObj as unknown as CullingTarget,
       () => wallStartX + wallWidth / 2

@@ -70,7 +70,6 @@ export function createCompanionWhale<
             : k.area(),
         ]
       : []),
-    ...(typeof k.body === "function" ? [k.body()] : []),
   ]) as unknown as CompanionGameObject;
 
   // Submódulos da arquitetura modular

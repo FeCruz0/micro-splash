@@ -63,7 +63,6 @@ export interface PlayerEngineContext {
   rotate(angle: number): unknown;
   sprite?(name: string, opt?: { anim?: string }): unknown;
   area?(opt?: unknown): unknown;
-  body?(): unknown;
   // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
   Rect?: Function | { new (...args: never[]): unknown };
   add(comps: unknown[]): unknown;

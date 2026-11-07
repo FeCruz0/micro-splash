@@ -297,15 +297,15 @@ describe("Fase 56: Tutorial Intuitivo & Mimético — Baleia-Guia NPC (Mãe-Guia
   });
 
   describe("56.6: Reação a Colisões de Gelo e Obstáculos", () => {
-    it("deve registrar o componente body para resolução física de colisão sólida", () => {
+    it("não deve registrar componente body, delegando resolução à locomoção hidrodinâmica", () => {
       const mockKaboom = createMockKaboom();
       const mockPlayer = createMockPlayerController(100, 200);
       const companionController = createCompanionWhale(mockKaboom, mockPlayer);
 
       const hasBody = companionController.gameObj.comps.some(
-        (comp: any) => comp && comp.type === "body"
+        (comp: any) => comp && (comp.type === "body" || comp.body === true)
       );
-      expect(hasBody).toBe(true);
+      expect(hasBody).toBe(false);
     });
 
     it("deve impedir penetração na banquisa sólida de gelo pelo fundo e anular velocidade vertical", () => {

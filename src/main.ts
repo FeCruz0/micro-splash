@@ -172,10 +172,6 @@ function createPixiBridgeContext(
       return { type: "area", options };
     },
 
-    body(options) {
-      return { type: "body", options };
-    },
-
     text(content, options) {
       return { type: "text", text: content, options };
     },

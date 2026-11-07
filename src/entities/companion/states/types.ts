@@ -33,7 +33,6 @@ export interface CompanionEngineContext<
   anchor?: (a: "center") => unknown;
   scale?: (x: number, y: number) => unknown;
   area?: (opt?: unknown) => unknown;
-  body?: () => unknown;
   Rect?: new (pos: TVec, w: number, h: number) => unknown;
 }
 
