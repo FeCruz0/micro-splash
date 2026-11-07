@@ -64,7 +64,6 @@ export function renderSpeciesTab(context: CodexTabContext): void {
       k.color(14, 34, 68),
       k.outline(1.5, k.rgb(42, 85, 145)),
       k.anchor("center"),
-      k.area(),
       k.fixed(),
       k.z(304),
     ]);

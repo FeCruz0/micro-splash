@@ -35,7 +35,6 @@ export function renderOptionsHeader(
     k.outline(2.5, k.rgb(56, 189, 248)),
     k.anchor("center"),
     k.scale(1),
-    k.area(),
     k.fixed(),
     k.z(301),
   ]);
@@ -83,7 +82,6 @@ export function renderOptionsHeader(
     k.outline(1.5, k.rgb(100, 200, 255)),
     k.scale(1),
     k.anchor("center"),
-    k.area(),
     k.fixed(),
     k.z(305),
   ]);

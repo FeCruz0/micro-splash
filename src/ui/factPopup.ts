@@ -71,7 +71,10 @@ export function showFactPopup(
   ttsSystem.speak(`${fact.title}. ${fact.description}`);
 
   if (isRenderEngine(engineOrContext)) {
-    const stageRoot = engineOrContext.getStageRoot();
+    const screenContainer =
+      typeof engineOrContext.getScreenContainer === "function"
+        ? engineOrContext.getScreenContainer()
+        : engineOrContext.getStageRoot();
     const ticker = engineOrContext.getTicker();
 
     // Painel de fundo com cantos arredondados e borda dourada
@@ -82,7 +85,7 @@ export function showFactPopup(
     });
     panelNode.setPosition(screenW / 2, startY);
     panelNode.setZIndex(98);
-    stageRoot.addChild(panelNode);
+    screenContainer.addChild(panelNode);
 
     // Ícone pedagógico e título
     const titleNode: ITextNode = engineOrContext.createText(
@@ -97,7 +100,7 @@ export function showFactPopup(
     );
     titleNode.setPosition(screenW / 2 - width / 2 + 18, startY - height / 2 + 14);
     titleNode.setZIndex(99);
-    stageRoot.addChild(titleNode);
+    screenContainer.addChild(titleNode);
 
     // Descrição do fato científico
     const descNode: ITextNode = engineOrContext.createText(
@@ -113,14 +116,14 @@ export function showFactPopup(
     );
     descNode.setPosition(screenW / 2 - width / 2 + 18, startY - height / 2 + 42);
     descNode.setZIndex(99);
-    stageRoot.addChild(descNode);
+    screenContainer.addChild(descNode);
 
     const cleanup = () => {
       ttsSystem.stop();
       try {
-        stageRoot.removeChild(panelNode);
-        stageRoot.removeChild(titleNode);
-        stageRoot.removeChild(descNode);
+        screenContainer.removeChild(panelNode);
+        screenContainer.removeChild(titleNode);
+        screenContainer.removeChild(descNode);
         panelNode.destroy();
         titleNode.destroy();
         descNode.destroy();

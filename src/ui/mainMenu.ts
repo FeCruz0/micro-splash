@@ -398,7 +398,6 @@ export function createMainMenu(
       engine.outline(2, btnData.outline),
       engine.scale(1),
       engine.anchor("center"),
-      engine.area(),
       engine.fixed(),
       engine.z(12),
     ]);

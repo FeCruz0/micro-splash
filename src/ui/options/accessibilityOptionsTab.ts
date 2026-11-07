@@ -21,7 +21,6 @@ export function renderAccessibilityOptions(context: OptionsScreenContext): void 
     k.outline(1.5, k.rgb(56, 189, 248)),
     k.scale(1),
     k.anchor("center"),
-    k.area(),
     k.fixed(),
     k.z(302),
   ]);
@@ -72,7 +71,6 @@ export function renderAccessibilityOptions(context: OptionsScreenContext): void 
     k.outline(1.5, k.rgb(56, 189, 248)),
     k.scale(1),
     k.anchor("center"),
-    k.area(),
     k.fixed(),
     k.z(302),
   ]);
@@ -123,7 +121,6 @@ export function renderAccessibilityOptions(context: OptionsScreenContext): void 
     k.outline(1.5, k.rgb(56, 189, 248)),
     k.scale(1),
     k.anchor("center"),
-    k.area(),
     k.fixed(),
     k.z(302),
   ]);
@@ -172,7 +169,6 @@ export function renderAccessibilityOptions(context: OptionsScreenContext): void 
     k.outline(1.5, k.rgb(56, 189, 248)),
     k.scale(1),
     k.anchor("center"),
-    k.area(),
     k.fixed(),
     k.z(302),
   ]);

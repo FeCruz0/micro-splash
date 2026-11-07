@@ -102,7 +102,10 @@ export function addShadowedText<
   const anchor = opts.anchor ?? "topleft";
 
   if (isRenderEngine(engineOrContext)) {
-    const stageRoot = engineOrContext.getStageRoot();
+    const screenContainer =
+      typeof engineOrContext.getScreenContainer === "function"
+        ? engineOrContext.getScreenContainer()
+        : engineOrContext.getStageRoot();
 
     const shadowNode = engineOrContext.createText(
       content,
@@ -119,7 +122,7 @@ export function addShadowedText<
     shadowNode.setPosition(opts.pos.x + offset.x, opts.pos.y + offset.y);
     shadowNode.setOpacity(opts.shadowOpacity ?? 0.75);
     shadowNode.setZIndex(shadowZ);
-    stageRoot.addChild(shadowNode);
+    screenContainer.addChild(shadowNode);
 
     const mainNode = engineOrContext.createText(
       content,
@@ -138,7 +141,7 @@ export function addShadowedText<
       mainNode.setOpacity(opts.opacity);
     }
     mainNode.setZIndex(zBase);
-    stageRoot.addChild(mainNode);
+    screenContainer.addChild(mainNode);
 
     const shadowProxy = new PixiTextNodeProxy(shadowNode);
     const mainProxy = new PixiTextNodeProxy(mainNode);
@@ -152,8 +155,8 @@ export function addShadowedText<
       },
       destroy: () => {
         try {
-          stageRoot.removeChild(mainNode);
-          stageRoot.removeChild(shadowNode);
+          screenContainer.removeChild(mainNode);
+          screenContainer.removeChild(shadowNode);
           mainNode.destroy();
           shadowNode.destroy();
         } catch {}

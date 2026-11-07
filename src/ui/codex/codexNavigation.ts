@@ -42,7 +42,6 @@ export function renderCodexHeader(
     k.outline(2.5, k.rgb(250, 204, 21)),
     k.anchor("center"),
     k.scale(1),
-    k.area(),
     k.fixed(),
     k.z(301),
   ]);
@@ -133,7 +132,6 @@ export function renderCodexTabs(options: CodexNavigationOptions): {
       k.outline(active ? 2 : 1, active ? k.rgb(56, 189, 248) : k.rgb(45, 75, 115)),
       k.scale(1),
       k.anchor("center"),
-      k.area(),
       k.fixed(),
       k.z(304),
     ]);
@@ -201,7 +199,6 @@ export function renderCodexFooter(options: CodexNavigationOptions): CodexFooterR
     k.outline(2, k.rgb(56, 189, 248)),
     k.scale(1),
     k.anchor("center"),
-    k.area(),
     k.fixed(),
     k.z(305),
   ]);
@@ -242,7 +239,6 @@ export function renderCodexFooter(options: CodexNavigationOptions): CodexFooterR
     k.outline(2, k.rgb(90, 220, 255)),
     k.scale(1),
     k.anchor("center"),
-    k.area(),
     k.fixed(),
     k.z(305),
   ]);
@@ -291,7 +287,6 @@ export function renderCodexFooter(options: CodexNavigationOptions): CodexFooterR
     k.outline(2, k.rgb(52, 211, 153)),
     k.scale(1),
     k.anchor("center"),
-    k.area(),
     k.fixed(),
     k.z(305),
   ]);

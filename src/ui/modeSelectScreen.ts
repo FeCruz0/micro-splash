@@ -105,7 +105,6 @@ export function showModeSelectScreen(
     engine.pos(0, 0),
     engine.color(UI_COLORS.backdrop[0], UI_COLORS.backdrop[1], UI_COLORS.backdrop[2]),
     engine.opacity(UI_COLORS.backdropOpacity),
-    engine.area(),
     engine.fixed(),
     engine.z(UI_Z_INDEX.backdrop),
   ]);
@@ -119,7 +118,6 @@ export function showModeSelectScreen(
     engine.outline(2.5, engine.rgb(UI_COLORS.border[0], UI_COLORS.border[1], UI_COLORS.border[2])),
     engine.anchor("center"),
     engine.scale(1),
-    engine.area(),
     engine.fixed(),
     engine.z(UI_Z_INDEX.modalCard),
   ]);
@@ -203,7 +201,6 @@ export function showModeSelectScreen(
     engine.outline(1.5, engine.rgb(100, 200, 255)),
     engine.scale(1),
     engine.anchor("center"),
-    engine.area(),
     engine.fixed(),
     engine.z(305),
   ]);
@@ -268,7 +265,6 @@ export function showModeSelectScreen(
     ),
     engine.scale(1),
     engine.anchor("center"),
-    engine.area(),
     engine.fixed(),
     engine.z(302),
   ]);
@@ -391,7 +387,6 @@ export function showModeSelectScreen(
     ),
     engine.scale(1),
     engine.anchor("center"),
-    engine.area(),
     engine.fixed(),
     engine.z(302),
   ]);
@@ -614,7 +609,6 @@ export function showModeSelectScreen(
       ),
       engine.scale(1),
       engine.anchor("center"),
-      engine.area(),
       engine.fixed(),
       engine.z(304),
     ]);
@@ -675,7 +669,6 @@ export function showModeSelectScreen(
     engine.outline(1.5, engine.rgb(255, 210, 100)),
     engine.scale(1),
     engine.anchor("center"),
-    engine.area(),
     engine.fixed(),
     engine.z(304),
   ]);
@@ -739,7 +732,6 @@ export function showModeSelectScreen(
     engine.outline(2, engine.rgb(56, 189, 248)),
     engine.scale(1),
     engine.anchor("center"),
-    engine.area(),
     engine.fixed(),
     engine.z(304),
   ]);

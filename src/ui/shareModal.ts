@@ -52,7 +52,10 @@ export function showShareModal(
     typeof window !== "undefined" ? window.location.href : "https://micro-splash.local";
 
   if (isRenderEngine(engineOrContext)) {
-    const stageRoot = engineOrContext.getStageRoot();
+    const screenContainer =
+      typeof engineOrContext.getScreenContainer === "function"
+        ? engineOrContext.getScreenContainer()
+        : engineOrContext.getStageRoot();
     const dimensions = engineOrContext.getDimensions();
     const screenW = dimensions.width;
     const screenH = dimensions.height;
@@ -75,7 +78,7 @@ export function showShareModal(
 
       createdNodes.forEach((node) => {
         try {
-          stageRoot.removeChild(node);
+          screenContainer.removeChild(node);
           node.destroy();
         } catch {}
       });
@@ -104,7 +107,7 @@ export function showShareModal(
       fill: { color: [4, 12, 28], alpha: 0.95 },
     });
     backdrop.setZIndex(500);
-    stageRoot.addChild(backdrop);
+    screenContainer.addChild(backdrop);
     createdNodes.push(backdrop);
 
     // Card principal
@@ -114,7 +117,7 @@ export function showShareModal(
       stroke: { color: [100, 220, 255], width: 2.5 },
     });
     card.setZIndex(501);
-    stageRoot.addChild(card);
+    screenContainer.addChild(card);
     createdNodes.push(card);
 
     // Título
@@ -133,7 +136,7 @@ export function showShareModal(
     const nativeTitle = title.getNativeNode<{ anchor?: { set(x: number, y: number): void } }>();
     if (nativeTitle?.anchor?.set) nativeTitle.anchor.set(0.5, 0.5);
     title.setZIndex(502);
-    stageRoot.addChild(title);
+    screenContainer.addChild(title);
     createdNodes.push(title);
 
     // Subtítulo
@@ -153,7 +156,7 @@ export function showShareModal(
     const nativeSub = subtitle.getNativeNode<{ anchor?: { set(x: number, y: number): void } }>();
     if (nativeSub?.anchor?.set) nativeSub.anchor.set(0.5, 0.5);
     subtitle.setZIndex(502);
-    stageRoot.addChild(subtitle);
+    screenContainer.addChild(subtitle);
     createdNodes.push(subtitle);
 
     // Preview das Conquistas
@@ -164,7 +167,7 @@ export function showShareModal(
       stroke: { color: [80, 160, 230], width: 1.5 },
     });
     previewBox.setZIndex(502);
-    stageRoot.addChild(previewBox);
+    screenContainer.addChild(previewBox);
     createdNodes.push(previewBox);
 
     const scoreLine = engineOrContext.createText(
@@ -182,7 +185,7 @@ export function showShareModal(
     const nativeScore = scoreLine.getNativeNode<{ anchor?: { set(x: number, y: number): void } }>();
     if (nativeScore?.anchor?.set) nativeScore.anchor.set(0.5, 0.5);
     scoreLine.setZIndex(503);
-    stageRoot.addChild(scoreLine);
+    screenContainer.addChild(scoreLine);
     createdNodes.push(scoreLine);
 
     const statsLine = engineOrContext.createText(
@@ -200,7 +203,7 @@ export function showShareModal(
     const nativeStats = statsLine.getNativeNode<{ anchor?: { set(x: number, y: number): void } }>();
     if (nativeStats?.anchor?.set) nativeStats.anchor.set(0.5, 0.5);
     statsLine.setZIndex(503);
-    stageRoot.addChild(statsLine);
+    screenContainer.addChild(statsLine);
     createdNodes.push(statsLine);
 
     // Botão Fechar [✕]
@@ -216,7 +219,7 @@ export function showShareModal(
     };
     drawCloseBtn(false);
     btnClose.setZIndex(505);
-    stageRoot.addChild(btnClose);
+    screenContainer.addChild(btnClose);
     createdNodes.push(btnClose);
 
     const closeText = engineOrContext.createText(
@@ -236,7 +239,7 @@ export function showShareModal(
     }>();
     if (nativeCloseText?.anchor?.set) nativeCloseText.anchor.set(0.5, 0.5);
     closeText.setZIndex(506);
-    stageRoot.addChild(closeText);
+    screenContainer.addChild(closeText);
     createdNodes.push(closeText);
 
     const nativeClose = btnClose.getNativeNode<{
@@ -270,7 +273,7 @@ export function showShareModal(
     };
     drawWa(false);
     btnWhatsApp.setZIndex(503);
-    stageRoot.addChild(btnWhatsApp);
+    screenContainer.addChild(btnWhatsApp);
     createdNodes.push(btnWhatsApp);
 
     const waText = engineOrContext.createText(
@@ -288,7 +291,7 @@ export function showShareModal(
     const nativeWaText = waText.getNativeNode<{ anchor?: { set(x: number, y: number): void } }>();
     if (nativeWaText?.anchor?.set) nativeWaText.anchor.set(0.5, 0.5);
     waText.setZIndex(504);
-    stageRoot.addChild(waText);
+    screenContainer.addChild(waText);
     createdNodes.push(waText);
 
     const nativeWa = btnWhatsApp.getNativeNode<{
@@ -322,7 +325,7 @@ export function showShareModal(
     };
     drawTw(false);
     btnTwitter.setZIndex(503);
-    stageRoot.addChild(btnTwitter);
+    screenContainer.addChild(btnTwitter);
     createdNodes.push(btnTwitter);
 
     const twText = engineOrContext.createText(
@@ -340,7 +343,7 @@ export function showShareModal(
     const nativeTwText = twText.getNativeNode<{ anchor?: { set(x: number, y: number): void } }>();
     if (nativeTwText?.anchor?.set) nativeTwText.anchor.set(0.5, 0.5);
     twText.setZIndex(504);
-    stageRoot.addChild(twText);
+    screenContainer.addChild(twText);
     createdNodes.push(twText);
 
     const nativeTw = btnTwitter.getNativeNode<{
@@ -374,7 +377,7 @@ export function showShareModal(
     };
     drawCopy(false);
     btnCopy.setZIndex(503);
-    stageRoot.addChild(btnCopy);
+    screenContainer.addChild(btnCopy);
     createdNodes.push(btnCopy);
 
     const copyLabel = engineOrContext.createText(
@@ -394,7 +397,7 @@ export function showShareModal(
     }>();
     if (nativeCopyText?.anchor?.set) nativeCopyText.anchor.set(0.5, 0.5);
     copyLabel.setZIndex(504);
-    stageRoot.addChild(copyLabel);
+    screenContainer.addChild(copyLabel);
     createdNodes.push(copyLabel);
 
     const nativeCopy = btnCopy.getNativeNode<{
@@ -444,7 +447,7 @@ export function showShareModal(
     };
     drawAction(false);
     btnAction.setZIndex(503);
-    stageRoot.addChild(btnAction);
+    screenContainer.addChild(btnAction);
     createdNodes.push(btnAction);
 
     const actionLabel = engineOrContext.createText(
@@ -466,7 +469,7 @@ export function showShareModal(
     }>();
     if (nativeActionText?.anchor?.set) nativeActionText.anchor.set(0.5, 0.5);
     actionLabel.setZIndex(504);
-    stageRoot.addChild(actionLabel);
+    screenContainer.addChild(actionLabel);
     createdNodes.push(actionLabel);
 
     const nativeAction = btnAction.getNativeNode<{
@@ -519,7 +522,7 @@ export function showShareModal(
     };
     drawDone(false);
     btnDone.setZIndex(503);
-    stageRoot.addChild(btnDone);
+    screenContainer.addChild(btnDone);
     createdNodes.push(btnDone);
 
     const doneLabel = engineOrContext.createText(
@@ -539,7 +542,7 @@ export function showShareModal(
     }>();
     if (nativeDoneText?.anchor?.set) nativeDoneText.anchor.set(0.5, 0.5);
     doneLabel.setZIndex(504);
-    stageRoot.addChild(doneLabel);
+    screenContainer.addChild(doneLabel);
     createdNodes.push(doneLabel);
 
     const nativeDone = btnDone.getNativeNode<{
@@ -576,7 +579,6 @@ export function showShareModal(
     engineOrContext.pos(0, 0),
     engineOrContext.color(4, 12, 28),
     typeof engineOrContext.opacity === "function" ? engineOrContext.opacity(0.95) : undefined,
-    typeof engineOrContext.area === "function" ? engineOrContext.area() : undefined,
     typeof engineOrContext.fixed === "function" ? engineOrContext.fixed() : undefined,
     typeof engineOrContext.z === "function" ? engineOrContext.z(500) : undefined,
   ]);
@@ -593,7 +595,6 @@ export function showShareModal(
     engineOrContext.color(10, 30, 64),
     cardOutline,
     typeof engineOrContext.anchor === "function" ? engineOrContext.anchor("center") : undefined,
-    typeof engineOrContext.area === "function" ? engineOrContext.area() : undefined,
     typeof engineOrContext.fixed === "function" ? engineOrContext.fixed() : undefined,
     typeof engineOrContext.z === "function" ? engineOrContext.z(501) : undefined,
   ]);
@@ -718,7 +719,6 @@ export function showShareModal(
     engineOrContext.color(25, 45, 80),
     closeOutline,
     typeof engineOrContext.anchor === "function" ? engineOrContext.anchor("center") : undefined,
-    typeof engineOrContext.area === "function" ? engineOrContext.area() : undefined,
     typeof engineOrContext.fixed === "function" ? engineOrContext.fixed() : undefined,
     typeof engineOrContext.z === "function" ? engineOrContext.z(505) : undefined,
   ]) as {
@@ -776,7 +776,6 @@ export function showShareModal(
     engineOrContext.color(20, 115, 60),
     waOutline,
     typeof engineOrContext.anchor === "function" ? engineOrContext.anchor("center") : undefined,
-    typeof engineOrContext.area === "function" ? engineOrContext.area() : undefined,
     typeof engineOrContext.fixed === "function" ? engineOrContext.fixed() : undefined,
     typeof engineOrContext.z === "function" ? engineOrContext.z(503) : undefined,
   ]) as {
@@ -834,7 +833,6 @@ export function showShareModal(
     engineOrContext.color(20, 75, 130),
     twOutline,
     typeof engineOrContext.anchor === "function" ? engineOrContext.anchor("center") : undefined,
-    typeof engineOrContext.area === "function" ? engineOrContext.area() : undefined,
     typeof engineOrContext.fixed === "function" ? engineOrContext.fixed() : undefined,
     typeof engineOrContext.z === "function" ? engineOrContext.z(503) : undefined,
   ]) as {
@@ -892,7 +890,6 @@ export function showShareModal(
     engineOrContext.color(30, 50, 90),
     copyOutline,
     typeof engineOrContext.anchor === "function" ? engineOrContext.anchor("center") : undefined,
-    typeof engineOrContext.area === "function" ? engineOrContext.area() : undefined,
     typeof engineOrContext.fixed === "function" ? engineOrContext.fixed() : undefined,
     typeof engineOrContext.z === "function" ? engineOrContext.z(503) : undefined,
   ]) as {
@@ -972,7 +969,6 @@ export function showShareModal(
     actionColor ? engineOrContext.color(actionColor) : undefined,
     actionOutline,
     typeof engineOrContext.anchor === "function" ? engineOrContext.anchor("center") : undefined,
-    typeof engineOrContext.area === "function" ? engineOrContext.area() : undefined,
     typeof engineOrContext.fixed === "function" ? engineOrContext.fixed() : undefined,
     typeof engineOrContext.z === "function" ? engineOrContext.z(503) : undefined,
   ]) as {
@@ -1064,7 +1060,6 @@ export function showShareModal(
     engineOrContext.color(18, 45, 80),
     doneOutline,
     typeof engineOrContext.anchor === "function" ? engineOrContext.anchor("center") : undefined,
-    typeof engineOrContext.area === "function" ? engineOrContext.area() : undefined,
     typeof engineOrContext.fixed === "function" ? engineOrContext.fixed() : undefined,
     typeof engineOrContext.z === "function" ? engineOrContext.z(503) : undefined,
   ]) as {

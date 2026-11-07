@@ -124,7 +124,10 @@ export function createCardButton<
   };
 
   if (isRenderEngine(engineOrContext)) {
-    const stageRoot = engineOrContext.getStageRoot();
+    const screenContainer =
+      typeof engineOrContext.getScreenContainer === "function"
+        ? engineOrContext.getScreenContainer()
+        : engineOrContext.getStageRoot();
     const btnNode: IGraphicsNode = engineOrContext.createGraphics("card_button_bg");
     const radius = options.radius ?? UI_RADII.md;
 
@@ -145,7 +148,7 @@ export function createCardButton<
     drawButton(false);
     btnNode.setPosition(options.pos.x, options.pos.y);
     btnNode.setZIndex(zBase);
-    stageRoot.addChild(btnNode);
+    screenContainer.addChild(btnNode);
 
     const txtNode: ITextNode = engineOrContext.createText(
       options.label,
@@ -159,7 +162,7 @@ export function createCardButton<
     );
     txtNode.setPosition(options.pos.x, options.pos.y);
     txtNode.setZIndex(zBase + 1);
-    stageRoot.addChild(txtNode);
+    screenContainer.addChild(txtNode);
 
     const nativeBtn = btnNode.getNativeNode<{
       interactive?: boolean;
@@ -192,7 +195,7 @@ export function createCardButton<
       destroy: () => {
         elements.forEach((node) => {
           try {
-            stageRoot.removeChild(node);
+            screenContainer.removeChild(node);
             node.destroy();
           } catch {}
         });
@@ -232,7 +235,6 @@ export function createCardButton<
       : undefined,
     typeof legacyContext.scale === "function" ? legacyContext.scale(1) : undefined,
     typeof legacyContext.anchor === "function" ? legacyContext.anchor("center") : undefined,
-    typeof legacyContext.area === "function" ? legacyContext.area() : undefined,
     typeof legacyContext.fixed === "function" ? legacyContext.fixed() : undefined,
     typeof legacyContext.z === "function" ? legacyContext.z(zBase) : undefined,
   ]);

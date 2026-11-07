@@ -112,7 +112,10 @@ export function showStatsModal(
   ];
 
   if (isRenderEngine(engineOrContext)) {
-    const stageRoot = engineOrContext.getStageRoot();
+    const screenContainer =
+      typeof engineOrContext.getScreenContainer === "function"
+        ? engineOrContext.getScreenContainer()
+        : engineOrContext.getStageRoot();
     const dimensions = engineOrContext.getDimensions();
     const screenW = dimensions.width;
     const screenH = dimensions.height;
@@ -143,7 +146,7 @@ export function showStatsModal(
       }
       createdNodes.forEach((node) => {
         try {
-          stageRoot.removeChild(node);
+          screenContainer.removeChild(node);
           node.destroy();
         } catch {}
       });
@@ -157,7 +160,7 @@ export function showStatsModal(
       fill: { color: [4, 12, 28], alpha: 0.94 },
     });
     backdrop.setZIndex(290);
-    stageRoot.addChild(backdrop);
+    screenContainer.addChild(backdrop);
     createdNodes.push(backdrop);
 
     // Card principal
@@ -167,7 +170,7 @@ export function showStatsModal(
       stroke: { color: [56, 189, 248], width: 2.5 },
     });
     card.setZIndex(291);
-    stageRoot.addChild(card);
+    screenContainer.addChild(card);
     createdNodes.push(card);
 
     // Botão Fechar [✕]
@@ -182,7 +185,7 @@ export function showStatsModal(
     };
     drawBtnX(false);
     btnX.setZIndex(293);
-    stageRoot.addChild(btnX);
+    screenContainer.addChild(btnX);
     createdNodes.push(btnX);
 
     const xLabel = engineOrContext.createText(
@@ -200,7 +203,7 @@ export function showStatsModal(
     const nativeXLabel = xLabel.getNativeNode<{ anchor?: { set(x: number, y: number): void } }>();
     if (nativeXLabel?.anchor?.set) nativeXLabel.anchor.set(0.5, 0.5);
     xLabel.setZIndex(294);
-    stageRoot.addChild(xLabel);
+    screenContainer.addChild(xLabel);
     createdNodes.push(xLabel);
 
     const nativeBtnX = btnX.getNativeNode<{
@@ -234,7 +237,7 @@ export function showStatsModal(
     const nativeTitle = title.getNativeNode<{ anchor?: { set(x: number, y: number): void } }>();
     if (nativeTitle?.anchor?.set) nativeTitle.anchor.set(0.5, 0.5);
     title.setZIndex(292);
-    stageRoot.addChild(title);
+    screenContainer.addChild(title);
     createdNodes.push(title);
 
     // Subtítulo
@@ -253,7 +256,7 @@ export function showStatsModal(
     const nativeSub = subtitle.getNativeNode<{ anchor?: { set(x: number, y: number): void } }>();
     if (nativeSub?.anchor?.set) nativeSub.anchor.set(0.5, 0.5);
     subtitle.setZIndex(292);
-    stageRoot.addChild(subtitle);
+    screenContainer.addChild(subtitle);
     createdNodes.push(subtitle);
 
     // Linha divisória
@@ -262,7 +265,7 @@ export function showStatsModal(
       fill: { color: [35, 80, 140], alpha: 1 },
     });
     divider.setZIndex(292);
-    stageRoot.addChild(divider);
+    screenContainer.addChild(divider);
     createdNodes.push(divider);
 
     // 6 Cards de métricas
@@ -290,7 +293,7 @@ export function showStatsModal(
       };
       drawBox(false);
       metricBox.setZIndex(293);
-      stageRoot.addChild(metricBox);
+      screenContainer.addChild(metricBox);
       createdNodes.push(metricBox);
 
       const nativeBox = metricBox.getNativeNode<{
@@ -311,7 +314,7 @@ export function showStatsModal(
         stroke: { color: [56, 189, 248], width: 1 },
       });
       iconPill.setZIndex(294);
-      stageRoot.addChild(iconPill);
+      screenContainer.addChild(iconPill);
       createdNodes.push(iconPill);
 
       const iconText = engineOrContext.createText(
@@ -330,7 +333,7 @@ export function showStatsModal(
       }>();
       if (nativeIconText?.anchor?.set) nativeIconText.anchor.set(0.5, 0.5);
       iconText.setZIndex(295);
-      stageRoot.addChild(iconText);
+      screenContainer.addChild(iconText);
       createdNodes.push(iconText);
 
       // Coluna de textos
@@ -348,7 +351,7 @@ export function showStatsModal(
       );
       titleNode.setPosition(textStartX, posY - 29);
       titleNode.setZIndex(294);
-      stageRoot.addChild(titleNode);
+      screenContainer.addChild(titleNode);
       createdNodes.push(titleNode);
 
       const mainValNode = engineOrContext.createText(
@@ -363,7 +366,7 @@ export function showStatsModal(
       );
       mainValNode.setPosition(textStartX, posY - 10);
       mainValNode.setZIndex(294);
-      stageRoot.addChild(mainValNode);
+      screenContainer.addChild(mainValNode);
       createdNodes.push(mainValNode);
 
       const subValNode = engineOrContext.createText(
@@ -378,7 +381,7 @@ export function showStatsModal(
       );
       subValNode.setPosition(textStartX, posY + 22);
       subValNode.setZIndex(294);
-      stageRoot.addChild(subValNode);
+      screenContainer.addChild(subValNode);
       createdNodes.push(subValNode);
     });
 
@@ -398,7 +401,7 @@ export function showStatsModal(
     const nativeFooter = footer.getNativeNode<{ anchor?: { set(x: number, y: number): void } }>();
     if (nativeFooter?.anchor?.set) nativeFooter.anchor.set(0.5, 0.5);
     footer.setZIndex(293);
-    stageRoot.addChild(footer);
+    screenContainer.addChild(footer);
     createdNodes.push(footer);
 
     // Botão Voltar ao Menu
@@ -413,7 +416,7 @@ export function showStatsModal(
     };
     drawBackBtn(false);
     btnClose.setZIndex(294);
-    stageRoot.addChild(btnClose);
+    screenContainer.addChild(btnClose);
     createdNodes.push(btnClose);
 
     const btnText = engineOrContext.createText(
@@ -431,7 +434,7 @@ export function showStatsModal(
     const nativeBtnText = btnText.getNativeNode<{ anchor?: { set(x: number, y: number): void } }>();
     if (nativeBtnText?.anchor?.set) nativeBtnText.anchor.set(0.5, 0.5);
     btnText.setZIndex(295);
-    stageRoot.addChild(btnText);
+    screenContainer.addChild(btnText);
     createdNodes.push(btnText);
 
     const nativeCloseBtn = btnClose.getNativeNode<{
@@ -514,7 +517,6 @@ export function showStatsModal(
     engineOrContext.pos(0, 0),
     engineOrContext.color(4, 12, 28),
     typeof engineOrContext.opacity === "function" ? engineOrContext.opacity(0.94) : undefined,
-    typeof engineOrContext.area === "function" ? engineOrContext.area() : undefined,
     typeof engineOrContext.fixed === "function" ? engineOrContext.fixed() : undefined,
     typeof engineOrContext.z === "function" ? engineOrContext.z(290) : undefined,
   ]);
@@ -531,7 +533,6 @@ export function showStatsModal(
     engineOrContext.color(10, 28, 56),
     cardOutline,
     typeof engineOrContext.anchor === "function" ? engineOrContext.anchor("center") : undefined,
-    typeof engineOrContext.area === "function" ? engineOrContext.area() : undefined,
     typeof engineOrContext.fixed === "function" ? engineOrContext.fixed() : undefined,
     typeof engineOrContext.z === "function" ? engineOrContext.z(291) : undefined,
   ]);
@@ -550,7 +551,6 @@ export function showStatsModal(
     xOutline,
     typeof engineOrContext.scale === "function" ? engineOrContext.scale(1) : undefined,
     typeof engineOrContext.anchor === "function" ? engineOrContext.anchor("center") : undefined,
-    typeof engineOrContext.area === "function" ? engineOrContext.area() : undefined,
     typeof engineOrContext.fixed === "function" ? engineOrContext.fixed() : undefined,
     typeof engineOrContext.z === "function" ? engineOrContext.z(293) : undefined,
   ]) as {
@@ -633,7 +633,6 @@ export function showStatsModal(
       engineOrContext.color(14, 34, 68),
       boxOutline,
       typeof engineOrContext.anchor === "function" ? engineOrContext.anchor("center") : undefined,
-      typeof engineOrContext.area === "function" ? engineOrContext.area() : undefined,
       typeof engineOrContext.fixed === "function" ? engineOrContext.fixed() : undefined,
       typeof engineOrContext.z === "function" ? engineOrContext.z(293) : undefined,
     ]) as {
@@ -822,7 +821,6 @@ export function showStatsModal(
     backOutline,
     typeof engineOrContext.anchor === "function" ? engineOrContext.anchor("center") : undefined,
     typeof engineOrContext.scale === "function" ? engineOrContext.scale(1) : undefined,
-    typeof engineOrContext.area === "function" ? engineOrContext.area() : undefined,
     typeof engineOrContext.fixed === "function" ? engineOrContext.fixed() : undefined,
     typeof engineOrContext.z === "function" ? engineOrContext.z(294) : undefined,
   ]) as {

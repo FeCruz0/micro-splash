@@ -49,7 +49,10 @@ export function showInitialsInputModal(
   let activeIndex = 0;
 
   if (isRenderEngine(engineOrContext)) {
-    const stageRoot = engineOrContext.getStageRoot();
+    const screenContainer =
+      typeof engineOrContext.getScreenContainer === "function"
+        ? engineOrContext.getScreenContainer()
+        : engineOrContext.getStageRoot();
     const dimensions = engineOrContext.getDimensions();
     const screenW = dimensions.width;
     const screenH = dimensions.height;
@@ -67,7 +70,7 @@ export function showInitialsInputModal(
       fill: { color: [4, 14, 32], alpha: 0.92 },
     });
     backdropNode.setZIndex(400);
-    stageRoot.addChild(backdropNode);
+    screenContainer.addChild(backdropNode);
     createdNodes.push(backdropNode);
 
     // Card
@@ -78,7 +81,7 @@ export function showInitialsInputModal(
     });
     cardNode.setPosition(centerX, centerY);
     cardNode.setZIndex(401);
-    stageRoot.addChild(cardNode);
+    screenContainer.addChild(cardNode);
     createdNodes.push(cardNode);
 
     // Título
@@ -94,7 +97,7 @@ export function showInitialsInputModal(
     );
     titleNode.setPosition(centerX, centerY - 165);
     titleNode.setZIndex(402);
-    stageRoot.addChild(titleNode);
+    screenContainer.addChild(titleNode);
     createdNodes.push(titleNode);
 
     // Subtítulo
@@ -110,7 +113,7 @@ export function showInitialsInputModal(
     );
     scoreNode.setPosition(centerX, centerY - 124);
     scoreNode.setZIndex(402);
-    stageRoot.addChild(scoreNode);
+    screenContainer.addChild(scoreNode);
     createdNodes.push(scoreNode);
 
     const promptNode = engineOrContext.createText(
@@ -125,7 +128,7 @@ export function showInitialsInputModal(
     );
     promptNode.setPosition(centerX, centerY - 88);
     promptNode.setZIndex(402);
-    stageRoot.addChild(promptNode);
+    screenContainer.addChild(promptNode);
     createdNodes.push(promptNode);
 
     // Slots
@@ -173,7 +176,7 @@ export function showInitialsInputModal(
       });
       btnUp.setPosition(slotX, slotY - 56);
       btnUp.setZIndex(403);
-      stageRoot.addChild(btnUp);
+      screenContainer.addChild(btnUp);
       createdNodes.push(btnUp);
 
       const txtUp = engineOrContext.createText(
@@ -188,7 +191,7 @@ export function showInitialsInputModal(
       );
       txtUp.setPosition(slotX, slotY - 56);
       txtUp.setZIndex(404);
-      stageRoot.addChild(txtUp);
+      screenContainer.addChild(txtUp);
       createdNodes.push(txtUp);
 
       const nativeUp = btnUp.getNativeNode<{
@@ -209,7 +212,7 @@ export function showInitialsInputModal(
       const box = engineOrContext.createGraphics(`slot_box_${i}`);
       box.setPosition(slotX, slotY);
       box.setZIndex(402);
-      stageRoot.addChild(box);
+      screenContainer.addChild(box);
       slotBoxes.push(box);
       createdNodes.push(box);
 
@@ -225,7 +228,7 @@ export function showInitialsInputModal(
       );
       letter.setPosition(slotX, slotY);
       letter.setZIndex(403);
-      stageRoot.addChild(letter);
+      screenContainer.addChild(letter);
       slotTexts.push(letter);
       createdNodes.push(letter);
 
@@ -252,7 +255,7 @@ export function showInitialsInputModal(
       });
       btnDown.setPosition(slotX, slotY + 56);
       btnDown.setZIndex(403);
-      stageRoot.addChild(btnDown);
+      screenContainer.addChild(btnDown);
       createdNodes.push(btnDown);
 
       const txtDown = engineOrContext.createText(
@@ -267,7 +270,7 @@ export function showInitialsInputModal(
       );
       txtDown.setPosition(slotX, slotY + 56);
       txtDown.setZIndex(404);
-      stageRoot.addChild(txtDown);
+      screenContainer.addChild(txtDown);
       createdNodes.push(txtDown);
 
       const nativeDown = btnDown.getNativeNode<{
@@ -299,7 +302,7 @@ export function showInitialsInputModal(
     drawSubmit(false);
     btnSubmit.setPosition(centerX, centerY + 150);
     btnSubmit.setZIndex(403);
-    stageRoot.addChild(btnSubmit);
+    screenContainer.addChild(btnSubmit);
     createdNodes.push(btnSubmit);
 
     const txtSubmit = engineOrContext.createText(
@@ -314,7 +317,7 @@ export function showInitialsInputModal(
     );
     txtSubmit.setPosition(centerX, centerY + 150);
     txtSubmit.setZIndex(404);
-    stageRoot.addChild(txtSubmit);
+    screenContainer.addChild(txtSubmit);
     createdNodes.push(txtSubmit);
 
     let submitted = false;
@@ -339,7 +342,7 @@ export function showInitialsInputModal(
 
       createdNodes.forEach((node) => {
         try {
-          stageRoot.removeChild(node);
+          screenContainer.removeChild(node);
           node.destroy();
         } catch {}
       });

@@ -85,7 +85,6 @@ export function showLeaderboardScreen(k: ShowLeaderboardEngineContext, onClose: 
       engine.pos(0, 0),
       engine.color(UI_COLORS.backdrop[0], UI_COLORS.backdrop[1], UI_COLORS.backdrop[2]),
       engine.opacity(UI_COLORS.backdropOpacity),
-      engine.area(),
       engine.fixed(),
       engine.z(UI_Z_INDEX.backdrop),
     ])
@@ -102,7 +101,6 @@ export function showLeaderboardScreen(k: ShowLeaderboardEngineContext, onClose: 
         engine.rgb(UI_COLORS.borderGold[0], UI_COLORS.borderGold[1], UI_COLORS.borderGold[2])
       ),
       engine.anchor("center"),
-      engine.area(),
       engine.fixed(),
       engine.z(UI_Z_INDEX.modalCard),
     ])
@@ -157,7 +155,6 @@ export function showLeaderboardScreen(k: ShowLeaderboardEngineContext, onClose: 
     engine.outline(1.5, engine.rgb(100, 200, 255)),
     engine.scale(1),
     engine.anchor("center"),
-    engine.area(),
     engine.fixed(),
     engine.z(305),
   ]);

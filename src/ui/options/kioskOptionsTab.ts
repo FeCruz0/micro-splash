@@ -54,7 +54,6 @@ export function renderGraphicsOptions(context: OptionsScreenContext): void {
     k.outline(1.5, k.rgb(56, 189, 248)),
     k.scale(1),
     k.anchor("center"),
-    k.area(),
     k.fixed(),
     k.z(302),
   ]);
@@ -126,7 +125,6 @@ export function renderGraphicsOptions(context: OptionsScreenContext): void {
     k.outline(1.5, k.rgb(52, 211, 153)),
     k.scale(1),
     k.anchor("center"),
-    k.area(),
     k.fixed(),
     k.z(302),
   ]);
@@ -193,7 +191,6 @@ export function renderGraphicsOptions(context: OptionsScreenContext): void {
     k.outline(1.5, k.rgb(56, 189, 248)),
     k.scale(1),
     k.anchor("center"),
-    k.area(),
     k.fixed(),
     k.z(302),
   ]);
@@ -248,7 +245,6 @@ export function showLgpdConfirmationModal(context: OptionsScreenContext): void {
     k.pos(0, 0),
     k.color(4, 10, 20),
     k.opacity(0.92),
-    k.area(),
     k.fixed(),
     k.z(400),
   ]);
@@ -260,7 +256,6 @@ export function showLgpdConfirmationModal(context: OptionsScreenContext): void {
     k.color(28, 14, 24),
     k.outline(2.5, k.rgb(240, 80, 80)),
     k.anchor("center"),
-    k.area(),
     k.fixed(),
     k.z(401),
   ]);
@@ -317,7 +312,6 @@ export function showLgpdConfirmationModal(context: OptionsScreenContext): void {
     k.outline(1.5, k.rgb(150, 185, 220)),
     k.scale(1),
     k.anchor("center"),
-    k.area(),
     k.fixed(),
     k.z(402),
   ]);
@@ -352,7 +346,6 @@ export function showLgpdConfirmationModal(context: OptionsScreenContext): void {
     k.outline(2, k.rgb(255, 100, 100)),
     k.scale(1),
     k.anchor("center"),
-    k.area(),
     k.fixed(),
     k.z(402),
   ]);
@@ -417,7 +410,6 @@ export function renderKioskActionButtons(context: OptionsScreenContext): void {
     k.outline(2, k.rgb(90, 220, 255)),
     k.scale(1),
     k.anchor("center"),
-    k.area(),
     k.fixed(),
     k.z(302),
   ]);
@@ -473,7 +465,6 @@ export function renderKioskActionButtons(context: OptionsScreenContext): void {
     k.outline(2, k.rgb(240, 90, 90)),
     k.scale(1),
     k.anchor("center"),
-    k.area(),
     k.fixed(),
     k.z(302),
   ]);
@@ -523,7 +514,6 @@ export function renderKioskActionButtons(context: OptionsScreenContext): void {
     k.outline(2, k.rgb(56, 189, 248)),
     k.scale(1),
     k.anchor("center"),
-    k.area(),
     k.fixed(),
     k.z(302),
   ]);

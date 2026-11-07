@@ -86,7 +86,10 @@ export function createTabBar<T extends string, TObj = never>(
   const totalTabsWidth = count * tabWidth + totalGaps;
 
   if (isRenderEngine(engineOrContext)) {
-    const stageRoot = engineOrContext.getStageRoot();
+    const screenContainer =
+      typeof engineOrContext.getScreenContainer === "function"
+        ? engineOrContext.getScreenContainer()
+        : engineOrContext.getStageRoot();
     const elements: Array<IGraphicsNode | ITextNode> = [];
 
     const tabEntities: Array<{
@@ -154,12 +157,12 @@ export function createTabBar<T extends string, TObj = never>(
       drawTab(isSelected, false);
       btnNode.setPosition(tabX, tabY);
       btnNode.setZIndex(zBase);
-      stageRoot.addChild(btnNode);
+      screenContainer.addChild(btnNode);
       elements.push(btnNode);
 
       txtNode.setPosition(tabX, tabY);
       txtNode.setZIndex(zBase + 1);
-      stageRoot.addChild(txtNode);
+      screenContainer.addChild(txtNode);
       elements.push(txtNode);
 
       const nativeNode = btnNode.getNativeNode<{
@@ -208,7 +211,7 @@ export function createTabBar<T extends string, TObj = never>(
       destroy: () => {
         elements.forEach((node) => {
           try {
-            stageRoot.removeChild(node);
+            screenContainer.removeChild(node);
             node.destroy();
           } catch {}
         });
@@ -289,7 +292,6 @@ export function createTabBar<T extends string, TObj = never>(
         : undefined,
       typeof legacyContext.scale === "function" ? legacyContext.scale(1) : undefined,
       typeof legacyContext.anchor === "function" ? legacyContext.anchor("center") : undefined,
-      typeof legacyContext.area === "function" ? legacyContext.area() : undefined,
       typeof legacyContext.fixed === "function" ? legacyContext.fixed() : undefined,
       typeof legacyContext.z === "function" ? legacyContext.z(zBase) : undefined,
     ]) as {

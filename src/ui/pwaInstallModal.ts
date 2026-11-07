@@ -51,7 +51,10 @@ export function showPwaInstallModal(
   options: PwaInstallModalOptions
 ): void {
   if (isRenderEngine(engineOrContext)) {
-    const stageRoot = engineOrContext.getStageRoot();
+    const screenContainer =
+      typeof engineOrContext.getScreenContainer === "function"
+        ? engineOrContext.getScreenContainer()
+        : engineOrContext.getStageRoot();
     const dimensions = engineOrContext.getDimensions();
     const screenWidth = dimensions.width;
     const screenHeight = dimensions.height;
@@ -69,7 +72,7 @@ export function showPwaInstallModal(
       audioSystem.playUiClick();
       createdNodes.forEach((node) => {
         try {
-          stageRoot.removeChild(node);
+          screenContainer.removeChild(node);
           node.destroy();
         } catch {}
       });
@@ -82,7 +85,7 @@ export function showPwaInstallModal(
       fill: { color: [6, 18, 42], alpha: 0.85 },
     });
     overlay.setZIndex(500);
-    stageRoot.addChild(overlay);
+    screenContainer.addChild(overlay);
     createdNodes.push(overlay);
 
     // Cartão central
@@ -99,7 +102,7 @@ export function showPwaInstallModal(
       }
     );
     card.setZIndex(501);
-    stageRoot.addChild(card);
+    screenContainer.addChild(card);
     createdNodes.push(card);
 
     // Ícone e Título
@@ -120,7 +123,7 @@ export function showPwaInstallModal(
       nativeTitle.anchor.set(0.5, 0.5);
     }
     titleText.setZIndex(502);
-    stageRoot.addChild(titleText);
+    screenContainer.addChild(titleText);
     createdNodes.push(titleText);
 
     // Descrição
@@ -142,7 +145,7 @@ export function showPwaInstallModal(
       nativeDesc.anchor.set(0.5, 0.5);
     }
     descText.setZIndex(502);
-    stageRoot.addChild(descText);
+    screenContainer.addChild(descText);
     createdNodes.push(descText);
 
     // Botões
@@ -170,7 +173,7 @@ export function showPwaInstallModal(
     };
     drawInstallBtn(false);
     btnInstall.setZIndex(502);
-    stageRoot.addChild(btnInstall);
+    screenContainer.addChild(btnInstall);
     createdNodes.push(btnInstall);
 
     const btnInstallText = engineOrContext.createText(
@@ -196,7 +199,7 @@ export function showPwaInstallModal(
       nativeInstallText.anchor.set(0.5, 0.5);
     }
     btnInstallText.setZIndex(503);
-    stageRoot.addChild(btnInstallText);
+    screenContainer.addChild(btnInstallText);
     createdNodes.push(btnInstallText);
 
     const nativeInstall = btnInstall.getNativeNode<{
@@ -240,7 +243,7 @@ export function showPwaInstallModal(
     };
     drawCancelBtn(false);
     btnCancel.setZIndex(502);
-    stageRoot.addChild(btnCancel);
+    screenContainer.addChild(btnCancel);
     createdNodes.push(btnCancel);
 
     const btnCancelText = engineOrContext.createText(
@@ -266,7 +269,7 @@ export function showPwaInstallModal(
       nativeCancelText.anchor.set(0.5, 0.5);
     }
     btnCancelText.setZIndex(503);
-    stageRoot.addChild(btnCancelText);
+    screenContainer.addChild(btnCancelText);
     createdNodes.push(btnCancelText);
 
     const nativeCancel = btnCancel.getNativeNode<{
@@ -321,7 +324,6 @@ export function showPwaInstallModal(
     typeof engineOrContext.opacity === "function" ? engineOrContext.opacity(0.85) : undefined,
     typeof engineOrContext.fixed === "function" ? engineOrContext.fixed() : undefined,
     typeof engineOrContext.z === "function" ? engineOrContext.z(500) : undefined,
-    typeof engineOrContext.area === "function" ? engineOrContext.area() : undefined,
   ]);
   if (overlay && typeof overlay === "object") elements.push(overlay);
 
@@ -391,7 +393,6 @@ export function showPwaInstallModal(
     engineOrContext.color(16, 185, 129),
     installOutline,
     typeof engineOrContext.anchor === "function" ? engineOrContext.anchor("center") : undefined,
-    typeof engineOrContext.area === "function" ? engineOrContext.area() : undefined,
     typeof engineOrContext.fixed === "function" ? engineOrContext.fixed() : undefined,
     typeof engineOrContext.z === "function" ? engineOrContext.z(502) : undefined,
   ]);
@@ -450,7 +451,6 @@ export function showPwaInstallModal(
     engineOrContext.color(30, 41, 59),
     cancelOutline,
     typeof engineOrContext.anchor === "function" ? engineOrContext.anchor("center") : undefined,
-    typeof engineOrContext.area === "function" ? engineOrContext.area() : undefined,
     typeof engineOrContext.fixed === "function" ? engineOrContext.fixed() : undefined,
     typeof engineOrContext.z === "function" ? engineOrContext.z(502) : undefined,
   ]);

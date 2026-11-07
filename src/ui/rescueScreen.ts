@@ -279,7 +279,6 @@ export function showRescueScreen(
     engine.outline(2, engine.rgb(0, 230, 255)),
     engine.scale(1),
     engine.anchor("center"),
-    engine.area(),
     engine.fixed(),
     engine.z(204),
   ]);

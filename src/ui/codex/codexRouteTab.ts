@@ -131,7 +131,6 @@ export function renderRouteTab(
       k.color(14, 34, 68),
       k.outline(1.5, isUnlocked ? k.rgb(35, 100, 80) : k.rgb(38, 65, 100)),
       k.anchor("center"),
-      k.area(),
       k.fixed(),
       k.z(304),
     ]);
@@ -230,7 +229,6 @@ export function renderRouteTab(
       k.outline(1.5, k.rgb(100, 200, 255)),
       k.scale(1),
       k.anchor("center"),
-      k.area(),
       k.fixed(),
       k.z(305),
     ]);
@@ -284,7 +282,6 @@ export function renderRouteTab(
       k.outline(1.5, k.rgb(100, 200, 255)),
       k.scale(1),
       k.anchor("center"),
-      k.area(),
       k.fixed(),
       k.z(305),
     ]);

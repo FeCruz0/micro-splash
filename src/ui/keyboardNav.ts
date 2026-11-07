@@ -129,11 +129,14 @@ export function createFocusGroup(
   };
 
   if (isRenderEngine(engineOrContext)) {
-    const stageRoot = engineOrContext.getStageRoot();
+    const screenContainer =
+      typeof engineOrContext.getScreenContainer === "function"
+        ? engineOrContext.getScreenContainer()
+        : engineOrContext.getStageRoot();
     const focusRingNode: IGraphicsNode = engineOrContext.createGraphics("keyboard_focus_ring");
     focusRingNode.setZIndex(ringZ);
     focusRingNode.setOpacity(0);
-    stageRoot.addChild(focusRingNode);
+    screenContainer.addChild(focusRingNode);
 
     let ringWidth = 40;
     let ringHeight = 40;
@@ -252,7 +255,7 @@ export function createFocusGroup(
       });
       try {
         tickerCleanup();
-        stageRoot.removeChild(focusRingNode);
+        screenContainer.removeChild(focusRingNode);
         focusRingNode.destroy();
       } catch {}
 

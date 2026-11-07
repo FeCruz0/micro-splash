@@ -60,7 +60,10 @@ export function createKeyBadge(
   const badgeHeight = 22;
 
   if (isRenderEngine(engineOrContext)) {
-    const stageRoot = engineOrContext.getStageRoot();
+    const screenContainer =
+      typeof engineOrContext.getScreenContainer === "function"
+        ? engineOrContext.getScreenContainer()
+        : engineOrContext.getStageRoot();
 
     // 1. Sombra / Chanfro inferior 3D da tecla
     const baseShadow = engineOrContext.createGraphics("key_badge_shadow");
@@ -73,7 +76,7 @@ export function createKeyBadge(
       { fill: { color: [8, 18, 36], alpha: 0.9 } }
     );
     baseShadow.setZIndex(z - 1);
-    stageRoot.addChild(baseShadow);
+    screenContainer.addChild(baseShadow);
 
     // 2. Face superior da tecla
     const keyCap = engineOrContext.createGraphics("key_badge_cap");
@@ -89,7 +92,7 @@ export function createKeyBadge(
       }
     );
     keyCap.setZIndex(z);
-    stageRoot.addChild(keyCap);
+    screenContainer.addChild(keyCap);
 
     // 3. Rótulo centralizado
     const keyText = engineOrContext.createText(
@@ -104,7 +107,7 @@ export function createKeyBadge(
     );
     keyText.setPosition(opts.pos.x, opts.pos.y);
     keyText.setZIndex(z + 1);
-    stageRoot.addChild(keyText);
+    screenContainer.addChild(keyText);
 
     const elements = [baseShadow, keyCap, keyText];
 
@@ -115,7 +118,7 @@ export function createKeyBadge(
       destroy: () => {
         elements.forEach((element) => {
           try {
-            stageRoot.removeChild(element);
+            screenContainer.removeChild(element);
             element.destroy();
           } catch {}
         });

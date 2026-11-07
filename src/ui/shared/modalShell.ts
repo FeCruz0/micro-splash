@@ -100,7 +100,10 @@ export function createModalShell<
   const zBase = options.zBase ?? UI_Z_INDEX.backdrop;
 
   if (isRenderEngine(engineOrContext)) {
-    const stageRoot = engineOrContext.getStageRoot();
+    const screenContainer =
+      typeof engineOrContext.getScreenContainer === "function"
+        ? engineOrContext.getScreenContainer()
+        : engineOrContext.getStageRoot();
     const dimensionsEngine = engineOrContext.getDimensions();
     const screenW = dimensionsEngine.width;
     const screenH = dimensionsEngine.height;
@@ -131,7 +134,7 @@ export function createModalShell<
       },
     });
     backdropNode.setZIndex(zBase);
-    stageRoot.addChild(backdropNode);
+    screenContainer.addChild(backdropNode);
     elements.push(backdropNode);
 
     // 2. Card
@@ -150,7 +153,7 @@ export function createModalShell<
     });
     cardNode.setPosition(cX, cY);
     cardNode.setZIndex(zBase + 1);
-    stageRoot.addChild(cardNode);
+    screenContainer.addChild(cardNode);
     elements.push(cardNode);
 
     // 3. Título com sombra
@@ -180,7 +183,7 @@ export function createModalShell<
       );
       subtitleNode.setPosition(cX, dimensions.top + 58);
       subtitleNode.setZIndex(zBase + 2);
-      stageRoot.addChild(subtitleNode);
+      screenContainer.addChild(subtitleNode);
       elements.push(subtitleNode);
     }
 
@@ -198,7 +201,7 @@ export function createModalShell<
       titleHandle.destroy();
       elements.forEach((node) => {
         try {
-          stageRoot.removeChild(node);
+          screenContainer.removeChild(node);
           node.destroy();
         } catch {}
       });
@@ -224,7 +227,7 @@ export function createModalShell<
       });
       closeBtnNode.setPosition(btnXPos, btnYPos);
       closeBtnNode.setZIndex(zBase + 5);
-      stageRoot.addChild(closeBtnNode);
+      screenContainer.addChild(closeBtnNode);
       elements.push(closeBtnNode);
 
       const closeLabel = engineOrContext.createText(
@@ -239,7 +242,7 @@ export function createModalShell<
       );
       closeLabel.setPosition(btnXPos, btnYPos);
       closeLabel.setZIndex(zBase + 6);
-      stageRoot.addChild(closeLabel);
+      screenContainer.addChild(closeLabel);
       elements.push(closeLabel);
 
       const nativeClose = closeBtnNode.getNativeNode<{
@@ -346,7 +349,6 @@ export function createModalShell<
     typeof legacyContext.opacity === "function"
       ? legacyContext.opacity(UI_COLORS.backdropOpacity)
       : undefined,
-    typeof legacyContext.area === "function" ? legacyContext.area() : undefined,
     typeof legacyContext.fixed === "function" ? legacyContext.fixed() : undefined,
     typeof legacyContext.z === "function" ? legacyContext.z(zBase) : undefined,
   ]);
@@ -370,7 +372,6 @@ export function createModalShell<
       : undefined,
     typeof legacyContext.anchor === "function" ? legacyContext.anchor("center") : undefined,
     typeof legacyContext.scale === "function" ? legacyContext.scale(1) : undefined,
-    typeof legacyContext.area === "function" ? legacyContext.area() : undefined,
     typeof legacyContext.fixed === "function" ? legacyContext.fixed() : undefined,
     typeof legacyContext.z === "function" ? legacyContext.z(zBase + 1) : undefined,
   ]);
@@ -487,7 +488,6 @@ export function createModalShell<
         : undefined,
       typeof legacyContext.scale === "function" ? legacyContext.scale(1) : undefined,
       typeof legacyContext.anchor === "function" ? legacyContext.anchor("center") : undefined,
-      typeof legacyContext.area === "function" ? legacyContext.area() : undefined,
       typeof legacyContext.fixed === "function" ? legacyContext.fixed() : undefined,
       typeof legacyContext.z === "function" ? legacyContext.z(zBase + 5) : undefined,
     ]);

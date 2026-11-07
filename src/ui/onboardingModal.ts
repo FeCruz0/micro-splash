@@ -142,7 +142,10 @@ export function showOnboardingModal(
   let isClosed = false;
 
   if (isRenderEngine(engineOrContext)) {
-    const stageRoot = engineOrContext.getStageRoot();
+    const screenContainer =
+      typeof engineOrContext.getScreenContainer === "function"
+        ? engineOrContext.getScreenContainer()
+        : engineOrContext.getStageRoot();
     const dimensions = engineOrContext.getDimensions();
     const screenW = dimensions.width;
     const screenH = dimensions.height;
@@ -167,7 +170,7 @@ export function showOnboardingModal(
       }
       createdNodes.forEach((node) => {
         try {
-          stageRoot.removeChild(node);
+          screenContainer.removeChild(node);
           node.destroy();
         } catch {}
       });
@@ -188,7 +191,7 @@ export function showOnboardingModal(
       fill: { color: [5, 15, 32], alpha: 0.95 },
     });
     backdrop.setZIndex(550);
-    stageRoot.addChild(backdrop);
+    screenContainer.addChild(backdrop);
     createdNodes.push(backdrop);
 
     // Card principal
@@ -198,7 +201,7 @@ export function showOnboardingModal(
       stroke: { color: [56, 189, 248], width: 2.5 },
     });
     card.setZIndex(551);
-    stageRoot.addChild(card);
+    screenContainer.addChild(card);
     createdNodes.push(card);
 
     const initialSlide = ONBOARDING_SLIDES[0];
@@ -219,7 +222,7 @@ export function showOnboardingModal(
     const nativeBadge = badgeText.getNativeNode<{ anchor?: { set(x: number, y: number): void } }>();
     if (nativeBadge?.anchor?.set) nativeBadge.anchor.set(0.5, 0.5);
     badgeText.setZIndex(553);
-    stageRoot.addChild(badgeText);
+    screenContainer.addChild(badgeText);
     createdNodes.push(badgeText);
 
     // Título
@@ -238,7 +241,7 @@ export function showOnboardingModal(
     const nativeTitle = titleText.getNativeNode<{ anchor?: { set(x: number, y: number): void } }>();
     if (nativeTitle?.anchor?.set) nativeTitle.anchor.set(0.5, 0.5);
     titleText.setZIndex(553);
-    stageRoot.addChild(titleText);
+    screenContainer.addChild(titleText);
     createdNodes.push(titleText);
 
     // Subtítulo
@@ -259,7 +262,7 @@ export function showOnboardingModal(
     }>();
     if (nativeSub?.anchor?.set) nativeSub.anchor.set(0.5, 0.5);
     subtitleText.setZIndex(553);
-    stageRoot.addChild(subtitleText);
+    screenContainer.addChild(subtitleText);
     createdNodes.push(subtitleText);
 
     // 3 Cards de Conteúdo
@@ -283,7 +286,7 @@ export function showOnboardingModal(
         stroke: { color: [38, 78, 130], width: 1.5 },
       });
       itemBox.setZIndex(552);
-      stageRoot.addChild(itemBox);
+      screenContainer.addChild(itemBox);
       createdNodes.push(itemBox);
 
       // Badge de Ícone à esquerda
@@ -294,7 +297,7 @@ export function showOnboardingModal(
         stroke: { color: [56, 189, 248], width: 1.5 },
       });
       iconBox.setZIndex(553);
-      stageRoot.addChild(iconBox);
+      screenContainer.addChild(iconBox);
       createdNodes.push(iconBox);
 
       const iconText = engineOrContext.createText(
@@ -311,7 +314,7 @@ export function showOnboardingModal(
       const nativeIcon = iconText.getNativeNode<{ anchor?: { set(x: number, y: number): void } }>();
       if (nativeIcon?.anchor?.set) nativeIcon.anchor.set(0.5, 0.5);
       iconText.setZIndex(554);
-      stageRoot.addChild(iconText);
+      screenContainer.addChild(iconText);
       createdNodes.push(iconText);
       pointIconTexts.push(iconText);
 
@@ -330,7 +333,7 @@ export function showOnboardingModal(
       );
       pTitle.setPosition(textStartX, itemY - boxH / 2 + 16);
       pTitle.setZIndex(553);
-      stageRoot.addChild(pTitle);
+      screenContainer.addChild(pTitle);
       createdNodes.push(pTitle);
       pointTitleTexts.push(pTitle);
 
@@ -348,7 +351,7 @@ export function showOnboardingModal(
       );
       pDesc.setPosition(textStartX, itemY - boxH / 2 + 42);
       pDesc.setZIndex(553);
-      stageRoot.addChild(pDesc);
+      screenContainer.addChild(pDesc);
       createdNodes.push(pDesc);
       pointDescTexts.push(pDesc);
     }
@@ -357,7 +360,7 @@ export function showOnboardingModal(
     const dotsY = cY + cardH / 2 - 62;
     const dotsGraphics = engineOrContext.createGraphics("onboarding-dots");
     dotsGraphics.setZIndex(553);
-    stageRoot.addChild(dotsGraphics);
+    screenContainer.addChild(dotsGraphics);
     createdNodes.push(dotsGraphics);
 
     const renderDots = (activeIdx: number) => {
@@ -387,7 +390,7 @@ export function showOnboardingModal(
     };
     drawSkip(false);
     btnSkip.setZIndex(554);
-    stageRoot.addChild(btnSkip);
+    screenContainer.addChild(btnSkip);
     createdNodes.push(btnSkip);
 
     const btnSkipText = engineOrContext.createText(
@@ -407,7 +410,7 @@ export function showOnboardingModal(
     }>();
     if (nativeSkip?.anchor?.set) nativeSkip.anchor.set(0.5, 0.5);
     btnSkipText.setZIndex(555);
-    stageRoot.addChild(btnSkipText);
+    screenContainer.addChild(btnSkipText);
     createdNodes.push(btnSkipText);
 
     const nativeSkipBtn = btnSkip.getNativeNode<{
@@ -440,7 +443,7 @@ export function showOnboardingModal(
     drawPrev(false);
     btnPrev.setZIndex(554);
     btnPrev.setVisible(false);
-    stageRoot.addChild(btnPrev);
+    screenContainer.addChild(btnPrev);
     createdNodes.push(btnPrev);
 
     const btnPrevText = engineOrContext.createText(
@@ -461,7 +464,7 @@ export function showOnboardingModal(
     if (nativePrev?.anchor?.set) nativePrev.anchor.set(0.5, 0.5);
     btnPrevText.setZIndex(555);
     btnPrevText.setVisible(false);
-    stageRoot.addChild(btnPrevText);
+    screenContainer.addChild(btnPrevText);
     createdNodes.push(btnPrevText);
 
     const goPrev = () => {
@@ -486,7 +489,7 @@ export function showOnboardingModal(
     // Botão Próximo / Concluir
     const btnNext = engineOrContext.createGraphics("onboarding-btn-next");
     btnNext.setZIndex(554);
-    stageRoot.addChild(btnNext);
+    screenContainer.addChild(btnNext);
     createdNodes.push(btnNext);
 
     const btnNextText = engineOrContext.createText(
@@ -505,7 +508,7 @@ export function showOnboardingModal(
     }>();
     if (nativeNext?.anchor?.set) nativeNext.anchor.set(0.5, 0.5);
     btnNextText.setZIndex(555);
-    stageRoot.addChild(btnNextText);
+    screenContainer.addChild(btnNextText);
     createdNodes.push(btnNextText);
 
     const drawNext = (hovered: boolean) => {
@@ -666,7 +669,6 @@ export function showOnboardingModal(
     engineOrContext.pos(0, 0),
     engineOrContext.color(5, 15, 32),
     typeof engineOrContext.opacity === "function" ? engineOrContext.opacity(0.95) : undefined,
-    typeof engineOrContext.area === "function" ? engineOrContext.area() : undefined,
     typeof engineOrContext.fixed === "function" ? engineOrContext.fixed() : undefined,
     typeof engineOrContext.z === "function" ? engineOrContext.z(550) : undefined,
   ]);
@@ -683,7 +685,6 @@ export function showOnboardingModal(
     engineOrContext.color(10, 28, 56),
     cardOutline,
     typeof engineOrContext.anchor === "function" ? engineOrContext.anchor("center") : undefined,
-    typeof engineOrContext.area === "function" ? engineOrContext.area() : undefined,
     typeof engineOrContext.fixed === "function" ? engineOrContext.fixed() : undefined,
     typeof engineOrContext.z === "function" ? engineOrContext.z(551) : undefined,
   ]);
@@ -896,7 +897,6 @@ export function showOnboardingModal(
     skipOutline,
     typeof engineOrContext.scale === "function" ? engineOrContext.scale(1) : undefined,
     typeof engineOrContext.anchor === "function" ? engineOrContext.anchor("center") : undefined,
-    typeof engineOrContext.area === "function" ? engineOrContext.area() : undefined,
     typeof engineOrContext.fixed === "function" ? engineOrContext.fixed() : undefined,
     typeof engineOrContext.z === "function" ? engineOrContext.z(554) : undefined,
   ]) as {
@@ -959,7 +959,6 @@ export function showOnboardingModal(
     prevOutline,
     typeof engineOrContext.scale === "function" ? engineOrContext.scale(1) : undefined,
     typeof engineOrContext.anchor === "function" ? engineOrContext.anchor("center") : undefined,
-    typeof engineOrContext.area === "function" ? engineOrContext.area() : undefined,
     typeof engineOrContext.fixed === "function" ? engineOrContext.fixed() : undefined,
     typeof engineOrContext.z === "function" ? engineOrContext.z(554) : undefined,
   ]) as {
@@ -1027,7 +1026,6 @@ export function showOnboardingModal(
     nextOutline,
     typeof engineOrContext.scale === "function" ? engineOrContext.scale(1) : undefined,
     typeof engineOrContext.anchor === "function" ? engineOrContext.anchor("center") : undefined,
-    typeof engineOrContext.area === "function" ? engineOrContext.area() : undefined,
     typeof engineOrContext.fixed === "function" ? engineOrContext.fixed() : undefined,
     typeof engineOrContext.z === "function" ? engineOrContext.z(554) : undefined,
   ]) as {

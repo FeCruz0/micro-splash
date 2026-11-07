@@ -145,7 +145,10 @@ export function showQuizModal(
   let onAdvanceCallback: (() => void) | null = null;
 
   if (isRenderEngine(engineOrContext)) {
-    const stageRoot = engineOrContext.getStageRoot();
+    const screenContainer =
+      typeof engineOrContext.getScreenContainer === "function"
+        ? engineOrContext.getScreenContainer()
+        : engineOrContext.getStageRoot();
     const dimensions = engineOrContext.getDimensions();
     const screenW = dimensions.width;
     const screenH = dimensions.height;
@@ -168,7 +171,7 @@ export function showQuizModal(
 
       dynamicNodes.forEach((node) => {
         try {
-          stageRoot.removeChild(node);
+          screenContainer.removeChild(node);
           node.destroy();
         } catch {}
       });
@@ -176,7 +179,7 @@ export function showQuizModal(
 
       staticNodes.forEach((node) => {
         try {
-          stageRoot.removeChild(node);
+          screenContainer.removeChild(node);
           node.destroy();
         } catch {}
       });
@@ -195,7 +198,7 @@ export function showQuizModal(
       fill: { color: [4, 12, 28], alpha: 0.95 },
     });
     backdrop.setZIndex(500);
-    stageRoot.addChild(backdrop);
+    screenContainer.addChild(backdrop);
     staticNodes.push(backdrop);
 
     // Card do Quiz
@@ -205,7 +208,7 @@ export function showQuizModal(
       stroke: { color: [100, 220, 255], width: 2.5 },
     });
     card.setZIndex(501);
-    stageRoot.addChild(card);
+    screenContainer.addChild(card);
     staticNodes.push(card);
 
     // Título do Quiz
@@ -224,7 +227,7 @@ export function showQuizModal(
     const nativeTitle = titleText.getNativeNode<{ anchor?: { set(x: number, y: number): void } }>();
     if (nativeTitle?.anchor?.set) nativeTitle.anchor.set(0.5, 0.5);
     titleText.setZIndex(502);
-    stageRoot.addChild(titleText);
+    screenContainer.addChild(titleText);
     staticNodes.push(titleText);
 
     // Botão Fechar (✕)
@@ -240,7 +243,7 @@ export function showQuizModal(
     };
     drawCloseBtn(false);
     btnClose.setZIndex(505);
-    stageRoot.addChild(btnClose);
+    screenContainer.addChild(btnClose);
     staticNodes.push(btnClose);
 
     const closeText = engineOrContext.createText(
@@ -258,7 +261,7 @@ export function showQuizModal(
     const nativeClose = closeText.getNativeNode<{ anchor?: { set(x: number, y: number): void } }>();
     if (nativeClose?.anchor?.set) nativeClose.anchor.set(0.5, 0.5);
     closeText.setZIndex(506);
-    stageRoot.addChild(closeText);
+    screenContainer.addChild(closeText);
     staticNodes.push(closeText);
 
     const nativeCloseBtn = btnClose.getNativeNode<{
@@ -296,7 +299,7 @@ export function showQuizModal(
     const renderQuestion = () => {
       dynamicNodes.forEach((node) => {
         try {
-          stageRoot.removeChild(node);
+          screenContainer.removeChild(node);
           node.destroy();
         } catch {}
       });
@@ -348,7 +351,7 @@ export function showQuizModal(
       const nativeMeta = metaText.getNativeNode<{ anchor?: { set(x: number, y: number): void } }>();
       if (nativeMeta?.anchor?.set) nativeMeta.anchor.set(0.5, 0.5);
       metaText.setZIndex(502);
-      stageRoot.addChild(metaText);
+      screenContainer.addChild(metaText);
       dynamicNodes.push(metaText);
 
       const questionText = engineOrContext.createText(
@@ -370,7 +373,7 @@ export function showQuizModal(
       }>();
       if (nativeQ?.anchor?.set) nativeQ.anchor.set(0.5, 0.5);
       questionText.setZIndex(502);
-      stageRoot.addChild(questionText);
+      screenContainer.addChild(questionText);
       dynamicNodes.push(questionText);
 
       const optionLetters = ["A", "B", "C", "D"];
@@ -442,7 +445,7 @@ export function showQuizModal(
         }>();
         if (nativeFb?.anchor?.set) nativeFb.anchor.set(0.5, 0.5);
         feedbackText.setZIndex(504);
-        stageRoot.addChild(feedbackText);
+        screenContainer.addChild(feedbackText);
         dynamicNodes.push(feedbackText);
 
         const isLastQuestion = currentQuestionIdx === questions.length - 1;
@@ -457,7 +460,7 @@ export function showQuizModal(
         };
         drawNextBtn(false);
         btnNext.setZIndex(505);
-        stageRoot.addChild(btnNext);
+        screenContainer.addChild(btnNext);
         dynamicNodes.push(btnNext);
 
         const btnNextText = engineOrContext.createText(
@@ -477,7 +480,7 @@ export function showQuizModal(
         }>();
         if (nativeNextLabel?.anchor?.set) nativeNextLabel.anchor.set(0.5, 0.5);
         btnNextText.setZIndex(506);
-        stageRoot.addChild(btnNextText);
+        screenContainer.addChild(btnNextText);
         dynamicNodes.push(btnNextText);
 
         const advance = () => {
@@ -520,7 +523,7 @@ export function showQuizModal(
         };
         drawOption(false);
         optBtn.setZIndex(503);
-        stageRoot.addChild(optBtn);
+        screenContainer.addChild(optBtn);
         dynamicNodes.push(optBtn);
         optionButtons.push(optBtn);
 
@@ -537,7 +540,7 @@ export function showQuizModal(
         );
         optLabel.setPosition(cX - btnW / 2 + 16, optY - 10);
         optLabel.setZIndex(504);
-        stageRoot.addChild(optLabel);
+        screenContainer.addChild(optLabel);
         dynamicNodes.push(optLabel);
 
         const nativeBtn = optBtn.getNativeNode<{
@@ -564,7 +567,7 @@ export function showQuizModal(
     const renderSummary = () => {
       dynamicNodes.forEach((node) => {
         try {
-          stageRoot.removeChild(node);
+          screenContainer.removeChild(node);
           node.destroy();
         } catch {}
       });
@@ -591,7 +594,7 @@ export function showQuizModal(
       }>();
       if (nativeCongrat?.anchor?.set) nativeCongrat.anchor.set(0.5, 0.5);
       congratText.setZIndex(503);
-      stageRoot.addChild(congratText);
+      screenContainer.addChild(congratText);
       dynamicNodes.push(congratText);
 
       const scoreText = engineOrContext.createText(
@@ -613,7 +616,7 @@ export function showQuizModal(
       }>();
       if (nativeScore?.anchor?.set) nativeScore.anchor.set(0.5, 0.5);
       scoreText.setZIndex(503);
-      stageRoot.addChild(scoreText);
+      screenContainer.addChild(scoreText);
       dynamicNodes.push(scoreText);
 
       const certText = engineOrContext.createText(
@@ -633,7 +636,7 @@ export function showQuizModal(
       const nativeCert = certText.getNativeNode<{ anchor?: { set(x: number, y: number): void } }>();
       if (nativeCert?.anchor?.set) nativeCert.anchor.set(0.5, 0.5);
       certText.setZIndex(503);
-      stageRoot.addChild(certText);
+      screenContainer.addChild(certText);
       dynamicNodes.push(certText);
 
       const finishBtnY = cY + 130;
@@ -647,7 +650,7 @@ export function showQuizModal(
       };
       drawFinishBtn(false);
       btnFinish.setZIndex(505);
-      stageRoot.addChild(btnFinish);
+      screenContainer.addChild(btnFinish);
       dynamicNodes.push(btnFinish);
 
       const finishLabel = engineOrContext.createText(
@@ -667,7 +670,7 @@ export function showQuizModal(
       }>();
       if (nativeFinish?.anchor?.set) nativeFinish.anchor.set(0.5, 0.5);
       finishLabel.setZIndex(506);
-      stageRoot.addChild(finishLabel);
+      screenContainer.addChild(finishLabel);
       dynamicNodes.push(finishLabel);
 
       const finish = () => {
@@ -715,7 +718,6 @@ export function showQuizModal(
     engineOrContext.pos(0, 0),
     engineOrContext.color(4, 12, 28),
     typeof engineOrContext.opacity === "function" ? engineOrContext.opacity(0.95) : undefined,
-    typeof engineOrContext.area === "function" ? engineOrContext.area() : undefined,
     typeof engineOrContext.fixed === "function" ? engineOrContext.fixed() : undefined,
     typeof engineOrContext.z === "function" ? engineOrContext.z(500) : undefined,
   ]);
@@ -732,7 +734,6 @@ export function showQuizModal(
     engineOrContext.color(10, 28, 56),
     cardOutline,
     typeof engineOrContext.anchor === "function" ? engineOrContext.anchor("center") : undefined,
-    typeof engineOrContext.area === "function" ? engineOrContext.area() : undefined,
     typeof engineOrContext.fixed === "function" ? engineOrContext.fixed() : undefined,
     typeof engineOrContext.z === "function" ? engineOrContext.z(501) : undefined,
   ]);
@@ -807,7 +808,6 @@ export function showQuizModal(
     engineOrContext.color(25, 45, 80),
     closeOutline,
     typeof engineOrContext.anchor === "function" ? engineOrContext.anchor("center") : undefined,
-    typeof engineOrContext.area === "function" ? engineOrContext.area() : undefined,
     typeof engineOrContext.fixed === "function" ? engineOrContext.fixed() : undefined,
     typeof engineOrContext.z === "function" ? engineOrContext.z(505) : undefined,
   ]) as {
@@ -1053,7 +1053,6 @@ export function showQuizModal(
         nextBtnOutline,
         typeof engineOrContext.scale === "function" ? engineOrContext.scale(1) : undefined,
         typeof engineOrContext.anchor === "function" ? engineOrContext.anchor("center") : undefined,
-        typeof engineOrContext.area === "function" ? engineOrContext.area() : undefined,
         typeof engineOrContext.fixed === "function" ? engineOrContext.fixed() : undefined,
         typeof engineOrContext.z === "function" ? engineOrContext.z(505) : undefined,
       ]) as {
@@ -1132,7 +1131,6 @@ export function showQuizModal(
         optOutline,
         typeof engineOrContext.scale === "function" ? engineOrContext.scale(1) : undefined,
         typeof engineOrContext.anchor === "function" ? engineOrContext.anchor("center") : undefined,
-        typeof engineOrContext.area === "function" ? engineOrContext.area() : undefined,
         typeof engineOrContext.fixed === "function" ? engineOrContext.fixed() : undefined,
         typeof engineOrContext.z === "function" ? engineOrContext.z(503) : undefined,
       ]) as {
@@ -1277,7 +1275,6 @@ export function showQuizModal(
       finishOutline,
       typeof engineOrContext.scale === "function" ? engineOrContext.scale(1) : undefined,
       typeof engineOrContext.anchor === "function" ? engineOrContext.anchor("center") : undefined,
-      typeof engineOrContext.area === "function" ? engineOrContext.area() : undefined,
       typeof engineOrContext.fixed === "function" ? engineOrContext.fixed() : undefined,
       typeof engineOrContext.z === "function" ? engineOrContext.z(505) : undefined,
     ]) as {

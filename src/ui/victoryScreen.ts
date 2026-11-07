@@ -142,7 +142,6 @@ function showQuizInvitationModal(
       k.pos(0, 0),
       k.color(4, 14, 32),
       k.opacity(0.95),
-      k.area(),
       k.fixed(),
       k.z(350),
     ])
@@ -308,7 +307,6 @@ function showQuizInvitationModal(
     k.color(20, 130, 80),
     k.outline(2, k.rgb(100, 255, 180)),
     k.anchor("center"),
-    k.area(),
     k.fixed(),
     k.z(353),
   ]);
@@ -348,7 +346,6 @@ function showQuizInvitationModal(
     k.outline(1.5, k.rgb(80, 140, 210)),
     k.scale(1),
     k.anchor("center"),
-    k.area(),
     k.fixed(),
     k.z(353),
   ]);
@@ -582,7 +579,6 @@ function renderVictoryContent(
     k.color(quizCompleted ? k.rgb(18, 90, 60) : k.rgb(25, 120, 180)),
     k.outline(1.5, quizCompleted ? k.rgb(90, 240, 160) : k.rgb(110, 230, 255)),
     k.anchor("center"),
-    k.area(),
     k.fixed(),
     k.z(203),
   ]);
@@ -653,7 +649,6 @@ function renderVictoryContent(
     k.color(15, 105, 75),
     k.outline(2, k.rgb(120, 255, 180)),
     k.anchor("center"),
-    k.area(),
     k.fixed(),
     k.z(202),
   ]);
@@ -698,7 +693,6 @@ function renderVictoryContent(
     k.color(18, 105, 120),
     k.outline(2, k.rgb(80, 240, 240)),
     k.anchor("center"),
-    k.area(),
     k.fixed(),
     k.z(202),
   ]);
@@ -747,7 +741,6 @@ function renderVictoryContent(
     k.outline(2, k.rgb(100, 240, 255)),
     k.scale(1),
     k.anchor("center"),
-    k.area(),
     k.fixed(),
     k.z(202),
   ]);

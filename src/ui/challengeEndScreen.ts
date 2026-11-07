@@ -242,7 +242,6 @@ function renderChallengeEndContent(
     k.color(quizCompleted ? k.rgb(18, 95, 60) : k.rgb(25, 125, 185)),
     k.outline(1.5, quizCompleted ? k.rgb(90, 240, 160) : k.rgb(110, 230, 255)),
     k.anchor("center"),
-    k.area(),
     k.fixed(),
     k.z(302),
   ]);
@@ -314,7 +313,6 @@ function renderChallengeEndContent(
     k.color(18, 105, 120),
     k.outline(1.5, k.rgb(90, 235, 235)),
     k.anchor("center"),
-    k.area(),
     k.fixed(),
     k.z(302),
   ]);
@@ -383,7 +381,6 @@ function renderChallengeEndContent(
     k.color(20, 120, 180),
     k.outline(2, k.rgb(100, 240, 255)),
     k.anchor("center"),
-    k.area(),
     k.fixed(),
     k.z(302),
   ]);
@@ -430,7 +427,6 @@ function renderChallengeEndContent(
     k.color(30, 60, 100),
     k.outline(2, k.rgb(120, 180, 240)),
     k.anchor("center"),
-    k.area(),
     k.fixed(),
     k.z(302),
   ]);

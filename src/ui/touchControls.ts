@@ -139,7 +139,10 @@ export function setupTouchControls(engineOrContext: IRenderEngine | LegacyTouchC
   let isDestroyed = false;
 
   if (isRenderEngine(engineOrContext)) {
-    const stageRoot = engineOrContext.getStageRoot();
+    const screenContainer =
+      typeof engineOrContext.getScreenContainer === "function"
+        ? engineOrContext.getScreenContainer()
+        : engineOrContext.getStageRoot();
     const dimensions = engineOrContext.getDimensions();
     const createdNodes: Array<IGraphicsNode | ITextNode> = [];
 
@@ -156,7 +159,7 @@ export function setupTouchControls(engineOrContext: IRenderEngine | LegacyTouchC
       dpadBase.drawCircle(0, 0, 88, { fill: { color: [10, 25, 55], alpha: 0.45 } });
       dpadBase.setPosition(dpadBaseX, dpadBaseY);
       dpadBase.setZIndex(190);
-      stageRoot.addChild(dpadBase);
+      screenContainer.addChild(dpadBase);
       createdNodes.push(dpadBase);
 
       const createDirButton = (
@@ -182,7 +185,7 @@ export function setupTouchControls(engineOrContext: IRenderEngine | LegacyTouchC
         drawButton(false);
         btnNode.setPosition(posX, posY);
         btnNode.setZIndex(191);
-        stageRoot.addChild(btnNode);
+        screenContainer.addChild(btnNode);
         createdNodes.push(btnNode);
 
         const labelNode = engineOrContext.createText(
@@ -192,7 +195,7 @@ export function setupTouchControls(engineOrContext: IRenderEngine | LegacyTouchC
         );
         labelNode.setPosition(posX, posY);
         labelNode.setZIndex(192);
-        stageRoot.addChild(labelNode);
+        screenContainer.addChild(labelNode);
         createdNodes.push(labelNode);
 
         // Suporte aos eventos de toque/ponteiro no nó
@@ -245,7 +248,7 @@ export function setupTouchControls(engineOrContext: IRenderEngine | LegacyTouchC
       drawStrokeButton(false);
       strokeBtn.setPosition(strokeBtnX, strokeBtnY);
       strokeBtn.setZIndex(191);
-      stageRoot.addChild(strokeBtn);
+      screenContainer.addChild(strokeBtn);
       createdNodes.push(strokeBtn);
 
       const strokeLabel = engineOrContext.createText(
@@ -255,7 +258,7 @@ export function setupTouchControls(engineOrContext: IRenderEngine | LegacyTouchC
       );
       strokeLabel.setPosition(strokeBtnX, strokeBtnY);
       strokeLabel.setZIndex(192);
-      stageRoot.addChild(strokeLabel);
+      screenContainer.addChild(strokeLabel);
       createdNodes.push(strokeLabel);
 
       const strokeNative = strokeBtn.getNativeNode<{
@@ -294,7 +297,7 @@ export function setupTouchControls(engineOrContext: IRenderEngine | LegacyTouchC
       });
       sonarBtn.setPosition(sonarBtnX, sonarBtnY);
       sonarBtn.setZIndex(191);
-      stageRoot.addChild(sonarBtn);
+      screenContainer.addChild(sonarBtn);
       createdNodes.push(sonarBtn);
 
       const sonarLabel = engineOrContext.createText(
@@ -304,7 +307,7 @@ export function setupTouchControls(engineOrContext: IRenderEngine | LegacyTouchC
       );
       sonarLabel.setPosition(sonarBtnX, sonarBtnY);
       sonarLabel.setZIndex(192);
-      stageRoot.addChild(sonarLabel);
+      screenContainer.addChild(sonarLabel);
       createdNodes.push(sonarLabel);
 
       const sonarNative = sonarBtn.getNativeNode<{
@@ -383,7 +386,7 @@ export function setupTouchControls(engineOrContext: IRenderEngine | LegacyTouchC
         }
         createdNodes.forEach((node) => {
           try {
-            stageRoot.removeChild(node);
+            screenContainer.removeChild(node);
             node.destroy();
           } catch {}
         });
@@ -447,7 +450,6 @@ export function setupTouchControls(engineOrContext: IRenderEngine | LegacyTouchC
         typeof legacyContext.opacity === "function" ? legacyContext.opacity(0.7) : undefined,
         typeof legacyContext.anchor === "function" ? legacyContext.anchor("center") : undefined,
         typeof legacyContext.scale === "function" ? legacyContext.scale(1) : undefined,
-        typeof legacyContext.area === "function" ? legacyContext.area() : undefined,
         typeof legacyContext.fixed === "function" ? legacyContext.fixed() : undefined,
         typeof legacyContext.z === "function" ? legacyContext.z(191) : undefined,
       ]) as LegacyTouchButtonObject;
@@ -518,7 +520,6 @@ export function setupTouchControls(engineOrContext: IRenderEngine | LegacyTouchC
       typeof legacyContext.opacity === "function" ? legacyContext.opacity(0.75) : undefined,
       typeof legacyContext.anchor === "function" ? legacyContext.anchor("center") : undefined,
       typeof legacyContext.scale === "function" ? legacyContext.scale(1) : undefined,
-      typeof legacyContext.area === "function" ? legacyContext.area() : undefined,
       typeof legacyContext.fixed === "function" ? legacyContext.fixed() : undefined,
       typeof legacyContext.z === "function" ? legacyContext.z(191) : undefined,
     ]) as LegacyTouchButtonObject;
@@ -582,7 +583,6 @@ export function setupTouchControls(engineOrContext: IRenderEngine | LegacyTouchC
       typeof legacyContext.opacity === "function" ? legacyContext.opacity(0.7) : undefined,
       typeof legacyContext.anchor === "function" ? legacyContext.anchor("center") : undefined,
       typeof legacyContext.scale === "function" ? legacyContext.scale(1) : undefined,
-      typeof legacyContext.area === "function" ? legacyContext.area() : undefined,
       typeof legacyContext.fixed === "function" ? legacyContext.fixed() : undefined,
       typeof legacyContext.z === "function" ? legacyContext.z(191) : undefined,
     ]) as LegacyTouchButtonObject;

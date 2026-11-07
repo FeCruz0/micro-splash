@@ -55,7 +55,6 @@ export function renderAudioOptions(context: OptionsScreenContext): void {
     k.outline(1, k.rgb(100, 200, 255)),
     k.scale(1),
     k.anchor("center"),
-    k.area(),
     k.fixed(),
     k.z(304),
   ]);
@@ -107,7 +106,6 @@ export function renderAudioOptions(context: OptionsScreenContext): void {
     k.outline(1, k.rgb(100, 200, 255)),
     k.scale(1),
     k.anchor("center"),
-    k.area(),
     k.fixed(),
     k.z(304),
   ]);
@@ -160,7 +158,6 @@ export function renderAudioOptions(context: OptionsScreenContext): void {
     k.outline(1.5, k.rgb(56, 189, 248)),
     k.scale(1),
     k.anchor("center"),
-    k.area(),
     k.fixed(),
     k.z(302),
   ]);
@@ -211,7 +208,6 @@ export function renderAudioOptions(context: OptionsScreenContext): void {
     k.outline(1.5, k.rgb(56, 189, 248)),
     k.scale(1),
     k.anchor("center"),
-    k.area(),
     k.fixed(),
     k.z(302),
   ]);
@@ -264,7 +260,6 @@ export function renderAudioOptions(context: OptionsScreenContext): void {
     k.outline(1.5, k.rgb(56, 189, 248)),
     k.scale(1),
     k.anchor("center"),
-    k.area(),
     k.fixed(),
     k.z(302),
   ]);

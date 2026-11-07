@@ -54,7 +54,6 @@ export function showOptionsScreen(k: ShowOptionsEngineContext, onBack: () => voi
     engine.pos(0, 0),
     engine.color(6, 16, 36),
     engine.opacity(0.95),
-    engine.area(),
     engine.fixed(),
     engine.z(300),
   ]);

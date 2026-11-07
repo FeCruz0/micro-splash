@@ -45,7 +45,6 @@ export function showCodexScreen(k: ShowCodexEngineContext, onBack: () => void) {
       engine.pos(0, 0),
       engine.color(4, 14, 32),
       engine.opacity(0.95),
-      engine.area(),
       engine.fixed(),
       engine.z(300),
     ])
@@ -75,7 +74,6 @@ export function showCodexScreen(k: ShowCodexEngineContext, onBack: () => void) {
     engine.outline(1, engine.rgb(100, 200, 255)),
     engine.scale(1),
     engine.anchor("center"),
-    engine.area(),
     engine.fixed(),
     engine.z(305),
   ]);
