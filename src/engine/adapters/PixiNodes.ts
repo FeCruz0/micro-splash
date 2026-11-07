@@ -145,6 +145,14 @@ export class PixiContainerNode implements IRenderNode {
     return this.container.visible;
   }
 
+  get hidden(): boolean {
+    return !this.container.visible;
+  }
+
+  set hidden(value: boolean) {
+    this.setVisible(!value);
+  }
+
   setVisible(visible: boolean): void {
     if (this.container.visible !== visible) {
       this.container.visible = visible;
@@ -416,6 +424,14 @@ export class PixiTextNode extends PixiContainerNode implements ITextNode {
     super(nativeText, id);
     this.textNode = nativeText;
     this.currentColor = initialColor;
+  }
+
+  get text(): string {
+    return this.textNode.text;
+  }
+
+  set text(content: string) {
+    this.setText(content);
   }
 
   getText(): string {

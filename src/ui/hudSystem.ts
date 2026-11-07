@@ -143,33 +143,36 @@ export function setupHudSystem(
   const isHighContrast = accessibilitySystem.isHighContrast();
 
   if (isRenderEngine(engineOrContext)) {
-    const stageRoot = engineOrContext.getStageRoot();
+    const screenContainer =
+      typeof engineOrContext.getScreenContainer === "function"
+        ? engineOrContext.getScreenContainer()
+        : engineOrContext.getStageRoot();
     const dimensions = engineOrContext.getDimensions();
-    const screenW = dimensions.width;
-    const screenH = dimensions.height;
+    const screenWidth = dimensions.width;
+    const screenHeight = dimensions.height;
 
     // 1. Vinheta periférica de emergência
     const vignetteNode: IGraphicsNode = engineOrContext.createGraphics("hud_vignette");
-    vignetteNode.drawRect(0, 0, screenW, screenH, {
+    vignetteNode.drawRect(0, 0, screenWidth, screenHeight, {
       fill: { color: [180, 10, 30], alpha: 1 },
     });
     vignetteNode.setOpacity(0);
     vignetteNode.setZIndex(109);
     vignetteNode.setVisible(false);
-    stageRoot.addChild(vignetteNode);
+    screenContainer.addChild(vignetteNode);
 
     // 2. Card Container
-    const cardW = 236;
-    const cardH = 62;
+    const cardWidth = 236;
+    const cardHeight = 62;
     const cardNode: IGraphicsNode = engineOrContext.createGraphics("hud_card");
     const outlineColor: [number, number, number] = isHighContrast ? [255, 255, 255] : [30, 80, 140];
-    cardNode.drawRoundedRect(0, 0, cardW, cardH, 8, {
+    cardNode.drawRoundedRect(0, 0, cardWidth, cardHeight, 8, {
       fill: { color: [6, 18, 42], alpha: 0.85 },
       stroke: { width: 1.5, color: outlineColor, alpha: 1 },
     });
     cardNode.setPosition(14, 14);
     cardNode.setZIndex(110);
-    stageRoot.addChild(cardNode);
+    screenContainer.addChild(cardNode);
 
     // Linha 1: Distância dupla
     const distanceText: ITextNode = engineOrContext.createText(
@@ -183,7 +186,7 @@ export function setupHudSystem(
     );
     distanceText.setPosition(24, 21);
     distanceText.setZIndex(111);
-    stageRoot.addChild(distanceText);
+    screenContainer.addChild(distanceText);
 
     // Linha 2: Bioma
     const biomeText: ITextNode = engineOrContext.createText(
@@ -197,32 +200,31 @@ export function setupHudSystem(
     );
     biomeText.setPosition(24, 40);
     biomeText.setZIndex(111);
-    stageRoot.addChild(biomeText);
+    screenContainer.addChild(biomeText);
 
     // Linha 3: Barra de Oxigênio
-    const barMaxW = cardW - 20; // 216px
-    const barH = 7;
+    const barMaxWidth = cardWidth - 20; // 216px
+    const barHeight = 7;
 
     const barBgNode: IGraphicsNode = engineOrContext.createGraphics("hud_oxygen_bg");
-    barBgNode.drawRoundedRect(0, 0, barMaxW, barH, 3, {
+    barBgNode.drawRoundedRect(0, 0, barMaxWidth, barHeight, 3, {
       fill: { color: [12, 28, 55], alpha: 0.95 },
     });
     barBgNode.setPosition(24, 59);
     barBgNode.setZIndex(111);
-    stageRoot.addChild(barBgNode);
+    screenContainer.addChild(barBgNode);
 
     const oxygenBarFill: IGraphicsNode = engineOrContext.createGraphics("hud_oxygen_fill");
     oxygenBarFill.setPosition(24, 59);
     oxygenBarFill.setZIndex(112);
-    stageRoot.addChild(oxygenBarFill);
+    screenContainer.addChild(oxygenBarFill);
 
     let totalTime = 0;
-    let lastPixiBiomeText = "";
-    let lastPixiDistanceText = "";
+    let currentUrgency: OxygenUrgencyState = "calm";
 
     const updateHud = () => {
-      const dt = engineOrContext.getTicker().getDeltaTime();
-      totalTime += dt;
+      const deltaTime = engineOrContext.getTicker().getDeltaTime();
+      totalTime += deltaTime;
 
       const currentDistance =
         typeof gameState?.getDistance === "function"
@@ -230,16 +232,14 @@ export function setupHudSystem(
           : Math.max(0, playerController.gameObj?.pos?.x || 0);
 
       const biomeInfo = getBiomeHudInfo(currentDistance);
-      const nextBiomeStr = `${biomeInfo.emoji} ${biomeInfo.name}`;
-      if (nextBiomeStr !== lastPixiBiomeText) {
-        lastPixiBiomeText = nextBiomeStr;
-        biomeText.setText(nextBiomeStr);
+      const nextBiomeString = `${biomeInfo.emoji} ${biomeInfo.name}`;
+      if (biomeText.getText() !== nextBiomeString) {
+        biomeText.setText(nextBiomeString);
       }
 
-      const nextDistanceStr = `${formatDualDistance(currentDistance)} • ${biomeInfo.progressPercent}%`;
-      if (nextDistanceStr !== lastPixiDistanceText) {
-        lastPixiDistanceText = nextDistanceStr;
-        distanceText.setText(nextDistanceStr);
+      const nextDistanceString = `${formatDualDistance(currentDistance)} • ${biomeInfo.progressPercent}%`;
+      if (distanceText.getText() !== nextDistanceString) {
+        distanceText.setText(nextDistanceString);
       }
 
       const currentOx =
@@ -250,12 +250,12 @@ export function setupHudSystem(
 
       currentUrgency = getOxygenUrgencyState(oxygenRatio);
 
-      const fillWidth = Math.max(0, barMaxW * oxygenRatio);
+      const fillWidth = Math.max(0, barMaxWidth * oxygenRatio);
       const [r, g, b] = getOxygenColor(currentUrgency, totalTime, isHighContrast);
 
       oxygenBarFill.clear();
       if (fillWidth > 0) {
-        oxygenBarFill.drawRoundedRect(0, 0, fillWidth, barH, 3, {
+        oxygenBarFill.drawRoundedRect(0, 0, fillWidth, barHeight, 3, {
           fill: { color: [r, g, b], alpha: 1 },
         });
       }
@@ -299,12 +299,12 @@ export function setupHudSystem(
       destroy: () => {
         unregisterTicker();
         try {
-          stageRoot.removeChild(cardNode);
-          stageRoot.removeChild(distanceText);
-          stageRoot.removeChild(biomeText);
-          stageRoot.removeChild(barBgNode);
-          stageRoot.removeChild(oxygenBarFill);
-          stageRoot.removeChild(vignetteNode);
+          screenContainer.removeChild(cardNode);
+          screenContainer.removeChild(distanceText);
+          screenContainer.removeChild(biomeText);
+          screenContainer.removeChild(barBgNode);
+          screenContainer.removeChild(oxygenBarFill);
+          screenContainer.removeChild(vignetteNode);
 
           cardNode.destroy();
           distanceText.destroy();

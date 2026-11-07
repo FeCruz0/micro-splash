@@ -158,11 +158,16 @@ export function createDebugDistanceUI(
     const fontSizeSecondary = Math.round(12.5 * scale);
     const fontSizeTech = Math.round(11 * scale);
 
+    const screenContainer =
+      typeof engineOrContext.getScreenContainer === "function"
+        ? engineOrContext.getScreenContainer()
+        : engineOrContext.getStageRoot();
+
     const container = engineOrContext.createContainer("dev_debug_telemetry_container");
     container.setPosition(padding, padding);
     container.setZIndex(300);
     container.setVisible(false);
-    engineOrContext.getStageRoot().addChild(container);
+    screenContainer.addChild(container);
 
     const bg = engineOrContext.createGraphics("debug-bg");
     bg.drawRoundedRect(0, 0, containerWidth, containerHeight, 12, {
@@ -372,8 +377,6 @@ export function createDebugDistanceUI(
     resInfoText.setVisible(!isSerene);
     container.addChild(resInfoText);
 
-    const cachedFpsText = "-- FPS";
-
     return {
       getContainer: (): { hidden?: boolean; [key: string]: unknown } =>
         container as unknown as { hidden?: boolean; [key: string]: unknown },
@@ -381,7 +384,7 @@ export function createDebugDistanceUI(
       getFpsHistory: (): number[] => [...fpsHistory],
       getFrameTimeHistory: (): number[] => [...frameTimeHistory],
       getFrameTimeMetrics: (): FrameTimeMetrics => calculateFrameTimeMetrics(frameTimeHistory),
-      getFpsText: (): string => cachedFpsText,
+      getFpsText: (): string => fpsBadgeText.getText(),
       setVisible: (visible: boolean): void => {
         container.setVisible(visible);
       },
@@ -392,7 +395,7 @@ export function createDebugDistanceUI(
       },
       destroy: (): void => {
         try {
-          engineOrContext.getStageRoot().removeChild(container);
+          screenContainer.removeChild(container);
           container.destroy();
         } catch {}
       },
@@ -407,8 +410,9 @@ export function createDebugDistanceUI(
           curFps = dt > 0 ? Math.round(1 / dt) : 60;
         }
 
-        if (fpsBadgeText.getText() !== cachedFpsText) {
-          fpsBadgeText.setText(cachedFpsText);
+        const nextFpsBadgeString = `${curFps} FPS`;
+        if (fpsBadgeText.getText() !== nextFpsBadgeString) {
+          fpsBadgeText.setText(nextFpsBadgeString);
         }
 
         fpsBadgeBg.clear();
@@ -600,6 +604,11 @@ export function createDebugDistanceUI(
           if (powerupText.getText() !== nextPowerup) {
             powerupText.setText(nextPowerup);
           }
+        }
+
+        const nextResolutionInfoString = `Tela: ${formatResolutionInfo(engineOrContext)}`;
+        if (resInfoText.getText() !== nextResolutionInfoString) {
+          resInfoText.setText(nextResolutionInfoString);
         }
       },
     };
