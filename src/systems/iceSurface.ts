@@ -16,6 +16,7 @@ import { getRandomFloat } from "../utils/random";
 import type { IRenderEngine, IRenderNode, Vector2D } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { isRenderEngine, type LegacyEngineBridge } from "../engine/adapters/LegacyBridge";
 import { create16BitIceTextures } from "./ice/ice16BitTextures";
+import { getSpatialGrid } from "./spatialHashGrid";
 
 /**
  * Representa uma fenda de respiração (polínia natural) na camada de gelo polar.
@@ -158,9 +159,16 @@ export function setupIceSurfaceSystem(
       stageRoot.addChild(segment);
       cullingManager?.registerEntity(segment as unknown as CullingTarget, () => x);
 
+      const iceBlockIdentifier = `ice_block_${Math.round(x)}_${Math.round(icePosY)}`;
+      const spatialHashGrid = getSpatialGrid();
+
       function breakIce() {
         if (isBroken) return;
         isBroken = true;
+
+        if (spatialHashGrid) {
+          spatialHashGrid.remove(iceBlockIdentifier);
+        }
 
         const pool = getParticlePool();
         for (let shardIndex = 0; shardIndex < 14; shardIndex++) {
@@ -231,6 +239,27 @@ export function setupIceSurfaceSystem(
         }
 
         segment.destroy();
+      }
+
+      if (spatialHashGrid) {
+        spatialHashGrid.insert(
+          iceBlockIdentifier,
+          {
+            id: iceBlockIdentifier,
+            tag: "ice_block",
+            pos: { x, y: icePosY },
+            width,
+            height: iceCollisionHeight,
+            breakIce,
+          },
+          {
+            minX: x,
+            minY: icePosY,
+            maxX: x + width,
+            maxY: icePosY + iceCollisionHeight,
+          },
+          true
+        );
       }
 
       engine.getTicker().add(() => {
@@ -369,6 +398,8 @@ export function setupIceSurfaceSystem(
 
     function spawnIceSegment(x: number, width: number) {
       let isBroken = false;
+      const fallbackIceBlockIdentifier = `ice_block_legacy_${Math.round(x)}_${Math.round(icePosY)}`;
+      const fallbackSpatialGrid = getSpatialGrid();
 
       const segment = legacyCtx.add([
         legacyCtx.rect(width + 0.5, iceHeight),
@@ -390,6 +421,10 @@ export function setupIceSurfaceSystem(
           breakIce() {
             if (isBroken) return;
             isBroken = true;
+
+            if (fallbackSpatialGrid) {
+              fallbackSpatialGrid.remove(fallbackIceBlockIdentifier);
+            }
 
             const pool = getParticlePool();
             for (let shardIndex = 0; shardIndex < 14; shardIndex++) {
@@ -545,6 +580,20 @@ export function setupIceSurfaceSystem(
             legacyCtx.z(12),
           ]);
         }
+      }
+
+      if (fallbackSpatialGrid) {
+        fallbackSpatialGrid.insert(
+          fallbackIceBlockIdentifier,
+          segment,
+          {
+            minX: x,
+            minY: icePosY,
+            maxX: x + width + 0.5,
+            maxY: icePosY + iceCollisionHeight,
+          },
+          true
+        );
       }
 
       cullingManager?.registerEntity(segment as unknown as CullingTarget, () => x, width);

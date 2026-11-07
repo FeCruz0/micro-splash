@@ -456,8 +456,7 @@ export function createGameScene(
       k.onKeyPress("f8", toggleDebugMenu);
       k.onKeyPress("f3", toggleDebugMenu);
 
-      // 5. Ativa colisões, ressurgência e o clímax do Salto Majestoso (Breach)
-      setupCollisions(k, playerController, gameState);
+      // 5. Ativa ressurgência e o clímax do Salto Majestoso (Breach)
       setupUpwellingSystem(k, playerController);
 
       setupBreachSystem({
@@ -491,6 +490,13 @@ export function createGameScene(
       const frameRateMonitor = new FrameRateMonitor(30);
       systemRunner.setProfiler((phase, ms) => frameBudgetMonitor.recordPhaseDuration(phase, ms));
 
+      const collisionSystemController = setupCollisions(
+        k,
+        playerController,
+        gameState,
+        systemRunner
+      );
+
       const handleVisibilityChange = () => {
         if (typeof document !== "undefined" && document.visibilityState === "visible") {
           frameRateMonitor.reset();
@@ -504,6 +510,7 @@ export function createGameScene(
         if (typeof document !== "undefined") {
           document.removeEventListener("visibilitychange", handleVisibilityChange);
         }
+        collisionSystemController.destroy();
         systemRunner.clear();
         frameBudgetMonitor.reset();
         frameRateMonitor.reset();
@@ -531,17 +538,20 @@ export function createGameScene(
           spatialGridSyncTimer += dt;
           if (spatialGridSyncTimer >= 0.5) {
             spatialGridSyncTimer = 0;
-            spatialGrid.clear();
             const krills = typeof k.get === "function" ? k.get(TAGS.KRILL) : [];
             for (let i = 0; i < krills.length; i++) {
               const krill = krills[i];
               if (krill && krill.pos) {
-                spatialGrid.insert(`krill_${krill.id ?? i}`, krill, {
+                const krillIdentifier = `krill_${krill.id ?? i}`;
+                const krillBoundingBox = {
                   minX: krill.pos.x - 8,
                   minY: krill.pos.y - 8,
                   maxX: krill.pos.x + 8,
                   maxY: krill.pos.y + 8,
-                });
+                };
+                if (!spatialGrid.update(krillIdentifier, krillBoundingBox)) {
+                  spatialGrid.insert(krillIdentifier, krill, krillBoundingBox, false);
+                }
               }
             }
           }

@@ -2,6 +2,7 @@ import { createTrash } from "../entities/trash";
 import { createKrill } from "../entities/krill";
 import { createGhostNet } from "../entities/net";
 import { createBubbleVent } from "../entities/bubbleVent";
+import { TAGS } from "../config";
 import type { CurrentZone } from "./oceanCurrentsSystem";
 import { getRandomInteger } from "../utils/random";
 import { getSpatialCullingManager, type CullableTargetObject } from "./spatialCullingSystem";
@@ -345,12 +346,21 @@ export function spawnProceduralLevel<
     const trash = createTrash(k, k.vec2(pos.x, pos.y));
     cullingManager?.registerEntity(trash, () => pos.x, 30);
     if (spatialGrid) {
-      spatialGrid.insert(`trash_${i}`, trash, {
-        minX: pos.x - 12,
-        minY: pos.y - 12,
-        maxX: pos.x + 12,
-        maxY: pos.y + 12,
-      });
+      const staticTrashItem = trash as unknown as { id?: string; tag?: string; isStatic?: boolean };
+      staticTrashItem.id = `trash_${i}`;
+      staticTrashItem.tag = TAGS.TRASH;
+      staticTrashItem.isStatic = true;
+      spatialGrid.insert(
+        `trash_${i}`,
+        trash,
+        {
+          minX: pos.x - 12,
+          minY: pos.y - 12,
+          maxX: pos.x + 12,
+          maxY: pos.y + 12,
+        },
+        true
+      );
     }
   }
 
@@ -361,12 +371,20 @@ export function spawnProceduralLevel<
     const krill = createKrill(k, k.vec2(pos.x, pos.y));
     cullingManager?.registerEntity(krill, () => pos.x, 25);
     if (spatialGrid) {
-      spatialGrid.insert(`krill_${i}`, krill, {
-        minX: pos.x - 10,
-        minY: pos.y - 10,
-        maxX: pos.x + 10,
-        maxY: pos.y + 10,
-      });
+      const krillItem = krill as unknown as { id?: string; tag?: string };
+      krillItem.id = `krill_${i}`;
+      krillItem.tag = TAGS.KRILL;
+      spatialGrid.insert(
+        `krill_${i}`,
+        krill,
+        {
+          minX: pos.x - 10,
+          minY: pos.y - 10,
+          maxX: pos.x + 10,
+          maxY: pos.y + 10,
+        },
+        false
+      );
     }
   }
 
@@ -377,12 +395,21 @@ export function spawnProceduralLevel<
     const net = createGhostNet(k, k.vec2(pos.x, pos.y));
     cullingManager?.registerEntity(net, () => pos.x, 60);
     if (spatialGrid) {
-      spatialGrid.insert(`net_${i}`, net, {
-        minX: pos.x - 25,
-        minY: pos.y - 45,
-        maxX: pos.x + 25,
-        maxY: pos.y + 45,
-      });
+      const staticNetItem = net as unknown as { id?: string; tag?: string; isStatic?: boolean };
+      staticNetItem.id = `net_${i}`;
+      staticNetItem.tag = TAGS.NET;
+      staticNetItem.isStatic = true;
+      spatialGrid.insert(
+        `net_${i}`,
+        net,
+        {
+          minX: pos.x - 25,
+          minY: pos.y - 45,
+          maxX: pos.x + 25,
+          maxY: pos.y + 45,
+        },
+        true
+      );
     }
   }
 
@@ -394,12 +421,21 @@ export function spawnProceduralLevel<
     const ventObj = createBubbleVent(k, k.vec2(vent.x, vent.y), ventHeight) as CullableTargetObject;
     cullingManager?.registerEntity(ventObj, () => vent.x, 50);
     if (spatialGrid) {
-      spatialGrid.insert(`vent_${i}`, ventObj, {
-        minX: vent.x - 20,
-        minY: vent.y - ventHeight,
-        maxX: vent.x + 20,
-        maxY: vent.y,
-      });
+      const staticVentItem = ventObj as unknown as { id?: string; tag?: string; isStatic?: boolean };
+      staticVentItem.id = `vent_${i}`;
+      staticVentItem.tag = TAGS.AIR_POCKET;
+      staticVentItem.isStatic = true;
+      spatialGrid.insert(
+        `vent_${i}`,
+        ventObj,
+        {
+          minX: vent.x - 20,
+          minY: vent.y - ventHeight,
+          maxX: vent.x + 20,
+          maxY: vent.y,
+        },
+        true
+      );
     }
   }
 

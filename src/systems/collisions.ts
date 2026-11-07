@@ -6,6 +6,8 @@ import type { PlayerController } from "../entities/player";
 import type { GameState } from "./state";
 import { getSereneInsightsManager } from "./sereneMigrationInsights";
 import { isCompanionCollidable } from "../entities/companion/types";
+import { getSpatialGrid, type SpatialAABB } from "./spatialHashGrid";
+import type { SystemRunner } from "./systemRunner";
 
 export interface CollisionVector2D {
   x: number;
@@ -13,7 +15,13 @@ export interface CollisionVector2D {
 }
 
 export interface CollisionGameObject {
+  id?: string;
+  tag?: string;
+  tags?: string[];
+  isStatic?: boolean;
   pos?: { x?: number; y?: number };
+  is?: (tag: string) => boolean;
+  destroy?: () => void;
 }
 
 export interface AirVentEntity extends CollisionGameObject {
@@ -32,246 +40,394 @@ export interface CompanionCollisionGameObject extends CollisionGameObject {
   handleNetCollision?: (net: unknown) => void;
 }
 
-import { getSpatialGrid, type SpatialAABB } from "./spatialHashGrid";
-
 export interface CollisionsEngineContext<TDestroyable = unknown> {
-  onCollide: (tag1: string, tag2: string, cb: (obj1: unknown, obj2: unknown) => void) => unknown;
-  destroy: (obj: TDestroyable) => void;
-  time: () => number;
+  destroy?: (obj: TDestroyable) => void;
+  time?: () => number;
   shake?: (amount: number) => void;
   onUpdate?: (cb: () => void) => unknown;
+  get?: (tag: string) => unknown[];
+  onCollide?: (tag1: string, tag2: string, cb: (obj1: unknown, obj2: unknown) => void) => unknown;
 }
 
+export interface CollisionSystemController {
+  runCollisionPhase: () => void;
+  destroy: () => void;
+}
+
+/**
+ * Sistema Unificado de Resolução de Colisões via SpatialHashGrid (Fase 59 / Etapa 2.2).
+ *
+ * Elimina totalmente as varreduras e callbacks legados de k.onCollide, substituindo-os
+ * por consultas estritas queryAABB no SpatialHashGrid ao final da fase canônica de colisão.
+ */
 export function setupCollisions<TDestroyable = unknown>(
-  k: CollisionsEngineContext<TDestroyable>,
+  engineContext: CollisionsEngineContext<TDestroyable>,
   playerController: PlayerController,
-  gameState: GameState
-) {
-  // colisão com lixo
-  k.onCollide(TAGS.PLAYER, TAGS.TRASH, (playerObj, trashObj) => {
-    if (playerController.isFrozen()) return;
-
-    const trash = trashObj as CollisionGameObject;
-    const player = playerObj as CollisionGameObject;
-
-    // Destrói o lixo plástico colidido
-    k.destroy(trashObj as unknown as TDestroyable);
-
-    gameState.addTrash();
-    getSereneInsightsManager()?.trigger("ocean_trash_threat");
-
-    // Som de impacto no plástico e vibração tátil
-    audioSystem.playTrashThud(trash.pos?.x, player.pos?.x);
-    hapticsSystem.triggerCollision();
-
-    // Aplica desaceleração instantânea (perde 50% da velocidade)
-    const currentSpeed = playerController.getSpeed();
-    playerController.setSpeed(currentSpeed.scale(GAME_CONFIG.TRASH_SLOWDOWN));
-
-    // penalidade de oxigenio
-    playerController.penalizeTrash();
-
-    // Efeito visual rápido de impacto
-    accessibilitySystem.triggerShake(k, 3);
-  });
-
-  // Interação com Bolsão de Ar Natural (coluna de micro-bolhas de oxigênio)
-  k.onCollide(TAGS.PLAYER, TAGS.AIR_POCKET, (playerObj, ventObj) => {
-    if (playerController.isFrozen()) return;
-
-    const vent = ventObj as AirVentEntity;
-    const player = playerObj as CollisionGameObject;
-
-    if (vent.collectAir && vent.collectAir()) {
-      audioSystem.playPowerupCollect(vent.pos?.x, player.pos?.x);
-      playerController.restoreOxygen(playerController.getMaxOxygen() * 0.35);
-      accessibilitySystem.triggerShake(k, 1.5);
-    }
-  });
-
-  // colisão com krill (Fase 3: Progressão Nutricional)
-  k.onCollide(TAGS.PLAYER, TAGS.KRILL, (playerObj, krillObj) => {
-    if (playerController.isFrozen()) return;
-
-    const krill = krillObj as CollisionGameObject;
-    const player = playerObj as CollisionGameObject;
-
-    k.destroy(krillObj as unknown as TDestroyable);
-    gameState.addKrill();
-    getSereneInsightsManager()?.trigger("krill_feeding");
-
-    // Som biológico de sucção e deglutição de krill com espacialização estéreo (Fase 5/34)
-    audioSystem.playKrillGulp(krill.pos?.x, player.pos?.x);
-
-    // Aplica impulso, restaura fôlego e evolui +1% em velocidade máx e oxigênio máx permanente
-    playerController.consumeKrill();
-  });
-
-  // colisao com rede fantasma
-  k.onCollide(TAGS.PLAYER, TAGS.NET, (playerObj, netObj) => {
-    if (playerController.isFrozen()) return;
-
-    const net = netObj as CollisionGameObject;
-    const player = playerObj as CollisionGameObject;
-
-    k.destroy(netObj as unknown as TDestroyable); // remove rede do mapa
-    getSereneInsightsManager()?.trigger("ghost_net_entanglement");
-    audioSystem.playNetTangle(net.pos?.x, player.pos?.x);
-    hapticsSystem.triggerCollision();
-
-    if (!playerController.isTrapped()) {
-      playerController.trapInNet(GAME_CONFIG.NET_ESCAPE_COUNT); // prende a baleia
-      accessibilitySystem.triggerShake(k, 5);
-    } else {
-      // Se já estiver presa e afundar em outra rede, emaranha mais
-      playerController.addTrapCount(3);
-      accessibilitySystem.triggerShake(k, 4);
-    }
-
-    // Força imediatamente visibilidade total e opacidade 1.0 do overlay na baleia, ignorando o sonar
-    const rawPlayer = (player ?? playerController.gameObj) as unknown as {
-      netOverlaySprite?: {
-        visible?: boolean;
-        hidden?: boolean;
-        opacity?: number;
-        alpha?: number;
-        setVisible?: (v: boolean) => void;
-        setOpacity?: (a: number) => void;
-      };
-    };
-    const overlay = rawPlayer?.netOverlaySprite;
-    if (overlay) {
-      overlay.visible = true;
-      overlay.hidden = false;
-      overlay.opacity = 1.0;
-      overlay.alpha = 1.0;
-      if (typeof overlay.setVisible === "function") overlay.setVisible(true);
-      if (typeof overlay.setOpacity === "function") overlay.setOpacity(1.0);
-    }
-  });
-
-  // Colisão com blocos de gelo: quebra apenas quando atingido por cima ao cair do salto
-  k.onCollide(TAGS.PLAYER, "ice_block", (playerObj, iceBlockObj) => {
-    if (playerController.isFrozen()) return;
-
-    const player = playerObj as CollisionGameObject;
-    const iceBlock = iceBlockObj as IceBlockEntity;
-
-    const vel = playerController.getSpeed();
-    if (
-      player.pos &&
-      player.pos.y !== undefined &&
-      player.pos.y <= iceBlock.pos.y + 8 &&
-      vel.y >= 0
-    ) {
-      if (iceBlock.breakIce) {
-        hapticsSystem.triggerIceBreach();
-        iceBlock.breakIce();
-      }
-    }
-  });
-
-  // Colisão com formações rochosas (Ilha do Farol e Fundo Rochoso do Boqueirão) e navios cargueiros
+  gameState: GameState,
+  systemRunner?: SystemRunner
+): CollisionSystemController {
   let lastObstacleBumpTime = 0;
-  const spatialGrid = getSpatialGrid();
-  const playerAABB: SpatialAABB = { minX: 0, minY: 0, maxX: 0, maxY: 0 };
+  let isSystemActive = true;
+  let unregisterSystemRunnerTask: (() => void) | null = null;
 
-  if (spatialGrid && typeof k.onUpdate === "function") {
-    k.onUpdate(() => {
-      if (playerController.isFrozen()) return;
-      const playerObj = playerController.gameObj;
-      if (!playerObj || !playerObj.pos) return;
+  const queryBoundingBox: SpatialAABB = {
+    minX: 0,
+    minY: 0,
+    maxX: 0,
+    maxY: 0,
+  };
 
-      playerAABB.minX = playerObj.pos.x - 35;
-      playerAABB.minY = playerObj.pos.y - 18;
-      playerAABB.maxX = playerObj.pos.x + 35;
-      playerAABB.maxY = playerObj.pos.y + 18;
+  const companionBoundingBox: SpatialAABB = {
+    minX: 0,
+    minY: 0,
+    maxX: 0,
+    maxY: 0,
+  };
 
-      const candidates = spatialGrid.queryAABB(playerAABB);
-      const totalCandidates = candidates.length;
-      if (totalCandidates === 0) return;
+  const runCollisionPhase = (): void => {
+    if (!isSystemActive || playerController.isFrozen()) return;
 
-      for (let i = 0; i < totalCandidates; i++) {
-        const item = candidates[i] as {
-          is?: (tag: string) => boolean;
-          tag?: string;
-        } | null;
-        if (!item) continue;
-        const isObstacleOrShip =
-          (typeof item.is === "function" &&
-            (item.is(TAGS.OBSTACLE) ||
-              item.is("ship") ||
-              item.is("fishing_trawler") ||
-              item.is("navio"))) ||
-          item.tag === TAGS.OBSTACLE ||
-          item.tag === "ship" ||
-          item.tag === "fishing_trawler";
+    const spatialGrid = getSpatialGrid();
+    if (!spatialGrid) return;
 
-        if (isObstacleOrShip) {
-          const now = k.time();
-          if (now - lastObstacleBumpTime > 0.35) {
-            lastObstacleBumpTime = now;
-            audioSystem.playTrashThud();
-            accessibilitySystem.triggerShake(k, 2.0);
+    const playerGameObject = playerController.gameObj;
+    if (playerGameObject && playerGameObject.pos) {
+      const playerCenterX = playerGameObject.pos.x;
+      const playerCenterY = playerGameObject.pos.y;
+
+      queryBoundingBox.minX = playerCenterX - 54;
+      queryBoundingBox.minY = playerCenterY - 19;
+      queryBoundingBox.maxX = playerCenterX + 54;
+      queryBoundingBox.maxY = playerCenterY + 19;
+
+      const nearbyCollisionEntities = spatialGrid.queryAABB(queryBoundingBox);
+      const totalCandidates = nearbyCollisionEntities.length;
+
+      for (let candidateIndex = 0; candidateIndex < totalCandidates; candidateIndex++) {
+        const candidateEntity = nearbyCollisionEntities[candidateIndex] as CollisionGameObject | null;
+        if (!candidateEntity) continue;
+
+        // 1. LIXO PLÁSTICO (TAGS.TRASH = "lixo_plastico")
+        const isTrashEntity =
+          (typeof candidateEntity.is === "function" &&
+            (candidateEntity.is(TAGS.TRASH) || candidateEntity.is("trash"))) ||
+          candidateEntity.tag === TAGS.TRASH ||
+          candidateEntity.tag === "trash" ||
+          (typeof candidateEntity.id === "string" && candidateEntity.id.startsWith("trash_"));
+
+        if (isTrashEntity) {
+          if (candidateEntity.id) {
+            spatialGrid.remove(candidateEntity.id);
           }
-          break;
+          if (typeof engineContext.destroy === "function") {
+            engineContext.destroy(candidateEntity as unknown as TDestroyable);
+          }
+          if (typeof candidateEntity.destroy === "function") {
+            candidateEntity.destroy();
+          }
+
+          gameState.addTrash();
+          getSereneInsightsManager()?.trigger("ocean_trash_threat");
+
+          audioSystem.playTrashThud(candidateEntity.pos?.x, playerCenterX);
+          hapticsSystem.triggerCollision();
+
+          const currentSpeed = playerController.getSpeed();
+          playerController.setSpeed(currentSpeed.scale(GAME_CONFIG.TRASH_SLOWDOWN));
+          playerController.penalizeTrash();
+
+          accessibilitySystem.triggerShake(
+            engineContext as Parameters<typeof accessibilitySystem.triggerShake>[0],
+            3
+          );
+          continue;
+        }
+
+        // 2. BOLSÃO DE AR NATURAL (TAGS.AIR_POCKET = "bolsao_ar")
+        const isAirPocketEntity =
+          (typeof candidateEntity.is === "function" &&
+            (candidateEntity.is(TAGS.AIR_POCKET) ||
+              candidateEntity.is("air_pocket") ||
+              candidateEntity.is("vent"))) ||
+          candidateEntity.tag === TAGS.AIR_POCKET ||
+          candidateEntity.tag === "air_pocket" ||
+          (typeof candidateEntity.id === "string" && candidateEntity.id.startsWith("vent_")) ||
+          typeof (candidateEntity as AirVentEntity).collectAir === "function";
+
+        if (isAirPocketEntity) {
+          const airVentEntity = candidateEntity as AirVentEntity;
+          if (typeof airVentEntity.collectAir === "function" && airVentEntity.collectAir()) {
+            audioSystem.playPowerupCollect(airVentEntity.pos?.x, playerCenterX);
+            playerController.restoreOxygen(playerController.getMaxOxygen() * 0.35);
+            accessibilitySystem.triggerShake(
+              engineContext as Parameters<typeof accessibilitySystem.triggerShake>[0],
+              1.5
+            );
+          }
+          continue;
+        }
+
+        // 3. KRILL NUTRITIVO (TAGS.KRILL = "krill")
+        const isKrillEntity =
+          (typeof candidateEntity.is === "function" && candidateEntity.is(TAGS.KRILL)) ||
+          candidateEntity.tag === TAGS.KRILL ||
+          (typeof candidateEntity.id === "string" && candidateEntity.id.startsWith("krill_"));
+
+        if (isKrillEntity) {
+          if (candidateEntity.id) {
+            spatialGrid.remove(candidateEntity.id);
+          }
+          if (typeof engineContext.destroy === "function") {
+            engineContext.destroy(candidateEntity as unknown as TDestroyable);
+          }
+          if (typeof candidateEntity.destroy === "function") {
+            candidateEntity.destroy();
+          }
+
+          gameState.addKrill();
+          getSereneInsightsManager()?.trigger("krill_feeding");
+
+          audioSystem.playKrillGulp(candidateEntity.pos?.x, playerCenterX);
+          playerController.consumeKrill();
+          continue;
+        }
+
+        // 4. REDE FANTASMA (TAGS.NET = "rede_fantasma")
+        const isGhostNetEntity =
+          (typeof candidateEntity.is === "function" &&
+            (candidateEntity.is(TAGS.NET) ||
+              candidateEntity.is("net") ||
+              candidateEntity.is("ghost_net"))) ||
+          candidateEntity.tag === TAGS.NET ||
+          candidateEntity.tag === "net" ||
+          (typeof candidateEntity.id === "string" && candidateEntity.id.startsWith("net_"));
+
+        if (isGhostNetEntity) {
+          if (candidateEntity.id) {
+            spatialGrid.remove(candidateEntity.id);
+          }
+          if (typeof engineContext.destroy === "function") {
+            engineContext.destroy(candidateEntity as unknown as TDestroyable);
+          }
+          if (typeof candidateEntity.destroy === "function") {
+            candidateEntity.destroy();
+          }
+
+          getSereneInsightsManager()?.trigger("ghost_net_entanglement");
+          audioSystem.playNetTangle(candidateEntity.pos?.x, playerCenterX);
+          hapticsSystem.triggerCollision();
+
+          if (!playerController.isTrapped()) {
+            playerController.trapInNet(GAME_CONFIG.NET_ESCAPE_COUNT);
+            accessibilitySystem.triggerShake(
+              engineContext as Parameters<typeof accessibilitySystem.triggerShake>[0],
+              5
+            );
+          } else {
+            playerController.addTrapCount(3);
+            accessibilitySystem.triggerShake(
+              engineContext as Parameters<typeof accessibilitySystem.triggerShake>[0],
+              4
+            );
+          }
+
+          const rawPlayer = (playerGameObject ?? playerController.gameObj) as unknown as {
+            netOverlaySprite?: {
+              visible?: boolean;
+              hidden?: boolean;
+              opacity?: number;
+              alpha?: number;
+              setVisible?: (visible: boolean) => void;
+              setOpacity?: (alpha: number) => void;
+            };
+          };
+          const netOverlay = rawPlayer?.netOverlaySprite;
+          if (netOverlay) {
+            netOverlay.visible = true;
+            netOverlay.hidden = false;
+            netOverlay.opacity = 1.0;
+            netOverlay.alpha = 1.0;
+            if (typeof netOverlay.setVisible === "function") netOverlay.setVisible(true);
+            if (typeof netOverlay.setOpacity === "function") netOverlay.setOpacity(1.0);
+          }
+          continue;
+        }
+
+        // 5. BLOCO DE GELO ("ice_block")
+        const isIceBlockEntity =
+          (typeof candidateEntity.is === "function" &&
+            (candidateEntity.is("ice_block") || candidateEntity.is("ice"))) ||
+          candidateEntity.tag === "ice_block" ||
+          (typeof candidateEntity.id === "string" && candidateEntity.id.startsWith("ice_block")) ||
+          typeof (candidateEntity as IceBlockEntity).breakIce === "function";
+
+        if (isIceBlockEntity) {
+          const iceBlock = candidateEntity as IceBlockEntity;
+          const currentVelocity = playerController.getSpeed();
+          const iceBlockTopY = iceBlock.pos ? iceBlock.pos.y : GAME_CONFIG.SEA_LEVEL;
+          const isBreachingFromAbove = playerCenterY <= iceBlockTopY + 8 && currentVelocity.y >= 0;
+
+          if (isBreachingFromAbove && typeof iceBlock.breakIce === "function") {
+            hapticsSystem.triggerIceBreach();
+            iceBlock.breakIce();
+            if (candidateEntity.id) {
+              spatialGrid.remove(candidateEntity.id);
+            }
+          }
+          continue;
+        }
+
+        // 6. FORMAÇÕES ROCHOSAS E NAVIOS (TAGS.OBSTACLE = "obstaculo")
+        const isObstacleOrShipEntity =
+          (typeof candidateEntity.is === "function" &&
+            (candidateEntity.is(TAGS.OBSTACLE) ||
+              candidateEntity.is("ship") ||
+              candidateEntity.is("fishing_trawler") ||
+              candidateEntity.is("navio"))) ||
+          candidateEntity.tag === TAGS.OBSTACLE ||
+          candidateEntity.tag === "ship" ||
+          candidateEntity.tag === "fishing_trawler";
+
+        if (isObstacleOrShipEntity) {
+          const currentTime =
+            typeof engineContext.time === "function" ? engineContext.time() : performance.now() / 1000;
+          if (currentTime - lastObstacleBumpTime > 0.35) {
+            lastObstacleBumpTime = currentTime;
+            audioSystem.playTrashThud();
+            accessibilitySystem.triggerShake(
+              engineContext as Parameters<typeof accessibilitySystem.triggerShake>[0],
+              2.0
+            );
+          }
+          continue;
         }
       }
-    });
-  } else if (typeof k.onCollide === "function") {
-    k.onCollide(TAGS.PLAYER, TAGS.OBSTACLE, () => {
-      if (playerController.isFrozen()) return;
+    }
 
-      const now = k.time();
-      if (now - lastObstacleBumpTime > 0.35) {
-        lastObstacleBumpTime = now;
-        audioSystem.playTrashThud(); // Impacto sólido e surdo contra a rocha
-        accessibilitySystem.triggerShake(k, 2.0);
+    // =========================================================================
+    // COLISÕES DA BALEIA-GUIA NPC (Fase 56 & 60 via SpatialHashGrid)
+    // =========================================================================
+    const companionEntities =
+      typeof engineContext.get === "function" ? engineContext.get("companion_whale") : [];
+
+    for (let cIndex = 0; cIndex < companionEntities.length; cIndex++) {
+      const companionObject = companionEntities[cIndex] as CompanionCollisionGameObject;
+      if (
+        !companionObject ||
+        !companionObject.pos ||
+        companionObject.pos.x === undefined ||
+        companionObject.pos.y === undefined
+      ) {
+        continue;
       }
+
+      companionBoundingBox.minX = companionObject.pos.x - 45;
+      companionBoundingBox.minY = companionObject.pos.y - 18;
+      companionBoundingBox.maxX = companionObject.pos.x + 45;
+      companionBoundingBox.maxY = companionObject.pos.y + 18;
+
+      const companionCandidates = spatialGrid.queryAABB(companionBoundingBox);
+      for (let candIndex = 0; candIndex < companionCandidates.length; candIndex++) {
+        const candidateEntity = companionCandidates[candIndex] as CollisionGameObject | null;
+        if (!candidateEntity) continue;
+
+        // Krill
+        const isKrill =
+          (typeof candidateEntity.is === "function" && candidateEntity.is(TAGS.KRILL)) ||
+          candidateEntity.tag === TAGS.KRILL ||
+          (typeof candidateEntity.id === "string" && candidateEntity.id.startsWith("krill_"));
+
+        if (isKrill) {
+          if (
+            isCompanionCollidable(companionObject) &&
+            typeof companionObject.consumeKrill === "function"
+          ) {
+            companionObject.consumeKrill(candidateEntity);
+          } else {
+            if (candidateEntity.id) {
+              spatialGrid.remove(candidateEntity.id);
+            }
+            if (typeof engineContext.destroy === "function") {
+              engineContext.destroy(candidateEntity as unknown as TDestroyable);
+            }
+            audioSystem.playKrillGulp(candidateEntity.pos?.x, companionObject.pos.x);
+          }
+          continue;
+        }
+
+        // Ice Block
+        const isIce =
+          (typeof candidateEntity.is === "function" &&
+            (candidateEntity.is("ice_block") || candidateEntity.is("ice"))) ||
+          candidateEntity.tag === "ice_block" ||
+          (typeof candidateEntity.id === "string" && candidateEntity.id.startsWith("ice_block"));
+
+        if (isIce) {
+          if (
+            isCompanionCollidable(companionObject) &&
+            typeof companionObject.handleIceCollision === "function"
+          ) {
+            companionObject.handleIceCollision(candidateEntity);
+          }
+          continue;
+        }
+
+        // Obstacle
+        const isObstacle =
+          (typeof candidateEntity.is === "function" && candidateEntity.is(TAGS.OBSTACLE)) ||
+          candidateEntity.tag === TAGS.OBSTACLE;
+
+        if (isObstacle) {
+          if (
+            isCompanionCollidable(companionObject) &&
+            typeof companionObject.handleObstacleCollision === "function"
+          ) {
+            companionObject.handleObstacleCollision(candidateEntity);
+          }
+          continue;
+        }
+
+        // Net
+        const isNet =
+          (typeof candidateEntity.is === "function" && candidateEntity.is(TAGS.NET)) ||
+          candidateEntity.tag === TAGS.NET ||
+          (typeof candidateEntity.id === "string" && candidateEntity.id.startsWith("net_"));
+
+        if (isNet) {
+          if (
+            isCompanionCollidable(companionObject) &&
+            typeof companionObject.handleNetCollision === "function"
+          ) {
+            companionObject.handleNetCollision(candidateEntity);
+          }
+          continue;
+        }
+      }
+    }
+  };
+
+  if (systemRunner) {
+    unregisterSystemRunnerTask = systemRunner.register(
+      "collision",
+      () => {
+        runCollisionPhase();
+      },
+      { id: "spatial_hash_grid_collision_resolution", priority: 100 }
+    );
+  } else if (typeof engineContext.onUpdate === "function") {
+    engineContext.onUpdate(() => {
+      runCollisionPhase();
     });
   }
 
-  // =========================================================================
-  // COLISÕES DA BALEIA-GUIA NPC (Fase 56: Ecologia e Mecânicas Espelho)
-  // =========================================================================
-
-  // Alimentação por filtração autônoma: consome krill real do mapa
-  k.onCollide("companion_whale", TAGS.KRILL, (companionObj, krillObj) => {
-    const companion = companionObj as CompanionCollisionGameObject;
-    const krill = krillObj as CollisionGameObject;
-
-    if (isCompanionCollidable(companion) && typeof companion.consumeKrill === "function") {
-      companion.consumeKrill(krillObj);
-    } else {
-      k.destroy(krillObj as unknown as TDestroyable);
-      audioSystem.playKrillGulp(krill.pos?.x, companion.pos?.x);
-    }
-  });
-
-  // Reação a blocos de gelo: impede travessia sólida da banquisa polar por baixo
-  k.onCollide("companion_whale", "ice_block", (companionObj, iceBlockObj) => {
-    const companion = companionObj as CompanionCollisionGameObject;
-    if (isCompanionCollidable(companion) && typeof companion.handleIceCollision === "function") {
-      companion.handleIceCollision(iceBlockObj);
-    }
-  });
-
-  // Reação a obstáculos rochosos
-  k.onCollide("companion_whale", TAGS.OBSTACLE, (companionObj, obstacleObj) => {
-    const companion = companionObj as CompanionCollisionGameObject;
-    if (
-      isCompanionCollidable(companion) &&
-      typeof companion.handleObstacleCollision === "function"
-    ) {
-      companion.handleObstacleCollision(obstacleObj);
-    }
-  });
-
-  // Reação a redes fantasmas (Fase 60)
-  k.onCollide("companion_whale", TAGS.NET, (companionObj, netObj) => {
-    const companion = companionObj as CompanionCollisionGameObject;
-    if (isCompanionCollidable(companion) && typeof companion.handleNetCollision === "function") {
-      companion.handleNetCollision(netObj);
-    }
-  });
+  return {
+    runCollisionPhase,
+    destroy: () => {
+      isSystemActive = false;
+      if (unregisterSystemRunnerTask) {
+        unregisterSystemRunnerTask();
+        unregisterSystemRunnerTask = null;
+      }
+    },
+  };
 }

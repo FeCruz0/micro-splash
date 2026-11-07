@@ -27,7 +27,7 @@ Diagnóstico: 2222 chamadas `k.*` em 50 arquivos (`ui` 1022, `systems` 763, `ent
 - [x] Etapa 2.1: Em player.ts, remover k.add, k.sprite, k.area, k.body e k.shake e aplicar o snapshot de playerRenderPipeline em um PixiSpriteNode.
   - Angulo do rig em radianos antes de setRotation.
   - Ponteiro direto do jogador, sem varredura por tag a cada frame.
-- [ ] Etapa 2.2: Em collisions.ts, substituir os callbacks k.onCollide por consultas queryAABB no SpatialHashGrid ao fim da fase collision.
+- [x] Etapa 2.2: Em collisions.ts, substituir os callbacks k.onCollide por consultas queryAABB no SpatialHashGrid ao fim da fase collision.
   - Tags de lixo, bolsao de ar, gelo, krill e rede.
   - Itens estaticos permanecem com isStatic e nao recalculam celula.
 - [ ] Etapa 2.3: Retirar k.body de player.ts, companion/index.ts e do corpo estatico em gameScene.ts; gelo polar entra no SpatialHashGrid como estatico.
