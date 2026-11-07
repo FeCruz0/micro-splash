@@ -1,5 +1,6 @@
 import { FONT_TITLE, FONT_BODY, TEXT_SIZE_DISPLAY, TEXT_SIZE_CAPTION } from "../config";
 import { createKeyBadge } from "./keyBadge";
+import { createTween, Easings } from "../engine/utils/Tween";
 
 const CONSERVATION_TIPS = [
   "💡 Você sabia? As jubartes migram milhares de km todos os anos para se reproduzir em águas tropicais brasileiras.",
@@ -190,25 +191,18 @@ export function createSplashScreen(k: ShowSplashEngineContext, onFinish: () => v
 
     // Animação progressiva letter-by-letter
     engine.wait(0.04 * i, () => {
-      if (typeof engine.tween === "function" && engine.easings?.easeOutBack) {
-        engine.tween(
-          cy - 4,
-          cy - 12,
-          0.3,
-          (val) => {
-            if (charObj.pos) charObj.pos.y = val;
-            if (shadowObj.pos) shadowObj.pos.y = val + 2;
-            charObj.opacity = 1;
-            shadowObj.opacity = 0.8;
-          },
-          engine.easings.easeOutBack
-        );
-      } else {
-        if (charObj.pos) charObj.pos.y = cy - 12;
-        if (shadowObj.pos) shadowObj.pos.y = cy - 10;
-        charObj.opacity = 1;
-        shadowObj.opacity = 0.8;
-      }
+      createTween(
+        cy - 4,
+        cy - 12,
+        0.3,
+        (currentPositionY: number) => {
+          if (charObj.pos) charObj.pos.y = currentPositionY;
+          if (shadowObj.pos) shadowObj.pos.y = currentPositionY + 2;
+          charObj.opacity = 1;
+          shadowObj.opacity = 0.8;
+        },
+        Easings.easeOutBack
+      );
     });
   });
 

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { audioSystem } from "./audioSystem";
 import { setupLightRaysSystem } from "./lightRaysSystem";
 import { readLocalStorageWithSchema, writeLocalStorage } from "../utils/storage";
+import { createTween, Easings } from "../engine/utils/Tween";
 
 const KIOSK_TIMEOUT_STORAGE_KEY = "micro_splash_kiosk_timeout";
 const KioskTimeoutSchema = z.number().int().nonnegative().default(45);
@@ -66,7 +67,7 @@ export interface LegacyKioskEngineContext {
   onKeyPress(callback: () => void): { cancel: () => void };
   onMousePress(callback: () => void): { cancel: () => void };
   go(sceneName: string): void;
-  tween(
+  tween?(
     from: number,
     to: number,
     duration: number,
@@ -353,11 +354,18 @@ export function createKioskScene(k: ShowKioskEngineContext) {
       engine.z(200),
     ]);
 
-    engine
-      .tween(0, 1, 0.35, (val) => (fade.opacity = val))
-      .then(() => {
-        engine.go("menu");
-      });
+    const kioskFadeTweenHandle = createTween(
+      0,
+      1,
+      0.35,
+      (currentOpacity: number) => {
+        fade.opacity = currentOpacity;
+      },
+      Easings.easeOutQuad
+    );
+    kioskFadeTweenHandle.promise.then(() => {
+      engine.go("menu");
+    });
   };
 
   // Qualquer interação do usuário encerra a demo

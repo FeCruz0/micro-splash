@@ -1,6 +1,8 @@
 import { FONT_TITLE, FONT_BODY } from "../config";
 import { ttsSystem } from "./ttsSystem";
 import { accessibilitySystem } from "./accessibilitySystem";
+import { createTween, Easings } from "../engine/utils/Tween";
+import { isRenderEngine } from "../engine/adapters/LegacyBridge";
 
 export type InsightCategory = "biology" | "oceanography" | "conservation";
 
@@ -41,7 +43,7 @@ export interface SereneInsightsEngineContext {
   z(zIndex: number): unknown;
   text(content: string, options?: unknown): unknown;
   destroy(target: unknown): void;
-  tween(
+  tween?(
     from: number,
     to: number,
     duration: number,
@@ -49,7 +51,7 @@ export interface SereneInsightsEngineContext {
     ease?: unknown
   ): { then(callback: () => void): void };
   wait(duration: number, callback: () => void): void;
-  easings: {
+  easings?: {
     easeOutQuad: unknown;
     easeInQuad: unknown;
     [key: string]: unknown;
@@ -269,32 +271,78 @@ export class SereneInsightsManager {
     const isReducedMotion = accessibilitySystem.isReducedMotion();
     const transitionDuration = isReducedMotion ? 0.05 : 0.45;
 
+    if (!isRenderEngine(k) && typeof k.tween === "function" && k.easings?.easeOutQuad) {
+      k.tween(
+        startY,
+        targetY + boxHeight / 2,
+        transitionDuration,
+        (currentY: number) => {
+          if (panel && panel.pos) panel.pos.y = currentY;
+          if (titleObj && titleObj.pos) titleObj.pos.y = currentY - boxHeight / 2 + 14;
+          if (textObj && textObj.pos) textObj.pos.y = currentY - boxHeight / 2 + 40;
+        },
+        k.easings.easeOutQuad
+      ).then(() => {
+        k.wait(5.5, () => {
+          const exitEase = k.easings?.easeInQuad ?? ((val: number) => val);
+          if (typeof k.tween === "function") {
+            k.tween(
+              panel.pos?.y ?? startY,
+              startY,
+              transitionDuration,
+              (currentY: number) => {
+                if (panel && panel.pos) panel.pos.y = currentY;
+                if (titleObj && titleObj.pos) titleObj.pos.y = currentY - boxHeight / 2 + 14;
+                if (textObj && textObj.pos) textObj.pos.y = currentY - boxHeight / 2 + 40;
+              },
+              exitEase
+            ).then(() => {
+              this.destroyCurrentVisuals();
+              this.isShowing = false;
+              this.cooldownTimer = 2.0;
+            });
+          } else {
+            this.destroyCurrentVisuals();
+            this.isShowing = false;
+            this.cooldownTimer = 2.0;
+          }
+        });
+      });
+      return;
+    }
+
+    const explicitTicker = isRenderEngine(k) ? k.getTicker() : undefined;
+
     // Animação de entrada
-    k.tween(
+    const entranceTweenHandle = createTween(
       startY,
       targetY + boxHeight / 2,
       transitionDuration,
-      (currentY) => {
+      (currentY: number) => {
         if (panel && panel.pos) panel.pos.y = currentY;
         if (titleObj && titleObj.pos) titleObj.pos.y = currentY - boxHeight / 2 + 14;
         if (textObj && textObj.pos) textObj.pos.y = currentY - boxHeight / 2 + 40;
       },
-      k.easings.easeOutQuad
-    ).then(() => {
+      Easings.easeOutQuad,
+      explicitTicker
+    );
+    entranceTweenHandle.promise.then(() => {
       // Tempo de permanência de 5.5s para leitura tranquila
       k.wait(5.5, () => {
         // Animação de saída
-        k.tween(
+        const exitTweenHandle = createTween(
           panel.pos?.y ?? startY,
           startY,
           transitionDuration,
-          (currentY) => {
+          (currentY: number) => {
             if (panel && panel.pos) panel.pos.y = currentY;
             if (titleObj && titleObj.pos) titleObj.pos.y = currentY - boxHeight / 2 + 14;
             if (textObj && textObj.pos) textObj.pos.y = currentY - boxHeight / 2 + 40;
           },
-          k.easings.easeInQuad
-        ).then(() => {
+          Easings.easeInQuad,
+          explicitTicker
+        );
+        exitTweenHandle.promise.then(() => {
           this.destroyCurrentVisuals();
           this.isShowing = false;
           this.cooldownTimer = 2.0; // Intervalo de respiro antes da próxima caixa

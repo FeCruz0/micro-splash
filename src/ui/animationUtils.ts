@@ -4,6 +4,9 @@
  * Desacoplado do Kaboom.js, com tipagem estrita e zero any.
  */
 
+import { createTween, Easings } from "../engine/utils/Tween";
+import { isRenderEngine } from "../engine/adapters/LegacyBridge";
+
 export const UI_TRANSITIONS = {
   MODAL_ENTER_DURATION: 0.25,
   MODAL_EXIT_DURATION: 0.18,
@@ -91,6 +94,33 @@ export function animateModalEntrance(
     cardObj.opacity = 0;
   }
 
+  if (isRenderEngine(engineContext)) {
+    const entranceTweenHandle = createTween(
+      startScale,
+      1.0,
+      duration,
+      (currentScale: number) => {
+        try {
+          cardObj.scale = createVector2(currentScale, currentScale);
+          if ("opacity" in cardObj) {
+            const progress = (currentScale - startScale) / Math.max(0.001, 1.0 - startScale);
+            cardObj.opacity = Math.min(1, Math.max(0, progress));
+          }
+        } catch {}
+      },
+      Easings.easeOutBack,
+      engineContext.getTicker()
+    );
+    entranceTweenHandle.promise.then(() => {
+      try {
+        cardObj.scale = createVector2(1, 1);
+        if ("opacity" in cardObj) cardObj.opacity = 1;
+      } catch {}
+      options.onComplete?.();
+    });
+    return;
+  }
+
   if (typeof engineContext.tween === "function" && engineContext.easings?.easeOutBack) {
     engineContext
       .tween(
@@ -142,6 +172,29 @@ export function animateModalExit(
   const createVector2 = (x: number, y: number): { x: number; y: number } => {
     return typeof engineContext.vec2 === "function" ? engineContext.vec2(x, y) : { x, y };
   };
+
+  if (isRenderEngine(engineContext)) {
+    const exitTweenHandle = createTween(
+      1.0,
+      endScale,
+      duration,
+      (currentScale: number) => {
+        try {
+          cardObj.scale = createVector2(currentScale, currentScale);
+          if ("opacity" in cardObj) {
+            const progress = (currentScale - endScale) / Math.max(0.001, 1.0 - endScale);
+            cardObj.opacity = Math.min(1, Math.max(0, progress));
+          }
+        } catch {}
+      },
+      Easings.easeInQuad,
+      engineContext.getTicker()
+    );
+    exitTweenHandle.promise.then(() => {
+      options.onComplete?.();
+    });
+    return;
+  }
 
   if (typeof engineContext.tween === "function" && engineContext.easings?.easeInQuad) {
     engineContext
@@ -364,6 +417,25 @@ export function createResolutionTransitionOverlay(
   ]);
 
   const overlayUi = overlay as unknown as AnimationUiObject;
+
+  if (isRenderEngine(engineContext)) {
+    const fadeTweenHandle = createTween(
+      0,
+      1,
+      duration,
+      (currentOpacity: number) => {
+        try {
+          overlayUi.opacity = currentOpacity;
+        } catch {}
+      },
+      Easings.easeOutQuad,
+      engineContext.getTicker()
+    );
+    fadeTweenHandle.promise.then(() => {
+      onComplete();
+    });
+    return;
+  }
 
   if (typeof engineContext.tween === "function" && engineContext.easings?.easeOutQuad) {
     engineContext

@@ -48,6 +48,7 @@ import { setupSereneInsightsSystem } from "../systems/sereneMigrationInsights";
 import { createCompanionWhale } from "../entities/companionWhale";
 import { shouldSpawnCompanionWhale } from "../systems/companionTutorialSettings";
 import { SystemRunner } from "../systems/systemRunner";
+import { createTween, Easings } from "../engine/utils/Tween";
 import { initSpatialGrid } from "../systems/spatialHashGrid";
 import { FrameBudgetMonitor } from "../systems/frameBudgetMonitor";
 import { FrameRateMonitor } from "../utils/frameRateMonitor";
@@ -230,17 +231,19 @@ export function createGameScene(
         k.z(100),
       ]) as GameSceneUiObject;
 
-      k.tween(
+      const fadeTweenHandle = createTween(
         1,
         0,
         0.8,
-        (val) => {
-          fadeOverlay.opacity = val;
+        (currentOpacity: number) => {
+          fadeOverlay.opacity = currentOpacity;
         },
-        k.easings.easeOutQuad
-      ).then(() => {
+        Easings.easeOutQuad
+      );
+      fadeTweenHandle.promise.then(() => {
         k.destroy(fadeOverlay);
       });
+      registerSceneLeaveHook(() => fadeTweenHandle.cancel());
 
       // Limites do mar
       const oceanFloor = k.add([

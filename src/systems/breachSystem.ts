@@ -6,6 +6,7 @@ import { getRandomFloat, getRandomChoice } from "../utils/random";
 import { getParticlePool } from "./particlePool";
 import type { PlayerController } from "../entities/player";
 import type { GameState } from "./state";
+import { createTween, Easings } from "../engine/utils/Tween";
 
 export interface BreachVector2D {
   x: number;
@@ -71,7 +72,7 @@ export interface BreachEngineContext<
   isMousePressed: () => boolean;
   isTouchStarted?: () => boolean;
   wait: (secs: number, cb: () => void) => unknown;
-  tween: (
+  tween?: (
     from: number,
     to: number,
     duration: number,
@@ -269,9 +270,16 @@ export function setupBreachSystem<
     if (promptBanner) {
       promptBanner.text = "SALTO MAJESTOSO EXECUTADO! ✨ +500 PTS";
       promptBanner.color = k.rgb(100, 255, 200);
-      k.tween(1, 0, 1.2, (val) => {
-        if (promptBanner) promptBanner.opacity = val;
-      }).then(() => {
+      const bannerTweenHandle = createTween(
+        1,
+        0,
+        1.2,
+        (currentOpacity: number) => {
+          if (promptBanner) promptBanner.opacity = currentOpacity;
+        },
+        Easings.easeOutQuad
+      );
+      bannerTweenHandle.promise.then(() => {
         if (promptBanner) {
           k.destroy(promptBanner as unknown as TDestroyable);
           promptBanner = null;
