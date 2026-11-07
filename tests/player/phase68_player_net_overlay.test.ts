@@ -403,9 +403,8 @@ describe("Fase 68: Overlay 16-Bits de Rede de Pesca (Ghost Net de Alto Contraste
 
       // Pico do struggle jitter: time = Math.PI / 64 -> jitter = 1.5 graus
       mockTime = Math.PI / 64;
-      if (registeredUpdate) {
-        (registeredUpdate as () => void)();
-      }
+      const updateFn = (registeredUpdate ?? player.update) as (() => void) | undefined;
+      updateFn?.();
       expect(player.gameObj.angle).toBeCloseTo(1.5, 1);
     });
   });

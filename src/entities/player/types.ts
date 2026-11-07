@@ -112,4 +112,8 @@ export interface PlayerController<TGameObj = PlayerGameObject, TVector2 = Strict
 
   // Fase 68: Overlay 16-Bits de Rede de Pesca (Zero-Overhead)
   getNetOverlaySprite?: () => unknown;
+
+  // Fase PixiJS v8 / Etapa 2.1
+  getSpriteNode?: () => unknown;
+  update?: () => void;
 }

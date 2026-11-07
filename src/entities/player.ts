@@ -1,3 +1,9 @@
+import { Sprite, Texture } from "pixi.js";
+import { PixiSpriteNode } from "../engine/adapters/PixiNodes";
+import { getActiveRenderEngine } from "../engine/adapters/RenderEngineAdapter";
+import type { IRenderEngine, ISpriteNode } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { getParticlePool } from "../systems/particlePool";
+import { safeShake } from "../utils/camera";
 import { GAME_CONFIG, TAGS, PLAYER_ANIMATION_CONFIG } from "../config";
 import { getRandomFloat } from "../utils/random";
 import { audioSystem } from "../systems/audioSystem";
@@ -55,11 +61,11 @@ export interface PlayerEngineContext {
   scale(x: number, y?: number): unknown;
   anchor(anc: "center" | "bot" | "topleft" | "botleft" | unknown): unknown;
   rotate(angle: number): unknown;
-  sprite(name: string, opt?: { anim?: string }): unknown;
-  area(opt?: unknown): unknown;
-  body(): unknown;
+  sprite?(name: string, opt?: { anim?: string }): unknown;
+  area?(opt?: unknown): unknown;
+  body?(): unknown;
   // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-  Rect: Function | { new (...args: never[]): unknown };
+  Rect?: Function | { new (...args: never[]): unknown };
   add(comps: unknown[]): unknown;
   destroy(obj?: unknown): void;
   dt(): number;
@@ -90,6 +96,7 @@ export interface PlayerEngineContext {
 }
 
 let activePlayerObject: PlayerGameObject | null = null;
+let activePlayerController: PlayerController | null = null;
 
 export function setActivePlayerObject(playerObject: PlayerGameObject | null): void {
   activePlayerObject = playerObject;
@@ -101,24 +108,107 @@ export function getActivePlayerObject(): PlayerGameObject | null {
     : null;
 }
 
+export function setActivePlayerController(controller: PlayerController | null): void {
+  activePlayerController = controller;
+}
+
+export function getActivePlayerController(): PlayerController | null {
+  return activePlayerController;
+}
+
 export function createPlayer(
   k: PlayerEngineContext,
   initialX: number = 120,
   isSereneMode: boolean = false,
   touchState?: TouchControlsState
 ): PlayerController {
-  const RectShape = k.Rect as new (pos: unknown, w: number, h: number) => unknown;
-  const baleia = k.add([
-    k.sprite("baleia", { anim: "idle_swim" }),
-    k.pos(initialX, 200),
-    k.area({ shape: new RectShape(k.vec2(-54, -19), 108, 42) }),
-    k.body(),
-    k.rotate(0),
-    k.color(255, 255, 255),
-    k.anchor("center"),
-    TAGS.PLAYER,
-    ...(typeof k.scale === "function" ? [k.scale(1, 1)] : []),
-  ]) as PlayerGameObject;
+  const updateCallbacks: Array<() => void> = [];
+  const destroyCallbacks: Array<() => void> = [];
+
+  const playerVectorPosition: StrictPlayerVector2D =
+    typeof k.vec2 === "function"
+      ? k.vec2(initialX, 200)
+      : ({
+          x: initialX,
+          y: 200,
+          scale(scaleX: number | unknown, scaleY?: number) {
+            const factorX = typeof scaleX === "number" ? scaleX : 1;
+            const factorY = typeof scaleY === "number" ? scaleY : factorX;
+            return { ...this, x: this.x * factorX, y: this.y * factorY };
+          },
+          add(otherVector: PlayerVector2D) {
+            return { ...this, x: this.x + otherVector.x, y: this.y + otherVector.y };
+          },
+          sub(otherVector: PlayerVector2D) {
+            return { ...this, x: this.x - otherVector.x, y: this.y - otherVector.y };
+          },
+          len() {
+            return Math.sqrt(this.x * this.x + this.y * this.y);
+          },
+          unit() {
+            const length = this.len();
+            return length > 0
+              ? { ...this, x: this.x / length, y: this.y / length }
+              : { ...this, x: 0, y: 0 };
+          },
+          dist(otherVector: PlayerVector2D) {
+            const deltaX = this.x - otherVector.x;
+            const deltaY = this.y - otherVector.y;
+            return Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+          },
+        } as StrictPlayerVector2D);
+
+  const baleia: PlayerGameObject = {
+    pos: playerVectorPosition,
+    angle: 0,
+    scale: { x: 1, y: 1 },
+    flipX: false,
+    color: typeof k.rgb === "function" ? k.rgb(255, 255, 255) : { r: 255, g: 255, b: 255 },
+    opacity: 1,
+    z: 20,
+    move: (deltaX: number, deltaY: number) => {
+      baleia.pos.x += deltaX;
+      baleia.pos.y += deltaY;
+    },
+    play: (animationName: string) => {
+      animState = animationName as WhaleAnimationState;
+    },
+    onUpdate: (callback: () => void) => {
+      updateCallbacks.push(callback);
+    },
+    onDestroy: (callback: () => void) => {
+      destroyCallbacks.push(callback);
+    },
+    exists: () => !baleia._destroyed,
+    is: (tag: string) => tag === TAGS.PLAYER,
+    _triggerUpdate: () => {
+      for (let callbackIndex = 0; callbackIndex < updateCallbacks.length; callbackIndex++) {
+        updateCallbacks[callbackIndex]();
+      }
+    },
+    _destroyed: false,
+  };
+
+  const activeRenderEngine = getActiveRenderEngine();
+  const playerSpriteNode: ISpriteNode =
+    activeRenderEngine !== null
+      ? activeRenderEngine.createSprite("baleia", "player_whale_sprite")
+      : new PixiSpriteNode(new Sprite(Texture.EMPTY), "baleia", "player_whale_sprite");
+
+  playerSpriteNode.setAnchor(0.5, 0.5);
+  playerSpriteNode.setPosition(initialX, 200);
+  playerSpriteNode.setRotation(0);
+  playerSpriteNode.setZIndex(20);
+
+  if (activeRenderEngine !== null && activeRenderEngine.isInitialized) {
+    activeRenderEngine.getWorldContainer().addChild(playerSpriteNode);
+  }
+
+  baleia.spriteNode = playerSpriteNode;
+  baleia._pixiNode = playerSpriteNode;
+  baleia.node = playerSpriteNode;
+  baleia.getNativeNode = () => playerSpriteNode.getNativeNode();
+
   activePlayerObject = baleia;
 
   const oxygenMgr = new PlayerOxygenManager(k);
@@ -147,11 +237,22 @@ export function createPlayer(
 
   if (typeof baleia.onDestroy === "function") {
     baleia.onDestroy(() => {
+      baleia._destroyed = true;
+      playerSpriteNode.destroy();
       pectoralFinsSystem.destroy();
       netOverlaySystem.destroy();
       if (typeof k.destroy === "function") {
         k.destroy(causticsSystem.whaleCaustics);
         k.destroy(causticsSystem.whaleVentralFlash);
+      }
+      if (activePlayerObject === baleia) {
+        activePlayerObject = null;
+      }
+      if (activePlayerController === controller) {
+        activePlayerController = null;
+      }
+      for (let index = 0; index < destroyCallbacks.length; index++) {
+        destroyCallbacks[index]();
       }
     });
   }
@@ -194,19 +295,24 @@ export function createPlayer(
     if (speedBoostTimer > 0) {
       speedBoostTimer = Math.max(0, speedBoostTimer - dt);
       if (getRandomFloat(0, 1) < 0.35) {
-        const p = k.add([
-          k.circle(k.rand(2, 4)),
-          k.pos(baleia.pos.add(k.vec2(controlsMgr.isFacingRight() ? -55 : 55, k.rand(-10, 10)))),
-          k.color(255, 220, 80),
-          k.opacity(0.8),
-          k.z(19),
-        ]) as PlayerGameObject;
-        p.onUpdate(() => {
-          if (typeof p.opacity === "number") {
-            p.opacity -= k.dt() * 2.5;
-            if (p.opacity <= 0) k.destroy(p);
-          }
-        });
+        const particlePool = getParticlePool();
+        const horizontalOffset = controlsMgr.isFacingRight() ? -55 : 55;
+        const verticalOffset = getRandomFloat(-10, 10);
+        const particleRadius = getRandomFloat(2, 4);
+        if (particlePool !== null) {
+          particlePool.spawnCircle({
+            pos: {
+              x: baleia.pos.x + horizontalOffset,
+              y: baleia.pos.y + verticalOffset,
+            },
+            radius: particleRadius,
+            color: { r: 255, g: 220, b: 80 },
+            opacity: 0.8,
+            z: 19,
+            fadeRate: 2.5,
+            maxLife: 0.5,
+          });
+        }
       }
     }
 
@@ -232,9 +338,8 @@ export function createPlayer(
         (typeof k.isKeyPressed === "function" ? k.isKeyPressed("space") : false) ||
         (touchState && touchState.strokePressed);
       if (isStrokePressedNow) {
-        if (typeof k.shake === "function") {
-          k.shake(2);
-        }
+        const currentRenderEngine = getActiveRenderEngine();
+        safeShake(currentRenderEngine ?? (k as unknown as IRenderEngine), 2);
         trapMgr.tryEscape();
       }
       controlsMgr.setAngle(k.lerp(controlsMgr.getAngle(), 0, 0.05));
@@ -562,10 +667,31 @@ export function createPlayer(
       }
     }
 
-    // 10. Cor consolidada via Paleta Centralizada de Fôlego (Fase 51.2)
-    if (currentRenderPipelineSnapshot) {
-      const [bodyRed, bodyGreen, bodyBlue] = currentRenderPipelineSnapshot.palette.bodyColor;
-      baleia.color = k.rgb(bodyRed, bodyGreen, bodyBlue);
+    // 10. Cor consolidada e aplicação direta do snapshot no PixiSpriteNode (Etapa 2.1)
+    if (currentRenderPipelineSnapshot !== null) {
+      playerSpriteNode.setPosition(baleia.pos.x, baleia.pos.y);
+
+      const rigAngleInDegrees =
+        currentRenderPipelineSnapshot.puppetRig.cranialThorax.bodyAngleInDegrees;
+      const angleInRadians = (rigAngleInDegrees * Math.PI) / 180;
+      playerSpriteNode.setRotation(angleInRadians);
+
+      const horizontalDirectionMultiplier = controlsMgr.isFacingRight() ? 1 : -1;
+      const playerScaleX = (baleia.scale?.x ?? 1) * horizontalDirectionMultiplier;
+      const playerScaleY = baleia.scale?.y ?? 1;
+      playerSpriteNode.setScale(playerScaleX, playerScaleY);
+
+      const playerOpacity = baleia.opacity ?? 1;
+      playerSpriteNode.setOpacity(playerOpacity);
+      playerSpriteNode.setVisible(playerOpacity > 0);
+
+      const [bodyColorRed, bodyColorGreen, bodyColorBlue] =
+        currentRenderPipelineSnapshot.palette.bodyColor;
+      playerSpriteNode.setTint([bodyColorRed, bodyColorGreen, bodyColorBlue]);
+      baleia.color =
+        typeof k.rgb === "function"
+          ? k.rgb(bodyColorRed, bodyColorGreen, bodyColorBlue)
+          : { r: bodyColorRed, g: bodyColorGreen, b: bodyColorBlue };
     }
 
     // 10.5. Atualização do Overlay 16-bits de Rede de Pesca (Fase 68 / Etapa 2)
@@ -589,15 +715,76 @@ export function createPlayer(
       slices: currentSliceTransforms,
     });
 
-    // 12. Câmera fluida
-    k.camPos(
-      k.lerp(k.camPos().x, baleia.pos.x + controlsMgr.getTargetCamOffset(), 0.05),
-      k.camPos().y
-    );
+    // 12. Câmera fluida sincronizada com mundo PixiJS e viewport
+    const targetCameraPositionX =
+      typeof k.lerp === "function" && typeof k.camPos === "function"
+        ? k.lerp(k.camPos().x, baleia.pos.x + controlsMgr.getTargetCamOffset(), 0.05)
+        : baleia.pos.x + controlsMgr.getTargetCamOffset();
+    const targetCameraPositionY = typeof k.camPos === "function" ? k.camPos().y : 0;
+
+    const currentRenderEngine = getActiveRenderEngine();
+    if (currentRenderEngine !== null && currentRenderEngine.isInitialized) {
+      currentRenderEngine.setCameraPosition(targetCameraPositionX, targetCameraPositionY);
+    }
+    if (typeof k.camPos === "function") {
+      k.camPos(targetCameraPositionX, targetCameraPositionY);
+    }
   });
 
-  return {
+  // Resolução inicial determinística da pipeline de renderização
+  currentRenderPipelineSnapshot = executeWhaleRenderPipeline(
+    {
+      bodyAngleInDegrees: baleia.angle,
+      spineCurvatureInDegrees: 0,
+      pitchFlexionInDegrees: 0,
+      pitchAngularVelocity: 0,
+      strokeProgress: 0,
+      isMuscularStroke: false,
+      horizontalSpeed: 0,
+      verticalSpeed: 0,
+      idleBlendFactor: 1,
+      currentRoll: 0,
+      timeInSeconds: typeof k.time === "function" ? k.time() : 0,
+      isFacingRight: controlsMgr.isFacingRight(),
+      oxygenRatio: 1,
+      isTrapped: false,
+      isFainting: false,
+      isHighContrast: accessibilitySystem.isHighContrast(),
+      isReducedMotion: accessibilitySystem.isReducedMotion(),
+    },
+    reusableSliceBuffer
+  );
+  currentPuppetRigTransforms = currentRenderPipelineSnapshot.puppetRig;
+  currentSliceTransforms = currentRenderPipelineSnapshot.slices;
+  currentPectoralFinTransforms = currentRenderPipelineSnapshot.pectoralFins;
+  pectoralFinsSystem.update(currentPectoralFinTransforms, controlsMgr.isFacingRight());
+
+  // Aplica estado inicial no PixiSpriteNode
+  playerSpriteNode.setPosition(baleia.pos.x, baleia.pos.y);
+  const initialRigAngleInDegrees =
+    currentRenderPipelineSnapshot.puppetRig.cranialThorax.bodyAngleInDegrees;
+  const initialAngleInRadians = (initialRigAngleInDegrees * Math.PI) / 180;
+  playerSpriteNode.setRotation(initialAngleInRadians);
+  playerSpriteNode.setScale(1, 1);
+  playerSpriteNode.setOpacity(1);
+  const [initialBodyRed, initialBodyGreen, initialBodyBlue] =
+    currentRenderPipelineSnapshot.palette.bodyColor;
+  playerSpriteNode.setTint([initialBodyRed, initialBodyGreen, initialBodyBlue]);
+
+  if (
+    typeof (k as unknown as { onUpdate?: (callback: () => void) => void }).onUpdate === "function"
+  ) {
+    (k as unknown as { onUpdate: (callback: () => void) => void }).onUpdate(() => {
+      baleia._triggerUpdate?.();
+    });
+  }
+
+  const controller: PlayerController = {
     gameObj: baleia,
+    getSpriteNode: () => playerSpriteNode,
+    update: () => {
+      baleia._triggerUpdate?.();
+    },
     getSpeed: () => physicsMgr.getSpeed(),
     setSpeed: (newSpeed: StrictPlayerVector2D | PlayerVector2D) => {
       physicsMgr.setSpeed(newSpeed);
@@ -750,4 +937,6 @@ export function createPlayer(
     // Fase 68: Overlay 16-Bits de Rede de Pesca (Zero-Overhead)
     getNetOverlaySprite: () => netOverlaySystem.netOverlaySprite,
   };
+  activePlayerController = controller;
+  return controller;
 }

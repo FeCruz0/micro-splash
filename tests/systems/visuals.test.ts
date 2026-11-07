@@ -253,7 +253,7 @@ describe("Fase 13: Polimento Visual, Atmosfera & Identidade", () => {
       expect(typeof player.getRollAngle).toBe("function");
 
       // Simula subida acentuada (pitch up: ângulo de navegação negativo em Kaboom)
-      const updateFn = registeredUpdate as unknown as (() => void) | null;
+      const updateFn = (registeredUpdate ?? player.update) as unknown as (() => void) | null;
       if (updateFn) {
         updateFn();
       }
@@ -340,22 +340,25 @@ describe("Fase 13: Polimento Visual, Atmosfera & Identidade", () => {
       };
 
       const player = createPlayer(mockKaboom, 120, false);
-      const updateFn = registeredUpdate as unknown as (() => void) | null;
+      const updateFn = (registeredUpdate ?? player.update) as unknown as (() => void) | null;
 
       // 1. Próximo à superfície (20px de profundidade): cáusticos ativos e visíveis
       currentWhaleY = GAME_CONFIG.SEA_LEVEL + 20;
+      player.gameObj.pos.y = currentWhaleY;
       updateFn?.();
       const shallowCaustic = player.getCausticOpacity!();
       expect(shallowCaustic).toBeGreaterThan(0.08);
 
       // 2. Em águas profundas (> 100px abaixo do nível do mar): atenuação total para 0
       currentWhaleY = GAME_CONFIG.SEA_LEVEL + 160;
+      player.gameObj.pos.y = currentWhaleY;
       updateFn?.();
       const deepCaustic = player.getCausticOpacity!();
       expect(deepCaustic).toBe(0);
 
       // 3. No ar (durante um salto / breach acima de SEA_LEVEL): sem cáusticos aquáticos
       currentWhaleY = GAME_CONFIG.SEA_LEVEL - 30;
+      player.gameObj.pos.y = currentWhaleY;
       updateFn?.();
       const airCaustic = player.getCausticOpacity!();
       expect(airCaustic).toBe(0);
@@ -443,24 +446,26 @@ describe("Fase 13: Polimento Visual, Atmosfera & Identidade", () => {
         },
       };
 
-      createPlayer(mockKaboom, 120, false);
-      const updateFn = registeredUpdate as unknown as (() => void) | null;
+      const player = createPlayer(mockKaboom, 120, false);
+      const updateFn = (registeredUpdate ?? player.update) as unknown as (() => void) | null;
 
       // 1. Simula vários frames em repouso submerso
       for (let i = 0; i < 20; i++) {
         simulatedTime += 0.016;
+        player.gameObj.pos.y = currentWhaleY;
         updateFn?.();
       }
 
       // Em idle submerso, a escala deve apresentar modulação de respiração e o ângulo deve oscilar com o swell
-      expect(whaleObjRef.angle).not.toBe(0);
-      expect(whaleObjRef.scale.y).toBeCloseTo(1.0, 1);
+      expect(player.gameObj.angle).not.toBe(0);
+      expect(player.gameObj.scale?.y).toBeCloseTo(1.0, 1);
 
       // 2. No ar, o balanço de ondas do mar (swell) é inibido
       currentWhaleY = GAME_CONFIG.SEA_LEVEL - 50;
+      player.gameObj.pos.y = currentWhaleY;
       updateFn?.();
       // O ângulo no ar não deve receber o balanço das ondas do mar
-      expect(whaleObjRef.angle).toBeDefined();
+      expect(player.gameObj.angle).toBeDefined();
     }, 20000);
   });
 });

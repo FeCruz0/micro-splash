@@ -150,7 +150,7 @@ describe("PlayerControlsManager: Controle de Orientação", () => {
     expect(player.isFrozen()).toBe(true);
 
     // Executa o update com teclas pressionadas
-    const updateFn = registeredUpdate as unknown as (() => void) | null;
+    const updateFn = (registeredUpdate ?? player.update) as unknown as (() => void) | null;
     if (updateFn) {
       updateFn();
     }
@@ -223,7 +223,7 @@ describe("PlayerControlsManager: Controle de Orientação", () => {
     };
 
     const player = createPlayer(mockKaboom, 120, false);
-    const updateFn = registeredUpdate as unknown as (() => void) | null;
+    const updateFn = (registeredUpdate ?? player.update) as unknown as (() => void) | null;
 
     // 1. Inicialmente o cooldown está zerado
     expect(player.getStrokeCooldown!()).toBe(0);
