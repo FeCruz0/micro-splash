@@ -1,5 +1,7 @@
 import { GAME_CONFIG } from "../config";
 import { getRandomFloat } from "../utils/random";
+import { getParticlePool } from "../systems/particlePool";
+import { getEntityFamilyTicker } from "../systems/entityFamilyTicker";
 
 export interface BoatVector2D {
   x: number;
@@ -118,8 +120,7 @@ export function createRescueBoat<TColor = unknown>(
   let time = 0;
   let wakeTimer = 0;
 
-  boat.onUpdate(() => {
-    const dt = k.dt();
+  const updateRescueBoat = (dt: number) => {
     time += dt;
     wakeTimer += dt;
 
@@ -136,23 +137,50 @@ export function createRescueBoat<TColor = unknown>(
     if (isMoving) {
       boat.pos.x += dt * 125;
 
-      // Geração de esteira de espuma d'água (scia) na popa (Fase 34.3)
+      // Geração de esteira de espuma d'água (scia) na popa via ParticlePool (Fase 34.3)
       if (wakeTimer >= 0.07) {
         wakeTimer = 0;
-        k.add([
-          k.circle(k.rand(2, 4.5)),
-          k.pos(boat.pos.x - 4, boat.pos.y - 6),
-          k.color(240, 248, 255),
-          ...(typeof k.opacity === "function" ? [k.opacity(0.85)] : []),
-          ...(typeof k.lifespan === "function" ? [k.lifespan(0.4, { fade: 0.2 })] : []),
-          k.z(48),
-        ]);
+        const pool = getParticlePool();
+        if (pool) {
+          pool.spawnCircle({
+            pos: { x: boat.pos.x - 4, y: boat.pos.y - 6 },
+            radius: getRandomFloat(2, 4.5),
+            color: { r: 240, g: 248, b: 255 },
+            opacity: 0.85,
+            z: 48,
+            fadeRate: 2.0,
+            maxLife: 0.4,
+          });
+        } else {
+          k.add([
+            k.circle(k.rand(2, 4.5)),
+            k.pos(boat.pos.x - 4, boat.pos.y - 6),
+            k.color(240, 248, 255),
+            ...(typeof k.opacity === "function" ? [k.opacity(0.85)] : []),
+            ...(typeof k.lifespan === "function" ? [k.lifespan(0.4, { fade: 0.2 })] : []),
+            k.z(48),
+          ]);
+        }
       }
     } else {
       // Flutuação suave ancorada acima da baleia
       boat.pos.y = GAME_CONFIG.SEA_LEVEL + 8 + Math.sin(time * 2.8) * 2.2;
     }
-  });
+  };
+
+  const familyTicker = getEntityFamilyTicker();
+  if (familyTicker) {
+    familyTicker.registerEntity({
+      id: `rescue_boat_${Math.round(targetPos.x)}`,
+      family: "boat",
+      getXPosition: () => boat.pos.x,
+      width: 100,
+      targetObject: boat,
+      update: updateRescueBoat,
+    });
+  } else {
+    boat.onUpdate(() => updateRescueBoat(k.dt()));
+  }
 
   return boat;
 }
@@ -243,13 +271,29 @@ export function createFishingTrawler<TColor = unknown>(
   trawler.add([k.circle(2), k.pos(52, 18), k.color(245, 190, 40)]);
 
   let oscillationTime = getRandomFloat(0, Math.PI * 2);
-  trawler.onUpdate(() => {
-    if (trawler.hidden) return;
-    const deltaTime = k.dt();
+
+  const updateFishingTrawler = (deltaTime: number) => {
     oscillationTime += deltaTime * 2.2;
     // Balanço marítimo suave na superfície
     trawler.pos.y = baseWaterY + Math.sin(oscillationTime) * 1.8;
-  });
+  };
+
+  const familyTicker = getEntityFamilyTicker();
+  if (familyTicker) {
+    familyTicker.registerEntity({
+      id: `trawler_${Math.round(positionX)}`,
+      family: "boat",
+      getXPosition: () => trawler.pos.x,
+      width: 65,
+      targetObject: trawler,
+      update: updateFishingTrawler,
+    });
+  } else {
+    trawler.onUpdate(() => {
+      if (trawler.hidden) return;
+      updateFishingTrawler(k.dt());
+    });
+  }
 
   return trawler;
 }

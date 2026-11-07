@@ -52,6 +52,7 @@ import { SystemRunner } from "../systems/systemRunner";
 import { initSpatialGrid } from "../systems/spatialHashGrid";
 import { FrameBudgetMonitor } from "../systems/frameBudgetMonitor";
 import { FrameRateMonitor } from "../utils/frameRateMonitor";
+import { initEntityFamilyTicker } from "../systems/entityFamilyTicker";
 
 export interface GameSceneUiObject {
   pos: { x: number; y: number };
@@ -353,8 +354,10 @@ export function createGameScene(
       const spatialCulling = initSpatialCullingManager(k, 600);
       const presentationMode = initPresentationMode(k, playerController);
       const spatialGrid = initSpatialGrid<unknown>({ cellSize: 200 });
+      const entityFamilyTicker = initEntityFamilyTicker(k, 700);
       k.onSceneLeave(() => {
         spatialGrid.clear();
+        entityFamilyTicker.clear();
       });
 
       // Trava escala da câmera permanentemente em 1.0 (Zero Dynamic Zoom)
@@ -563,6 +566,7 @@ export function createGameScene(
           if (isGameFinished || playerController.isFainting()) return;
           const playerXPosition = playerController.gameObj.pos.x;
           gameState.update(dt, playerXPosition);
+          entityFamilyTicker.update(dt, playerXPosition);
 
           if (options.mode === "serene") {
             sereneInsights?.update(dt);

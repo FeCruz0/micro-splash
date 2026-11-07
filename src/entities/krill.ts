@@ -2,6 +2,8 @@ import { GAME_CONFIG, TAGS } from "../config";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
 import { getRandomFloat, getRandomInteger } from "../utils/random";
 import { getActivePlayerObject } from "./player";
+import { getParticlePool } from "../systems/particlePool";
+import { getEntityFamilyTicker } from "../systems/entityFamilyTicker";
 
 export interface KrillVector2D {
   x: number;
@@ -173,41 +175,52 @@ export function createKrill<TDestroyable = unknown, TColor = unknown>(
       ]) as KrillGameObject;
     }
 
-    // Partículas de explosão de bioluminescência
-    for (let i = 0; i < 6; i++) {
-      const spark = k.add([
-        k.circle(k.rand(1.5, 2.5)),
-        k.pos(krillCluster.pos.x + k.rand(-14, 14), krillCluster.pos.y + k.rand(-14, 14)),
-        k.color(k.choose([k.rgb(255, 235, 120), k.rgb(100, 255, 220)])),
-        k.opacity(0.9),
-        k.z(13),
-      ]) as KrillGameObject;
-      const dir = k.vec2(k.rand(-35, 35), k.rand(-35, 35));
-      spark.onUpdate(() => {
-        spark.pos.x += dir.x * k.dt();
-        spark.pos.y += dir.y * k.dt();
-        spark.opacity -= k.dt() * 2.2;
-        if (spark.opacity <= 0) k.destroy(spark as unknown as TDestroyable);
-      });
+    // Partículas de explosão de bioluminescência via ParticlePool
+    const pool = getParticlePool();
+    if (pool) {
+      for (let i = 0; i < 6; i++) {
+        pool.spawnCircle({
+          pos: {
+            x: krillCluster.pos.x + getRandomFloat(-14, 14),
+            y: krillCluster.pos.y + getRandomFloat(-14, 14),
+          },
+          radius: getRandomFloat(1.5, 2.5),
+          color: { r: 255, g: 235, b: 120 },
+          opacity: 0.9,
+          z: 13,
+          vel: { x: getRandomFloat(-35, 35), y: getRandomFloat(-35, 35) },
+          fadeRate: 2.2,
+          maxLife: 0.5,
+        });
+      }
+    } else {
+      for (let i = 0; i < 6; i++) {
+        const spark = k.add([
+          k.circle(k.rand(1.5, 2.5)),
+          k.pos(krillCluster.pos.x + k.rand(-14, 14), krillCluster.pos.y + k.rand(-14, 14)),
+          k.color(k.choose([k.rgb(255, 235, 120), k.rgb(100, 255, 220)])),
+          k.opacity(0.9),
+          k.z(13),
+        ]) as KrillGameObject;
+        const dir = k.vec2(k.rand(-35, 35), k.rand(-35, 35));
+        spark.onUpdate(() => {
+          spark.pos.x += dir.x * k.dt();
+          spark.pos.y += dir.y * k.dt();
+          spark.opacity -= k.dt() * 2.2;
+          if (spark.opacity <= 0) k.destroy(spark as unknown as TDestroyable);
+        });
+      }
     }
   };
 
   let time = getRandomFloat(0, 10);
   const baseY = position.y;
 
-  krillCluster.onUpdate(() => {
-    // Se estiver fora da tela pelo culling espacial, pula todos os cálculos e oculta os boids
-    if (krillCluster.hidden) {
-      for (let i = 0; i < boids.length; i++) {
-        boids[i].obj.hidden = true;
-      }
-      return;
-    }
+  const updateKrillSwarm = (dt: number) => {
     for (let i = 0; i < boids.length; i++) {
       boids[i].obj.hidden = false;
     }
 
-    const dt = k.dt();
     time += dt;
 
     // Ondulação vertical coletiva do cardume
@@ -306,20 +319,21 @@ export function createKrill<TDestroyable = unknown, TColor = unknown>(
         }
         b.obj.opacity = 0.95;
 
-        // Micro-cintilação biológica
+        // Micro-cintilação biológica via ParticlePool
         if (getRandomFloat(0, 1) < 0.06) {
-          const glint = k.add([
-            k.circle(1.2),
-            k.pos(b.obj.pos),
-            k.color(255, 235, 130),
-            k.opacity(0.8),
-            k.z(12),
-          ]) as KrillGameObject;
-          glint.onUpdate(() => {
-            glint.opacity -= dt * 2.5;
-            glint.pos.y -= dt * 12;
-            if (glint.opacity <= 0) k.destroy(glint as unknown as TDestroyable);
-          });
+          const glintPool = getParticlePool();
+          if (glintPool) {
+            glintPool.spawnCircle({
+              pos: { x: b.obj.pos.x, y: b.obj.pos.y },
+              radius: 1.2,
+              color: { r: 255, g: 235, b: 130 },
+              opacity: 0.8,
+              z: 12,
+              vel: { x: 0, y: -12 },
+              fadeRate: 2.5,
+              maxLife: 0.4,
+            });
+          }
         }
       } else {
         b.obj.color = b.baseColor;
@@ -328,7 +342,30 @@ export function createKrill<TDestroyable = unknown, TColor = unknown>(
         b.obj.opacity = 0.72 + Math.sin(time * 4.5 + b.phase) * 0.22;
       }
     }
-  });
+  };
+
+  const familyTicker = getEntityFamilyTicker();
+  if (familyTicker) {
+    familyTicker.registerEntity({
+      id: `krill_${Math.round(position.x)}_${Math.round(position.y)}_${Math.round(Math.random() * 100000)}`,
+      family: "krill",
+      getXPosition: () => krillCluster.pos.x,
+      width: 30,
+      targetObject: krillCluster,
+      isDestroyed: () => (krillCluster.exists ? !krillCluster.exists() : false),
+      update: updateKrillSwarm,
+    });
+  } else {
+    krillCluster.onUpdate(() => {
+      if (krillCluster.hidden) {
+        for (let i = 0; i < boids.length; i++) {
+          boids[i].obj.hidden = true;
+        }
+        return;
+      }
+      updateKrillSwarm(k.dt());
+    });
+  }
 
   krillCluster.onDestroy(() => {
     if (haloCircle) {
@@ -349,25 +386,44 @@ export function createKrill<TDestroyable = unknown, TColor = unknown>(
       }
     }
 
-    // Micro-partículas bioluminescentes ao ser engolido
-    for (let i = 0; i < 6; i++) {
-      const p = k.add([
-        k.circle(1.8),
-        k.pos(
-          krillCluster.pos.x + getRandomFloat(-7, 7),
-          krillCluster.pos.y + getRandomFloat(-7, 7)
-        ),
-        k.color(255, 215, 120),
-        k.opacity(0.85),
-        k.z(12),
-      ]) as KrillGameObject;
-      const dir = k.vec2(getRandomFloat(-35, 35), getRandomFloat(-35, 35));
-      p.onUpdate(() => {
-        p.pos.x += dir.x * k.dt();
-        p.pos.y += dir.y * k.dt();
-        p.opacity -= k.dt() * 3.2;
-        if (p.opacity <= 0) k.destroy(p as unknown as TDestroyable);
-      });
+    // Micro-partículas bioluminescentes ao ser engolido via ParticlePool
+    const pool = getParticlePool();
+    if (pool) {
+      for (let i = 0; i < 6; i++) {
+        pool.spawnCircle({
+          pos: {
+            x: krillCluster.pos.x + getRandomFloat(-7, 7),
+            y: krillCluster.pos.y + getRandomFloat(-7, 7),
+          },
+          radius: 1.8,
+          color: { r: 255, g: 215, b: 120 },
+          opacity: 0.85,
+          z: 12,
+          vel: { x: getRandomFloat(-35, 35), y: getRandomFloat(-35, 35) },
+          fadeRate: 3.2,
+          maxLife: 0.4,
+        });
+      }
+    } else {
+      for (let i = 0; i < 6; i++) {
+        const p = k.add([
+          k.circle(1.8),
+          k.pos(
+            krillCluster.pos.x + getRandomFloat(-7, 7),
+            krillCluster.pos.y + getRandomFloat(-7, 7)
+          ),
+          k.color(255, 215, 120),
+          k.opacity(0.85),
+          k.z(12),
+        ]) as KrillGameObject;
+        const dir = k.vec2(getRandomFloat(-35, 35), getRandomFloat(-35, 35));
+        p.onUpdate(() => {
+          p.pos.x += dir.x * k.dt();
+          p.pos.y += dir.y * k.dt();
+          p.opacity -= k.dt() * 3.2;
+          if (p.opacity <= 0) k.destroy(p as unknown as TDestroyable);
+        });
+      }
     }
   });
 

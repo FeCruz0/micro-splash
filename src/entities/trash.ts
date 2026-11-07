@@ -1,6 +1,7 @@
 import { GAME_CONFIG, TAGS, ACCESSIBILITY_VISUAL_CONFIG } from "../config";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
 import { getRandomFloat, getRandomInteger } from "../utils/random";
+import { getEntityFamilyTicker } from "../systems/entityFamilyTicker";
 
 export interface TrashVector2D {
   x: number;
@@ -10,6 +11,8 @@ export interface TrashVector2D {
 export interface TrashGameObject {
   pos: TrashVector2D;
   opacity: number;
+  hidden?: boolean;
+  paused?: boolean;
   add: (components: unknown[]) => TrashGameObject;
   onUpdate: (cb: () => void) => void;
   reveal?: () => void;
@@ -210,18 +213,13 @@ export function createTrash<TColor = unknown, TVec = TrashVector2D>(
 
   // Flutuação suave e decaimento de revelação
   let time = getRandomFloat(0, 10);
-  trash.onUpdate(() => {
-    const rawTrash = trash as unknown as { hidden?: boolean; isVisible?: () => boolean };
-    const isCulled =
-      rawTrash.hidden === true ||
-      (typeof rawTrash.isVisible === "function" && !rawTrash.isVisible());
-    if (isCulled && revealTimer <= 0) return;
 
-    time += k.dt();
+  const updateTrashItem = (deltaTime: number) => {
+    time += deltaTime;
     trash.pos.y = baseY + Math.sin(time * 2.2) * 5;
 
     if (revealTimer > 0) {
-      revealTimer -= k.dt();
+      revealTimer -= deltaTime;
       const revealProgress = Math.min(1, revealTimer / 1.5);
       trash.opacity =
         typeof k.lerp === "function"
@@ -230,7 +228,28 @@ export function createTrash<TColor = unknown, TVec = TrashVector2D>(
     } else {
       trash.opacity = baseOpacity;
     }
-  });
+  };
+
+  const familyTicker = getEntityFamilyTicker();
+  if (familyTicker) {
+    familyTicker.registerEntity({
+      id: `trash_${Math.round(position.x)}_${Math.round(position.y)}_${Math.round(Math.random() * 100000)}`,
+      family: "trash",
+      getXPosition: () => trash.pos.x,
+      width: 25,
+      targetObject: trash,
+      update: updateTrashItem,
+    });
+  } else {
+    trash.onUpdate(() => {
+      const rawTrash = trash as unknown as { hidden?: boolean; isVisible?: () => boolean };
+      const isCulled =
+        rawTrash.hidden === true ||
+        (typeof rawTrash.isVisible === "function" && !rawTrash.isVisible());
+      if (isCulled && revealTimer <= 0) return;
+      updateTrashItem(k.dt());
+    });
+  }
 
   return trash;
 }

@@ -9,6 +9,8 @@ import { getSpatialCullingManager, type CullableTargetObject } from "./spatialCu
 import { getSpatialGrid } from "./spatialHashGrid";
 import { isRenderEngine } from "../engine/adapters/LegacyBridge";
 import type { IRenderEngine, ISpriteNode } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { getParticlePool } from "./particlePool";
+import { getEntityFamilyTicker } from "./entityFamilyTicker";
 
 function resolveCameraX(engineOrContext: unknown): number {
   if (
@@ -232,11 +234,11 @@ export function setupShipNoiseSystem<
     let noiseTimer = 0;
     let trashEjectTimer = getRandomFloat(3.0, 7.0);
 
-    ship.onUpdate(() => {
+    const familyTicker = getEntityFamilyTicker();
+    const updateCargoShip = (deltaTime: number) => {
       if (!isSystemActive) return;
 
       // Movimento de patrulha (ida e volta pelo setor)
-      const deltaTime = k.dt();
       ship.pos.x += shipData.speed * shipData.movementDirection * deltaTime;
       if (ship.pos.x >= shipData.maxX) {
         shipData.movementDirection = -1;
@@ -293,44 +295,59 @@ export function setupShipNoiseSystem<
               availableRing.sprite.setVisible(true);
             }
           } else {
-            const noiseRing = k.add([
-              k.circle(20),
-              k.pos(ship.pos.x, ship.pos.y + 20),
-              k.color(255, 80, 50),
-              k.opacity(0.6),
-              k.anchor("center"),
-              k.z(8),
-              "noise_ring",
-            ]) as ShipGameObject<TColor>;
+            const particlePool = getParticlePool();
+            if (particlePool) {
+              particlePool.spawnCircle({
+                pos: { x: ship.pos.x, y: ship.pos.y + 20 },
+                radius: 20,
+                color:
+                  typeof k.rgb === "function" ? k.rgb(255, 80, 50) : { r: 255, g: 80, b: 50 },
+                opacity: 0.6,
+                growthRate: 120,
+                fadeRate: 0.25,
+                maxLife: 2.5,
+                z: 8,
+              });
+            } else {
+              const noiseRing = k.add([
+                k.circle(20),
+                k.pos(ship.pos.x, ship.pos.y + 20),
+                k.color(255, 80, 50),
+                k.opacity(0.6),
+                k.anchor("center"),
+                k.z(8),
+                "noise_ring",
+              ]) as ShipGameObject<TColor>;
 
-            let ringRadius = 20;
+              let ringRadius = 20;
 
-            noiseRing.onUpdate(() => {
-              ringRadius += k.dt() * 120;
-              noiseRing.radius = ringRadius;
-              if (noiseRing.opacity !== undefined) {
-                noiseRing.opacity -= k.dt() * 0.25;
+              noiseRing.onUpdate(() => {
+                ringRadius += k.dt() * 120;
+                noiseRing.radius = ringRadius;
+                if (noiseRing.opacity !== undefined) {
+                  noiseRing.opacity -= k.dt() * 0.25;
 
-                const playerP = playerController.gameObj.pos;
-                const dist = Math.hypot(noiseRing.pos.x - playerP.x, noiseRing.pos.y - playerP.y);
-                if (dist <= ringRadius && noiseRing.opacity > 0.2) {
-                  safeShake(k, 1.5);
-                  const speed = playerController.getSpeed();
-                  const downwardForce = 400 * k.dt();
+                  const playerP = playerController.gameObj.pos;
+                  const dist = Math.hypot(noiseRing.pos.x - playerP.x, noiseRing.pos.y - playerP.y);
+                  if (dist <= ringRadius && noiseRing.opacity > 0.2) {
+                    safeShake(k, 1.5);
+                    const speed = playerController.getSpeed();
+                    const downwardForce = 400 * k.dt();
 
-                  playerController.setSpeed(
-                    k.vec2(
-                      speed.x + getRandomFloat(-10, 10),
-                      k.clamp(speed.y + downwardForce, -300, 300)
-                    ) as unknown as Parameters<PlayerController["setSpeed"]>[0]
-                  );
+                    playerController.setSpeed(
+                      k.vec2(
+                        speed.x + getRandomFloat(-10, 10),
+                        k.clamp(speed.y + downwardForce, -300, 300)
+                      ) as unknown as Parameters<PlayerController["setSpeed"]>[0]
+                    );
+                  }
+
+                  if (noiseRing.opacity <= 0) {
+                    k.destroy(noiseRing as unknown as TDestroyable);
+                  }
                 }
-
-                if (noiseRing.opacity <= 0) {
-                  k.destroy(noiseRing as unknown as TDestroyable);
-                }
-              }
-            });
+              });
+            }
           }
         }
       }
@@ -441,21 +458,56 @@ export function setupShipNoiseSystem<
         }
 
         const startX = ejectX;
-        trashItem.onUpdate(() => {
-          trashAgeInSeconds += k.dt();
-          trashItem.pos.y += sinkSpeed * k.dt();
+        let isTrashDestroyed = false;
+        const updateEjectedTrash = (trashDeltaTime: number) => {
+          if (isTrashDestroyed) return;
+          trashAgeInSeconds += trashDeltaTime;
+          trashItem.pos.y += sinkSpeed * trashDeltaTime;
           trashItem.pos.x = startX + Math.sin(trashAgeInSeconds * swaySpeed) * swayAmp;
 
           // Destrói se afundar até o leito ou ficar muito para trás
+          const screenHeight = typeof k.height === "function" ? k.height() : 720;
           if (
-            trashItem.pos.y > k.height() - 40 ||
+            trashItem.pos.y > screenHeight - 40 ||
             trashItem.pos.x < playerController.gameObj.pos.x - 1200
           ) {
+            isTrashDestroyed = true;
             k.destroy(trashItem as unknown as TDestroyable);
           }
-        });
+        };
+
+        if (familyTicker) {
+          familyTicker.registerEntity({
+            id: `ship_trash_${Date.now()}_${Math.random()}`,
+            family: "trash",
+            getXPosition: () => trashItem.pos.x,
+            width: 25,
+            targetObject: trashItem,
+            isDestroyed: () => isTrashDestroyed,
+            update: updateEjectedTrash,
+          });
+        } else {
+          trashItem.onUpdate(() => {
+            updateEjectedTrash(k.dt());
+          });
+        }
       }
-    });
+    };
+
+    if (familyTicker) {
+      familyTicker.registerEntity({
+        id: `cargo_ship_${shipData.initialXPosition}`,
+        family: "ship",
+        getXPosition: () => ship.pos.x,
+        width: 320,
+        targetObject: ship,
+        update: updateCargoShip,
+      });
+    } else {
+      ship.onUpdate(() => {
+        updateCargoShip(k.dt());
+      });
+    }
   });
 
   const activate = () => {

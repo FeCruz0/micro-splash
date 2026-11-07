@@ -5,6 +5,7 @@ import { getParticlePool } from "./particlePool";
 import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 import { getRandomFloat } from "../utils/random";
 import { getSpatialCullingManager, type CullableTargetObject } from "./spatialCullingSystem";
+import { getEntityFamilyTicker } from "./entityFamilyTicker";
 
 export interface DolphinVector2D {
   x: number;
@@ -186,10 +187,9 @@ export function setupDolphinDraftingSystem<
     const leapDuration = 1.35;
     let clickSoundTimer = 0;
 
-    k.onUpdate(() => {
+    const updateDolphinPod = (dt: number) => {
       if (!isSystemActive) return;
 
-      const dt = k.dt();
       const player = playerController.gameObj;
       const playerX = player ? player.pos.x : 0;
       const isPodVisible = Math.abs(podX - playerX) < 1400;
@@ -210,6 +210,9 @@ export function setupDolphinDraftingSystem<
         });
         return;
       }
+      dolphins.forEach((d) => {
+        if (d.obj.hidden) d.obj.hidden = false;
+      });
 
       // 1. Simulação do Loop Pré-Programado
       if (turnState === "cruise") {
@@ -396,7 +399,22 @@ export function setupDolphinDraftingSystem<
           playerController.setDrafting(false);
         }
       }
-    });
+    };
+
+    const familyTicker = getEntityFamilyTicker();
+    if (familyTicker) {
+      familyTicker.registerEntity({
+        id: `dolphin_pod_${route.name.replace(/\s+/g, "_")}_${route.initialX}`,
+        family: "dolphin",
+        getXPosition: () => podX,
+        width: (route.maxX - route.minX) / 2,
+        update: updateDolphinPod,
+      });
+    } else {
+      k.onUpdate(() => {
+        updateDolphinPod(k.dt());
+      });
+    }
   });
 
   const activate = () => {

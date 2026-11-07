@@ -4,6 +4,8 @@ import { audioSystem } from "./audioSystem";
 import { safeShake } from "../utils/camera";
 import { getRandomFloat } from "../utils/random";
 import { getSpatialCullingManager, type CullableTargetObject } from "./spatialCullingSystem";
+import { getParticlePool } from "./particlePool";
+import { getEntityFamilyTicker } from "./entityFamilyTicker";
 
 export interface OceanCurrentVector2D {
   x: number;
@@ -108,16 +110,19 @@ export function createCurrentVectorLines<
 
     // Direção da corrente: favorável move para a direita (+X), contrária move para a esquerda (-X)
     const flowSpeed = isFavorable ? 220 : -180;
-    vectorDash.onUpdate(() => {
-      if (currentBox.hidden) return;
-      const deltaTime = k.dt();
-      vectorDash.pos.x += flowSpeed * deltaTime;
-      if (isFavorable && vectorDash.pos.x > zoneWidth + 20) {
-        vectorDash.pos.x = -dashLength;
-      } else if (!isFavorable && vectorDash.pos.x < -dashLength - 20) {
-        vectorDash.pos.x = zoneWidth + 20;
-      }
-    });
+    const familyTicker = getEntityFamilyTicker();
+    if (!familyTicker) {
+      vectorDash.onUpdate(() => {
+        if (currentBox.hidden) return;
+        const deltaTime = k.dt();
+        vectorDash.pos.x += flowSpeed * deltaTime;
+        if (isFavorable && vectorDash.pos.x > zoneWidth + 20) {
+          vectorDash.pos.x = -dashLength;
+        } else if (!isFavorable && vectorDash.pos.x < -dashLength - 20) {
+          vectorDash.pos.x = zoneWidth + 20;
+        }
+      });
+    }
 
     vectorLines.push(vectorDash);
   }
@@ -193,20 +198,21 @@ export function setupOceanCurrentsSystem<
       width / 2
     );
 
-    currentBox.onUpdate(() => {
-      const camX = resolveCameraX(k);
-      const screenWidth = typeof k.width === "function" ? k.width() : 1280;
-      const minActiveX = camX - screenWidth - 600;
-      const maxActiveX = camX + screenWidth + 600;
-      const isVisible = zone.endX >= minActiveX && zone.startX <= maxActiveX;
-      currentBox.hidden = !isVisible;
-    });
+    const familyTicker = getEntityFamilyTicker();
 
     // 2. Linhas vetoriais oceanográficas de fluxo visível (Fase 35.4)
-    createCurrentVectorLines(k, currentBox, width, zone.height, isFavorable);
+    const vectorLines = createCurrentVectorLines(k, currentBox, width, zone.height, isFavorable);
 
     // 3. Filamentos e esteiras aquáticas dinâmicas
     const filamentCount = Math.max(6, Math.min(16, Math.round(width / 180)));
+    const streamFilaments: Array<{
+      streamLine: OceanCurrentGameObject;
+      filamentWidth: number;
+      streamSpeed: number;
+      offsetY: number;
+      sway: number;
+    }> = [];
+
     for (let i = 0; i < filamentCount; i++) {
       const filamentWidth = k.rand(40, 95);
       const filamentHeight = k.rand(2.0, 3.5);
@@ -222,34 +228,46 @@ export function setupOceanCurrentsSystem<
         k.pos(offsetX, offsetY),
         k.color(streamColor),
         k.opacity(k.rand(0.45, 0.75)),
-      ]);
+      ]) as OceanCurrentGameObject;
 
       const streamSpeed = isFavorable ? k.rand(200, 320) : k.rand(150, 230);
-      let sway = getRandomFloat(0, Math.PI * 2);
+      const sway = getRandomFloat(0, Math.PI * 2);
 
-      streamLine.onUpdate(() => {
-        if (currentBox.hidden) return;
-        const deltaTime = k.dt();
-        sway += deltaTime * 3;
-
-        if (isFavorable) {
-          streamLine.pos.x += deltaTime * streamSpeed;
-          if (streamLine.pos.x > width + 40) {
-            streamLine.pos.x = -filamentWidth;
-          }
-        } else {
-          streamLine.pos.x -= deltaTime * streamSpeed;
-          if (streamLine.pos.x < -filamentWidth - 20) {
-            streamLine.pos.x = width + 20;
-          }
-        }
-
-        // Leve ondulação vertical do filamento
-        streamLine.pos.y = offsetY + Math.sin(sway) * 2;
+      streamFilaments.push({
+        streamLine,
+        filamentWidth,
+        streamSpeed,
+        offsetY,
+        sway,
       });
+
+      if (!familyTicker) {
+        let filamentSway = sway;
+        streamLine.onUpdate(() => {
+          if (currentBox.hidden) return;
+          const deltaTime = k.dt();
+          filamentSway += deltaTime * 3;
+
+          if (isFavorable) {
+            streamLine.pos.x += deltaTime * streamSpeed;
+            if (streamLine.pos.x > width + 40) {
+              streamLine.pos.x = -filamentWidth;
+            }
+          } else {
+            streamLine.pos.x -= deltaTime * streamSpeed;
+            if (streamLine.pos.x < -filamentWidth - 20) {
+              streamLine.pos.x = width + 20;
+            }
+          }
+
+          // Leve ondulação vertical do filamento
+          streamLine.pos.y = offsetY + Math.sin(filamentSway) * 2;
+        });
+      }
     }
 
     // 4. Vórtices e redemoinhos sutis (para correntes contrárias)
+    const vortexList: Array<{ vortex: OceanCurrentGameObject; angle: number }> = [];
     if (!isFavorable) {
       const vortexCount = Math.max(2, Math.round(width / 600));
       for (let v = 0; v < vortexCount; v++) {
@@ -267,24 +285,66 @@ export function setupOceanCurrentsSystem<
         }
         const vortex = currentBox.add(vortexComponents) as OceanCurrentGameObject;
 
-        let vortexAngle = getRandomFloat(0, 10);
-        vortex.onUpdate(() => {
-          if (currentBox.hidden) return;
-          vortexAngle -= k.dt() * 4;
-          vortex.opacity = 0.18 + Math.sin(vortexAngle) * 0.12;
-        });
+        const vortexAngle = getRandomFloat(0, 10);
+        vortexList.push({ vortex, angle: vortexAngle });
+
+        if (!familyTicker) {
+          let currentAngle = vortexAngle;
+          vortex.onUpdate(() => {
+            if (currentBox.hidden) return;
+            currentAngle -= k.dt() * 4;
+            vortex.opacity = 0.18 + Math.sin(currentAngle) * 0.12;
+          });
+        }
       }
     }
 
-    // 4. Interação física contínua com a baleia e cálculo de dinâmica de fôlego
-    currentBox.onUpdate(() => {
+    const updateCurrentZone = (deltaTime: number) => {
+      // 1. Linhas vetoriais de fluxo
+      const dashLength = 40;
+      const flowSpeed = isFavorable ? 220 : -180;
+      for (let i = 0; i < vectorLines.length; i++) {
+        const line = vectorLines[i];
+        line.pos.x += flowSpeed * deltaTime;
+        if (isFavorable && line.pos.x > width + 20) {
+          line.pos.x = -dashLength;
+        } else if (!isFavorable && line.pos.x < -dashLength - 20) {
+          line.pos.x = width + 20;
+        }
+      }
+
+      // 2. Filamentos aquáticos
+      for (let i = 0; i < streamFilaments.length; i++) {
+        const item = streamFilaments[i];
+        item.sway += deltaTime * 3;
+        if (isFavorable) {
+          item.streamLine.pos.x += deltaTime * item.streamSpeed;
+          if (item.streamLine.pos.x > width + 40) {
+            item.streamLine.pos.x = -item.filamentWidth;
+          }
+        } else {
+          item.streamLine.pos.x -= deltaTime * item.streamSpeed;
+          if (item.streamLine.pos.x < -item.filamentWidth - 20) {
+            item.streamLine.pos.x = width + 20;
+          }
+        }
+        item.streamLine.pos.y = item.offsetY + Math.sin(item.sway) * 2;
+      }
+
+      // 3. Vórtices
+      for (let i = 0; i < vortexList.length; i++) {
+        const item = vortexList[i];
+        item.angle -= deltaTime * 4;
+        item.vortex.opacity = 0.18 + Math.sin(item.angle) * 0.12;
+      }
+
+      // 4. Interação física contínua com a baleia e cálculo de dinâmica de fôlego
       const playerPos = playerController.gameObj.pos;
 
       const isInX = playerPos.x >= zone.startX && playerPos.x <= zone.endX;
       const isInY = playerPos.y >= zone.y && playerPos.y <= zone.y + zone.height;
 
       if (isInX && isInY) {
-        const dt = k.dt();
         const currentSpeed = playerController.getSpeed();
         const facingRight = playerController.isFacingRight
           ? playerController.isFacingRight()
@@ -304,7 +364,7 @@ export function setupOceanCurrentsSystem<
         if (isFavorable) {
           // Acelera a jubarte para a frente (+X) com empuxo hidrodinâmico
           playerController.setSpeed(
-            k.vec2(currentSpeed.x + zone.force * dt, currentSpeed.y) as unknown as Parameters<
+            k.vec2(currentSpeed.x + zone.force * deltaTime, currentSpeed.y) as unknown as Parameters<
               PlayerController["setSpeed"]
             >[0]
           );
@@ -316,68 +376,121 @@ export function setupOceanCurrentsSystem<
             audioSystem.playSpeedBoost();
           }
 
-          // Partículas douradas de fluxo favorável na baleia (normalizado por deltaTime com taxa reduzida pela metade)
-          const normalizedDeltaTime = dt * 60;
+          // Partículas douradas de fluxo favorável na baleia via ParticlePool
+          const normalizedDeltaTime = deltaTime * 60;
           if (getRandomFloat(0, 1) < 0.125 * normalizedDeltaTime) {
-            const particleComponents: unknown[] = [
-              k.rect(3, 3, { radius: 1 }),
-              k.pos(playerPos.x + k.rand(-25, 25), playerPos.y + k.rand(-10, 10)),
-              k.color(255, 235, 140),
-              k.opacity(0.8),
-              k.z(15),
-            ];
-            if (typeof k.lifespan === "function") {
-              particleComponents.push(k.lifespan(2.5, { fade: 0.5 }));
-            }
-            const particle = k.add(particleComponents) as OceanCurrentGameObject;
-            particle.onUpdate(() => {
-              particle.pos.x += 180 * k.dt();
-              if (typeof k.lifespan !== "function" && particle.opacity !== undefined) {
-                particle.opacity -= k.dt() * 2.8;
-                if (particle.opacity <= 0) k.destroy(particle as unknown as TDestroyable);
+            const particlePool = getParticlePool();
+            if (particlePool) {
+              particlePool.spawnRect({
+                pos: {
+                  x: playerPos.x + getRandomFloat(-25, 25),
+                  y: playerPos.y + getRandomFloat(-10, 10),
+                },
+                width: 3,
+                height: 3,
+                color:
+                  typeof k.rgb === "function" ? k.rgb(255, 235, 140) : { r: 255, g: 235, b: 140 },
+                opacity: 0.8,
+                z: 15,
+                vel: { x: 180, y: 0 },
+                fadeRate: 2.8,
+                maxLife: 0.8,
+              });
+            } else {
+              const particleComponents: unknown[] = [
+                k.rect(3, 3, { radius: 1 }),
+                k.pos(playerPos.x + k.rand(-25, 25), playerPos.y + k.rand(-10, 10)),
+                k.color(255, 235, 140),
+                k.opacity(0.8),
+                k.z(15),
+              ];
+              if (typeof k.lifespan === "function") {
+                particleComponents.push(k.lifespan(2.5, { fade: 0.5 }));
               }
-            });
+              const particle = k.add(particleComponents) as OceanCurrentGameObject;
+              particle.onUpdate(() => {
+                particle.pos.x += 180 * k.dt();
+                if (typeof k.lifespan !== "function" && particle.opacity !== undefined) {
+                  particle.opacity -= k.dt() * 2.8;
+                  if (particle.opacity <= 0) k.destroy(particle as unknown as TDestroyable);
+                }
+              });
+            }
           }
         } else {
           // Empurra a jubarte para trás (-X)
           playerController.setSpeed(
-            k.vec2(currentSpeed.x - zone.force * dt, currentSpeed.y) as unknown as Parameters<
+            k.vec2(currentSpeed.x - zone.force * deltaTime, currentSpeed.y) as unknown as Parameters<
               PlayerController["setSpeed"]
             >[0]
           );
 
           // Leve turbulência visual na tela com guarda de movimento reduzido
-          const normalizedDeltaTime = dt * 60;
+          const normalizedDeltaTime = deltaTime * 60;
           if (getRandomFloat(0, 1) < 0.15 * normalizedDeltaTime) {
             safeShake(k, 1.0);
           }
         }
 
-        // Micro-bolhas de esforço/resistência ao nadar contra a correnteza (chance reduzida pela metade)
-        const normalizedDeltaTime = dt * 60;
+        // Micro-bolhas de esforço/resistência ao nadar contra a correnteza via ParticlePool
+        const normalizedDeltaTime = deltaTime * 60;
         if (!isAlignedWithFlow && getRandomFloat(0, 1) < 0.11 * normalizedDeltaTime) {
-          const bubbleComponents: unknown[] = [
-            k.rect(3, 3, { radius: 1 }),
-            k.pos(playerPos.x + (facingRight ? 40 : -40), playerPos.y + k.rand(-8, 8)),
-            k.color(200, 230, 255),
-            k.opacity(0.65),
-            k.z(14),
-          ];
-          if (typeof k.lifespan === "function") {
-            bubbleComponents.push(k.lifespan(2.5, { fade: 0.5 }));
-          }
-          const bubble = k.add(bubbleComponents) as OceanCurrentGameObject;
-          bubble.onUpdate(() => {
-            bubble.pos.x -= currentDir * 110 * k.dt();
-            bubble.pos.y -= 20 * k.dt();
-            if (typeof k.lifespan !== "function" && bubble.opacity !== undefined) {
-              bubble.opacity -= k.dt() * 2.2;
-              if (bubble.opacity <= 0) k.destroy(bubble as unknown as TDestroyable);
+          const particlePool = getParticlePool();
+          if (particlePool) {
+            particlePool.spawnRect({
+              pos: {
+                x: playerPos.x + (facingRight ? 40 : -40),
+                y: playerPos.y + getRandomFloat(-8, 8),
+              },
+              width: 3,
+              height: 3,
+              color:
+                typeof k.rgb === "function" ? k.rgb(200, 230, 255) : { r: 200, g: 230, b: 255 },
+              opacity: 0.65,
+              z: 14,
+              vel: { x: -currentDir * 110, y: -20 },
+              fadeRate: 2.2,
+              maxLife: 1.0,
+            });
+          } else {
+            const bubbleComponents: unknown[] = [
+              k.rect(3, 3, { radius: 1 }),
+              k.pos(playerPos.x + (facingRight ? 40 : -40), playerPos.y + k.rand(-8, 8)),
+              k.color(200, 230, 255),
+              k.opacity(0.65),
+              k.z(14),
+            ];
+            if (typeof k.lifespan === "function") {
+              bubbleComponents.push(k.lifespan(2.5, { fade: 0.5 }));
             }
-          });
+            const bubble = k.add(bubbleComponents) as OceanCurrentGameObject;
+            bubble.onUpdate(() => {
+              bubble.pos.x -= currentDir * 110 * k.dt();
+              bubble.pos.y -= 20 * k.dt();
+              if (typeof k.lifespan !== "function" && bubble.opacity !== undefined) {
+                bubble.opacity -= k.dt() * 2.2;
+                if (bubble.opacity <= 0) k.destroy(bubble as unknown as TDestroyable);
+              }
+            });
+          }
         }
       }
-    });
+    };
+
+    if (familyTicker) {
+      familyTicker.registerEntity({
+        id: `ocean_current_${z}_${zone.startX}`,
+        family: "current",
+        getXPosition: () => zone.startX + width / 2,
+        width: width / 2,
+        targetObject: currentBox,
+        update: updateCurrentZone,
+      });
+    } else {
+      currentBox.onUpdate(() => {
+        updateCurrentZone(k.dt());
+      });
+    }
   }
 
   // Reset do modificador quando a baleia não estiver dentro de nenhuma zona

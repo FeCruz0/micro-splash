@@ -1,6 +1,7 @@
 import { GAME_CONFIG, TAGS } from "../config";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
 import { getRandomFloat } from "../utils/random";
+import { getEntityFamilyTicker } from "../systems/entityFamilyTicker";
 
 export interface NetVector2D {
   x: number;
@@ -187,19 +188,14 @@ export function createGhostNet<TColor = unknown>(
   }
 
   const baseY = position.y;
-
   let time = getRandomFloat(0, 10);
-  net.onUpdate(() => {
-    const rawNet = net as unknown as { hidden?: boolean; isVisible?: () => boolean };
-    const isCulled =
-      rawNet.hidden === true || (typeof rawNet.isVisible === "function" && !rawNet.isVisible());
-    if (isCulled && revealTimer <= 0) return;
 
-    time += k.dt();
+  const updateGhostNet = (deltaTime: number) => {
+    time += deltaTime;
     net.pos.y = baseY + Math.sin(time * 1.8) * 5; // Balanço suave senoidal
 
     if (revealTimer > 0) {
-      revealTimer -= k.dt();
+      revealTimer -= deltaTime;
       net.hidden = false;
       const revealProgress = Math.min(1, revealTimer / 1.5);
       const currentOpacity =
@@ -217,7 +213,27 @@ export function createGhostNet<TColor = unknown>(
         line.opacity = baseOpacity;
       }
     }
-  });
+  };
+
+  const familyTicker = getEntityFamilyTicker();
+  if (familyTicker) {
+    familyTicker.registerEntity({
+      id: `net_${Math.round(position.x)}_${Math.round(position.y)}_${Math.round(Math.random() * 100000)}`,
+      family: "net",
+      getXPosition: () => net.pos.x,
+      width: 40,
+      targetObject: net,
+      update: updateGhostNet,
+    });
+  } else {
+    net.onUpdate(() => {
+      const rawNet = net as unknown as { hidden?: boolean; isVisible?: () => boolean };
+      const isCulled =
+        rawNet.hidden === true || (typeof rawNet.isVisible === "function" && !rawNet.isVisible());
+      if (isCulled && revealTimer <= 0) return;
+      updateGhostNet(k.dt());
+    });
+  }
 
   return net;
 }

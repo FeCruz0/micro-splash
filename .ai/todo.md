@@ -32,7 +32,7 @@ Diagnóstico: 2222 chamadas `k.*` em 50 arquivos (`ui` 1022, `systems` 763, `ent
   - Itens estaticos permanecem com isStatic e nao recalculam celula.
 - [x] Etapa 2.3: Retirar k.body de player.ts, companion/index.ts e do corpo estatico em gameScene.ts; gelo polar entra no SpatialHashGrid como estatico.
   - Integracao de velocidade fica em playerPhysics e companionLocomotion.
-- [ ] Etapa 2.4: Migrar fauna e particulas de k.add por frame para Pixi.Graphics ou particlePool: krill, net, trash, boat, ship, penguin, dolphin e correntes.
+- [x] Etapa 2.4: Migrar fauna e particulas de k.add por frame para Pixi.Graphics ou particlePool: krill, net, trash, boat, ship, penguin, dolphin e correntes.
   - Pausar entidades fora do frustum.
   - Um ticker indexado por familia, sem dezenas de onUpdate autonomos.
 

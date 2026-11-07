@@ -5,6 +5,7 @@ import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 import { getActivePlayerObject } from "../entities/player";
 import { getRandomFloat } from "../utils/random";
 import { getSpatialCullingManager, type CullableTargetObject } from "./spatialCullingSystem";
+import { getEntityFamilyTicker } from "./entityFamilyTicker";
 
 export interface PenguinVector2D {
   x: number;
@@ -191,10 +192,9 @@ export function setupPenguinFlockSystem<
     let leapTriggeredThisLeg = false;
     let soundTimer = 0;
 
-    k.onUpdate(() => {
+    const updatePenguinColony = (dt: number) => {
       if (!isSystemActive) return;
 
-      const dt = k.dt();
       const player = getActivePlayerObject();
       const playerX = player ? player.pos.x : 0;
       const isFlockVisible = Math.abs(flockX - playerX) < 1400;
@@ -215,6 +215,9 @@ export function setupPenguinFlockSystem<
         });
         return;
       }
+      penguins.forEach((p) => {
+        if (p.obj.hidden) p.obj.hidden = false;
+      });
 
       // 1. Simulação do Loop Pré-Programado
       if (turnState === "cruise") {
@@ -413,7 +416,22 @@ export function setupPenguinFlockSystem<
           }
         }
       });
-    });
+    };
+
+    const familyTicker = getEntityFamilyTicker();
+    if (familyTicker) {
+      familyTicker.registerEntity({
+        id: `penguin_colony_${colony.name.replace(/\s+/g, "_")}_${colony.initialX}`,
+        family: "penguin",
+        getXPosition: () => flockX,
+        width: (colony.maxX - colony.minX) / 2,
+        update: updatePenguinColony,
+      });
+    } else {
+      k.onUpdate(() => {
+        updatePenguinColony(k.dt());
+      });
+    }
   });
 
   const activate = () => {
