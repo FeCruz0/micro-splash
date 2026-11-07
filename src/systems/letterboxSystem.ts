@@ -1,8 +1,8 @@
 /**
- * Sistema de Barras Protetoras de Letterbox (Fase 33.4) — Micro Splash
+ * Sistema de Barras Protetoras de Letterbox — Micro Splash
  *
- * Refatorado para o Adapter Pattern (PixiJS v8 / Micro Splash Engine).
- * Desacoplado do Kaboom.js, com tipagem estrita de IRenderEngine e IRenderNode.
+ * Mantém a renderização de letterbox restrita à aplicação de Graphics no screenContainer,
+ * com fallback estrutural para a ponte legada durante a transição de testes.
  */
 
 import { getSavedDisplayMode, getSavedLetterboxColor, type LetterboxColor } from "../config";
@@ -22,7 +22,7 @@ interface LetterboxBorderElement {
 }
 
 /**
- * Sistema de Barras Protetoras de Letterbox (Fase 33.4).
+ * Sistema de Barras Protetoras de Letterbox.
  * Renderiza barras opacas nas margens com z: 999 cobrindo qualquer overflow de conteúdo
  * quando a tela estiver em modo letterbox, com suporte a cores preto (#000000) ou azul oceânico (#06122a).
  */
@@ -42,19 +42,22 @@ export function setupLetterboxBorders(
   const borderThickness = 120;
 
   // Sincroniza cor de fundo do body e canvas no DOM
-  if (typeof document !== "undefined") {
-    const hex = currentColor === "ocean" ? "#06122a" : "#000000";
-    if (document.body) {
-      document.body.style.backgroundColor = hex;
-    }
+  if (typeof document !== "undefined" && document.body) {
+    const backgroundHex = currentColor === "ocean" ? "#06122a" : "#000000";
+    document.body.style.backgroundColor = backgroundHex;
   }
 
   if (isRenderEngine(engineOrContext)) {
-    const stageRoot = engineOrContext.getStageRoot();
-    const { width: screenW, height: screenH } = engineOrContext.getDimensions();
+    const targetContainer =
+      typeof engineOrContext.getScreenContainer === "function"
+        ? engineOrContext.getScreenContainer()
+        : engineOrContext.getStageRoot();
 
-    const getPixiColor = (c: LetterboxColor): readonly [number, number, number] =>
-      c === "ocean" ? [6, 18, 42] : [0, 0, 0];
+    const { width: currentScreenWidth, height: currentScreenHeight } =
+      engineOrContext.getDimensions();
+
+    const getPixiColor = (color: LetterboxColor): readonly [number, number, number] =>
+      color === "ocean" ? [6, 18, 42] : [0, 0, 0];
 
     const topBar = engineOrContext.createGraphics("letterbox_border_top");
     const bottomBar = engineOrContext.createGraphics("letterbox_border_bottom");
@@ -64,48 +67,52 @@ export function setupLetterboxBorders(
     const bars: IGraphicsNode[] = [topBar, bottomBar, leftBar, rightBar];
     bars.forEach((bar) => {
       bar.setZIndex(999);
-      stageRoot.addChild(bar);
+      targetContainer.addChild(bar);
     });
 
-    const redrawBars = (color: LetterboxColor, curW: number, curH: number) => {
-      const col = getPixiColor(color);
+    const redrawBars = (
+      color: LetterboxColor,
+      screenWidth: number,
+      screenHeight: number
+    ): void => {
+      const colorTuple = getPixiColor(color);
 
       topBar.clear();
-      topBar.drawRect(0, 0, curW + borderThickness * 4, borderThickness, {
-        fill: { color: col, alpha: 1 },
+      topBar.drawRect(0, 0, screenWidth + borderThickness * 4, borderThickness, {
+        fill: { color: colorTuple, alpha: 1 },
       });
       topBar.setPosition(-borderThickness * 2, -borderThickness);
 
       bottomBar.clear();
-      bottomBar.drawRect(0, 0, curW + borderThickness * 4, borderThickness, {
-        fill: { color: col, alpha: 1 },
+      bottomBar.drawRect(0, 0, screenWidth + borderThickness * 4, borderThickness, {
+        fill: { color: colorTuple, alpha: 1 },
       });
-      bottomBar.setPosition(-borderThickness * 2, curH);
+      bottomBar.setPosition(-borderThickness * 2, screenHeight);
 
       leftBar.clear();
-      leftBar.drawRect(0, 0, borderThickness, curH + borderThickness * 4, {
-        fill: { color: col, alpha: 1 },
+      leftBar.drawRect(0, 0, borderThickness, screenHeight + borderThickness * 4, {
+        fill: { color: colorTuple, alpha: 1 },
       });
       leftBar.setPosition(-borderThickness, -borderThickness * 2);
 
       rightBar.clear();
-      rightBar.drawRect(0, 0, borderThickness, curH + borderThickness * 4, {
-        fill: { color: col, alpha: 1 },
+      rightBar.drawRect(0, 0, borderThickness, screenHeight + borderThickness * 4, {
+        fill: { color: colorTuple, alpha: 1 },
       });
-      rightBar.setPosition(curW, -borderThickness * 2);
+      rightBar.setPosition(screenWidth, -borderThickness * 2);
     };
 
-    redrawBars(currentColor, screenW, screenH);
+    redrawBars(currentColor, currentScreenWidth, currentScreenHeight);
 
     return {
       update: () => {
-        const { width: w, height: h } = engineOrContext.getDimensions();
-        redrawBars(currentColor, w, h);
+        const { width: updatedWidth, height: updatedHeight } = engineOrContext.getDimensions();
+        redrawBars(currentColor, updatedWidth, updatedHeight);
       },
       setColor: (color: LetterboxColor) => {
         currentColor = color;
-        const { width: w, height: h } = engineOrContext.getDimensions();
-        redrawBars(color, w, h);
+        const { width: updatedWidth, height: updatedHeight } = engineOrContext.getDimensions();
+        redrawBars(color, updatedWidth, updatedHeight);
         if (typeof document !== "undefined" && document.body) {
           document.body.style.backgroundColor = color === "ocean" ? "#06122a" : "#000000";
         }
@@ -118,27 +125,30 @@ export function setupLetterboxBorders(
 
   // Modo Legacy Kaboom Bridge
   const legacyCtx = engineOrContext as LegacyEngineBridge & {
-    rect(w: number, h: number): unknown;
+    rect(width: number, height: number): unknown;
     pos(x: number, y: number): unknown;
-    color(c: unknown): unknown;
-    rgb(r: number, g: number, b: number): unknown;
+    color(colorValue: unknown): unknown;
+    rgb(red: number, green: number, blue: number): unknown;
     fixed(): unknown;
     z(layer: number): unknown;
     width(): number;
     height(): number;
-    destroy(obj: unknown): void;
+    destroy(targetObject: unknown): void;
   };
 
-  const getRgbColor = (c: LetterboxColor) =>
+  const getRgbColor = (color: LetterboxColor) =>
     typeof legacyCtx.rgb === "function"
-      ? legacyCtx.rgb(c === "ocean" ? 6 : 0, c === "ocean" ? 18 : 0, c === "ocean" ? 42 : 0)
-      : c === "ocean"
+      ? legacyCtx.rgb(
+          color === "ocean" ? 6 : 0,
+          color === "ocean" ? 18 : 0,
+          color === "ocean" ? 42 : 0
+        )
+      : color === "ocean"
         ? [6, 18, 42]
         : [0, 0, 0];
 
   const elements: LetterboxBorderElement[] = [];
 
-  // Barra Superior
   const topBar = legacyCtx.add([
     legacyCtx.rect(legacyCtx.width() + borderThickness * 4, borderThickness),
     legacyCtx.pos(-borderThickness * 2, -borderThickness),
@@ -149,7 +159,6 @@ export function setupLetterboxBorders(
   ]) as LetterboxBorderElement;
   elements.push(topBar);
 
-  // Barra Inferior
   const bottomBar = legacyCtx.add([
     legacyCtx.rect(legacyCtx.width() + borderThickness * 4, borderThickness),
     legacyCtx.pos(-borderThickness * 2, legacyCtx.height()),
@@ -160,7 +169,6 @@ export function setupLetterboxBorders(
   ]) as LetterboxBorderElement;
   elements.push(bottomBar);
 
-  // Barra Esquerda
   const leftBar = legacyCtx.add([
     legacyCtx.rect(borderThickness, legacyCtx.height() + borderThickness * 4),
     legacyCtx.pos(-borderThickness, -borderThickness * 2),
@@ -171,7 +179,6 @@ export function setupLetterboxBorders(
   ]) as LetterboxBorderElement;
   elements.push(leftBar);
 
-  // Barra Direita
   const rightBar = legacyCtx.add([
     legacyCtx.rect(borderThickness, legacyCtx.height() + borderThickness * 4),
     legacyCtx.pos(legacyCtx.width(), -borderThickness * 2),
@@ -185,9 +192,9 @@ export function setupLetterboxBorders(
   const applyColor = (color: LetterboxColor) => {
     currentColor = color;
     const rgb = getRgbColor(color);
-    elements.forEach((el) => {
+    elements.forEach((element) => {
       try {
-        el.color = rgb;
+        element.color = rgb;
       } catch {}
     });
     if (typeof document !== "undefined" && document.body) {
@@ -202,12 +209,12 @@ export function setupLetterboxBorders(
     },
     setColor: applyColor,
     destroy: () => {
-      elements.forEach((el) => {
+      elements.forEach((element) => {
         try {
-          if (typeof el.destroy === "function") {
-            el.destroy();
+          if (typeof element.destroy === "function") {
+            element.destroy();
           } else if (typeof legacyCtx.destroy === "function") {
-            legacyCtx.destroy(el);
+            legacyCtx.destroy(element);
           }
         } catch {}
       });

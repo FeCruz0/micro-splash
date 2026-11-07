@@ -18,7 +18,7 @@ Diagnóstico: 2222 chamadas `k.*` em 50 arquivos (`ui` 1022, `systems` 763, `ent
   - Teto de delta 0,1 s e maxFPS 60 ja existentes no ticker.
 - [x] Etapa 1.3: Trocar k.scene e k.go por IScene no SceneManager para splash, menu, start, kiosk, game, rescue e gameover.
   - Arquivos: `src/scenes/splashScene.ts`, `menuScene.ts`, `startScene.ts`, `kioskScene.ts`, `gameScene.ts`, `rescueScene.ts`, `gameoverScene.ts`, `src/main.ts`.
-- [ ] Etapa 1.4: Separar container de mundo e container de tela; camera move so o mundo; letterbox fica apenas em Graphics do letterboxSystem.
+- [x] Etapa 1.4: Separar container de mundo e container de tela; camera move so o mundo; letterbox fica apenas em Graphics do letterboxSystem.
   - `k.fixed` passa a filho do container de tela.
   - `k.camPos` vira posicao negativa do container de mundo.
 

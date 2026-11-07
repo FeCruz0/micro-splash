@@ -15,6 +15,7 @@ import type {
   IRenderTicker,
   RenderEngineInitOptions,
   TextStyleOptions,
+  Vector2D,
 } from "../contracts/INTERFACE_CONTRACTS";
 import {
   PixiContainerNode,
@@ -114,6 +115,9 @@ export class RenderEngineAdapter implements IRenderEngine {
 
   private application: Application | null = null;
   private stageRoot: PixiContainerNode | null = null;
+  private worldContainer: PixiContainerNode | null = null;
+  private screenContainer: PixiContainerNode | null = null;
+  private cameraPosition: Vector2D = { x: 0, y: 0 };
   private tickerAdapter: PixiRenderTicker | null = null;
   private containerElement: HTMLElement | null = null;
   private canvasElement: HTMLCanvasElement | null = null;
@@ -193,6 +197,15 @@ export class RenderEngineAdapter implements IRenderEngine {
     }
 
     this.stageRoot = new PixiContainerNode(app.stage, "stage_root");
+    this.worldContainer = new PixiContainerNode(undefined, "world_container");
+    this.screenContainer = new PixiContainerNode(undefined, "screen_container");
+
+    this.worldContainer.setZIndex(0);
+    this.screenContainer.setZIndex(100);
+
+    this.stageRoot.addChild(this.worldContainer);
+    this.stageRoot.addChild(this.screenContainer);
+
     const nativeStage = app.stage as unknown as {
       eventMode?: string;
       interactiveChildren?: boolean;
@@ -232,6 +245,43 @@ export class RenderEngineAdapter implements IRenderEngine {
       );
     }
     return this.stageRoot;
+  }
+
+  getWorldContainer(): IRenderNode {
+    if (!this.worldContainer) {
+      throw new Error(
+        "RenderEngineAdapter não inicializado. Chame init() antes de acessar worldContainer."
+      );
+    }
+    return this.worldContainer;
+  }
+
+  getScreenContainer(): IRenderNode {
+    if (!this.screenContainer) {
+      throw new Error(
+        "RenderEngineAdapter não inicializado. Chame init() antes de acessar screenContainer."
+      );
+    }
+    return this.screenContainer;
+  }
+
+  getCameraPosition(): Vector2D {
+    return { x: this.cameraPosition.x, y: this.cameraPosition.y };
+  }
+
+  setCameraPosition(cameraPositionX: number, cameraPositionY: number): void {
+    this.cameraPosition = { x: cameraPositionX, y: cameraPositionY };
+    if (this.worldContainer) {
+      this.worldContainer.setPosition(-cameraPositionX, -cameraPositionY);
+    }
+  }
+
+  addNodeToWorld(child: IRenderNode): void {
+    this.getWorldContainer().addChild(child);
+  }
+
+  addNodeToScreen(child: IRenderNode): void {
+    this.getScreenContainer().addChild(child);
   }
 
   getTicker(): IRenderTicker {
@@ -320,6 +370,16 @@ export class RenderEngineAdapter implements IRenderEngine {
     if (this.tickerAdapter) {
       this.tickerAdapter.destroy();
       this.tickerAdapter = null;
+    }
+
+    if (this.screenContainer) {
+      this.screenContainer.destroy();
+      this.screenContainer = null;
+    }
+
+    if (this.worldContainer) {
+      this.worldContainer.destroy();
+      this.worldContainer = null;
     }
 
     if (this.stageRoot) {

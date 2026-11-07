@@ -8,6 +8,7 @@ import { setupLetterboxBorders } from "./systems/letterboxSystem";
 import { registerAllScenes, loadAllGameAssets, type AllScenesEngineContext } from "./scenes";
 import type { AssetLoaderEngineContext } from "./scenes/assetLoader";
 import { RenderEngineAdapter } from "./engine/adapters/RenderEngineAdapter";
+import type { IRenderNode } from "./engine/contracts/INTERFACE_CONTRACTS";
 import { SceneManager } from "./engine/SceneManager";
 import { createTween, Easings, type EasingFunction } from "./engine/utils/Tween";
 import { detectGpuCapabilities } from "./utils/gpuDiagnostics";
@@ -39,7 +40,6 @@ function createPixiBridgeContext(
   engine: RenderEngineAdapter,
   scenes: SceneManager
 ): EngineBridgeContext {
-  const cameraPos = { x: 0, y: 0 };
   const sceneLeaveCallbacks: Array<() => void> = [];
   const sceneCleanupCallbacks: Array<() => void> = [];
   const sceneUpdateCallbacks: Array<(deltaTimeInSeconds: number) => void> = [];
@@ -181,12 +181,25 @@ function createPixiBridgeContext(
     },
 
     add(components) {
+      let isFixedElement = false;
+      let positionX = 0;
+      let positionY = 0;
+      let entityOpacity = 1;
+      let entityZIndex = 0;
+      let entityText: string | null = null;
+      let textOptions: Record<string, unknown> | null = null;
+      let rectWidth: number | null = null;
+      let rectHeight: number | null = null;
+      let entityColor: [number, number, number] = [255, 255, 255];
+      let entityVisualNode: IRenderNode | null = null;
+
       const entity: Record<string, unknown> = {
         pos: { x: 0, y: 0 },
         scale: { x: 1, y: 1 },
         opacity: 1,
         z: 0,
         hidden: false,
+        fixed: false,
         exists: () => true,
         onUpdate: (cb: () => void) => context.onUpdate(cb),
         onClick: (cb: () => void) => context.onMousePress(cb),
@@ -194,6 +207,10 @@ function createPixiBridgeContext(
         onHoverEnd: () => ({ cancel: () => {} }),
         play: () => {},
         destroy: () => {
+          if (entityVisualNode) {
+            entityVisualNode.destroy();
+            entityVisualNode = null;
+          }
           for (const set of taggedEntities.values()) {
             set.delete(entity);
           }
@@ -212,17 +229,110 @@ function createPixiBridgeContext(
           } else if (comp && typeof comp === "object") {
             const c = comp as Record<string, unknown>;
             if (c.type === "pos" && typeof c.x === "number" && typeof c.y === "number") {
-              entity.pos = { x: c.x, y: c.y };
+              positionX = c.x;
+              positionY = c.y;
             } else if (c.type === "opacity" && typeof c.opacity === "number") {
-              entity.opacity = c.opacity;
+              entityOpacity = c.opacity;
             } else if (c.type === "z" && typeof c.z === "number") {
-              entity.z = c.z;
+              entityZIndex = c.z;
+            } else if (c.type === "fixed") {
+              isFixedElement = true;
+              entity.fixed = true;
             } else if (c.type === "text" && typeof c.text === "string") {
-              entity.text = c.text;
+              entityText = c.text;
+              textOptions = (c.options as Record<string, unknown>) ?? null;
+              entity.text = entityText;
+            } else if (
+              c.type === "rect" &&
+              typeof c.width === "number" &&
+              typeof c.height === "number"
+            ) {
+              rectWidth = c.width;
+              rectHeight = c.height;
+            } else if (c.type === "color" && Array.isArray(c.args)) {
+              const args = c.args as unknown[];
+              if (args.length === 3 && typeof args[0] === "number") {
+                entityColor = [args[0], args[1] as number, args[2] as number];
+              } else if (args.length === 1 && Array.isArray(args[0])) {
+                entityColor = args[0] as [number, number, number];
+              }
             }
           }
         }
       }
+
+      if (engine.isInitialized) {
+        const targetContainer = isFixedElement
+          ? engine.getScreenContainer()
+          : engine.getWorldContainer();
+
+        if (rectWidth !== null && rectHeight !== null) {
+          const graphicsNode = engine.createGraphics(
+            `entity_rect_${Math.random().toString(36).slice(2, 9)}`
+          );
+          graphicsNode.drawRect(0, 0, rectWidth, rectHeight, {
+            fill: { color: entityColor, alpha: entityOpacity },
+          });
+          graphicsNode.setPosition(positionX, positionY);
+          graphicsNode.setZIndex(entityZIndex);
+          targetContainer.addChild(graphicsNode);
+          entityVisualNode = graphicsNode;
+          entity.renderNode = graphicsNode;
+        } else if (entityText !== null) {
+          const fontSize = typeof textOptions?.size === "number" ? textOptions.size : 16;
+          const fontFamily = typeof textOptions?.font === "string" ? textOptions.font : "Outfit";
+          const textNode = engine.createText(
+            entityText,
+            {
+              fontSize,
+              fontFamily,
+              color: entityColor,
+            },
+            `entity_text_${Math.random().toString(36).slice(2, 9)}`
+          );
+          textNode.setPosition(positionX, positionY);
+          textNode.setZIndex(entityZIndex);
+          textNode.setOpacity(entityOpacity);
+          targetContainer.addChild(textNode);
+          entityVisualNode = textNode;
+          entity.renderNode = textNode;
+        }
+      }
+
+      Object.defineProperty(entity, "opacity", {
+        get: () => entityOpacity,
+        set: (newOpacity: number) => {
+          entityOpacity = newOpacity;
+          if (entityVisualNode) {
+            entityVisualNode.setOpacity(newOpacity);
+          }
+        },
+        configurable: true,
+        enumerable: true,
+      });
+
+      const positionProxy = {
+        get x() {
+          return positionX;
+        },
+        set x(newX: number) {
+          positionX = newX;
+          if (entityVisualNode) {
+            entityVisualNode.setPosition(positionX, positionY);
+          }
+        },
+        get y() {
+          return positionY;
+        },
+        set y(newY: number) {
+          positionY = newY;
+          if (entityVisualNode) {
+            entityVisualNode.setPosition(positionX, positionY);
+          }
+        },
+      };
+      entity.pos = positionProxy;
+      entity.z = entityZIndex;
 
       let allBucket = taggedEntities.get("*");
       if (!allBucket) {
@@ -230,6 +340,15 @@ function createPixiBridgeContext(
         taggedEntities.set("*", allBucket);
       }
       allBucket.add(entity);
+
+      if (entityVisualNode) {
+        sceneCleanupCallbacks.push(() => {
+          if (entityVisualNode) {
+            entityVisualNode.destroy();
+            entityVisualNode = null;
+          }
+        });
+      }
 
       return entity;
     },
@@ -332,15 +451,15 @@ function createPixiBridgeContext(
       return { cancel };
     },
 
-    camPos(xOrPos?: number | { x: number; y: number }, y?: number) {
-      if (typeof xOrPos === "number") {
-        cameraPos.x = xOrPos;
-        cameraPos.y = y ?? cameraPos.y;
-      } else if (xOrPos && typeof xOrPos === "object") {
-        cameraPos.x = xOrPos.x;
-        cameraPos.y = xOrPos.y;
+    camPos(cameraPositionOrX?: number | { x: number; y: number }, cameraPositionY?: number) {
+      if (typeof cameraPositionOrX === "number") {
+        const currentCameraPosition = engine.getCameraPosition();
+        const targetPositionY = cameraPositionY ?? currentCameraPosition.y;
+        engine.setCameraPosition(cameraPositionOrX, targetPositionY);
+      } else if (cameraPositionOrX && typeof cameraPositionOrX === "object") {
+        engine.setCameraPosition(cameraPositionOrX.x, cameraPositionOrX.y);
       }
-      return { x: cameraPos.x, y: cameraPos.y };
+      return engine.getCameraPosition();
     },
 
     get(tag) {

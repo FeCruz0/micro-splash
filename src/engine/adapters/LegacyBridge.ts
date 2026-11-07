@@ -31,11 +31,16 @@ export interface LegacyEngineBridge {
   pos(x: number, y: number): unknown;
   color(red: number, green: number, blue: number): unknown;
   opacity(alpha: number): unknown;
+  fixed?(): unknown;
   z(zIndex: number): unknown;
   onUpdate(...args: unknown[]): unknown;
   destroy?(obj: unknown): void;
   vec2?(x: number, y: number): { x: number; y: number };
   rgb?(red: number, green: number, blue: number): unknown;
+  getWorldContainer?(): IRenderNode;
+  getScreenContainer?(): IRenderNode;
+  getCameraPosition?(): Vector2D;
+  setCameraPosition?(cameraPositionX: number, cameraPositionY: number): void;
 }
 
 export class LegacyRenderNodeAdapter implements IRenderNode {
@@ -142,6 +147,12 @@ export function isRenderEngine(target: unknown): target is IRenderEngine {
 }
 
 export function resolveCameraX(engineOrContext: IRenderEngine | LegacyEngineBridge): number {
+  if (
+    "getCameraPosition" in engineOrContext &&
+    typeof (engineOrContext as IRenderEngine).getCameraPosition === "function"
+  ) {
+    return (engineOrContext as IRenderEngine).getCameraPosition().x;
+  }
   if (
     "camPos" in engineOrContext &&
     typeof (engineOrContext as { camPos?: () => { x: number } }).camPos === "function"

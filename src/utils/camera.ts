@@ -10,6 +10,8 @@ import { accessibilitySystem } from "../systems/accessibilitySystem";
 import type { IRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import type { LegacyEngineBridge } from "../engine/adapters/LegacyBridge";
 
+export { cameraSystem, CameraSystem, type CameraFollowOptions } from "../systems/cameraSystem";
+
 export interface CameraShakeContext {
   shake?(intensity: number): unknown;
 }

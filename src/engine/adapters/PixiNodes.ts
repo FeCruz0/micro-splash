@@ -173,6 +173,15 @@ export class PixiContainerNode implements IRenderNode {
     return [...this.childrenList];
   }
 
+  removeAllChildren(): void {
+    const childrenToDestroy = [...this.childrenList];
+    for (let index = 0; index < childrenToDestroy.length; index++) {
+      childrenToDestroy[index].destroy();
+    }
+    this.childrenList.length = 0;
+    this.container.removeChildren();
+  }
+
   destroy(): void {
     for (const child of this.childrenList) {
       child.destroy();

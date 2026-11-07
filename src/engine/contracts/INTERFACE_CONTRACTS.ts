@@ -180,6 +180,10 @@ export interface IRenderEngine {
   getDimensions(): { readonly width: number; readonly height: number };
   getCanvas(): HTMLCanvasElement | null;
   getStageRoot(): IRenderNode;
+  getWorldContainer(): IRenderNode;
+  getScreenContainer(): IRenderNode;
+  getCameraPosition(): Vector2D;
+  setCameraPosition(cameraPositionX: number, cameraPositionY: number): void;
   getTicker(): IRenderTicker;
   getRenderer?(): unknown;
   generateTexture?(
