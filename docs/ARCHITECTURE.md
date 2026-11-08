@@ -1,6 +1,6 @@
 # 🏗️ Arquitetura do Sistema - Micro Splash
 
-O **Micro Splash** foi construído sobre uma arquitetura modular orientada a eventos e componentes, utilizando a engine **Kaboom.js** combinada a **TypeScript**, **Web Audio API** para síntese procedural em tempo real e empacotamento ultrarrápido via **Vite**.
+O **Micro Splash** usa **PixiJS v8** como runtime gráfico, com uma camada de adaptação em TypeScript, áudio procedural via **Web Audio API** e empacotamento via **Vite**. Kaboom.js não é dependência do projeto. Ainda existe em `src/main.ts` uma fachada temporária (`createPixiBridgeContext`) que expõe operações no estilo `k.*` para módulos legados; ela traduz apenas parte desses comandos para nós PixiJS e não é a API recomendada para código novo.
 
 ---
 
@@ -25,8 +25,8 @@ micro-splash/
 ├── scripts/                        # Utilitários de build, validação e geradores em Node/ESM
 ├── src/
 │   ├── config.ts                   # Parâmetros físicos, biomas, sementes, tags e dimensões
-│   ├── main.ts                     # Ponto de entrada enxuto e boot do Kaboom.js
-│   ├── scenes/                     # Módulos isolados de cenas Kaboom
+│   ├── main.ts                     # Bootstrap do PixiJS, SceneManager e contexto de compatibilidade temporário
+│   ├── scenes/                     # Registro de cenas no SceneManager
 │   │   ├── assetLoader.ts          # Pré-carregamento determinístico de atlas e recursos
 │   │   ├── menuScene.ts            # Cena de menu com code-splitting dinâmico
 │   │   ├── gameScene.ts            # Orquestrador do loop de gameplay de 30.000m
@@ -93,7 +93,7 @@ micro-splash/
 
 ## 🔄 1. Ciclo de Vida e Máquina de Cenas (`src/scenes/`)
 
-O jogo gerencia a navegação entre estados através de cenas modulares do Kaboom.js com suporte a **Code-Splitting assíncrono**:
+O jogo gerencia a navegação por cenas registradas no `SceneManager` e atualizadas pelo ticker do PixiJS, com suporte a **Code-Splitting assíncrono**:
 
 ```mermaid
 graph TD
@@ -126,7 +126,7 @@ graph TD
     PIPELINE --> FINS["3. Hidroplanos Peitorais (playerPectoralFin.ts)<br/>Ângulo diedro, enflechamento e projeção de perspectiva 2.5D"]
     PIPELINE --> PALETTE["4. Paleta de Fôlego (playerBreathPalette.ts)<br/>Mapeamento de 5 estados: calm, warning, critical, trapped, fainting"]
     PIPELINE --> SNAPSHOT["Snapshot Imutável (WhaleRenderPipelineSnapshot)"]
-    SNAPSHOT --> APPLY["Aplicação Sincronizada nos Componentes Kaboom (sem jitter)"]
+    SNAPSHOT --> APPLY["Aplicação sincronizada nos nós de renderização PixiJS (sem jitter)"]
 ```
 
 ### Detalhamento das Camadas Biomecânicas
@@ -218,7 +218,7 @@ A Baleia-Guia (Mãe-Guia Antártica) introduz um modelo de aprendizado mimético
 
 - **`types.ts`**: Contratos canônicos de estado (`CompanionState`), opções com suporte a semente (`CompanionOptions`), controlador (`CompanionWhaleController`) e interface de colisão tipada `CompanionCollidable` com o type guard `isCompanionCollidable`.
 - **`companionSenses.ts`**: Radar sensorial (varredura a cada 0.35s), detecção de cardumes de krill e emissão de biosonar 360° com dispersão acústica determinística.
-- **`companionLocomotion.ts`**: Física hidrodinâmica, arfagem vertical gradual (máx ~90°/s), propulsão vetorial direcional com rubber-banding e colisão sólida `k.body()` contra calotas de gelo.
+- **`companionLocomotion.ts`**: Física hidrodinâmica, arfagem vertical gradual (máx ~90°/s), propulsão vetorial direcional e integração com consultas de colisão do sistema do jogo.
 - **`companionStates.ts`**: Máquina de estados (FSM: `INTRO`, `CRUISE`, `FEEDING`, `SEEK_BREATH`, `SURFACE_BREATHE`, `RESTING`, `DEPARTED`), ciclo pulmonar de oxigênio e borrifo de vapor determinístico com PRNG Mulberry32.
 - **`index.ts` e `companionWhale.ts`**: Fachada unificada retrocompatível e orquestração.
 
@@ -237,7 +237,7 @@ graph TD
         STROKE["Ciclo Muscular da Cauda (down / up / glide)"] --> THRUST["Empuxo no Vetor Apontado: vec2(cos θ, sin θ)"]
         THRUST --> MOVE["companion.move(currentSpeed.x, currentSpeed.y)"]
         MOVE --> DRAG["Arrasto Hidrodinâmico (WATER_DRAG = 0.985)"]
-        MOVE --> ICE_COL["Colisão Sólida k.body() com ice_block"]
+        MOVE --> ICE_COL["Consulta de colisão com gelo no sistema de colisões"]
     end
 
     subgraph CICLO["Máquina de Estados Finita (companionStates.ts)"]
@@ -256,9 +256,9 @@ graph TD
    - Aplica manobra de arfagem lenta (`GAME_CONFIG.ROTATION_SPEED * 0.75 * dt`), girando o corpo suavemente em direção à profundidade desejada.
    - O empuxo das batidas de cauda (`stroke_down` e `stroke_up`) é direcionado exclusivamente no vetor polar $\begin{pmatrix} \cos\theta \\ \sin\theta \end{pmatrix}$.
    - No planeio (`glide`), a baleia avança por inércia e arrasto aquático sem empuxo adicional.
-2. **Colisão Física Sólida com Gelo & Type Safety**:
-   - Provida do componente Kaboom `k.body()`, colidindo fisicamente contra blocos estáticos de gelo polar (`ice_block`).
-   - Callbacks no sistema de colisões operam sobre o type guard estrito `isCompanionCollidable`, sem type casting forçado.
+2. **Colisão com Gelo & Type Safety**:
+   - As colisões com gelo são avaliadas pela lógica de jogo e pelo particionamento espacial, sem componente de física do Kaboom.
+   - O ticker do PixiJS apresenta os resultados da simulação; não é responsável pela física.
    - O contato anula o componente de velocidade ascendente e estabiliza a angulação na horizontal.
 3. **Mecânicas Ecológicas Espelhadas & Determinismo**:
    - **Consumo Real de Krill**: Detecção por varredura, atração em ângulo de perseguição e destruição da entidade com incremento de fôlego e animação `feed`.
@@ -266,7 +266,7 @@ graph TD
    - **Biosonar 360° Funcional**: Pulso acústico que ilumina itens, perigos e recursos via `revealEntitiesInSonarRadius` com intervalos estocásticos reprodutíveis por semente.
 4. **Repouso Estacionário Permanente (`RESTING`)**:
    - Ao concluir a travessia antártica (~3.150m), a baleia emite sua canção e transiciona para `RESTING`.
-   - Ela desacelera suavemente até parar (`currentSpeed -> 0`), assume a animação `idle_swim` e permanece serena flutuando no cenário polar, garantindo que nunca desapareça abruptamente da visão do jogador (`k.destroy` removido).
+   - Ela desacelera suavemente até parar (`currentSpeed -> 0`), assume a animação `idle_swim` e permanece serena flutuando no cenário polar.
 
 ---
 
@@ -283,7 +283,7 @@ A camada de interface gráfica é desacoplada da lógica central de simulação:
    - As telas e modais pesados são carregados sob demanda através de `await import(...)`, permitindo que o chunk principal inicial do jogo seja enxuto (~232 kB gzipped em produção).
 3. **Tokens e Transições de Animação (`src/ui/animationUtils.ts`):**
    - Constantes centralizadas `UI_TRANSITIONS` (`MODAL_ENTER_DURATION`, `MODAL_EXIT_DURATION`, `FADE_SCENE_DURATION`, `BUTTON_HOVER_SCALE`, `TOAST_DURATION`).
-   - `animateModalExit` com easing cúbico para saída simétrica antes da destruição dos nós Kaboom.
+   - `animateModalExit` com easing cúbico para saída simétrica antes da destruição dos nós gráficos.
 4. **Pilha de Foco Acessível (LIFO) & Focus Trap (`src/ui/keyboardNav.ts`):**
    - Suporte completo a navegação por teclado (Tab, Shift+Tab, setas direcionais, Enter/Espaço para acionamento).
    - Ao abrir um modal, o elemento ativo anterior é preservado no snapshot da pilha e automaticamente restaurado ao fechar.
@@ -465,13 +465,12 @@ Para elevar a sensação tátil e o acabamento premium do jogo sem comprometer a
 
 ---
 
-## ⚡ 15. Erradicação de Física Clássica em Geometria Estática (`canyonGeometry.ts`)
+## ⚡ 15. Colisão espacial para geometria estática (`canyonGeometry.ts`)
 
-Para desonerar o ciclo principal de CPU e eliminar gargalos internos da engine Kaboom:
+As colisões da geometria estática do Boqueirão são resolvidas pela lógica do jogo, sem depender de um motor de física da engine de renderização:
 
-1. **Remoção de `k.area()` e `k.body({ isStatic: true })` em Obstáculos Fixos**:
-   - As rampas de subida/descida, degraus profundos, paredões do Boqueirão e colisor da Ilha do Farol não utilizam mais os componentes nativos de física do Kaboom.
-   - As colisões são computadas de forma $O(1)$ exclusivamente pelo `SpatialHashGrid` através de consultas AABB na rotina do jogador (`collisions.ts`).
+1. **Geometria estática no `SpatialHashGrid`**:
+   - As rampas, degraus, paredões do Boqueirão e colisor da Ilha do Farol são representados por AABBs e consultados pelo `SpatialHashGrid` na rotina de colisões (`collisions.ts`).
 2. **Marcação Estática (`isStatic: true`) no `SpatialHashGrid`**:
    - Entidades estáticas inseridas no grid espacial possuem `isStatic: true`, abortando qualquer recálculo de células em chamadas de `update()`.
 3. **Segmentação e Isolamento de Colisores**:
@@ -481,7 +480,7 @@ Para desonerar o ciclo principal de CPU e eliminar gargalos internos da engine K
 
 ## 🚀 16. Otimização de Pipeline PixiJS v8, Z-Sorting sob Demanda & Zero-Allocation
 
-Para blindar o frame time contra picos de Garbage Collector e manter 60 FPS cravados no ambiente WebGL/PixiJS v8:
+Essas otimizações reduzem trabalho desnecessário no ambiente WebGL/PixiJS v8. Os limites por fase são metas de profiling; o teste de estresse documentado valida que não haja quadros sustentados acima de 33,3 ms na rota Sereno de 30.000 m, não uma garantia universal de 60 FPS:
 
 1. **Culling no Pipeline WebGL (`renderable = visible`)**:
    - No adapter `PixiNodes.ts`, o método `setVisible(visible)` atualiza concomitantemente `this.container.visible` e `this.container.renderable`. Entidades invisíveis têm seus cálculos matriciais e draw calls abortados na raiz do WebGL.
@@ -497,3 +496,12 @@ Para blindar o frame time contra picos de Garbage Collector e manter 60 FPS crav
    - Congelamento completo de entidades ocultas fora do frustum (`targetObject.paused = true`).
 6. **Dirty-Checking Rigoroso em Textos**:
    - Guardas de pré-atribuição (`if (node.text !== newText)`) em labels de HUD, telemetria e pontuação, evitando recálculo de texturas no PixiJS.
+
+---
+
+## 🔄 17. Runtime PixiJS e compatibilidade temporária
+
+- `main.ts` inicializa uma única instância de `RenderEngineAdapter` e um `SceneManager`; `PixiRenderTicker` fornece o delta limitado e o ciclo de atualização.
+- O `SystemRunner` ordena os sistemas nas fases `input`, `physics`, `ai`, `collision`, `culling` e `render`.
+- `createPixiBridgeContext` ainda traduz operações legadas de criação e controle de objetos para nós PixiJS em parte dos módulos. Essa fachada é temporária: novos módulos devem usar `IRenderEngine`, `IRenderNode` e os demais contratos de `INTERFACE_CONTRACTS.ts`.
+- A remoção da dependência Kaboom.js e do `LegacyBridge` está concluída; a migração de todos os consumidores `k.*` para os contratos permanece como limpeza técnica pendente.

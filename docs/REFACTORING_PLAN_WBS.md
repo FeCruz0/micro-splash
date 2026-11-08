@@ -4,6 +4,8 @@
 **Critério de Ordenação**: Menor Impacto $\rightarrow$ Maior Dependência (Folha $\rightarrow$ Raiz).  
 **Meta**: Transição Atômica dos 109 arquivos acoplados com Zero Downtime, Zero Type Drift e Zero regressões nos testes.
 
+**Status de execução (2026-11-08):** PixiJS v8 é o runtime gráfico e a dependência Kaboom.js foi removida. A `Onda 5` está parcialmente concluída: `src/main.ts` ainda contém `createPixiBridgeContext`, uma fachada que expõe chamadas `k.*` usada por módulos legados. Portanto, a remoção integral da API de compatibilidade e a adoção direta dos contratos em todos os consumidores permanecem pendentes.
+
 ---
 
 ## Índice das Ondas de Execução
@@ -13,7 +15,7 @@
 - [Onda 2: Camada de UI, Modais & Design System Acessível (36 arquivos)](#onda-2-camada-de-ui-modais--design-system-acessível-36-arquivos)
 - [Onda 3: Dinâmica de Jogo, Obstáculos, Cânion & Companion (29 arquivos)](#onda-3-dinâmica-de-jogo-obstáculos-cânion--companion-29-arquivos)
 - [Onda 4: Entidades do Loop Central, Cenas & Bootstrap (21 arquivos)](#onda-4-entidades-do-loop-central-cenas--bootstrap-21-arquivos)
-- [Onda 5: Limpeza de Dependências, Homologação & Cutover Final](#onda-5-limpeza-de-dependências-homologação--cutover-final)
+- [Onda 5: Limpeza de Dependências, Homologação & Cutover Final (Parcialmente Concluída)](#onda-5-limpeza-de-dependências-homologação--cutover-final-parcialmente-concluída)
 
 ---
 
@@ -176,29 +178,16 @@ _O núcleo da jogabilidade: Player, Física de Batimento, Cenas Modulares e Pont
 
 ---
 
-## Onda 5: Limpeza de Dependências, Homologação & Cutover Final
+## Onda 5: Limpeza de Dependências, Homologação & Cutover Final (Parcialmente Concluída)
 
-1. **Remoção do Pacote Legado**:
-   ```bash
-   npm uninstall kaboom
-   ```
-2. **Atualização dos 2 Testes Unitários Acoplados a Tipos Legados**:
-   - `tests/entities/companion/stateMachine.test.ts`: Remover `import type { GameObj } from "kaboom"` e usar os contratos puros de `INTERFACE_CONTRACTS.ts`.
-   - `tests/ui/phase65_ui_motion.test.ts`: Substituir `KaboomCtx`, `GameObj` e `Vec2` pelos contratos `IRenderNode` e `Vector2D`.
-3. **Validação Final de Compilação**:
-   ```bash
-   npx tsc --noEmit
-   ```
-4. **Homologação Completa da Suíte de Testes (659 Testes)**:
-   ```bash
-   npm test
-   ```
-5. **Auditoria de Empacotamento de Produção**:
-   ```bash
-   npm run build
-   ```
-6. **Verificação de Desempenho no Docker**:
-   ```bash
-   docker compose up --build -d
-   ```
-   Validação de carregamento limpo da porta 5173 com WebGL ativado e FPS estável a 60 fps.
+### Concluído
+
+- Removidos o pacote Kaboom.js e o `LegacyBridge`; o bootstrap cria uma instância do `RenderEngineAdapter` PixiJS v8 e usa o `SceneManager`.
+- `assetLoader` utiliza `Assets` do PixiJS v8 para carregar sprites.
+- O registro da implementação informa validação com `npx tsc --noEmit`, `npm test` e teste de estresse de 30.000 m no modo Sereno, sem quadros sustentados acima de 33,3 ms.
+
+### Pendente
+
+- Substituir `createPixiBridgeContext` em `src/main.ts` por dependências explícitas baseadas nos contratos de `src/engine/contracts/INTERFACE_CONTRACTS.ts`.
+- Migrar os consumidores restantes de `k.*` nos módulos de cenas, entidades, sistemas e UI; remover a fachada quando nenhum consumidor depender dela.
+- Revalidar TypeScript, testes e build após a remoção, e atualizar este status com os resultados da execução.

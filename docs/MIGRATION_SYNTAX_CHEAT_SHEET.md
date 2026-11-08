@@ -1,6 +1,6 @@
 # Tabela de Equivalência Sintática: Kaboom.js → PixiJS v8 Adapter
 
-Este documento serve como a **referência canônica (Cheat-Sheet)** para todos os Agentes de Execução (Light / Fast Agents) durante a migração dos 109 arquivos do **Micro Splash** para a nova arquitetura baseada no **Adapter Pattern** e **PixiJS v8**.
+Este documento registra as equivalências da migração do **Micro Splash** para o **PixiJS v8** e orienta o código novo a usar os contratos da engine. A migração do runtime foi concluída, mas `src/main.ts` ainda oferece uma fachada temporária `createPixiBridgeContext` para chamadas legadas `k.*`; não a amplie nem a use como padrão para novos módulos.
 
 ---
 

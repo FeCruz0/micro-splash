@@ -15,8 +15,9 @@ Este documento registra formalmente as decisões arquiteturais fundamentais adot
 - **Decisão:**
   Implementar uma camada de abstração com o padrão Adapter baseado estritamente nas interfaces declaradas em [`src/engine/contracts/INTERFACE_CONTRACTS.ts`](src/engine/contracts/INTERFACE_CONTRACTS.ts). As entidades de jogo (player, companion, obstáculos, cardumes de krill, biomas) interagirão exclusivamente com `IRenderEngine`, `IRenderNode`, `ISpriteNode`, `IGraphicsNode` e `ITextNode`.
 - **Consequências:**
-  - **Positivas:** Acoplamento à biblioteca gráfica externa reduzido de 64% para próximo de 0%. Apenas a pasta `src/engine/adapters/` conhecerá as APIs internas do PixiJS v8. Mocking e testes unitários tornam-se triviais sem dependência de WebGL/WebGPU em headless CI.
+  - **Positivas:** A camada de contratos e os adapters isolam a maior parte do uso da API do PixiJS, facilitando mocking e testes unitários sem WebGL/WebGPU em headless CI.
   - **Negativas:** Requer uma camada adicional de indirection e wrappers leves em torno dos objetos gráficos do PixiJS.
+  - **Implementação atual:** O bootstrap (`main.ts`) e o carregamento de assets também importam PixiJS; além disso, módulos legados ainda usam `createPixiBridgeContext`. O isolamento total previsto nesta decisão depende de remover essa fachada.
 
 ---
 
@@ -36,6 +37,7 @@ Este documento registra formalmente as decisões arquiteturais fundamentais adot
 - **Consequências:**
   - **Positivas:** 100% de nitidez tipográfica nativa do navegador; acessibilidade imediata com leitores de tela; simplificação drástica do código de modais; redução do tamanho do bundle gráfico.
   - **Negativas:** Necessidade de gerenciar a visibilidade e o pointer-events da camada overlay em sincronia com o estado das cenas do jogo.
+- **Implementação atual:** As telas e os modais migrados são renderizados na camada PixiJS de tela; a sobreposição DOM semântica prevista originalmente não é o caminho usado pela UI atual.
 
 ---
 
@@ -109,3 +111,18 @@ Este documento registra formalmente as decisões arquiteturais fundamentais adot
 - **Consequências:**
   - **Positivas:** Framerate cravado em 60 FPS com latência de frame estável (p95 < 16.6ms); eliminação de picos de Garbage Collection; renderização WebGL limpa e escalável.
   - **Negativas:** Requer disciplina estrita de buffers reutilizáveis e verificação atenta de mutações nos testes unitários.
+
+---
+
+### ADR 007: Runtime PixiJS v8 e remoção gradual da API legada
+
+- **Status:** Runtime concluído; remoção da fachada legada pendente
+- **Data:** 2026-11-08
+- **Contexto:** A troca do runtime e a remoção do pacote Kaboom.js foram concluídas, mas a migração de todos os consumidores para os contratos tipados ainda não terminou. `src/main.ts` mantém `createPixiBridgeContext`, que oferece operações no formato `k.*` a módulos antigos.
+- **Decisão:**
+  1. PixiJS v8, por meio de `RenderEngineAdapter`, é o único runtime gráfico; `SceneManager` e `PixiRenderTicker` gerenciam cenas e atualizações.
+  2. A fachada de compatibilidade é transitória e não deve receber novos consumidores nem ser ampliada.
+  3. Módulos novos ou alterados devem usar `IRenderEngine`, `IRenderNode` e os demais contratos de `INTERFACE_CONTRACTS.ts`; a fachada será removida após a migração dos consumidores existentes.
+- **Consequências:**
+  - **Positivas:** O runtime não depende mais do pacote Kaboom.js, mantendo a transição funcional e isolando a limpeza restante.
+  - **Pendentes:** A fachada ainda concentra comportamento de compatibilidade e não permite afirmar que todos os módulos foram migrados diretamente para os contratos tipados.

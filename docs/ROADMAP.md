@@ -922,7 +922,7 @@ _Objetivo: Desatrelar a baleia co-migrante de restrições artificiais baseadas 
 
 ## 🎯 Próximas Fases Planejadas (Backlog)
 
-### 📅 FASE 62: Ajuste de Interface & Ocultação do Desafio Semanal (Em Desenvolvimento)
+### 📅 FASE 62: Ajuste de Interface & Ocultação do Desafio Semanal (Concluída)
 
 _Objetivo: Remover o botão de acesso ao Desafio Semanal na tela de seleção de modos (`src/ui/modeSelectScreen.ts`) e a aba de Desafio Semanal do quadro de recordes (`src/ui/leaderboardScreen.ts`), mantendo o Desafio Semanal documentado como "Em Desenvolvimento" em toda a documentação até o polimento completo do ecossistema de rankings comunitários e geração de sementes determinísticas._
 
@@ -937,7 +937,7 @@ _Objetivo: Remover o botão de acesso ao Desafio Semanal na tela de seleção de
   - Centralizar simetricamente as abas remanescentes com largura adaptativa e navegação por foco acessível com 4 itens ([X], Global, Local, Fechar).
   - Preservar os endpoints e funções de dados de ranking semanal (`src/services/leaderboardApi.ts`, `src/systems/weeklyChallenge.ts`) para reativação futura.
 
-### 🗣️ FASE 63: Ocultação da Narração por Voz & Recurso em Desenvolvimento
+### 🗣️ FASE 63: Ocultação da Narração por Voz & Recurso em Desenvolvimento (Concluída)
 
 _Objetivo: Remover o botão de alternância de Narração em Voz (TTS) do painel de Opções de Acessibilidade (`src/ui/options/accessibilityOptionsTab.ts`), mantendo a funcionalidade documentada como "Em Desenvolvimento" em toda a documentação enquanto a síntese de voz nativa Web Speech API é aprimorada para compatibilidade multiplataforma._
 
@@ -948,7 +948,7 @@ _Objetivo: Remover o botão de alternância de Narração em Voz (TTS) do painel
   - Registrar formalmente em `docs/ROADMAP.md`, `docs/ARCHITECTURE.md`, `docs/PRIVACIDADE.md` e `README.md` que a Narração por Voz (TTS) está categorizada como **"Em Desenvolvimento"**.
   - Preservar o sistema subjacente (`src/systems/ttsSystem.ts`, chamadas nos pop-ups pedagógicos/insights e testes unitários) para viabilizar futura reativação sem quebra arquitetural.
 
-### 🎨 FASE 64: Design System Centralizado, Tokens Semânticos & Shell de Modais (UI Foundation)
+### 🎨 FASE 64: Design System Centralizado, Tokens Semânticos & Shell de Modais (UI Foundation) (Concluída)
 
 _Objetivo: Estruturar uma camada fundacional de UI eliminando cores hardcoded espalhadas e geometrias redundantes, introduzindo tokens semânticos unificados, um container padronizado para modais com animação de entrada e saída, e componentes compartilhados de abas e botões com foco acessível._
 
@@ -963,7 +963,7 @@ _Objetivo: Estruturar uma camada fundacional de UI eliminando cores hardcoded es
 - [x] **64.4 Suíte de Testes Automatizados do Design System (`tests/ui/phase64_design_system.test.ts`):**
   - Cobertura de integridade para a tabela de tokens, cálculo de proporções responsivas no `modalShell` e ciclos de foco nos componentes unificados.
 
-### ✨ FASE 65: Polimento Visual, Micro-Interações & Dinâmica Oceânica (Motion & Juice)
+### ✨ FASE 65: Polimento Visual, Micro-Interações & Dinâmica Oceânica (Motion & Juice) (Concluída)
 
 _Objetivo: Elevar a sensação tátil e o acabamento premium do jogo mediante micro-animações pontuais, contadores numéricos dinâmicos, hierarquia tipográfica consolidada e transições ambientais suaves sem impacto no orçamento de 60 FPS._
 
@@ -978,7 +978,7 @@ _Objetivo: Elevar a sensação tátil e o acabamento premium do jogo mediante mi
 - [x] **65.5 Suíte de Testes de Motion & Micro-Interações (`tests/ui/phase65_ui_motion.test.ts`):**
   - Testes unitários para temporizações de tween, comportamento de fallback em modo de movimento reduzido e garantia de não-bloqueio de interação.
 
-### ⚡ FASE 66: Otimização de CPU, Zero-Allocation & Deep Culling
+### ⚡ FASE 66: Otimização de CPU, Zero-Allocation & Deep Culling (Concluída)
 
 _Objetivo: Eliminar alocações dinâmicas na heap e GC spikes a 60 FPS no loop de simulação e particionamento espacial._
 
@@ -990,14 +990,14 @@ _Objetivo: Eliminar alocações dinâmicas na heap e GC spikes a 60 FPS no loop 
 - [x] **66.3 Dirty-Checking em Rótulos de Texto (`src/ui/`):**
   - Guardas de pré-atribuição no HUD, telemetria e contadores para prevenir recomputação de texturas no PixiJS.
 
-### 💡 FASE 67: Raios Volumétricos de Luz (God Rays Submarinos)
+### 💡 FASE 67: Raios Volumétricos de Luz (God Rays Submarinos) (Concluída)
 
 _Objetivo: Implementar iluminação volumétrica oceânica de alta fidelidade visual com culling por bioma e zero alocação._
 
 - [x] **67.1 Iluminação Volumétrica Dinâmica (`src/systems/volumetricRaysSystem.ts`):**
   - Feixes de luz solar penetrando a coluna d'água com ondulação harmônica, atenuação por profundidade e conformidade de movimento reduzido.
 
-### 🪸 FASE 68: Fisiografia, Gorgônias & Fauna do Estreito do Boqueirão
+### 🪸 FASE 68: Fisiografia, Gorgônias & Fauna do Estreito do Boqueirão (Concluída)
 
 _Objetivo: Modelar o relevo escarpado do Boqueirão de Arraial do Cabo com costões de granito, fendas tectônicas, diques e gorgônias 16-bits._
 
@@ -1007,7 +1007,7 @@ _Objetivo: Modelar o relevo escarpado do Boqueirão de Arraial do Cabo com cost�
   - Gorgônias multicoloridas nas paredes rochosas, costões escarpados, bioincrustações de algas calcárias Lithothamnion, ouriços e tufos de anêmonas vivas.
   - Ticker consolidado único (`boqueirao_fauna_ticker`) para tartarugas marinhas e peixes de passagem com pré-bake de texturas.
 
-### 🛡️ FASE 69: Erradicação de Física Nativa em Geometria Estática & Pipeline PixiJS v8
+### 🛡️ FASE 69: Erradicação de Física Nativa em Geometria Estática & Pipeline PixiJS v8 (Concluída)
 
 _Objetivo: Extirpar componentes de colisão estática da engine clássica e acelerar o grafo de renderização WebGL._
 
@@ -1017,3 +1017,12 @@ _Objetivo: Extirpar componentes de colisão estática da engine clássica e acel
   - Corte do cálculo matricial e chamadas de desenho no WebGL para nós invisíveis no `PixiNodes.ts`.
 - [x] **69.3 Supressão de Interatividade e Z-Sorting sob Demanda:**
   - Palco e nós configurados com `eventMode = "none"` e `interactiveChildren = false`; desativação de `sortableChildren` contínuo com ordenação invocada apenas em mutações reais de `zIndex`.
+
+### 🚀 FASE 70: Runtime PixiJS v8 & Validação da Migração (Runtime concluído; compatibilidade pendente)
+
+- [x] **70.1 Loop principal e cenas:** PixiJS inicializado pelo `RenderEngineAdapter`; `SceneManager` controla splash, menu, jogo, resgate e vitória.
+- [x] **70.2 Apresentação e simulação:** Separação das camadas de mundo/tela, integração do ticker e organização dos sistemas em fases canônicas.
+- [x] **70.3 Entidades, colisões, input e interface:** Migração das superfícies de gameplay e UI para nós PixiJS, estado unificado de input, consultas de colisão espaciais e tweens desacoplados.
+- [x] **70.4 Dependência e assets:** Remoção da dependência Kaboom.js e de `LegacyBridge`; carregamento de sprites pelo `Assets` do PixiJS v8.
+- [x] **70.5 Verificação de desempenho:** Teste de estresse cobre a rota de 30.000 m no modo Sereno sem quadros sustentados acima de 33,3 ms; a meta não representa garantia geral de 60 FPS em todo hardware.
+- [ ] **70.6 Remoção da fachada compatível:** Migrar `createPixiBridgeContext` e os consumidores restantes de `k.*` para os contratos tipados da engine. A existência desta fachada significa que a migração de todos os módulos para a API tipada ainda não está concluída.

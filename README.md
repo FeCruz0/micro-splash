@@ -7,7 +7,7 @@
 [![PWA Ready](https://img.shields.io/badge/PWA-Offline--First-orange.svg)](public/manifest.json)
 [![WCAG 2.1 AA](https://img.shields.io/badge/Accessibility-WCAG%202.1%20AA-purple.svg)](docs/ROADMAP.md)
 
-Um jogo 2D arcade de navegação subaquática, física hidrodinâmica, bioacústica marinha e conscientização ambiental desenvolvido em **TypeScript** com **Kaboom.js**, síntese procedural com **Web Audio API** e empacotamento ultraleve com **Vite**.
+Um jogo 2D arcade de navegação subaquática, física hidrodinâmica, bioacústica marinha e conscientização ambiental desenvolvido em **TypeScript** e **PixiJS v8**, com síntese procedural via **Web Audio API** e empacotamento ultraleve com **Vite**.
 
 Este projeto foi concebido com foco em **educação e consciência ecológica**, abordando os graves impactos da poluição marinha e a fantástica rota migratória das **baleias-jubarte (_Megaptera novaeangliae_)** desde as águas polares da Antártica até o berçário de reprodução em **Arraial do Cabo, RJ**.
 
@@ -74,12 +74,12 @@ O _Micro Splash_ prioriza a acessibilidade desde a sua concepção:
 ## 🛠️ Stack Tecnológica
 
 - **Linguagem:** [TypeScript 5](https://www.typescriptlang.org/) (Strict Mode)
-- **Engine Gráfica & Apresentação:** [PixiJS v8](https://pixijs.com/) via arquitetura Adapter (`IRenderEngine`), com suporte híbrido ao runtime do [Kaboom.js](https://kaboomjs.com/)
+- **Engine Gráfica & Apresentação:** [PixiJS v8](https://pixijs.com/) via `RenderEngineAdapter`, `SceneManager` e ticker próprio; o pacote Kaboom.js não faz parte do runtime. Uma fachada de compatibilidade temporária ainda atende chamadas legadas `k.*` em módulos do jogo.
 - **Particionamento Espacial & Física:** `SpatialHashGrid` 2D $O(1)$ determinístico com hashing bitwise e zero alocação na heap
 - **Áudio:** Web Audio API nativa com síntese procedural, limiter dinâmico, espacialização estéreo 2D e acústica convolutiva
 - **Validação de Schemas:** [Zod](https://zod.dev/) para integridade estrita de dados
 - **Build Tool & Dev Server:** [Vite](https://vitejs.dev/)
-- **Testes Automatizados:** [Vitest](https://vitest.dev/) (91 suítes e 713 testes automatizados 100% aprovados) com `@vitest/coverage-v8`
+- **Testes Automatizados:** [Vitest](https://vitest.dev/) com `@vitest/coverage-v8`; inclui teste de estresse da rota de 30.000 m no modo Sereno
 - **Linters & Formatadores:** ESLint 9 Flat Config + Prettier
 - **Containerização:** Docker Multi-stage + Nginx Alpine (imagem de apenas ~21.2 MB)
 
@@ -124,6 +124,8 @@ docker compose up
 - 📊 [Especificação dos Dados (`docs/DATA_SCHEMA.md`)](docs/DATA_SCHEMA.md): Estrutura Zod de `facts.json`, `quiz.json` e `level_layout.json`.
 - 🛡️ [Privacidade & LGPD (`docs/PRIVACIDADE.md`)](docs/PRIVACIDADE.md): Política de dados escolares 100% offline-first sem cookies de rastreamento.
 - 🏗️ [Arquitetura do Sistema (`docs/ARCHITECTURE.md`)](docs/ARCHITECTURE.md): Detalhamento técnico dos subsistemas de física e áudio.
+- 🔄 [Plano de Migração (`docs/REFACTORING_PLAN_WBS.md`)](docs/REFACTORING_PLAN_WBS.md): Escopo executado da migração para PixiJS e limpeza de compatibilidade ainda pendente.
+- 🧩 [Referência de Migração (`docs/MIGRATION_SYNTAX_CHEAT_SHEET.md`)](docs/MIGRATION_SYNTAX_CHEAT_SHEET.md): Equivalências para novos módulos usarem os contratos da engine.
 - 🐋 [Game Design Document (`docs/GDD.md`)](docs/GDD.md): Filosofia de design, regras de pontuação e progressão.
 - 🌊 [Fundamentação Científica (`docs/OCEAN_FACTS.md`)](docs/OCEAN_FACTS.md): Artigos acadêmicos e referências do Instituto Baleia Jubarte.
 - 🗺️ [Roadmap de Desenvolvimento (`docs/ROADMAP.md`)](docs/ROADMAP.md): Acompanhamento de todas as fases de produção.
