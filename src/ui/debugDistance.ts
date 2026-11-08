@@ -9,7 +9,7 @@ import { GAME_CONFIG, getSavedDisplayMode } from "../config";
 import { getCurrentBiome } from "../systems/oceanEnvironment";
 import type { PlayerController } from "../entities/player";
 import type { IRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../engine/adapters/LegacyBridge";
+import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 
 export interface PerformanceStats {
   fps?: number;

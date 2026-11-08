@@ -22,8 +22,8 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id: string) {
-          if (id.includes("node_modules/kaboom")) {
-            return "vendor_kaboom";
+          if (id.includes("node_modules/pixi.js")) {
+            return "vendor_pixi";
           }
           if (id.includes("node_modules/zod")) {
             return "vendor_zod";

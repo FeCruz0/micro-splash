@@ -17,7 +17,7 @@
 
 import type { PlayerGameObject } from "./types";
 import type { IRenderEngine, IGraphicsNode } from "../../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../../engine/adapters/LegacyBridge";
+import { isRenderEngine } from "../../engine/contracts/INTERFACE_CONTRACTS";
 import { getActiveRenderEngine } from "../../engine/adapters/RenderEngineAdapter";
 
 export interface NetOverlayEngineContext {

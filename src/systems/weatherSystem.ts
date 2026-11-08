@@ -11,11 +11,8 @@ import { getRandomFloat } from "../utils/random";
 import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 import { getParticlePool } from "./particlePool";
 import type { IRenderEngine, IGraphicsNode } from "../engine/contracts/INTERFACE_CONTRACTS";
-import {
-  isRenderEngine,
-  resolveCameraX,
-  type LegacyEngineBridge,
-} from "../engine/adapters/LegacyBridge";
+import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveCameraX } from "./cameraSystem";
 
 /**
  * Tipo identificador do micro-clima em execução.
@@ -175,7 +172,7 @@ class PixiWeatherParticleProxy implements WeatherParticleObject {
  * Inicializa os geradores de partículas atmosféricas e micro-climas dinâmicos.
  */
 export function setupWeatherSystem(
-  engineOrContext: IRenderEngine | LegacyEngineBridge,
+  engineOrContext: IRenderEngine | any,
   playerController: PlayerController
 ) {
   const isPixi = isRenderEngine(engineOrContext);
@@ -437,24 +434,7 @@ export function setupWeatherSystem(
     });
   } else {
     // Modo Legacy Kaboom Bridge
-    const legacyCtx = engineOrContext as LegacyEngineBridge & {
-      camPos(): { x: number; y: number };
-      width(): number;
-      height(): number;
-      rand(min: number, max?: number): number;
-      circle(r: number): unknown;
-      rect(w: number, h: number, opts?: unknown): unknown;
-      rotate(a: number): unknown;
-      pos(x: number, y: number): unknown;
-      color(r: number, g: number, b: number): unknown;
-      rgb(r: number, g: number, b: number): unknown;
-      opacity(o: number): unknown;
-      z(layer: number): unknown;
-      vec2(x: number, y: number): unknown;
-      dt(): number;
-      destroy(obj: unknown): void;
-      onUpdate(cb: () => void): void;
-    };
+    const legacyCtx = engineOrContext as any;
 
     const cam = legacyCtx.camPos();
 

@@ -9,7 +9,7 @@ import { GAME_CONFIG } from "../config";
 import type { PlayerController } from "../entities/player";
 import { getCurrentBiome } from "./oceanEnvironment";
 import type { IRenderEngine, IGraphicsNode } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine, type LegacyEngineBridge } from "../engine/adapters/LegacyBridge";
+import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 
 export interface ShadowMetrics {
   positionX: number;
@@ -179,7 +179,7 @@ export function calculateShadowMetrics(
  * Inicializa o sistema de Sombras Dinâmicas da Jubarte.
  */
 export function setupDynamicShadowSystem(
-  engineOrContext: IRenderEngine | LegacyEngineBridge,
+  engineOrContext: IRenderEngine | unknown,
   playerController: PlayerController
 ): DynamicShadowSystem {
   const isPixi = isRenderEngine(engineOrContext);
@@ -277,22 +277,7 @@ export function setupDynamicShadowSystem(
     };
   }
 
-  const legacyCtx = engineOrContext as LegacyEngineBridge & {
-    rect(w: number, h: number, opts?: unknown): unknown;
-    pos(x: number, y: number): unknown;
-    rotate(a: number): unknown;
-    scale(x: number, y: number): unknown;
-    anchor(a: string): unknown;
-    color(c: unknown): unknown;
-    color(r: number, g: number, b: number): unknown;
-    rgb(r: number, g: number, b: number): unknown;
-    opacity(o: number): unknown;
-    z(layer: number): unknown;
-    lerp(a: number, b: number, t: number): number;
-    height(): number;
-    dt(): number;
-    destroy(obj: unknown): void;
-  };
+  const legacyCtx = engineOrContext as any;
 
   const penumbraHalo = legacyCtx.add([
     legacyCtx.rect(114, 14, { radius: 7 }),

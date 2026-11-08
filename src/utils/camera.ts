@@ -8,10 +8,14 @@
 
 import { accessibilitySystem } from "../systems/accessibilitySystem";
 import type { IRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
-import type { LegacyEngineBridge } from "../engine/adapters/LegacyBridge";
 import { getActiveRenderEngine } from "../engine/adapters/RenderEngineAdapter";
 
-export { cameraSystem, CameraSystem, type CameraFollowOptions } from "../systems/cameraSystem";
+export {
+  cameraSystem,
+  CameraSystem,
+  resolveCameraX,
+  type CameraFollowOptions,
+} from "../systems/cameraSystem";
 
 export interface CameraShakeContext {
   shake?(intensity: number): unknown;
@@ -25,7 +29,7 @@ export interface CameraShakeContext {
  * @param shakeIntensityInPixels Intensidade do tremor em pixels.
  */
 export function safeShake(
-  engineOrContext: CameraShakeContext | IRenderEngine | LegacyEngineBridge,
+  engineOrContext: CameraShakeContext | IRenderEngine | unknown,
   shakeIntensityInPixels: number
 ): void {
   if (!engineOrContext) return;

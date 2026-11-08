@@ -12,11 +12,8 @@ import type {
   IRenderNode,
   IGraphicsNode,
 } from "../engine/contracts/INTERFACE_CONTRACTS";
-import {
-  isRenderEngine,
-  resolveCameraX,
-  type LegacyEngineBridge,
-} from "../engine/adapters/LegacyBridge";
+import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveCameraX } from "./cameraSystem";
 
 export interface SkyRenderObject {
   pos: { x: number; y: number };
@@ -265,7 +262,7 @@ function drawRetro16BitCloud(
 }
 
 function createCloudObject(
-  engineOrContext: IRenderEngine | LegacyEngineBridge,
+  engineOrContext: IRenderEngine | any,
   options: {
     width: number;
     height: number;
@@ -385,7 +382,7 @@ function createCloudObject(
 }
 
 function createSkyObject(
-  engineOrContext: IRenderEngine | LegacyEngineBridge,
+  engineOrContext: IRenderEngine | any,
   options: {
     tag: string;
     type: "rect" | "circle" | "polygon";
@@ -598,7 +595,7 @@ function createSkyObject(
  * - Aves marinhas autênticas por bioma: Albatroz, Fragata e Garça (29.8)
  */
 export function setupParallaxSkySystem(
-  engineOrContext: IRenderEngine | LegacyEngineBridge
+  engineOrContext: IRenderEngine | any
 ): ParallaxSkySystem {
   const isPixi = isRenderEngine(engineOrContext);
   const screenW = isPixi

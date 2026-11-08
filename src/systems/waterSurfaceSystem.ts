@@ -7,11 +7,8 @@
 
 import { GAME_CONFIG, TAGS } from "../config";
 import type { IRenderEngine, IGraphicsNode } from "../engine/contracts/INTERFACE_CONTRACTS";
-import {
-  isRenderEngine,
-  resolveCameraX,
-  type LegacyEngineBridge,
-} from "../engine/adapters/LegacyBridge";
+import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveCameraX } from "./cameraSystem";
 
 export type SurfaceColor =
   { r: number; g: number; b: number } | readonly [number, number, number] | number | string;
@@ -153,7 +150,7 @@ class PixiSurfaceSegmentProxy implements SurfaceRenderObject {
  * acoplados a ondas senoidais harmônicas e crista de espuma dinâmica translúcida.
  */
 export function createWaterSurfaceSystem(
-  engineOrContext: IRenderEngine | LegacyEngineBridge
+  engineOrContext: IRenderEngine | any
 ): WaterSurfaceSystem {
   const segmentCount = 14;
   const isPixi = isRenderEngine(engineOrContext);
@@ -298,18 +295,7 @@ export function createWaterSurfaceSystem(
   }
 
   // Modo Legacy Kaboom Bridge
-  const legacyCtx = engineOrContext as LegacyEngineBridge & {
-    rect(w: number, h: number, opts?: unknown): unknown;
-    pos(x: number, y: number): unknown;
-    color(c: unknown): unknown;
-    color(r: number, g: number, b: number): unknown;
-    rgb(r: number, g: number, b: number): { r: number; g: number; b: number };
-    area(): unknown;
-    opacity(o: number): unknown;
-    z(layer: number): unknown;
-    camPos?(): { x: number; y: number };
-    destroy(obj: unknown): void;
-  };
+  const legacyCtx = engineOrContext as any;
 
   const collider = legacyCtx.add([
     legacyCtx.rect(viewWidth * 2.2, 16),

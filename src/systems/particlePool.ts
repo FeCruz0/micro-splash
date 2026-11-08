@@ -12,7 +12,7 @@ import type {
   IGraphicsNode,
   ISpriteNode,
 } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine, type LegacyEngineBridge } from "../engine/adapters/LegacyBridge";
+import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 
 export interface ParticleVec2 {
   x: number;
@@ -304,7 +304,7 @@ class PixiPooledParticleProxy implements ParticleRenderObject {
  * Gerenciador de Piscina de Partículas (Object Pooling) de alta performance.
  */
 export class ParticlePool {
-  private engineOrContext: IRenderEngine | LegacyEngineBridge;
+  private engineOrContext: IRenderEngine | any;
   private circlePool: PooledCircle[] = [];
   private rectPool: PooledRect[] = [];
   private activeCircleIndices: number[] = [];
@@ -315,7 +315,7 @@ export class ParticlePool {
   private sharedCircleTexture: unknown = null;
 
   constructor(
-    engineOrContext: IRenderEngine | LegacyEngineBridge,
+    engineOrContext: IRenderEngine | any,
     circleCount = 140,
     rectCount = 30
   ) {
@@ -458,15 +458,7 @@ export class ParticlePool {
         });
       }
     } else {
-      const legacyCtx = this.engineOrContext as LegacyEngineBridge & {
-        circle(r: number): unknown;
-        rect(w: number, h: number): unknown;
-        pos(x: number, y: number): unknown;
-        color(r: number, g: number, b: number): unknown;
-        opacity(o: number): unknown;
-        z(layer: number): unknown;
-        vec2(x: number, y: number): ParticleVec2;
-      };
+      const legacyCtx = this.engineOrContext as any;
 
       for (let i = 0; i < circleCount; i++) {
         const obj = legacyCtx.add([
@@ -796,7 +788,7 @@ export class ParticlePool {
 let activeParticlePool: ParticlePool | null = null;
 
 export function initParticlePool(
-  engineOrContext: IRenderEngine | LegacyEngineBridge,
+  engineOrContext: IRenderEngine | any,
   circleCount = 140,
   rectCount = 30
 ): ParticlePool {

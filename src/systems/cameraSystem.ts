@@ -76,3 +76,25 @@ export class CameraSystem {
 }
 
 export const cameraSystem = new CameraSystem();
+
+/**
+ * Resolve a posição horizontal (X) da câmera ativa no mundo de forma resiliente.
+ */
+export function resolveCameraX(engineOrContext?: IRenderEngine | unknown): number {
+  if (
+    engineOrContext &&
+    typeof (engineOrContext as IRenderEngine).getCameraPosition === "function"
+  ) {
+    return (engineOrContext as IRenderEngine).getCameraPosition().x;
+  }
+  if (
+    engineOrContext &&
+    typeof (engineOrContext as { camPos?: () => { x: number } }).camPos === "function"
+  ) {
+    const position = (engineOrContext as { camPos: () => { x: number } }).camPos();
+    if (position && typeof position.x === "number") {
+      return position.x;
+    }
+  }
+  return cameraSystem.getCameraPosition().x;
+}

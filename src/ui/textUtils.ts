@@ -12,7 +12,7 @@ import type {
   Vector2D,
   ColorRepresentation,
 } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../engine/adapters/LegacyBridge";
+import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 
 export type TextAnchor =
   "topleft" | "top" | "topright" | "left" | "center" | "right" | "botleft" | "bot" | "botright";

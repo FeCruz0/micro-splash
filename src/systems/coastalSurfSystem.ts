@@ -7,11 +7,8 @@
 
 import { GAME_CONFIG } from "../config";
 import type { IRenderEngine, IGraphicsNode } from "../engine/contracts/INTERFACE_CONTRACTS";
-import {
-  isRenderEngine,
-  resolveCameraX,
-  type LegacyEngineBridge,
-} from "../engine/adapters/LegacyBridge";
+import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveCameraX } from "./cameraSystem";
 
 export interface FoamRenderObject {
   opacity: number;
@@ -80,7 +77,7 @@ class PixiFoamNodeProxy implements FoamRenderObject {
  * pela superfície da Enseada dos Anjos (24.800m+).
  */
 export function setupCoastalSurfSystem(
-  engineOrContext: IRenderEngine | LegacyEngineBridge
+  engineOrContext: IRenderEngine | any
 ): CoastalSurfSystem {
   const isPixi = isRenderEngine(engineOrContext);
   const count = 12;
@@ -165,16 +162,7 @@ export function setupCoastalSurfSystem(
     };
   }
 
-  const legacyCtx = engineOrContext as LegacyEngineBridge & {
-    rand?(min: number, max: number): number;
-    rect(w: number, h: number, opts?: unknown): unknown;
-    pos(x: number, y: number): unknown;
-    color(r: number, g: number, b: number): unknown;
-    opacity(o: number): unknown;
-    z(layer: number): unknown;
-    camPos?(): { x: number; y: number };
-    destroy(obj: unknown): void;
-  };
+  const legacyCtx = engineOrContext as any;
 
   for (let i = 0; i < count; i++) {
     const width = typeof legacyCtx.rand === "function" ? legacyCtx.rand(10, 26) : 16;

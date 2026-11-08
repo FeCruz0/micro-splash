@@ -8,12 +8,9 @@
 import { calculateBiomeTransitionFactor } from "./biomeTransitionSystem";
 import { getSpatialCullingManager } from "./spatialCullingSystem";
 import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
-import type { IRenderEngine, IRenderNode, Vector2D } from "../engine/contracts/INTERFACE_CONTRACTS";
-import {
-  isRenderEngine,
-  resolveCameraX,
-  type LegacyEngineBridge,
-} from "../engine/adapters/LegacyBridge";
+import type { IRenderEngine, IRenderNode } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveCameraX } from "./cameraSystem";
 import { getActiveRenderEngine } from "../engine/adapters/RenderEngineAdapter";
 import {
   create16BitSanctuaryTextures,
@@ -152,7 +149,7 @@ export function calculateKelpSegmentColor(
   realEngine:
     | { rgb?: (r: number, g: number, b: number) => { r: number; g: number; b: number } }
     | IRenderEngine
-    | LegacyEngineBridge,
+    | any,
   segmentIndex: number,
   totalSegments: number
 ): { r: number; g: number; b: number } {
@@ -190,7 +187,7 @@ export const LITHOTHAMNION_SPAWN_X = [
  * Sistema do Fundo Marinho Bentônico: Florestas de Kelp (Antártica) e Jardins de Corais (Arraial do Cabo)
  * Enriquece o leito oceânico com ecossistemas autênticos e física suave de ondulação subaquática.
  */
-export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyEngineBridge): void {
+export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | any): void {
   const engineCandidate = engineOrContext as { renderEngine?: unknown };
   const candidateEngine: unknown = isRenderEngine(engineOrContext)
     ? engineOrContext
@@ -772,28 +769,7 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | LegacyE
     });
   } else {
     // Modo Legacy Kaboom Bridge
-    const legacyCtx = engineOrContext as LegacyEngineBridge & {
-      rect(w: number, h: number, opts?: unknown): unknown;
-      circle(radius: number): unknown;
-      polygon(points: unknown[]): unknown;
-      pos(x: number, y: number): unknown;
-      color(c: unknown): unknown;
-      color(r: number, g: number, b: number): unknown;
-      rgb(r: number, g: number, b: number): unknown;
-      opacity(o: number): unknown;
-      anchor(a: string): unknown;
-      rotate(a: number): unknown;
-      scale(x: number, y: number): unknown;
-      z(layer: number): unknown;
-      outline(w: number, col: unknown): unknown;
-      vec2(x: number, y: number): MutableVec2;
-      time(): number;
-      dt(): number;
-      camPos(): Vector2D;
-      width(): number;
-      height(): number;
-      onUpdate(cb: () => void): void;
-    };
+    const legacyCtx = engineOrContext as any;
 
     // 1. Kelp
     KELP_SPAWN_X.forEach((xPos, plantIdx) => {

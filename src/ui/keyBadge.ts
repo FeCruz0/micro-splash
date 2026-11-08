@@ -7,7 +7,7 @@
 
 import { FONT_TITLE, TEXT_SIZE_CAPTION } from "../config";
 import type { IRenderEngine, Vector2D } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../engine/adapters/LegacyBridge";
+import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 
 export interface KeyBadgeOptions {
   pos: Vector2D;

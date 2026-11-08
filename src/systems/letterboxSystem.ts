@@ -7,7 +7,7 @@
 
 import { getSavedDisplayMode, getSavedLetterboxColor, type LetterboxColor } from "../config";
 import type { IRenderEngine, IGraphicsNode } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine, type LegacyEngineBridge } from "../engine/adapters/LegacyBridge";
+import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 
 export interface LetterboxHandle {
   update: () => void;
@@ -27,7 +27,7 @@ interface LetterboxBorderElement {
  * quando a tela estiver em modo letterbox, com suporte a cores preto (#000000) ou azul oceânico (#06122a).
  */
 export function setupLetterboxBorders(
-  engineOrContext: IRenderEngine | LegacyEngineBridge
+  engineOrContext: IRenderEngine | unknown
 ): LetterboxHandle {
   const displayMode = getSavedDisplayMode();
   if (displayMode !== "letterbox") {
@@ -124,17 +124,7 @@ export function setupLetterboxBorders(
   }
 
   // Modo Legacy Kaboom Bridge
-  const legacyCtx = engineOrContext as LegacyEngineBridge & {
-    rect(width: number, height: number): unknown;
-    pos(x: number, y: number): unknown;
-    color(colorValue: unknown): unknown;
-    rgb(red: number, green: number, blue: number): unknown;
-    fixed(): unknown;
-    z(layer: number): unknown;
-    width(): number;
-    height(): number;
-    destroy(targetObject: unknown): void;
-  };
+  const legacyCtx = engineOrContext as any;
 
   const getRgbColor = (color: LetterboxColor) =>
     typeof legacyCtx.rgb === "function"

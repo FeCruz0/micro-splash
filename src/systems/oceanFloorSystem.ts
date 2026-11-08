@@ -8,7 +8,7 @@
 import { GAME_CONFIG, TAGS } from "../config";
 import { getSpatialCullingManager } from "./spatialCullingSystem";
 import type { IRenderEngine, Vector2D } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine, type LegacyEngineBridge } from "../engine/adapters/LegacyBridge";
+import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 
 export interface SubmarineRelief {
   startX: number;
@@ -273,7 +273,7 @@ export function generateReliefCapPolygonPoints(
 /**
  * Cria a topografia do leito marinho com colisões sólidas e resposta ao Biosonar.
  */
-export function setupOceanFloorSystem(engineOrContext: IRenderEngine | LegacyEngineBridge): void {
+export function setupOceanFloorSystem(engineOrContext: IRenderEngine | any): void {
   const isPixi = isRenderEngine(engineOrContext);
   const screenH = isPixi
     ? engineOrContext.getDimensions().height
@@ -360,13 +360,7 @@ export function setupOceanFloorSystem(engineOrContext: IRenderEngine | LegacyEng
       cullingManager?.registerEntity(reliefGfx as unknown as CullingTarget, () => relief.startX);
     } else {
       // Legacy Kaboom engine
-      const legacyCtx = engineOrContext as LegacyEngineBridge & {
-        rgb(r: number, g: number, b: number): unknown;
-        vec2(x: number, y: number): unknown;
-        area(): unknown;
-        body(opts: unknown): unknown;
-        outline(w: number, col: unknown): unknown;
-      };
+      const legacyCtx = engineOrContext as any;
 
       const kBodyPoints = bodyPoints.map((pt) =>
         typeof legacyCtx.vec2 === "function" ? legacyCtx.vec2(pt.x, pt.y) : pt

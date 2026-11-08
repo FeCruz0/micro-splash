@@ -6,11 +6,8 @@
  */
 
 import type { IRenderEngine, IGraphicsNode } from "../engine/contracts/INTERFACE_CONTRACTS";
-import {
-  isRenderEngine,
-  resolveCameraX,
-  type LegacyEngineBridge,
-} from "../engine/adapters/LegacyBridge";
+import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveCameraX } from "./cameraSystem";
 
 export interface AuroraRenderObject {
   opacity: number;
@@ -79,7 +76,7 @@ class PixiAuroraRibbonProxy implements AuroraRenderObject {
  * no céu polar antártico (0m a 5.000m).
  */
 export function setupAuroraSystem(
-  engineOrContext: IRenderEngine | LegacyEngineBridge
+  engineOrContext: IRenderEngine | any
 ): AuroraSystem {
   const isPixi = isRenderEngine(engineOrContext);
   const count = 6;
@@ -173,7 +170,12 @@ export function setupAuroraSystem(
     };
   }
 
-  const legacyCtx = engineOrContext as LegacyEngineBridge & {
+  const legacyCtx = engineOrContext as {
+    width(): number;
+    height(): number;
+    dt(): number;
+    add(components: unknown[]): unknown;
+    onUpdate(callback: () => void): () => void;
     rgb?(r: number, g: number, b: number): unknown;
     rect(w: number, h: number, opts?: unknown): unknown;
     pos(x: number, y: number): unknown;

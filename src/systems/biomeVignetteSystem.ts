@@ -8,7 +8,7 @@
 import type { PlayerController } from "../entities/player";
 import { accessibilitySystem } from "./accessibilitySystem";
 import type { IRenderEngine, IRenderNode } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine, type LegacyEngineBridge } from "../engine/adapters/LegacyBridge";
+import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { createTween, Easings } from "../engine/utils/Tween";
 
 export interface BiomeMilestone {
@@ -82,7 +82,7 @@ export interface BiomeVignetteSystem {
  * Inicializa o sistema de Vinhetas Narrativas de Bioma.
  */
 export function setupBiomeVignetteSystem(
-  engineOrContext: IRenderEngine | LegacyEngineBridge,
+  engineOrContext: IRenderEngine | unknown,
   playerController: PlayerController
 ): BiomeVignetteSystem {
   const triggeredDistances = new Set<number>();
@@ -227,31 +227,7 @@ export function setupBiomeVignetteSystem(
   }
 
   // Modo Legacy Kaboom Bridge
-  const legacyCtx = engineOrContext as LegacyEngineBridge & {
-    width(): number;
-    height(): number;
-    rect(w: number, h: number, opts?: unknown): unknown;
-    pos(x: number, y: number): unknown;
-    anchor(a: string): unknown;
-    color(...args: unknown[]): unknown;
-    rgb(...args: unknown[]): unknown;
-    outline(w: number, c: unknown): unknown;
-    opacity(o: number): unknown;
-    fixed(): unknown;
-    z(layer: number): unknown;
-    text(txt: string, opts?: unknown): unknown;
-    destroy(obj: unknown): void;
-    tween?(
-      from: number,
-      to: number,
-      duration: number,
-      setter: (v: number) => void,
-      ease?: unknown
-    ): { then(cb: () => void): void };
-    wait?(time: number, cb: () => void): { cancel: () => void };
-    easings?: { easeOutQuad?: unknown; easeInQuad?: unknown };
-    onUpdate(cb: () => void): { cancel?: () => void } | (() => void);
-  };
+  const legacyCtx = engineOrContext as any;
 
   interface LegacyObj {
     opacity: number;
@@ -345,7 +321,7 @@ export function setupBiomeVignetteSystem(
           0,
           0.92,
           0.35,
-          (opacityValue) => {
+          (opacityValue: number) => {
             if (!isContainerDestroyed) {
               container.opacity = opacityValue;
             }
@@ -361,7 +337,7 @@ export function setupBiomeVignetteSystem(
                     0.92,
                     0,
                     0.45,
-                    (fadeValue) => {
+                    (fadeValue: number) => {
                       if (!isContainerDestroyed) {
                         container.opacity = fadeValue;
                       }

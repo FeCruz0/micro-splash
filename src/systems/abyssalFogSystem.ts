@@ -6,11 +6,8 @@
  */
 
 import type { IRenderEngine, IGraphicsNode } from "../engine/contracts/INTERFACE_CONTRACTS";
-import {
-  isRenderEngine,
-  resolveCameraX,
-  type LegacyEngineBridge,
-} from "../engine/adapters/LegacyBridge";
+import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveCameraX } from "./cameraSystem";
 
 export interface FogRenderObject {
   opacity: number;
@@ -74,7 +71,7 @@ class PixiFogNodeProxy implements FogRenderObject {
  * dissolvendo o fundo oceânico nas trevas abissais e eliminando cortes geométricos secos.
  */
 export function setupAbyssalFogSystem(
-  engineOrContext: IRenderEngine | LegacyEngineBridge
+  engineOrContext: IRenderEngine | any
 ): AbyssalFogSystem {
   const isPixi = isRenderEngine(engineOrContext);
   const screenH = isPixi
@@ -129,7 +126,7 @@ export function setupAbyssalFogSystem(
     };
   }
 
-  const legacyCtx = engineOrContext as LegacyEngineBridge & {
+  const legacyCtx = engineOrContext as {
     rect(w: number, h: number): unknown;
     pos(x: number, y: number): unknown;
     color(r: number, g: number, b: number): unknown;
@@ -137,6 +134,8 @@ export function setupAbyssalFogSystem(
     z(layer: number): unknown;
     camPos?(): { x: number; y: number };
     destroy(obj: unknown): void;
+    add(components: unknown[]): unknown;
+    onUpdate(callback: () => void): () => void;
   };
 
   const layers: FogRenderObject[] = layerConfigs.map((cfg) => {

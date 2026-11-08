@@ -14,7 +14,7 @@ import type {
   IGraphicsNode,
   ITextNode,
 } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../engine/adapters/LegacyBridge";
+import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { createTween, Easings } from "../engine/utils/Tween";
 
 export interface LegacyFactPopupContext {

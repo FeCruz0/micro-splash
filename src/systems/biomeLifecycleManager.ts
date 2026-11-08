@@ -6,7 +6,6 @@
  */
 
 import type { IRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
-import type { LegacyEngineBridge } from "../engine/adapters/LegacyBridge";
 
 /**
  * Interface que define um módulo de subsistema atrelado a faixas geográficas da migração.
@@ -42,7 +41,7 @@ export class BiomeLifecycleManager {
   /**
    * Construtor do gerenciador de ciclo de vida.
    */
-  constructor(_engineOrContext?: IRenderEngine | LegacyEngineBridge | unknown, hysteresis = 500) {
+  constructor(_engineOrContext?: IRenderEngine | unknown, hysteresis = 500) {
     this.hysteresis = hysteresis;
   }
 
@@ -97,7 +96,7 @@ export class BiomeLifecycleManager {
 let activeBiomeManager: BiomeLifecycleManager | null = null;
 
 export function initBiomeLifecycleManager(
-  engineOrContext?: IRenderEngine | LegacyEngineBridge | unknown,
+  engineOrContext?: IRenderEngine | unknown,
   hysteresis = 500
 ): BiomeLifecycleManager {
   activeBiomeManager = new BiomeLifecycleManager(engineOrContext, hysteresis);

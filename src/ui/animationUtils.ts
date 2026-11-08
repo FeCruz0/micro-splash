@@ -5,7 +5,7 @@
  */
 
 import { createTween, Easings } from "../engine/utils/Tween";
-import { isRenderEngine } from "../engine/adapters/LegacyBridge";
+import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 
 export const UI_TRANSITIONS = {
   MODAL_ENTER_DURATION: 0.25,

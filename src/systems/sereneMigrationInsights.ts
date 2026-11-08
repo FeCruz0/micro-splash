@@ -2,7 +2,7 @@ import { FONT_TITLE, FONT_BODY } from "../config";
 import { ttsSystem } from "./ttsSystem";
 import { accessibilitySystem } from "./accessibilitySystem";
 import { createTween, Easings } from "../engine/utils/Tween";
-import { isRenderEngine } from "../engine/adapters/LegacyBridge";
+import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 
 export type InsightCategory = "biology" | "oceanography" | "conservation";
 

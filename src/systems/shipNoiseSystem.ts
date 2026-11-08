@@ -7,7 +7,7 @@ import { safeShake } from "../utils/camera";
 import { getRandomFloat, getRandomInteger } from "../utils/random";
 import { getSpatialCullingManager, type CullableTargetObject } from "./spatialCullingSystem";
 import { getSpatialGrid } from "./spatialHashGrid";
-import { isRenderEngine } from "../engine/adapters/LegacyBridge";
+import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import type { IRenderEngine, ISpriteNode } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { getParticlePool } from "./particlePool";
 import { getEntityFamilyTicker } from "./entityFamilyTicker";

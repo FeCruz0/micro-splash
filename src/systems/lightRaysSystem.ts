@@ -8,11 +8,8 @@
 import { GAME_CONFIG } from "../config";
 import { getSpatialCullingManager } from "./spatialCullingSystem";
 import type { IRenderEngine, IGraphicsNode } from "../engine/contracts/INTERFACE_CONTRACTS";
-import {
-  isRenderEngine,
-  resolveCameraX,
-  type LegacyEngineBridge,
-} from "../engine/adapters/LegacyBridge";
+import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveCameraX } from "./cameraSystem";
 import {
   createVolumetricRayProfile,
   getRaySegmentPolygonVertices,
@@ -80,7 +77,7 @@ function drawVolumetricRay(
  * Sistema de Iluminação Subaquática: God Rays (Feixes Volumétricos) & Cáusticos de Superfície
  * Traz atmosfera cinematográfica e sensação de profundidade através da luz solar filtrada na água.
  */
-export function setupLightRaysSystem(engineOrContext: IRenderEngine | LegacyEngineBridge): void {
+export function setupLightRaysSystem(engineOrContext: IRenderEngine | any): void {
   const isPixi = isRenderEngine(engineOrContext);
   const rayCount = 15;
   const causticSegments = 10;

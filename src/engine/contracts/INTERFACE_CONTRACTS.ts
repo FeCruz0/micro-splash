@@ -223,3 +223,16 @@ export interface ISceneManager {
   update(deltaTimeInSeconds: number): void;
   destroy(): void;
 }
+
+/**
+ * Type guard que valida se um alvo desconhecido implementa o contrato IRenderEngine.
+ */
+export function isRenderEngine(target: unknown): target is IRenderEngine {
+  return (
+    typeof target === "object" &&
+    target !== null &&
+    "createGraphics" in target &&
+    "getTicker" in target &&
+    "getDimensions" in target
+  );
+}

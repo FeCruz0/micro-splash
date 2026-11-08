@@ -7,7 +7,118 @@
 
 import { GAME_CONFIG } from "../config";
 import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
-import type { IRenderEngine, IRenderNode } from "../engine/contracts/INTERFACE_CONTRACTS";
+import type { IRenderEngine, IRenderNode, Vector2D } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveCameraX } from "./cameraSystem";
+
+class FallbackRenderNodeAdapter implements IRenderNode {
+  readonly id: string;
+  private readonly entity: {
+    pos?: { x: number; y: number };
+    scale?: { x: number; y: number };
+    angle?: number;
+    opacity?: number;
+    hidden?: boolean;
+    z?: number;
+    destroy?(): void;
+  };
+
+  constructor(rawEntity: unknown, id: string) {
+    this.entity =
+      rawEntity && typeof rawEntity === "object"
+        ? (rawEntity as {
+            pos?: { x: number; y: number };
+            scale?: { x: number; y: number };
+            angle?: number;
+            opacity?: number;
+            hidden?: boolean;
+            z?: number;
+            destroy?(): void;
+          })
+        : {};
+    this.id = id;
+  }
+
+  getPosition(): Vector2D {
+    return {
+      x: this.entity.pos?.x ?? 0,
+      y: this.entity.pos?.y ?? 0,
+    };
+  }
+
+  setPosition(x: number, y: number): void {
+    if (this.entity.pos) {
+      this.entity.pos.x = x;
+      this.entity.pos.y = y;
+    }
+  }
+
+  getScale(): Vector2D {
+    return {
+      x: this.entity.scale?.x ?? 1,
+      y: this.entity.scale?.y ?? 1,
+    };
+  }
+
+  setScale(scaleX: number, scaleY: number): void {
+    if (this.entity.scale) {
+      this.entity.scale.x = scaleX;
+      this.entity.scale.y = scaleY;
+    }
+  }
+
+  getRotation(): number {
+    return this.entity.angle ? (this.entity.angle * Math.PI) / 180 : 0;
+  }
+
+  setRotation(angleInRadians: number): void {
+    this.entity.angle = (angleInRadians * 180) / Math.PI;
+  }
+
+  getOpacity(): number {
+    return this.entity.opacity ?? 1;
+  }
+
+  setOpacity(alpha: number): void {
+    if (typeof this.entity.opacity === "number") {
+      this.entity.opacity = Math.max(0, Math.min(1, alpha));
+    }
+  }
+
+  getZIndex(): number {
+    return this.entity.z ?? -1;
+  }
+
+  setZIndex(index: number): void {
+    this.entity.z = index;
+  }
+
+  isVisible(): boolean {
+    return !this.entity.hidden;
+  }
+
+  setVisible(visible: boolean): void {
+    this.entity.hidden = !visible;
+  }
+
+  addChild(_child: IRenderNode): void {}
+
+  removeChild(_child: IRenderNode): void {}
+
+  getChildren(): readonly IRenderNode[] {
+    return [];
+  }
+
+  getNativeNode<T>(): T {
+    return this.entity as unknown as T;
+  }
+
+  destroy(): void {
+    if (typeof this.entity.destroy === "function") {
+      this.entity.destroy();
+    }
+  }
+}
 
 export interface MarineSnowFlake {
   readonly node: IRenderNode;
@@ -54,19 +165,12 @@ export function updateSnowParticlePosition(
   return reusableSnowResult;
 }
 
-import {
-  isRenderEngine,
-  resolveCameraX,
-  LegacyRenderNodeAdapter,
-  type LegacyEngineBridge,
-} from "../engine/adapters/LegacyBridge";
-
 /**
  * Sistema de Neve Marinha Abissal (Fase 30.3, 53 & Migração PixiJS v8):
  * Gera micro-sedimentos orgânicos que precipitam lentamente pelas profundezas da Travessia Pelágica.
  */
 export function setupMarineSnowSystem(
-  engineOrContext: IRenderEngine | LegacyEngineBridge
+  engineOrContext: IRenderEngine | any
 ): () => void {
   const particles: MarineSnowFlake[] = [];
 
@@ -113,7 +217,7 @@ export function setupMarineSnowSystem(
         engineOrContext.z(-1),
         "marine_snow_particle",
       ]);
-      node = new LegacyRenderNodeAdapter(legacyObject, `marine_snow_legacy_${index}`);
+      node = new FallbackRenderNodeAdapter(legacyObject, `marine_snow_legacy_${index}`);
     }
 
     particles.push({

@@ -13,13 +13,119 @@ import type {
   IRenderEngine,
   IRenderNode,
   IGraphicsNode,
+  Vector2D,
 } from "../engine/contracts/INTERFACE_CONTRACTS";
-import {
-  isRenderEngine,
-  resolveCameraX,
-  LegacyRenderNodeAdapter,
-  type LegacyEngineBridge,
-} from "../engine/adapters/LegacyBridge";
+import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveCameraX } from "./cameraSystem";
+
+class FallbackRenderNodeAdapter implements IRenderNode {
+  readonly id: string;
+  private readonly entity: {
+    pos?: { x: number; y: number };
+    scale?: { x: number; y: number };
+    angle?: number;
+    opacity?: number;
+    hidden?: boolean;
+    z?: number;
+    destroy?(): void;
+  };
+
+  constructor(rawEntity: unknown, id: string) {
+    this.entity =
+      rawEntity && typeof rawEntity === "object"
+        ? (rawEntity as {
+            pos?: { x: number; y: number };
+            scale?: { x: number; y: number };
+            angle?: number;
+            opacity?: number;
+            hidden?: boolean;
+            z?: number;
+            destroy?(): void;
+          })
+        : {};
+    this.id = id;
+  }
+
+  getPosition(): Vector2D {
+    return {
+      x: this.entity.pos?.x ?? 0,
+      y: this.entity.pos?.y ?? 0,
+    };
+  }
+
+  setPosition(x: number, y: number): void {
+    if (this.entity.pos) {
+      this.entity.pos.x = x;
+      this.entity.pos.y = y;
+    }
+  }
+
+  getScale(): Vector2D {
+    return {
+      x: this.entity.scale?.x ?? 1,
+      y: this.entity.scale?.y ?? 1,
+    };
+  }
+
+  setScale(scaleX: number, scaleY: number): void {
+    if (this.entity.scale) {
+      this.entity.scale.x = scaleX;
+      this.entity.scale.y = scaleY;
+    }
+  }
+
+  getRotation(): number {
+    return this.entity.angle ? (this.entity.angle * Math.PI) / 180 : 0;
+  }
+
+  setRotation(angleInRadians: number): void {
+    this.entity.angle = (angleInRadians * 180) / Math.PI;
+  }
+
+  getOpacity(): number {
+    return this.entity.opacity ?? 1;
+  }
+
+  setOpacity(alpha: number): void {
+    if (typeof this.entity.opacity === "number") {
+      this.entity.opacity = Math.max(0, Math.min(1, alpha));
+    }
+  }
+
+  getZIndex(): number {
+    return this.entity.z ?? -1;
+  }
+
+  setZIndex(index: number): void {
+    this.entity.z = index;
+  }
+
+  isVisible(): boolean {
+    return !this.entity.hidden;
+  }
+
+  setVisible(visible: boolean): void {
+    this.entity.hidden = !visible;
+  }
+
+  addChild(_child: IRenderNode): void {}
+
+  removeChild(_child: IRenderNode): void {}
+
+  getChildren(): readonly IRenderNode[] {
+    return [];
+  }
+
+  getNativeNode<T>(): T {
+    return this.entity as unknown as T;
+  }
+
+  destroy(): void {
+    if (typeof this.entity.destroy === "function") {
+      this.entity.destroy();
+    }
+  }
+}
 
 export interface BioluminescentParticle {
   gameObj?: unknown;
@@ -99,7 +205,7 @@ export function calculateBioluminescentColor(phase: number): [number, number, nu
  * Inicializa a esteira de bioluminescência procedural na Costa Urbana.
  */
 export function setupBioluminescenceSystem(
-  engineOrContext: IRenderEngine | LegacyEngineBridge,
+  engineOrContext: IRenderEngine | any,
   playerController: PlayerController
 ): {
   destroy: () => void;
@@ -137,7 +243,7 @@ export function setupBioluminescenceSystem(
         "bioluminescence_particle",
       ]);
       legacyRaw = rawObj;
-      node = new LegacyRenderNodeAdapter(rawObj, `biolum_particle_${index}`);
+      node = new FallbackRenderNodeAdapter(rawObj, `biolum_particle_${index}`);
       node.setVisible(false);
     }
 
@@ -191,7 +297,7 @@ export function setupBioluminescenceSystem(
         "ambient_plankton",
       ]);
       legacyRaw = rawObj;
-      node = new LegacyRenderNodeAdapter(rawObj, `ambient_plankton_${index}`);
+      node = new FallbackRenderNodeAdapter(rawObj, `ambient_plankton_${index}`);
       node.setVisible(false);
     }
 

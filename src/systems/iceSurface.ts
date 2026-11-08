@@ -14,7 +14,7 @@ import { getSpatialCullingManager } from "./spatialCullingSystem";
 import { safeShake } from "../utils/camera";
 import { getRandomFloat } from "../utils/random";
 import type { IRenderEngine, IRenderNode, Vector2D } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine, type LegacyEngineBridge } from "../engine/adapters/LegacyBridge";
+import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { create16BitIceTextures } from "./ice/ice16BitTextures";
 import { getSpatialGrid } from "./spatialHashGrid";
 
@@ -79,7 +79,7 @@ export function getNearestIceGap(x: number): IceGap | null {
  * Cria e orquestra a banquisa polar, paredões de icebergs e fendas de respiração na Antártica (0m a 5.000m).
  */
 export function setupIceSurfaceSystem(
-  engineOrContext: IRenderEngine | LegacyEngineBridge,
+  engineOrContext: IRenderEngine | unknown,
   playerController?: PlayerController
 ) {
   let isSystemActive = true;
@@ -401,23 +401,7 @@ export function setupIceSurfaceSystem(
     }
   } else {
     // Modo Legacy Kaboom Bridge
-    const legacyCtx = engineOrContext as LegacyEngineBridge & {
-      Rect?: new (pos: unknown, w: number, h: number) => unknown;
-      rect(w: number, h: number, opts?: unknown): unknown;
-      pos(x: number, y: number): unknown;
-      area(opts?: unknown): unknown;
-      color(r: number, g: number, b: number): unknown;
-      rgb(r: number, g: number, b: number): unknown;
-      opacity(o: number): unknown;
-      z(layer: number): unknown;
-      rotate(a: number): unknown;
-      polygon(pts: readonly unknown[]): unknown;
-      outline(w: number, col: unknown): unknown;
-      vec2(x: number, y: number): unknown;
-      height(): number;
-      dt(): number;
-      destroy(obj: unknown): void;
-    };
+    const legacyCtx = engineOrContext as any;
 
     function spawnIceSegment(x: number, width: number) {
       let isBroken = false;

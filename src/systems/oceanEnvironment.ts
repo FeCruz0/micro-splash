@@ -7,7 +7,6 @@
 
 import { BIOME_COLOR_STOPS, GAME_CONFIG, type BiomeColorStop } from "../config";
 import type { IRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
-import type { LegacyEngineBridge } from "../engine/adapters/LegacyBridge";
 
 /**
  * Retorna o bioma atual com base na distância percorrida.
@@ -36,7 +35,7 @@ export interface OceanColorsResult<TColor = unknown> {
 export function getColorsAtDistance(
   engineOrContext:
     | IRenderEngine
-    | LegacyEngineBridge
+    | any
     | {
         lerp?: (a: number, b: number, t: number) => number;
         rgb?: (r: number, g: number, b: number) => unknown;
@@ -136,7 +135,7 @@ export function isOceanColorDirty(distance: number, thresholdInMeters: number = 
 export function updateOceanColors(
   engineOrContext:
     | IRenderEngine
-    | LegacyEngineBridge
+    | any
     | {
         setBackground?: (c: unknown) => void;
         lerp?: (a: number, b: number, t: number) => number;

@@ -11,7 +11,6 @@ import type {
   IRenderTicker,
   IRenderNode,
 } from "../../src/engine/contracts/INTERFACE_CONTRACTS";
-import type { LegacyEngineBridge } from "../../src/engine/adapters/LegacyBridge";
 
 describe("Fase 67: Volumetric God Rays & Cross-Browser Atmospheric Normalization", () => {
   describe("67.1 Perfil Volumétrico e Atenuação com Profundidade (Beer-Lambert)", () => {
@@ -220,7 +219,7 @@ describe("Fase 67: Volumetric God Rays & Cross-Browser Atmospheric Normalization
       const addedObjects: any[] = [];
       let updateCallback: (() => void) | null = null;
 
-      const mockLegacyBridge: LegacyEngineBridge = {
+      const mockLegacyBridge: any = {
         width: () => 640,
         height: () => 360,
         dt: () => 0.016,
