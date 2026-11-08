@@ -10,6 +10,8 @@ import { Assets } from "pixi.js";
 import type {
   IRenderEngine,
   IRenderNode,
+  IGraphicsNode,
+  ITextNode,
   IScene,
   ISceneManager,
 } from "../contracts/INTERFACE_CONTRACTS";
@@ -67,12 +69,17 @@ export interface RenderingContextEntity {
   hidden: boolean;
   fixed: boolean;
   text?: string;
+  width?: number;
+  height?: number;
+  angle?: number;
+  color?: unknown;
+  outline?: { color?: unknown; width?: number };
   renderNode?: IRenderNode | null;
   exists(): boolean;
   onUpdate(callback: () => void): unknown;
   onClick(callback: () => void): { cancel: () => void };
-  onHoverUpdate(): { cancel: () => void };
-  onHoverEnd(): { cancel: () => void };
+  onHoverUpdate(callback?: () => void): { cancel: () => void };
+  onHoverEnd(callback?: () => void): { cancel: () => void };
   play(): void;
   destroy(): void;
 }
@@ -97,10 +104,49 @@ export interface RenderingContext {
   width(): number;
   height(): number;
   dt(): number;
+  time(): number;
+
+  rand(minimumValue?: number, maximumValue?: number): number;
+  choose<T>(choicesList: readonly T[]): T;
+  clamp(valueToClamp: number, minimumBound: number, maximumBound: number): number;
+  lerp(startValue: number, endValue: number, interpolationProgress: number): number;
+  deg2rad(degreesValue: number): number;
+  rad2deg(radiansValue: number): number;
 
   vec2(coordinateX: number, coordinateY: number): { readonly x: number; readonly y: number };
   rgb(redValue: number, greenValue: number, blueValue: number): readonly [number, number, number];
   shake(intensity: number): void;
+
+  circle(circleRadius: number): { readonly type: "circle"; readonly radius: number };
+  anchor(anchorPoint: "center" | "topleft" | "left" | "right" | "top" | "botright" | string): {
+    readonly type: "anchor";
+    readonly anchorPoint: string;
+  };
+  outline(outlineWidth: number, outlineColor?: unknown): {
+    readonly type: "outline";
+    readonly width: number;
+    readonly color?: unknown;
+  };
+  scale(
+    scaleFactorOrVector: number | { readonly x: number; readonly y: number },
+    scaleFactorY?: number
+  ): {
+    readonly type: "scale";
+    readonly scaleX: number;
+    readonly scaleY: number;
+  };
+  rotate(rotationDegrees: number): {
+    readonly type: "rotate";
+    readonly angle: number;
+  };
+  sprite(
+    spriteIdentifier: string,
+    spriteOptions?: Record<string, unknown>
+  ): {
+    readonly type: "sprite";
+    readonly sprite: string;
+    readonly options?: Record<string, unknown>;
+  };
 
   pos(
     positionOrCoordinateX: number | { readonly x: number; readonly y: number },
@@ -150,6 +196,7 @@ export interface RenderingContext {
     maybeKeyCallback?: () => void
   ): { cancel: () => void };
   onMousePress(pointerPressCallback: () => void): { cancel: () => void };
+  onClick(clickCallback: () => void): { cancel: () => void };
   isMousePressed(): boolean;
   onUpdate(updateCallback: (deltaTimeInSeconds: number) => void): { cancel: () => void };
   wait(durationInSeconds: number, timerCompletionCallback: () => void): { cancel: () => void };
@@ -284,6 +331,46 @@ export function createRenderingContext(
         : 0.0166;
     },
 
+    time(): number {
+      return (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
+    },
+
+    rand(minimumValue?: number, maximumValue?: number): number {
+      if (typeof minimumValue === "undefined") {
+        return Math.random();
+      }
+      if (typeof maximumValue === "undefined") {
+        return Math.random() * minimumValue;
+      }
+      const lowerRangeBound = Math.min(minimumValue, maximumValue);
+      const upperRangeBound = Math.max(minimumValue, maximumValue);
+      return lowerRangeBound + Math.random() * (upperRangeBound - lowerRangeBound);
+    },
+
+    choose<T>(choicesList: readonly T[]): T {
+      if (!choicesList || choicesList.length === 0) {
+        return undefined as unknown as T;
+      }
+      const randomChoiceIndex = Math.floor(Math.random() * choicesList.length);
+      return choicesList[randomChoiceIndex];
+    },
+
+    clamp(valueToClamp: number, minimumBound: number, maximumBound: number): number {
+      return Math.min(maximumBound, Math.max(minimumBound, valueToClamp));
+    },
+
+    lerp(startValue: number, endValue: number, interpolationProgress: number): number {
+      return startValue + (endValue - startValue) * interpolationProgress;
+    },
+
+    deg2rad(degreesValue: number): number {
+      return degreesValue * (Math.PI / 180);
+    },
+
+    rad2deg(radiansValue: number): number {
+      return radiansValue * (180 / Math.PI);
+    },
+
     vec2(coordinateX: number, coordinateY: number): { readonly x: number; readonly y: number } {
       return { x: coordinateX, y: coordinateY };
     },
@@ -298,6 +385,63 @@ export function createRenderingContext(
 
     shake(intensity: number): void {
       renderEngineInstance.shake?.(intensity);
+    },
+
+    circle(circleRadius: number): { readonly type: "circle"; readonly radius: number } {
+      return { type: "circle", radius: circleRadius };
+    },
+
+    anchor(anchorPoint: "center" | "topleft" | "left" | "right" | "top" | "botright" | string): {
+      readonly type: "anchor";
+      readonly anchorPoint: string;
+    } {
+      return { type: "anchor", anchorPoint };
+    },
+
+    outline(outlineWidth: number, outlineColor?: unknown): {
+      readonly type: "outline";
+      readonly width: number;
+      readonly color?: unknown;
+    } {
+      return { type: "outline", width: outlineWidth, color: outlineColor };
+    },
+
+    scale(
+      scaleFactorOrVector: number | { readonly x: number; readonly y: number },
+      scaleFactorY?: number
+    ): {
+      readonly type: "scale";
+      readonly scaleX: number;
+      readonly scaleY: number;
+    } {
+      if (typeof scaleFactorOrVector === "object" && scaleFactorOrVector !== null) {
+        return {
+          type: "scale",
+          scaleX: scaleFactorOrVector.x,
+          scaleY: scaleFactorOrVector.y,
+        };
+      }
+      const scaleX = scaleFactorOrVector;
+      const scaleY = typeof scaleFactorY === "number" ? scaleFactorY : scaleFactorOrVector;
+      return { type: "scale", scaleX, scaleY };
+    },
+
+    rotate(rotationDegrees: number): {
+      readonly type: "rotate";
+      readonly angle: number;
+    } {
+      return { type: "rotate", angle: rotationDegrees };
+    },
+
+    sprite(
+      spriteIdentifier: string,
+      spriteOptions?: Record<string, unknown>
+    ): {
+      readonly type: "sprite";
+      readonly sprite: string;
+      readonly options?: Record<string, unknown>;
+    } {
+      return { type: "sprite", sprite: spriteIdentifier, options: spriteOptions };
     },
 
     pos(
@@ -377,7 +521,7 @@ export function createRenderingContext(
       let isFixedElement = false;
       let positionCoordinateX = 0;
       let positionCoordinateY = 0;
-      let anchorAlignment: "center" | "topleft" | "left" | "right" | "top" | "botright" =
+      let anchorAlignment: "center" | "topleft" | "left" | "right" | "top" | "botright" | string =
         "topleft";
       let entityOpacity = 1;
       let entityZIndex = 0;
@@ -385,7 +529,15 @@ export function createRenderingContext(
       let textStyleOptionsRecord: Record<string, unknown> | null = null;
       let rectangleWidthValue: number | null = null;
       let rectangleHeightValue: number | null = null;
+      let rectangleRadiusValue: number | null = null;
+      let circleRadiusValue: number | null = null;
+      let spriteAssetIdentifier: string | null = null;
+      let outlineWidthValue: number | null = null;
+      let outlineColorValue: [number, number, number] = [255, 255, 255];
       let entityRgbColor: [number, number, number] = [255, 255, 255];
+      let scaleCoordinateX = 1;
+      let scaleCoordinateY = 1;
+      let rotationDegreesValue = 0;
       let entityVisualNode: IRenderNode | null = null;
 
       const entityInstance: RenderingContextEntity = {
@@ -488,7 +640,7 @@ export function createRenderingContext(
               componentRecord.type === "anchor" &&
               typeof componentRecord.anchorPoint === "string"
             ) {
-              anchorAlignment = componentRecord.anchorPoint as typeof anchorAlignment;
+              anchorAlignment = componentRecord.anchorPoint;
             } else if (
               componentRecord.type === "text" &&
               typeof componentRecord.text === "string"
@@ -504,6 +656,42 @@ export function createRenderingContext(
             ) {
               rectangleWidthValue = componentRecord.width;
               rectangleHeightValue = componentRecord.height;
+              if (componentRecord.options && typeof componentRecord.options === "object") {
+                const rectangleOptions = componentRecord.options as Record<string, unknown>;
+                if (typeof rectangleOptions.radius === "number") {
+                  rectangleRadiusValue = rectangleOptions.radius;
+                }
+              }
+            } else if (
+              componentRecord.type === "circle" &&
+              typeof componentRecord.radius === "number"
+            ) {
+              circleRadiusValue = componentRecord.radius;
+            } else if (
+              componentRecord.type === "outline" &&
+              typeof componentRecord.width === "number"
+            ) {
+              outlineWidthValue = componentRecord.width;
+              if (Array.isArray(componentRecord.color) && componentRecord.color.length === 3) {
+                outlineColorValue = componentRecord.color as [number, number, number];
+              }
+            } else if (componentRecord.type === "scale") {
+              if (typeof componentRecord.scaleX === "number") {
+                scaleCoordinateX = componentRecord.scaleX;
+              }
+              if (typeof componentRecord.scaleY === "number") {
+                scaleCoordinateY = componentRecord.scaleY;
+              }
+            } else if (
+              componentRecord.type === "rotate" &&
+              typeof componentRecord.angle === "number"
+            ) {
+              rotationDegreesValue = componentRecord.angle;
+            } else if (
+              componentRecord.type === "sprite" &&
+              typeof componentRecord.sprite === "string"
+            ) {
+              spriteAssetIdentifier = componentRecord.sprite;
             } else if (componentRecord.type === "color" && Array.isArray(componentRecord.args)) {
               const colorArgumentsList = componentRecord.args as unknown[];
               if (
@@ -531,18 +719,83 @@ export function createRenderingContext(
           ? renderEngineInstance.getScreenContainer()
           : renderEngineInstance.getWorldContainer();
 
-        if (rectangleWidthValue !== null && rectangleHeightValue !== null) {
-          const graphicsNodeInstance = renderEngineInstance.createGraphics(
+        const graphicStyle = {
+          fill: { color: entityRgbColor, alpha: entityOpacity },
+          ...(outlineWidthValue !== null
+            ? { stroke: { width: outlineWidthValue, color: outlineColorValue } }
+            : {}),
+        };
+
+        if (circleRadiusValue !== null) {
+          const circleShapeNode = renderEngineInstance.createGraphics(
+            `rendered_circle_${Math.random().toString(36).slice(2, 9)}`
+          );
+          circleShapeNode.drawCircle(0, 0, circleRadiusValue, graphicStyle);
+          circleShapeNode.setPosition(positionCoordinateX, positionCoordinateY);
+          circleShapeNode.setZIndex(entityZIndex);
+          circleShapeNode.setScale(scaleCoordinateX, scaleCoordinateY);
+          if (rotationDegreesValue !== 0) {
+            circleShapeNode.setRotation((rotationDegreesValue * Math.PI) / 180);
+          }
+          destinationContainer.addChild(circleShapeNode);
+          entityVisualNode = circleShapeNode;
+          entityInstance.renderNode = circleShapeNode;
+        } else if (rectangleWidthValue !== null && rectangleHeightValue !== null) {
+          const rectangleShapeNode = renderEngineInstance.createGraphics(
             `rendered_rect_${Math.random().toString(36).slice(2, 9)}`
           );
-          graphicsNodeInstance.drawRect(0, 0, rectangleWidthValue, rectangleHeightValue, {
-            fill: { color: entityRgbColor, alpha: entityOpacity },
-          });
-          graphicsNodeInstance.setPosition(positionCoordinateX, positionCoordinateY);
-          graphicsNodeInstance.setZIndex(entityZIndex);
-          destinationContainer.addChild(graphicsNodeInstance);
-          entityVisualNode = graphicsNodeInstance;
-          entityInstance.renderNode = graphicsNodeInstance;
+          const originCoordinateX = anchorAlignment === "center" ? -rectangleWidthValue / 2 : 0;
+          const originCoordinateY = anchorAlignment === "center" ? -rectangleHeightValue / 2 : 0;
+
+          if (typeof rectangleRadiusValue === "number" && rectangleRadiusValue > 0) {
+            rectangleShapeNode.drawRoundedRect(
+              originCoordinateX,
+              originCoordinateY,
+              rectangleWidthValue,
+              rectangleHeightValue,
+              rectangleRadiusValue,
+              graphicStyle
+            );
+          } else {
+            rectangleShapeNode.drawRect(
+              originCoordinateX,
+              originCoordinateY,
+              rectangleWidthValue,
+              rectangleHeightValue,
+              graphicStyle
+            );
+          }
+          rectangleShapeNode.setPosition(positionCoordinateX, positionCoordinateY);
+          rectangleShapeNode.setZIndex(entityZIndex);
+          rectangleShapeNode.setScale(scaleCoordinateX, scaleCoordinateY);
+          if (rotationDegreesValue !== 0) {
+            rectangleShapeNode.setRotation((rotationDegreesValue * Math.PI) / 180);
+          }
+          destinationContainer.addChild(rectangleShapeNode);
+          entityVisualNode = rectangleShapeNode;
+          entityInstance.renderNode = rectangleShapeNode;
+        } else if (spriteAssetIdentifier !== null) {
+          try {
+            const spriteShapeNode = renderEngineInstance.createSprite(
+              spriteAssetIdentifier,
+              `rendered_sprite_${Math.random().toString(36).slice(2, 9)}`
+            );
+            spriteShapeNode.setPosition(positionCoordinateX, positionCoordinateY);
+            spriteShapeNode.setZIndex(entityZIndex);
+            spriteShapeNode.setOpacity(entityOpacity);
+            spriteShapeNode.setScale(scaleCoordinateX, scaleCoordinateY);
+            if (rotationDegreesValue !== 0) {
+              spriteShapeNode.setRotation((rotationDegreesValue * Math.PI) / 180);
+            }
+            if (anchorAlignment === "center") {
+              spriteShapeNode.setAnchor(0.5, 0.5);
+            }
+            destinationContainer.addChild(spriteShapeNode);
+            entityVisualNode = spriteShapeNode;
+            entityInstance.renderNode = spriteShapeNode;
+          } catch {
+            // Degradação segura caso o sprite ainda não esteja pronto
+          }
         } else if (entityTextContent !== null) {
           const calculatedFontSize =
             typeof textStyleOptionsRecord?.size === "number"
@@ -552,21 +805,26 @@ export function createRenderingContext(
             typeof textStyleOptionsRecord?.font === "string"
               ? textStyleOptionsRecord.font
               : "Outfit";
-          const textNodeInstance = renderEngineInstance.createText(
+          const textShapeNode = renderEngineInstance.createText(
             entityTextContent,
             {
               fontSize: calculatedFontSize,
               fontFamily: calculatedFontFamily,
               color: entityRgbColor,
+              ...(anchorAlignment === "center" ? { align: "center" } : {}),
             },
             `rendered_text_${Math.random().toString(36).slice(2, 9)}`
           );
-          textNodeInstance.setPosition(positionCoordinateX, positionCoordinateY);
-          textNodeInstance.setZIndex(entityZIndex);
-          textNodeInstance.setOpacity(entityOpacity);
-          destinationContainer.addChild(textNodeInstance);
-          entityVisualNode = textNodeInstance;
-          entityInstance.renderNode = textNodeInstance;
+          textShapeNode.setPosition(positionCoordinateX, positionCoordinateY);
+          textShapeNode.setZIndex(entityZIndex);
+          textShapeNode.setOpacity(entityOpacity);
+          textShapeNode.setScale(scaleCoordinateX, scaleCoordinateY);
+          if (rotationDegreesValue !== 0) {
+            textShapeNode.setRotation((rotationDegreesValue * Math.PI) / 180);
+          }
+          destinationContainer.addChild(textShapeNode);
+          entityVisualNode = textShapeNode;
+          entityInstance.renderNode = textShapeNode;
         }
       }
 
@@ -576,6 +834,63 @@ export function createRenderingContext(
           entityOpacity = updatedOpacityValue;
           if (entityVisualNode) {
             entityVisualNode.setOpacity(updatedOpacityValue);
+          }
+        },
+        configurable: true,
+        enumerable: true,
+      });
+
+      Object.defineProperty(entityInstance, "text", {
+        get: () => entityTextContent ?? "",
+        set: (updatedTextValue: string) => {
+          entityTextContent = updatedTextValue;
+          if (entityVisualNode && "setText" in entityVisualNode) {
+            (entityVisualNode as ITextNode).setText(updatedTextValue);
+          }
+        },
+        configurable: true,
+        enumerable: true,
+      });
+
+      Object.defineProperty(entityInstance, "width", {
+        get: () => rectangleWidthValue ?? 0,
+        set: (updatedWidthValue: number) => {
+          rectangleWidthValue = updatedWidthValue;
+          if (
+            entityVisualNode &&
+            "drawRect" in entityVisualNode &&
+            rectangleHeightValue !== null
+          ) {
+            const graphicsNodeInstance = entityVisualNode as IGraphicsNode;
+            graphicsNodeInstance.clear();
+            const originCoordinateX =
+              anchorAlignment === "center" ? -updatedWidthValue / 2 : 0;
+            const originCoordinateY =
+              anchorAlignment === "center" ? -rectangleHeightValue / 2 : 0;
+            const graphicStyle = {
+              fill: { color: entityRgbColor, alpha: entityOpacity },
+              ...(outlineWidthValue !== null
+                ? { stroke: { width: outlineWidthValue, color: outlineColorValue } }
+                : {}),
+            };
+            if (typeof rectangleRadiusValue === "number" && rectangleRadiusValue > 0) {
+              graphicsNodeInstance.drawRoundedRect(
+                originCoordinateX,
+                originCoordinateY,
+                Math.max(0, updatedWidthValue),
+                rectangleHeightValue,
+                rectangleRadiusValue,
+                graphicStyle
+              );
+            } else {
+              graphicsNodeInstance.drawRect(
+                originCoordinateX,
+                originCoordinateY,
+                Math.max(0, updatedWidthValue),
+                rectangleHeightValue,
+                graphicStyle
+              );
+            }
           }
         },
         configurable: true,
@@ -604,6 +919,75 @@ export function createRenderingContext(
       };
       entityInstance.pos = positionCoordinateProxy;
       entityInstance.z = entityZIndex;
+
+      const scaleCoordinateProxy = {
+        get x() {
+          return scaleCoordinateX;
+        },
+        set x(updatedScaleX: number) {
+          scaleCoordinateX = updatedScaleX;
+          if (entityVisualNode) {
+            entityVisualNode.setScale(scaleCoordinateX, scaleCoordinateY);
+          }
+        },
+        get y() {
+          return scaleCoordinateY;
+        },
+        set y(updatedScaleY: number) {
+          scaleCoordinateY = updatedScaleY;
+          if (entityVisualNode) {
+            entityVisualNode.setScale(scaleCoordinateX, scaleCoordinateY);
+          }
+        },
+      };
+
+      Object.defineProperty(entityInstance, "scale", {
+        get: () => scaleCoordinateProxy,
+        set: (updatedScaleValue: number | { x?: number; y?: number }) => {
+          if (typeof updatedScaleValue === "number") {
+            scaleCoordinateX = updatedScaleValue;
+            scaleCoordinateY = updatedScaleValue;
+          } else if (updatedScaleValue && typeof updatedScaleValue === "object") {
+            if (typeof updatedScaleValue.x === "number") {
+              scaleCoordinateX = updatedScaleValue.x;
+            }
+            if (typeof updatedScaleValue.y === "number") {
+              scaleCoordinateY = updatedScaleValue.y;
+            }
+          }
+          if (entityVisualNode) {
+            entityVisualNode.setScale(scaleCoordinateX, scaleCoordinateY);
+          }
+        },
+        configurable: true,
+        enumerable: true,
+      });
+
+      Object.defineProperty(entityInstance, "angle", {
+        get: () => rotationDegreesValue,
+        set: (updatedAngleInDegrees: number) => {
+          rotationDegreesValue = updatedAngleInDegrees;
+          if (entityVisualNode) {
+            entityVisualNode.setRotation((updatedAngleInDegrees * Math.PI) / 180);
+          }
+        },
+        configurable: true,
+        enumerable: true,
+      });
+
+      Object.defineProperty(entityInstance, "color", {
+        get: () => entityRgbColor,
+        set: (updatedColorValue: [number, number, number]) => {
+          if (Array.isArray(updatedColorValue) && updatedColorValue.length === 3) {
+            entityRgbColor = updatedColorValue;
+            if (entityVisualNode && "setColor" in entityVisualNode) {
+              (entityVisualNode as ITextNode).setColor(entityRgbColor);
+            }
+          }
+        },
+        configurable: true,
+        enumerable: true,
+      });
 
       let universalTaggedBucket = taggedEntitiesMap.get("*");
       if (!universalTaggedBucket) {
@@ -715,6 +1099,10 @@ export function createRenderingContext(
       };
       sceneCleanupCallbacksList.push(cancelPointerListener);
       return { cancel: cancelPointerListener };
+    },
+
+    onClick(clickCallback: () => void): { cancel: () => void } {
+      return renderingContext.onMousePress(clickCallback);
     },
 
     isMousePressed(): boolean {

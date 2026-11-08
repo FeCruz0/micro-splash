@@ -271,4 +271,74 @@ describe("Etapa 5.1b — Remoção definitiva de createPixiBridgeContext e migra
     textEntity.destroy();
     rectangleEntity.destroy();
   });
+
+  it("implementa utilitários matemáticos e de desenho necessários para a tela splash sem lançar TypeError", () => {
+    const mockEngine = createMockRenderEngine();
+    const sceneManagerInstance = new SceneManager();
+    const renderingContextInstance = createRenderingContext(
+      mockEngine,
+      sceneManagerInstance
+    );
+
+    // Math utilities
+    const randomRangeValue = renderingContextInstance.rand(10, 20);
+    expect(randomRangeValue).toBeGreaterThanOrEqual(10);
+    expect(randomRangeValue).toBeLessThanOrEqual(20);
+
+    const chosenOption = renderingContextInstance.choose(["alpha", "beta", "gamma"]);
+    expect(["alpha", "beta", "gamma"]).toContain(chosenOption);
+
+    expect(renderingContextInstance.clamp(5, 10, 20)).toBe(10);
+    expect(renderingContextInstance.clamp(25, 10, 20)).toBe(20);
+    expect(renderingContextInstance.clamp(15, 10, 20)).toBe(15);
+
+    expect(renderingContextInstance.lerp(10, 20, 0.5)).toBe(15);
+    expect(renderingContextInstance.deg2rad(180)).toBeCloseTo(Math.PI);
+    expect(renderingContextInstance.rad2deg(Math.PI)).toBeCloseTo(180);
+    expect(renderingContextInstance.time()).toBeGreaterThan(0);
+
+    // Geometry / Component creation
+    const circleComponent = renderingContextInstance.circle(25);
+    expect(circleComponent).toEqual({ type: "circle", radius: 25 });
+
+    const anchorComponent = renderingContextInstance.anchor("center");
+    expect(anchorComponent).toEqual({ type: "anchor", anchorPoint: "center" });
+
+    const outlineComponent = renderingContextInstance.outline(2, [255, 0, 0]);
+    expect(outlineComponent).toEqual({ type: "outline", width: 2, color: [255, 0, 0] });
+
+    const scaleComponent = renderingContextInstance.scale(1.5);
+    expect(scaleComponent).toEqual({ type: "scale", scaleX: 1.5, scaleY: 1.5 });
+
+    const rotateComponent = renderingContextInstance.rotate(45);
+    expect(rotateComponent).toEqual({ type: "rotate", angle: 45 });
+
+    const spriteComponent = renderingContextInstance.sprite("baleia", { anim: "swim" });
+    expect(spriteComponent).toEqual({
+      type: "sprite",
+      sprite: "baleia",
+      options: { anim: "swim" },
+    });
+
+    // Test adding a circle entity
+    const circleEntity = renderingContextInstance.add([
+      renderingContextInstance.circle(12),
+      renderingContextInstance.pos(30, 40),
+      renderingContextInstance.color(140, 225, 255),
+      renderingContextInstance.opacity(0.5),
+      renderingContextInstance.z(2),
+    ]);
+    expect(circleEntity).toBeDefined();
+    expect(circleEntity.pos.x).toBe(30);
+    expect(circleEntity.pos.y).toBe(40);
+    expect(circleEntity.opacity).toBe(0.5);
+    expect(mockEngine.createGraphics).toHaveBeenCalled();
+    circleEntity.destroy();
+
+    // Test onClick
+    const clickHandler = vi.fn();
+    const clickListener = renderingContextInstance.onClick(clickHandler);
+    expect(clickListener).toHaveProperty("cancel");
+    clickListener.cancel();
+  });
 });
