@@ -26,7 +26,8 @@ describe("Etapa 5.1b — Remoção definitiva de createPixiBridgeContext e migra
     expect(mainSourceCode).toContain("export const renderingContext");
     expect(mainSourceCode).toMatch(/createRenderingContext\s*\(\s*renderEngine,\s*sceneManager\s*\)/);
     expect(mainSourceCode).toContain("registerAllScenes(renderingContext, sceneManager)");
-    expect(mainSourceCode).toContain("await loadAllGameAssets()");
+    expect(mainSourceCode).toContain("await loadGameAssetsWithTimeout()");
+    expect(mainSourceCode).not.toContain("await loadAllGameAssets()");
   });
 
   function createMockRenderEngine(): IRenderEngine {

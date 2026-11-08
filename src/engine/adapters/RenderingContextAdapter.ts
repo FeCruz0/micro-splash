@@ -10,6 +10,7 @@ import { Assets } from "pixi.js";
 import type {
   IRenderEngine,
   IRenderNode,
+  IScene,
   ISceneManager,
 } from "../contracts/INTERFACE_CONTRACTS";
 import { createTween, Easings, type EasingFunction } from "../utils/Tween";
@@ -19,6 +20,44 @@ import {
   exitDocumentFullscreen,
   isDocumentFullscreen,
 } from "../../systems/fullscreenHandler";
+
+/**
+ * Ciclo de vida do contexto de renderização exposto às cenas: executa os callbacks registrados via
+ * onUpdate no contexto e libera listeners, tweens, timers e nós visuais ao sair da cena.
+ */
+export interface RenderingContextLifecycle {
+  runSceneUpdateCallbacks(deltaTimeInSeconds: number): void;
+  flushSceneResources(): void;
+}
+
+/**
+ * Decora uma IScene para que update e exit também acionem o ciclo de vida do contexto.
+ * O update da própria cena roda primeiro; em seguida, os callbacks de onUpdate do contexto.
+ * Ao sair, o exit da própria cena roda primeiro e os recursos do contexto são sempre liberados.
+ */
+export function withRenderingContextLifecycle(
+  sceneInstance: IScene,
+  renderContextLifecycle: RenderingContextLifecycle
+): IScene {
+  return {
+    name: sceneInstance.name,
+    enter: (transitionData?: unknown) => sceneInstance.enter(transitionData),
+    update: (deltaTimeInSeconds: number) => {
+      try {
+        sceneInstance.update(deltaTimeInSeconds);
+      } finally {
+        renderContextLifecycle.runSceneUpdateCallbacks(deltaTimeInSeconds);
+      }
+    },
+    exit: async () => {
+      try {
+        await sceneInstance.exit();
+      } finally {
+        renderContextLifecycle.flushSceneResources();
+      }
+    },
+  };
+}
 
 export interface RenderingContextEntity {
   pos: { x: number; y: number };
@@ -41,6 +80,7 @@ export interface RenderingContextEntity {
 export interface RenderingContext {
   readonly renderEngine: IRenderEngine;
   readonly sceneManager: ISceneManager;
+  readonly lifecycle: RenderingContextLifecycle;
   readonly debug: { paused: boolean };
   readonly easings: {
     readonly easeOutQuad: (progressRatio: number) => number;
@@ -153,21 +193,42 @@ export function createRenderingContext(
       const activeLeaveCallback = sceneLeaveCallbacksList.pop();
       try {
         activeLeaveCallback?.();
-      } catch {}
+      } catch (error) {
+        console.error("[RenderingContext] Erro em callback de saída de cena:", error);
+      }
     }
     while (sceneCleanupCallbacksList.length > 0) {
       const activeCleanupCallback = sceneCleanupCallbacksList.pop();
       try {
         activeCleanupCallback?.();
-      } catch {}
+      } catch (error) {
+        console.error("[RenderingContext] Erro em callback de limpeza de cena:", error);
+      }
     }
     sceneUpdateCallbacksList.length = 0;
     taggedEntitiesMap.clear();
   };
 
+  const runActiveSceneUpdateCallbacks = (deltaTimeInSeconds: number): void => {
+    const updateCallbacksSnapshot = sceneUpdateCallbacksList.slice();
+    for (let index = 0; index < updateCallbacksSnapshot.length; index++) {
+      try {
+        updateCallbacksSnapshot[index](deltaTimeInSeconds);
+      } catch (error) {
+        console.error("[RenderingContext] Erro em callback de update da cena ativa:", error);
+      }
+    }
+  };
+
+  const renderContextLifecycle: RenderingContextLifecycle = {
+    runSceneUpdateCallbacks: runActiveSceneUpdateCallbacks,
+    flushSceneResources: flushActiveSceneResources,
+  };
+
   const renderingContext: RenderingContext = {
     renderEngine: renderEngineInstance,
     sceneManager: sceneManagerInstance,
+    lifecycle: renderContextLifecycle,
     debug: { paused: false },
     easings: {
       easeOutQuad: Easings.easeOutQuad,
@@ -185,28 +246,19 @@ export function createRenderingContext(
     },
 
     scene(sceneIdentifier: string, sceneAction: (transitionData?: unknown) => void): string {
-      sceneManagerInstance.registerScene({
-        name: sceneIdentifier,
-        enter: (transitionData?: unknown) => {
-          sceneAction(transitionData);
-        },
-        update: (deltaTimeInSeconds: number) => {
-          const updateCallbacksSnapshot = sceneUpdateCallbacksList.slice();
-          for (let index = 0; index < updateCallbacksSnapshot.length; index++) {
-            try {
-              updateCallbacksSnapshot[index](deltaTimeInSeconds);
-            } catch (error) {
-              console.error(
-                `[SceneManager] Erro no update da cena "${sceneIdentifier}":`,
-                error
-              );
-            }
-          }
-        },
-        exit: () => {
-          flushActiveSceneResources();
-        },
-      });
+      sceneManagerInstance.registerScene(
+        withRenderingContextLifecycle(
+          {
+            name: sceneIdentifier,
+            enter: (transitionData?: unknown) => {
+              sceneAction(transitionData);
+            },
+            update: () => {},
+            exit: () => {},
+          },
+          renderContextLifecycle
+        )
+      );
       return sceneIdentifier;
     },
 

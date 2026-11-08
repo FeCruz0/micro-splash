@@ -18,7 +18,21 @@ export interface SceneTransitionOptions {
 }
 
 /**
+ * Descreve uma transição de cena que falhou, para que a camada de aplicação possa torná-la visível.
+ */
+export interface SceneTransitionFailure {
+  readonly sceneName: string;
+  readonly phase: SceneTransitionState;
+  readonly error: unknown;
+}
+
+export type SceneTransitionErrorHandler = (failure: SceneTransitionFailure) => void;
+
+/**
  * Implementação padrão de ISceneManager com FSM e controle estrito de concorrência.
+ *
+ * O estado "ERROR" é apenas informativo: ele registra que a última transição falhou, mas nunca
+ * bloqueia o despacho de update nem novas chamadas de loadScene (recuperação segura).
  */
 export class SceneManager implements ISceneManager {
   private readonly sceneRegistry = new Map<string, IScene>();
@@ -26,6 +40,8 @@ export class SceneManager implements ISceneManager {
   private transitionState: SceneTransitionState = "IDLE";
   private queuedTransition: { sceneName: string; transitionData?: unknown } | null = null;
   private isProcessingTransition: boolean = false;
+  private lastTransitionFailure: SceneTransitionFailure | null = null;
+  private transitionErrorHandler: SceneTransitionErrorHandler | null = null;
 
   getCurrentScene(): IScene | null {
     return this.activeScene;
@@ -33,6 +49,17 @@ export class SceneManager implements ISceneManager {
 
   getTransitionState(): SceneTransitionState {
     return this.transitionState;
+  }
+
+  getLastTransitionFailure(): SceneTransitionFailure | null {
+    return this.lastTransitionFailure;
+  }
+
+  /**
+   * Registra o ouvinte notificado sempre que uma transição falhar (ex.: overlay de erro visível).
+   */
+  setTransitionErrorHandler(handler: SceneTransitionErrorHandler | null): void {
+    this.transitionErrorHandler = handler;
   }
 
   getRegisteredSceneNames(): readonly string[] {
@@ -68,8 +95,12 @@ export class SceneManager implements ISceneManager {
   ): Promise<void> {
     const targetScene = this.sceneRegistry.get(sceneName);
     if (!targetScene) {
+      const missingSceneError = new Error(
+        `[SceneManager] Cena "${sceneName}" não encontrada no registro.`
+      );
       this.transitionState = "ERROR";
-      throw new Error(`[SceneManager] Cena "${sceneName}" não encontrada no registro.`);
+      this.recordTransitionFailure(sceneName, "ERROR", missingSceneError);
+      throw missingSceneError;
     }
 
     // Se já estiver em transição, enfileira a transição mais recente para evitar condições de corrida
@@ -79,10 +110,12 @@ export class SceneManager implements ISceneManager {
     }
 
     this.isProcessingTransition = true;
+    let currentTransitionPhase: SceneTransitionState = "IDLE";
 
     try {
       // 1. Fase EXITING: Notifica saída da cena atual e interpola transição
       if (this.activeScene) {
+        currentTransitionPhase = "EXITING";
         this.transitionState = "EXITING";
         options?.onProgress?.(0, "EXITING");
 
@@ -95,11 +128,13 @@ export class SceneManager implements ISceneManager {
       }
 
       // 2. Fase SWITCHING: Troca a referência canônica da cena
+      currentTransitionPhase = "SWITCHING";
       this.transitionState = "SWITCHING";
       options?.onProgress?.(0.5, "SWITCHING");
       this.activeScene = targetScene;
 
       // 3. Fase ENTERING: Inicializa a nova cena com dados de transição
+      currentTransitionPhase = "ENTERING";
       this.transitionState = "ENTERING";
       options?.onProgress?.(0, "ENTERING");
 
@@ -112,9 +147,10 @@ export class SceneManager implements ISceneManager {
 
       // 4. Retorno ao estado IDLE
       this.transitionState = "IDLE";
+      this.lastTransitionFailure = null;
     } catch (error) {
-      this.transitionState = "ERROR";
       console.error(`[SceneManager] Falha crítica na transição para "${sceneName}":`, error);
+      await this.recoverFromTransitionFailure(targetScene, sceneName, currentTransitionPhase, error);
       throw error;
     } finally {
       this.isProcessingTransition = false;
@@ -129,7 +165,12 @@ export class SceneManager implements ISceneManager {
   }
 
   update(deltaTimeInSeconds: number): void {
-    if (this.transitionState !== "IDLE" && this.transitionState !== "ENTERING") {
+    // "ERROR" é informativo: se ainda houver cena ativa íntegra, o loop continua sendo despachado.
+    if (
+      this.transitionState !== "IDLE" &&
+      this.transitionState !== "ENTERING" &&
+      this.transitionState !== "ERROR"
+    ) {
       return;
     }
     if (this.activeScene) {
@@ -150,6 +191,51 @@ export class SceneManager implements ISceneManager {
     this.queuedTransition = null;
     this.transitionState = "IDLE";
     this.isProcessingTransition = false;
+    this.lastTransitionFailure = null;
+    this.transitionErrorHandler = null;
+  }
+
+  /**
+   * Descarta a cena parcialmente inicializada (exit seguro), libera a referência ativa e registra
+   * a falha. O estado permanece "ERROR" apenas como informação: update e loadScene continuam livres.
+   */
+  private async recoverFromTransitionFailure(
+    failedTargetScene: IScene,
+    sceneName: string,
+    failedPhase: SceneTransitionState,
+    error: unknown
+  ): Promise<void> {
+    const sceneToDiscard = failedPhase === "EXITING" ? this.activeScene : failedTargetScene;
+    if (sceneToDiscard) {
+      try {
+        await sceneToDiscard.exit();
+      } catch (exitError) {
+        console.error(
+          `[SceneManager] Erro ao encerrar a cena "${sceneToDiscard.name}" após falha de transição:`,
+          exitError
+        );
+      }
+    }
+    this.activeScene = null;
+    this.transitionState = "ERROR";
+    this.recordTransitionFailure(sceneName, failedPhase, error);
+  }
+
+  private recordTransitionFailure(
+    sceneName: string,
+    phase: SceneTransitionState,
+    error: unknown
+  ): void {
+    const failure: SceneTransitionFailure = { sceneName, phase, error };
+    this.lastTransitionFailure = failure;
+    if (!this.transitionErrorHandler) {
+      return;
+    }
+    try {
+      this.transitionErrorHandler(failure);
+    } catch (handlerError) {
+      console.error("[SceneManager] Erro no handler de falha de transição:", handlerError);
+    }
   }
 
   private delay(seconds: number): Promise<void> {

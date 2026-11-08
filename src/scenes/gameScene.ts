@@ -172,6 +172,7 @@ export function createGameScene(
   const k = engineContext as unknown as GameSceneSubsystemEngine;
   let activeSceneCleanupCallbacks: Array<() => void> = [];
   let updateGameLoopHandler: ((deltaTimeInSeconds: number) => void) | null = null;
+  let restoreOriginalSceneLeaveRegistration: (() => void) | null = null;
 
   return {
     name: "game",
@@ -203,13 +204,25 @@ export function createGameScene(
         activeSceneCleanupCallbacks.push(cleanupCallback);
       };
 
+      // Durante a cena de jogo, onSceneLeave registra apenas no cleanup desta cena (executado no exit()).
+      // Não encaminhar ao contexto original: o ciclo de vida do RenderingContext executaria o mesmo
+      // callback uma segunda vez ao sair. O registro original é restaurado no exit() para não
+      // contaminar as cenas seguintes.
       const originalOnSceneLeave = k.onSceneLeave;
       k.onSceneLeave = ((cleanupCallback: () => void) => {
         registerSceneLeaveHook(cleanupCallback);
-        if (typeof originalOnSceneLeave === "function") {
-          return originalOnSceneLeave(cleanupCallback);
-        }
+        return {
+          cancel: () => {
+            const registeredIndex = activeSceneCleanupCallbacks.indexOf(cleanupCallback);
+            if (registeredIndex !== -1) {
+              activeSceneCleanupCallbacks.splice(registeredIndex, 1);
+            }
+          },
+        };
       }) as unknown as typeof k.onSceneLeave;
+      restoreOriginalSceneLeaveRegistration = () => {
+        k.onSceneLeave = originalOnSceneLeave;
+      };
 
       // Posição inicial no mapa com base no modo selecionado
       let initialX = 120;
@@ -770,22 +783,17 @@ export function createGameScene(
         systemRunner.run(deltaTimeInSeconds);
       };
 
-      k.onUpdate((passedDeltaTime?: number) => {
-        const rawDeltaTime =
-          typeof passedDeltaTime === "number"
-            ? passedDeltaTime
-            : typeof k.dt === "function"
-              ? k.dt()
-              : 0.0166;
-        const deltaTimeInSeconds = Math.min(Math.max(0, rawDeltaTime), GAME_CONFIG.MAX_DELTA_TIME);
-        if (updateGameLoopHandler) {
-          updateGameLoopHandler(deltaTimeInSeconds);
-        }
-      });
+      // O loop do jogo é acionado exclusivamente pelo update() desta IScene (via SceneManager/ticker).
+      // Não registrar k.onUpdate aqui: o ciclo de vida do RenderingContext também executa os callbacks
+      // de onUpdate a cada quadro e o SystemRunner rodaria duas vezes por quadro.
     },
     update: (deltaTimeInSeconds: number) => {
       if (updateGameLoopHandler) {
-        updateGameLoopHandler(deltaTimeInSeconds);
+        const clampedDeltaTimeInSeconds = Math.min(
+          Math.max(0, deltaTimeInSeconds),
+          GAME_CONFIG.MAX_DELTA_TIME
+        );
+        updateGameLoopHandler(clampedDeltaTimeInSeconds);
       }
     },
     exit: () => {
@@ -798,6 +806,10 @@ export function createGameScene(
       }
       activeSceneCleanupCallbacks = [];
       updateGameLoopHandler = null;
+      if (restoreOriginalSceneLeaveRegistration) {
+        restoreOriginalSceneLeaveRegistration();
+        restoreOriginalSceneLeaveRegistration = null;
+      }
     },
   };
 }
