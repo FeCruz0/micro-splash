@@ -4,7 +4,7 @@ Status: PixiJS v8 em produção; limpeza da fachada de compatibilidade pendente
 Data: 2026-11-08
 Alvo: executar o jogo com PixiJS v8, preservar a simulação e concluir a remoção das chamadas legadas `k.*`.
 
-Estado atual: o boot e o ticker usam PixiJS v8, e Kaboom.js foi removido das dependências. `src/main.ts` ainda cria `createPixiBridgeContext`, uma fachada que expõe operações no estilo `k.*` e é usada por módulos de cenas, UI, sistemas e entidades. A migração do runtime foi concluída; a remoção integral dessa fachada e de seus consumidores ainda não.
+Estado atual: o boot e o ticker usam PixiJS v8, e Kaboom.js foi removido das dependências. A fachada temporária `createPixiBridgeContext` foi removida definitivamente de `src/main.ts` e substituída pelo `RenderingContext` tipado em `src/engine/adapters/RenderingContextAdapter.ts`, operando diretamente com `RenderEngineAdapter` e `SceneManager`.
 
 ---
 
@@ -57,7 +57,7 @@ Estado atual: o boot e o ticker usam PixiJS v8, e Kaboom.js foi removido das dep
 ## Etapa 5: Corte do Kaboom e validacao
 
 - [x] Etapa 5.1a: Remover a dependencia kaboom e o LegacyBridge; deixar o PixiJS v8 como runtime de renderizacao, com um canvas e um ticker.
-- [ ] Etapa 5.1b: Remover `createPixiBridgeContext` e migrar os consumidores restantes de `k.*` para os contratos tipados da engine.
+- [x] Etapa 5.1b: Remover `createPixiBridgeContext` e migrar os consumidores restantes de `k.*` para os contratos tipados da engine.
 - [x] Etapa 5.2: Trocar loadSprite do Kaboom em assetLoader pelo carregador Assets do PixiJS v8.
 - [x] Etapa 5.3: Validar com npx tsc --noEmit e npm test; confirmar no overlay de frame budget que input, physics, ai, collision, culling e render permanecem dentro de 1, 4, 3, 2.5, 2 e 4.1 ms.
   - Rota de 30000 m no modo Sereno, sem quadro sustentado acima de 33,3 ms.

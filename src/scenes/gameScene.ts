@@ -149,27 +149,27 @@ type GameSceneSubsystemEngine = Parameters<typeof createPlayer>[0] &
   GameSceneEngineContext;
 
 export function registerGameScene(
-  rawK: GameSceneEngineContext,
+  engineContext: GameSceneEngineContext,
   sceneManager?: ISceneManager
 ): void {
   if (sceneManager) {
-    sceneManager.registerScene(createGameScene(rawK, sceneManager));
+    sceneManager.registerScene(createGameScene(engineContext, sceneManager));
     return;
   }
 
-  const legacyScene = createGameScene(rawK);
-  if (typeof rawK.scene === "function") {
-    rawK.scene("game", (options: GameOptions = { mode: "standard" }) => {
+  const legacyScene = createGameScene(engineContext);
+  if (typeof engineContext.scene === "function") {
+    engineContext.scene("game", (options: GameOptions = { mode: "standard" }) => {
       legacyScene.enter(options);
     });
   }
 }
 
 export function createGameScene(
-  rawK: GameSceneEngineContext,
+  engineContext: GameSceneEngineContext,
   sceneManager?: ISceneManager
 ): IScene {
-  const k = rawK as unknown as GameSceneSubsystemEngine;
+  const k = engineContext as unknown as GameSceneSubsystemEngine;
   let activeSceneCleanupCallbacks: Array<() => void> = [];
   let updateGameLoopHandler: ((deltaTimeInSeconds: number) => void) | null = null;
 

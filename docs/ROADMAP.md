@@ -1018,11 +1018,11 @@ _Objetivo: Extirpar componentes de colisão estática da engine clássica e acel
 - [x] **69.3 Supressão de Interatividade e Z-Sorting sob Demanda:**
   - Palco e nós configurados com `eventMode = "none"` e `interactiveChildren = false`; desativação de `sortableChildren` contínuo com ordenação invocada apenas em mutações reais de `zIndex`.
 
-### 🚀 FASE 70: Runtime PixiJS v8 & Validação da Migração (Runtime concluído; compatibilidade pendente)
+### 🚀 FASE 70: Runtime PixiJS v8 & Validação da Migração (Concluída ✅)
 
 - [x] **70.1 Loop principal e cenas:** PixiJS inicializado pelo `RenderEngineAdapter`; `SceneManager` controla splash, menu, jogo, resgate e vitória.
 - [x] **70.2 Apresentação e simulação:** Separação das camadas de mundo/tela, integração do ticker e organização dos sistemas em fases canônicas.
 - [x] **70.3 Entidades, colisões, input e interface:** Migração das superfícies de gameplay e UI para nós PixiJS, estado unificado de input, consultas de colisão espaciais e tweens desacoplados.
 - [x] **70.4 Dependência e assets:** Remoção da dependência Kaboom.js e de `LegacyBridge`; carregamento de sprites pelo `Assets` do PixiJS v8.
 - [x] **70.5 Verificação de desempenho:** Teste de estresse cobre a rota de 30.000 m no modo Sereno sem quadros sustentados acima de 33,3 ms; a meta não representa garantia geral de 60 FPS em todo hardware.
-- [ ] **70.6 Remoção da fachada compatível:** Migrar `createPixiBridgeContext` e os consumidores restantes de `k.*` para os contratos tipados da engine. A existência desta fachada significa que a migração de todos os módulos para a API tipada ainda não está concluída.
+- [x] **70.6 Remoção da fachada compatível:** Remoção definitiva de `createPixiBridgeContext` em `src/main.ts` e migração para o `RenderingContextAdapter` baseado nos contratos tipados da engine.

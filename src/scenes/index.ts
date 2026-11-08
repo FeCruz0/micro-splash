@@ -1,4 +1,5 @@
 import type { ISceneManager } from "../engine/contracts/INTERFACE_CONTRACTS";
+import type { RenderingContext } from "../engine/adapters/RenderingContextAdapter";
 import {
   registerSplashScene,
   createSplashScene,
@@ -34,16 +35,16 @@ export interface AllScenesEngineContext
     GameOverSceneEngineContext {}
 
 export function registerAllScenes(
-  engineContext: AllScenesEngineContext,
+  engineContext: AllScenesEngineContext | RenderingContext,
   sceneManager?: ISceneManager
 ): void {
-  registerSplashScene(engineContext, sceneManager);
-  registerMenuScene(engineContext, sceneManager);
-  registerStartScene(engineContext, sceneManager);
-  registerKioskScene(engineContext, sceneManager);
-  registerGameScene(engineContext, sceneManager);
-  registerRescueScene(engineContext, sceneManager);
-  registerGameOverScene(engineContext, sceneManager);
+  registerSplashScene(engineContext as SplashSceneEngineContext, sceneManager);
+  registerMenuScene(engineContext as MenuSceneEngineContext, sceneManager);
+  registerStartScene(engineContext as StartSceneEngineContext, sceneManager);
+  registerKioskScene(engineContext as KioskSceneEngineContext, sceneManager);
+  registerGameScene(engineContext as GameSceneEngineContext, sceneManager);
+  registerRescueScene(engineContext as RescueSceneEngineContext, sceneManager);
+  registerGameOverScene(engineContext as GameOverSceneEngineContext, sceneManager);
 }
 
 export {
@@ -71,3 +72,5 @@ export {
   assetLoaderManager,
   registerAssetBundles,
 } from "./assetLoader";
+
+export type { RenderingContext } from "../engine/adapters/RenderingContextAdapter";

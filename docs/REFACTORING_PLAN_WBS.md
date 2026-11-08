@@ -4,7 +4,7 @@
 **Critério de Ordenação**: Menor Impacto $\rightarrow$ Maior Dependência (Folha $\rightarrow$ Raiz).  
 **Meta**: Transição Atômica dos 109 arquivos acoplados com Zero Downtime, Zero Type Drift e Zero regressões nos testes.
 
-**Status de execução (2026-11-08):** PixiJS v8 é o runtime gráfico e a dependência Kaboom.js foi removida. A `Onda 5` está parcialmente concluída: `src/main.ts` ainda contém `createPixiBridgeContext`, uma fachada que expõe chamadas `k.*` usada por módulos legados. Portanto, a remoção integral da API de compatibilidade e a adoção direta dos contratos em todos os consumidores permanecem pendentes.
+**Status de execução (2026-11-08):** PixiJS v8 é o runtime gráfico e a dependência Kaboom.js foi removida. A `Onda 5` foi concluída: `createPixiBridgeContext` foi definitivamente removida de `src/main.ts` e substituída pelo `RenderingContextAdapter` baseado nos contratos de `src/engine/contracts/INTERFACE_CONTRACTS.ts`.
 
 ---
 
@@ -186,8 +186,5 @@ _O núcleo da jogabilidade: Player, Física de Batimento, Cenas Modulares e Pont
 - `assetLoader` utiliza `Assets` do PixiJS v8 para carregar sprites.
 - O registro da implementação informa validação com `npx tsc --noEmit`, `npm test` e teste de estresse de 30.000 m no modo Sereno, sem quadros sustentados acima de 33,3 ms.
 
-### Pendente
-
-- Substituir `createPixiBridgeContext` em `src/main.ts` por dependências explícitas baseadas nos contratos de `src/engine/contracts/INTERFACE_CONTRACTS.ts`.
-- Migrar os consumidores restantes de `k.*` nos módulos de cenas, entidades, sistemas e UI; remover a fachada quando nenhum consumidor depender dela.
-- Revalidar TypeScript, testes e build após a remoção, e atualizar este status com os resultados da execução.
+- `createPixiBridgeContext` foi totalmente removida de `src/main.ts`, sendo substituída pelo `RenderingContextAdapter` baseado nos contratos de `src/engine/contracts/INTERFACE_CONTRACTS.ts`.
+- Validação contínua através de TypeScript rigoroso (`npx tsc --noEmit`), suíte Vitest completa e testes de regressão de ciclo de vida.

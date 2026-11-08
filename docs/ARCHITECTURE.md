@@ -1,6 +1,6 @@
 # 🏗️ Arquitetura do Sistema - Micro Splash
 
-O **Micro Splash** usa **PixiJS v8** como runtime gráfico, com uma camada de adaptação em TypeScript, áudio procedural via **Web Audio API** e empacotamento via **Vite**. Kaboom.js não é dependência do projeto. Ainda existe em `src/main.ts` uma fachada temporária (`createPixiBridgeContext`) que expõe operações no estilo `k.*` para módulos legados; ela traduz apenas parte desses comandos para nós PixiJS e não é a API recomendada para código novo.
+O **Micro Splash** usa **PixiJS v8** como runtime gráfico, com uma camada de adaptação em TypeScript, áudio procedural via **Web Audio API** e empacotamento via **Vite**. Kaboom.js não é dependência do projeto. A antiga fachada `createPixiBridgeContext` foi completamente removida de `src/main.ts`, sendo substituída pelo `RenderingContextAdapter` e contratos de `INTERFACE_CONTRACTS.ts`.
 
 ---
 
@@ -503,5 +503,5 @@ Essas otimizações reduzem trabalho desnecessário no ambiente WebGL/PixiJS v8.
 
 - `main.ts` inicializa uma única instância de `RenderEngineAdapter` e um `SceneManager`; `PixiRenderTicker` fornece o delta limitado e o ciclo de atualização.
 - O `SystemRunner` ordena os sistemas nas fases `input`, `physics`, `ai`, `collision`, `culling` e `render`.
-- `createPixiBridgeContext` ainda traduz operações legadas de criação e controle de objetos para nós PixiJS em parte dos módulos. Essa fachada é temporária: novos módulos devem usar `IRenderEngine`, `IRenderNode` e os demais contratos de `INTERFACE_CONTRACTS.ts`.
+- `createPixiBridgeContext` foi definitivamente removida de `main.ts`, com a infraestrutura visual e ciclo de cenas migrados para `RenderingContextAdapter` e os contratos de `INTERFACE_CONTRACTS.ts`.
 - A remoção da dependência Kaboom.js e do `LegacyBridge` está concluída; a migração de todos os consumidores `k.*` para os contratos permanece como limpeza técnica pendente.

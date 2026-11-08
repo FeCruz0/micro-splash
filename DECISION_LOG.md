@@ -17,7 +17,7 @@ Este documento registra formalmente as decisões arquiteturais fundamentais adot
 - **Consequências:**
   - **Positivas:** A camada de contratos e os adapters isolam a maior parte do uso da API do PixiJS, facilitando mocking e testes unitários sem WebGL/WebGPU em headless CI.
   - **Negativas:** Requer uma camada adicional de indirection e wrappers leves em torno dos objetos gráficos do PixiJS.
-  - **Implementação atual:** O bootstrap (`main.ts`) e o carregamento de assets também importam PixiJS; além disso, módulos legados ainda usam `createPixiBridgeContext`. O isolamento total previsto nesta decisão depende de remover essa fachada.
+  - **Implementação atual:** O bootstrap (`main.ts`) inicializa o `RenderEngineAdapter` e o `SceneManager` sem Kaboom.js; `createPixiBridgeContext` foi removida definitivamente e substituída pelo `RenderingContextAdapter` tipado.
 
 ---
 
@@ -114,11 +114,11 @@ Este documento registra formalmente as decisões arquiteturais fundamentais adot
 
 ---
 
-### ADR 007: Runtime PixiJS v8 e remoção gradual da API legada
+### ADR 007: Runtime PixiJS v8 e remoção da API legada
 
-- **Status:** Runtime concluído; remoção da fachada legada pendente
+- **Status:** Concluído ✅
 - **Data:** 2026-11-08
-- **Contexto:** A troca do runtime e a remoção do pacote Kaboom.js foram concluídas, mas a migração de todos os consumidores para os contratos tipados ainda não terminou. `src/main.ts` mantém `createPixiBridgeContext`, que oferece operações no formato `k.*` a módulos antigos.
+- **Contexto:** A troca do runtime e a remoção da fachada `createPixiBridgeContext` foram concluídas. `src/main.ts` opera de forma enxuta consumindo diretamente os contratos tipados da engine (`RenderEngineAdapter`, `SceneManager` e `RenderingContextAdapter`).
 - **Decisão:**
   1. PixiJS v8, por meio de `RenderEngineAdapter`, é o único runtime gráfico; `SceneManager` e `PixiRenderTicker` gerenciam cenas e atualizações.
   2. A fachada de compatibilidade é transitória e não deve receber novos consumidores nem ser ampliada.

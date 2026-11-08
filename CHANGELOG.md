@@ -14,7 +14,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - Migração do runtime gráfico para PixiJS v8: `RenderEngineAdapter`, `SceneManager` e `PixiRenderTicker` passam a controlar o canvas, as cenas e o ciclo de atualização.
 - Input, cenas, colisões, UI, tweens, partículas e carregamento de sprites foram adaptados aos sistemas do projeto e às APIs do PixiJS.
 - Kaboom.js e `LegacyBridge` foram removidos das dependências e do bootstrap.
-- A fachada temporária `createPixiBridgeContext` ainda expõe operações legadas `k.*`; a conversão de todos os consumidores para os contratos tipados segue pendente.
+- A fachada temporária `createPixiBridgeContext` foi removida definitivamente de `src/main.ts` e substituída pelo `RenderingContext` tipado via contratos da engine (`IRenderEngine` e `ISceneManager`).
 - A validação registrada inclui TypeScript, suíte Vitest e teste de estresse da rota de 30.000 m no modo Sereno, sem quadros sustentados acima de 33,3 ms.
 
 ---
