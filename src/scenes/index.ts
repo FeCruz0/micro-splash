@@ -63,4 +63,11 @@ export {
   createGameOverScene,
 };
 
-export { loadGameFonts, loadGameSprites, loadAllGameAssets } from "./assetLoader";
+export {
+  loadGameFonts,
+  loadGameSprites,
+  loadGameManifests,
+  loadAllGameAssets,
+  assetLoaderManager,
+  registerAssetBundles,
+} from "./assetLoader";
