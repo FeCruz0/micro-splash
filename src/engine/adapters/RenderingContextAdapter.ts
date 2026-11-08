@@ -17,6 +17,7 @@ import type {
 } from "../contracts/INTERFACE_CONTRACTS";
 import { createTween, Easings, type EasingFunction } from "../utils/Tween";
 import { getScreenLayerGeometryChecker } from "../screenLayerGeometryChecker";
+import { getSpriteSheetManager, type SpriteAnimationController } from "./SpriteSheetManager";
 import {
   requestDocumentFullscreen,
   exitDocumentFullscreen,
@@ -61,6 +62,64 @@ export function withRenderingContextLifecycle(
   };
 }
 
+export function calculateOriginOffset(
+  anchorAlignment: string,
+  width: number,
+  height: number
+): { readonly originX: number; readonly originY: number } {
+  switch (anchorAlignment) {
+    case "center":
+      return { originX: -width / 2, originY: -height / 2 };
+    case "topleft":
+      return { originX: 0, originY: 0 };
+    case "top":
+      return { originX: -width / 2, originY: 0 };
+    case "topright":
+      return { originX: -width, originY: 0 };
+    case "left":
+      return { originX: 0, originY: -height / 2 };
+    case "right":
+      return { originX: -width, originY: -height / 2 };
+    case "botleft":
+      return { originX: 0, originY: -height };
+    case "bot":
+    case "bottom":
+      return { originX: -width / 2, originY: -height };
+    case "botright":
+      return { originX: -width, originY: -height };
+    default:
+      return { originX: 0, originY: 0 };
+  }
+}
+
+export function resolveAnchorCoordinates(
+  anchorAlignment: string
+): { readonly anchorX: number; readonly anchorY: number } {
+  switch (anchorAlignment) {
+    case "center":
+      return { anchorX: 0.5, anchorY: 0.5 };
+    case "topleft":
+      return { anchorX: 0, anchorY: 0 };
+    case "top":
+      return { anchorX: 0.5, anchorY: 0 };
+    case "topright":
+      return { anchorX: 1, anchorY: 0 };
+    case "left":
+      return { anchorX: 0, anchorY: 0.5 };
+    case "right":
+      return { anchorX: 1, anchorY: 0.5 };
+    case "botleft":
+      return { anchorX: 0, anchorY: 1 };
+    case "bot":
+    case "bottom":
+      return { anchorX: 0.5, anchorY: 1 };
+    case "botright":
+      return { anchorX: 1, anchorY: 1 };
+    default:
+      return { anchorX: 0, anchorY: 0 };
+  }
+}
+
 export interface RenderingContextEntity {
   pos: { x: number; y: number };
   scale: { x: number; y: number };
@@ -71,6 +130,8 @@ export interface RenderingContextEntity {
   text?: string;
   width?: number;
   height?: number;
+  radius?: number;
+  frame?: number;
   angle?: number;
   color?: unknown;
   outline?: { color?: unknown; width?: number };
@@ -80,7 +141,8 @@ export interface RenderingContextEntity {
   onClick(callback: () => void): { cancel: () => void };
   onHoverUpdate(callback?: () => void): { cancel: () => void };
   onHoverEnd(callback?: () => void): { cancel: () => void };
-  play(): void;
+  play(animationName?: string): void;
+  curAnim?(): string | null;
   destroy(): void;
 }
 
@@ -532,6 +594,8 @@ export function createRenderingContext(
       let rectangleRadiusValue: number | null = null;
       let circleRadiusValue: number | null = null;
       let spriteAssetIdentifier: string | null = null;
+      let spriteOptionsRecord: Record<string, unknown> | null = null;
+      let spriteAnimationControllerInstance: SpriteAnimationController | null = null;
       let outlineWidthValue: number | null = null;
       let outlineColorValue: [number, number, number] = [255, 255, 255];
       let entityRgbColor: [number, number, number] = [255, 255, 255];
@@ -565,24 +629,19 @@ export function createRenderingContext(
 
             const buttonTargetWidth = rectangleWidthValue;
             const buttonTargetHeight = rectangleHeightValue;
+            const originOffsets = calculateOriginOffset(
+              anchorAlignment,
+              buttonTargetWidth,
+              buttonTargetHeight
+            );
             const cancelHitTargetRegistration = activeScreenChecker.registerHitTarget({
               id: `screen_button_${Math.random().toString(36).slice(2, 9)}`,
-              bounds: () => {
-                const targetPositionX =
-                  anchorAlignment === "center"
-                    ? positionCoordinateX - buttonTargetWidth / 2
-                    : positionCoordinateX;
-                const targetPositionY =
-                  anchorAlignment === "center"
-                    ? positionCoordinateY - buttonTargetHeight / 2
-                    : positionCoordinateY;
-                return {
-                  x: targetPositionX,
-                  y: targetPositionY,
-                  width: buttonTargetWidth,
-                  height: buttonTargetHeight,
-                };
-              },
+              bounds: () => ({
+                x: positionCoordinateX + originOffsets.originX,
+                y: positionCoordinateY + originOffsets.originY,
+                width: buttonTargetWidth,
+                height: buttonTargetHeight,
+              }),
               zIndex: entityZIndex,
               onClick: () => clickCallback(),
             });
@@ -593,7 +652,14 @@ export function createRenderingContext(
         },
         onHoverUpdate: () => ({ cancel: () => {} }),
         onHoverEnd: () => ({ cancel: () => {} }),
-        play: () => {},
+        play: (animationName?: string) => {
+          if (animationName && spriteAnimationControllerInstance) {
+            spriteAnimationControllerInstance.play(animationName);
+          }
+        },
+        curAnim: () => {
+          return spriteAnimationControllerInstance?.getCurrentAnimationName() ?? null;
+        },
         destroy: () => {
           if (entityVisualNode) {
             entityVisualNode.destroy();
@@ -692,6 +758,9 @@ export function createRenderingContext(
               typeof componentRecord.sprite === "string"
             ) {
               spriteAssetIdentifier = componentRecord.sprite;
+              if (componentRecord.options && typeof componentRecord.options === "object") {
+                spriteOptionsRecord = componentRecord.options as Record<string, unknown>;
+              }
             } else if (componentRecord.type === "color" && Array.isArray(componentRecord.args)) {
               const colorArgumentsList = componentRecord.args as unknown[];
               if (
@@ -744,8 +813,13 @@ export function createRenderingContext(
           const rectangleShapeNode = renderEngineInstance.createGraphics(
             `rendered_rect_${Math.random().toString(36).slice(2, 9)}`
           );
-          const originCoordinateX = anchorAlignment === "center" ? -rectangleWidthValue / 2 : 0;
-          const originCoordinateY = anchorAlignment === "center" ? -rectangleHeightValue / 2 : 0;
+          const originOffsets = calculateOriginOffset(
+            anchorAlignment,
+            rectangleWidthValue,
+            rectangleHeightValue
+          );
+          const originCoordinateX = originOffsets.originX;
+          const originCoordinateY = originOffsets.originY;
 
           if (typeof rectangleRadiusValue === "number" && rectangleRadiusValue > 0) {
             rectangleShapeNode.drawRoundedRect(
@@ -787,9 +861,28 @@ export function createRenderingContext(
             if (rotationDegreesValue !== 0) {
               spriteShapeNode.setRotation((rotationDegreesValue * Math.PI) / 180);
             }
-            if (anchorAlignment === "center") {
-              spriteShapeNode.setAnchor(0.5, 0.5);
+            const anchorCoordinates = resolveAnchorCoordinates(anchorAlignment);
+            spriteShapeNode.setAnchor(anchorCoordinates.anchorX, anchorCoordinates.anchorY);
+
+            const spriteSheetManager = getSpriteSheetManager();
+            const initialAnimationName =
+              typeof spriteOptionsRecord?.anim === "string"
+                ? spriteOptionsRecord.anim
+                : undefined;
+            spriteAnimationControllerInstance = spriteSheetManager.createAnimationController(
+              spriteShapeNode,
+              spriteAssetIdentifier,
+              initialAnimationName
+            );
+            if (spriteAnimationControllerInstance) {
+              const cancelAnimationUpdate = renderingContext.onUpdate(
+                (deltaTimeInSeconds: number) => {
+                  spriteAnimationControllerInstance?.update(deltaTimeInSeconds);
+                }
+              );
+              sceneCleanupCallbacksList.push(cancelAnimationUpdate.cancel);
             }
+
             destinationContainer.addChild(spriteShapeNode);
             entityVisualNode = spriteShapeNode;
             entityInstance.renderNode = spriteShapeNode;
@@ -821,6 +914,10 @@ export function createRenderingContext(
           textShapeNode.setScale(scaleCoordinateX, scaleCoordinateY);
           if (rotationDegreesValue !== 0) {
             textShapeNode.setRotation((rotationDegreesValue * Math.PI) / 180);
+          }
+          const anchorCoordinates = resolveAnchorCoordinates(anchorAlignment);
+          if (typeof textShapeNode.setAnchor === "function") {
+            textShapeNode.setAnchor(anchorCoordinates.anchorX, anchorCoordinates.anchorY);
           }
           destinationContainer.addChild(textShapeNode);
           entityVisualNode = textShapeNode;
@@ -863,10 +960,13 @@ export function createRenderingContext(
           ) {
             const graphicsNodeInstance = entityVisualNode as IGraphicsNode;
             graphicsNodeInstance.clear();
-            const originCoordinateX =
-              anchorAlignment === "center" ? -updatedWidthValue / 2 : 0;
-            const originCoordinateY =
-              anchorAlignment === "center" ? -rectangleHeightValue / 2 : 0;
+            const originOffsets = calculateOriginOffset(
+              anchorAlignment,
+              updatedWidthValue,
+              rectangleHeightValue
+            );
+            const originCoordinateX = originOffsets.originX;
+            const originCoordinateY = originOffsets.originY;
             const graphicStyle = {
               fill: { color: entityRgbColor, alpha: entityOpacity },
               ...(outlineWidthValue !== null
@@ -892,6 +992,40 @@ export function createRenderingContext(
               );
             }
           }
+        },
+        configurable: true,
+        enumerable: true,
+      });
+
+      Object.defineProperty(entityInstance, "radius", {
+        get: () => circleRadiusValue ?? 0,
+        set: (updatedRadiusValue: number) => {
+          circleRadiusValue = updatedRadiusValue;
+          if (entityVisualNode && "drawCircle" in entityVisualNode) {
+            const graphicsNodeInstance = entityVisualNode as IGraphicsNode;
+            graphicsNodeInstance.clear();
+            const graphicStyle = {
+              fill: { color: entityRgbColor, alpha: entityOpacity },
+              ...(outlineWidthValue !== null
+                ? { stroke: { width: outlineWidthValue, color: outlineColorValue } }
+                : {}),
+            };
+            graphicsNodeInstance.drawCircle(
+              0,
+              0,
+              Math.max(0, updatedRadiusValue),
+              graphicStyle
+            );
+          }
+        },
+        configurable: true,
+        enumerable: true,
+      });
+
+      Object.defineProperty(entityInstance, "frame", {
+        get: () => spriteAnimationControllerInstance?.getFrame() ?? 0,
+        set: (updatedFrameIndex: number) => {
+          spriteAnimationControllerInstance?.setFrame(updatedFrameIndex);
         },
         configurable: true,
         enumerable: true,

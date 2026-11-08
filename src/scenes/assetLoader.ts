@@ -7,6 +7,7 @@
  */
 
 import { Assets, type Texture } from "pixi.js";
+import { getSpriteSheetManager } from "../engine/adapters/SpriteSheetManager";
 
 export interface FontLoadOptions {
   readonly fontSize?: number;
@@ -235,6 +236,14 @@ export class AssetLoaderManager {
     }
 
     await this.loadAssetBundle("sprites", onProgress);
+
+    const spriteSheetManager = getSpriteSheetManager();
+    for (const descriptor of Object.values(FAUNA_SPRITE_DESCRIPTORS)) {
+      const loadedTexture = this.getLoadedTexture(descriptor.assetAlias);
+      if (loadedTexture) {
+        spriteSheetManager.sliceAtlasTexture(descriptor.assetAlias, loadedTexture);
+      }
+    }
   }
 
   public async loadManifestsBundle(

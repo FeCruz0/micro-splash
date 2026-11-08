@@ -24,6 +24,7 @@ import {
   PixiTextNode,
   parseColor,
 } from "./PixiNodes";
+import { getSpriteSheetManager } from "./SpriteSheetManager";
 import {
   ScreenLayerGeometryChecker,
   initScreenLayerGeometryChecker,
@@ -420,10 +421,16 @@ export class RenderEngineAdapter implements IRenderEngine {
       if (textureOrId === "white" || textureOrId === "Texture.WHITE") {
         texture = Texture.WHITE;
       } else {
-        try {
-          texture = Texture.from(textureOrId);
-        } catch {
-          texture = Texture.EMPTY;
+        const spriteSheetManager = getSpriteSheetManager();
+        if (spriteSheetManager.hasAtlasDescriptor(textureOrId)) {
+          const frameTexture = spriteSheetManager.getFrameTexture(textureOrId, 0);
+          texture = frameTexture ?? Texture.EMPTY;
+        } else {
+          try {
+            texture = Texture.from(textureOrId);
+          } catch {
+            texture = Texture.EMPTY;
+          }
         }
       }
     } else if (textureOrId instanceof Texture) {

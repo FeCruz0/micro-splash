@@ -226,10 +226,11 @@ export class PixiSpriteNode extends PixiContainerNode implements ISpriteNode {
   private textureId: string;
   private tintColor: ColorRepresentation = 0xffffff;
 
-  constructor(sprite: Sprite, textureId: string, id?: string) {
-    super(sprite, id);
-    this.sprite = sprite;
-    this.textureId = textureId;
+  constructor(sprite?: Sprite, textureId?: string, id?: string) {
+    const nativeSprite = sprite ?? new Sprite(Texture.EMPTY);
+    super(nativeSprite, id);
+    this.sprite = nativeSprite;
+    this.textureId = textureId ?? "empty";
     this.sprite.blendMode = "normal";
   }
 
@@ -244,6 +245,14 @@ export class PixiSpriteNode extends PixiContainerNode implements ISpriteNode {
     } catch {
       this.sprite.texture = Texture.EMPTY;
     }
+  }
+
+  getTexture(): Texture {
+    return this.sprite.texture;
+  }
+
+  setTexture(texture: Texture): void {
+    this.sprite.texture = texture;
   }
 
   getAnchor(): Vector2D {
@@ -496,5 +505,18 @@ export class PixiTextNode extends PixiContainerNode implements ITextNode {
       blur: shadow.blur ?? 0,
       distance,
     };
+  }
+
+  getAnchor(): Vector2D {
+    return { x: this.textNode.anchor.x, y: this.textNode.anchor.y };
+  }
+
+  setAnchor(anchorX: number, anchorY: number): void {
+    if (
+      Math.abs(this.textNode.anchor.x - anchorX) > 0.005 ||
+      Math.abs(this.textNode.anchor.y - anchorY) > 0.005
+    ) {
+      this.textNode.anchor.set(anchorX, anchorY);
+    }
   }
 }

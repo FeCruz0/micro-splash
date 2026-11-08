@@ -115,6 +115,9 @@ export interface ISpriteNode extends IRenderNode {
   getWidth(): number;
   getHeight(): number;
   setSize(width: number, height: number): void;
+
+  getTexture?(): unknown;
+  setTexture?(texture: unknown): void;
 }
 
 /**
@@ -156,6 +159,9 @@ export interface ITextNode extends IRenderNode {
   setAlign(alignment: "left" | "center" | "right"): void;
 
   setShadow(shadow: TextShadowOptions | null): void;
+
+  getAnchor?(): Vector2D;
+  setAnchor?(anchorX: number, anchorY: number): void;
 }
 
 /**
