@@ -167,7 +167,11 @@ describe("Etapas 3.1 & 3.2: InputState Unificado & Desacoplamento de Periférico
       lerp: (a: number, b: number, t: number) => a + (b - a) * t,
     };
 
-    const controlsManager = new PlayerControlsManager(mockEngineContext, undefined, inputStateManager);
+    const controlsManager = new PlayerControlsManager(
+      mockEngineContext,
+      undefined,
+      inputStateManager
+    );
 
     // Simula teclas no InputStateManager
     inputStateManager.simulateKeyDown("ArrowLeft");
@@ -188,5 +192,18 @@ describe("Etapas 3.1 & 3.2: InputState Unificado & Desacoplamento de Periférico
     globalManager.destroy();
     resetInputStateManager();
     expect(getInputStateManager()).toBeNull();
+  });
+
+  it("deve preservar as coordenadas do ponteiro durante o reset padrão", () => {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new PointerEvent("pointermove", { clientX: 350, clientY: 220 }));
+      expect(inputStateManager.getPointerPosition()).toEqual({ x: 350, y: 220 });
+
+      inputStateManager.reset();
+      expect(inputStateManager.getPointerPosition()).toEqual({ x: 350, y: 220 });
+
+      inputStateManager.reset(false);
+      expect(inputStateManager.getPointerPosition()).toEqual({ x: 0, y: 0 });
+    }
   });
 });

@@ -413,7 +413,7 @@ export class InputStateManager {
     return this.currentInputState;
   }
 
-  public reset(): void {
+  public reset(preservePointerCoordinateState: boolean = true): void {
     this.activeKeysSet.clear();
     this.pendingPressedKeysSet.clear();
     this.pendingReleasedKeysSet.clear();
@@ -422,8 +422,10 @@ export class InputStateManager {
     this.anyInteractionPending = false;
     this.previousStrokeDownState = false;
     this.pointerPressedState = false;
-    this.pointerPositionCoordinateX = 0;
-    this.pointerPositionCoordinateY = 0;
+    if (!preservePointerCoordinateState) {
+      this.pointerPositionCoordinateX = 0;
+      this.pointerPositionCoordinateY = 0;
+    }
     this.currentInputState = INITIAL_UNIFIED_INPUT_STATE;
     this.mockStateOverride = null;
   }
@@ -451,7 +453,7 @@ export class InputStateManager {
         this.windowPointerMoveListener = null;
       }
     }
-    this.reset();
+    this.reset(false);
   }
 }
 
