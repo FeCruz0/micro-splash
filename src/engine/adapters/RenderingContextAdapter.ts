@@ -150,6 +150,18 @@ export interface RenderingContextEntity {
   isKeyDown?(keyIdentifier: string): boolean;
   isKeyPressed?(keyIdentifier?: string): boolean;
   isKeyReleased?(keyIdentifier?: string): boolean;
+  onKeyPress?(
+    keyOrExecutionCallback: string | (() => void),
+    maybeKeyCallback?: () => void
+  ): { cancel: () => void };
+  onKeyDown?(
+    keyOrExecutionCallback: string | (() => void),
+    maybeKeyCallback?: () => void
+  ): { cancel: () => void };
+  onKeyRelease?(
+    keyOrExecutionCallback: string | (() => void),
+    maybeKeyCallback?: () => void
+  ): { cancel: () => void };
   mousePos?(): { readonly x: number; readonly y: number };
   onCollide(
     targetTagOrCollisionHandler: string | ((collidedEntity: unknown) => void),
@@ -296,6 +308,14 @@ export interface RenderingContext {
 
   onSceneLeave(leaveCallback: () => void): { cancel: () => void };
   onKeyPress(
+    keyOrExecutionCallback: string | (() => void),
+    maybeKeyCallback?: () => void
+  ): { cancel: () => void };
+  onKeyDown(
+    keyOrExecutionCallback: string | (() => void),
+    maybeKeyCallback?: () => void
+  ): { cancel: () => void };
+  onKeyRelease(
     keyOrExecutionCallback: string | (() => void),
     maybeKeyCallback?: () => void
   ): { cancel: () => void };
@@ -1107,6 +1127,18 @@ export function createRenderingContext(
             renderingContext.isKeyPressed(keyIdentifier),
           isKeyReleased: (keyIdentifier?: string): boolean =>
             renderingContext.isKeyReleased(keyIdentifier),
+          onKeyPress: (
+            keyOrExecutionCallback: string | (() => void),
+            maybeKeyCallback?: () => void
+          ) => renderingContext.onKeyPress(keyOrExecutionCallback, maybeKeyCallback),
+          onKeyDown: (
+            keyOrExecutionCallback: string | (() => void),
+            maybeKeyCallback?: () => void
+          ) => renderingContext.onKeyDown(keyOrExecutionCallback, maybeKeyCallback),
+          onKeyRelease: (
+            keyOrExecutionCallback: string | (() => void),
+            maybeKeyCallback?: () => void
+          ) => renderingContext.onKeyRelease(keyOrExecutionCallback, maybeKeyCallback),
           mousePos: (): { readonly x: number; readonly y: number } => renderingContext.mousePos(),
           onClick: (clickCallback: () => void) => {
             if (isFixedElement && rectangleWidthValue !== null && rectangleHeightValue !== null) {
@@ -1874,15 +1906,18 @@ export function createRenderingContext(
       if (typeof window === "undefined") {
         return { cancel: () => {} };
       }
-      const keyboardEventHandler = (event: KeyboardEvent): void => {
+      const keyboardPressEventHandler = (keyboardEvent: KeyboardEvent): void => {
+        if (keyboardEvent.repeat) {
+          return;
+        }
         if (typeof keyOrExecutionCallback === "function") {
           keyOrExecutionCallback();
           return;
         }
         const normalizedTargetVariants = normalizeKeyIdentifier(keyOrExecutionCallback);
         const eventKeyVariants = [
-          ...normalizeKeyIdentifier(event.key),
-          ...normalizeKeyIdentifier(event.code),
+          ...normalizeKeyIdentifier(keyboardEvent.key),
+          ...normalizeKeyIdentifier(keyboardEvent.code),
         ];
         const hasMatchingKey = normalizedTargetVariants.some((targetVariant) =>
           eventKeyVariants.includes(targetVariant)
@@ -1891,9 +1926,73 @@ export function createRenderingContext(
           maybeKeyCallback?.();
         }
       };
-      window.addEventListener("keydown", keyboardEventHandler);
+      window.addEventListener("keydown", keyboardPressEventHandler);
       const cancelKeyboardListener = (): void => {
-        window.removeEventListener("keydown", keyboardEventHandler);
+        window.removeEventListener("keydown", keyboardPressEventHandler);
+      };
+      sceneCleanupCallbacksList.push(cancelKeyboardListener);
+      return { cancel: cancelKeyboardListener };
+    },
+
+    onKeyDown(
+      keyOrExecutionCallback: string | (() => void),
+      maybeKeyCallback?: () => void
+    ): { cancel: () => void } {
+      if (typeof window === "undefined") {
+        return { cancel: () => {} };
+      }
+      const keyboardDownEventHandler = (keyboardEvent: KeyboardEvent): void => {
+        if (typeof keyOrExecutionCallback === "function") {
+          keyOrExecutionCallback();
+          return;
+        }
+        const normalizedTargetVariants = normalizeKeyIdentifier(keyOrExecutionCallback);
+        const eventKeyVariants = [
+          ...normalizeKeyIdentifier(keyboardEvent.key),
+          ...normalizeKeyIdentifier(keyboardEvent.code),
+        ];
+        const hasMatchingKey = normalizedTargetVariants.some((targetVariant) =>
+          eventKeyVariants.includes(targetVariant)
+        );
+        if (hasMatchingKey) {
+          maybeKeyCallback?.();
+        }
+      };
+      window.addEventListener("keydown", keyboardDownEventHandler);
+      const cancelKeyboardListener = (): void => {
+        window.removeEventListener("keydown", keyboardDownEventHandler);
+      };
+      sceneCleanupCallbacksList.push(cancelKeyboardListener);
+      return { cancel: cancelKeyboardListener };
+    },
+
+    onKeyRelease(
+      keyOrExecutionCallback: string | (() => void),
+      maybeKeyCallback?: () => void
+    ): { cancel: () => void } {
+      if (typeof window === "undefined") {
+        return { cancel: () => {} };
+      }
+      const keyboardReleaseEventHandler = (keyboardEvent: KeyboardEvent): void => {
+        if (typeof keyOrExecutionCallback === "function") {
+          keyOrExecutionCallback();
+          return;
+        }
+        const normalizedTargetVariants = normalizeKeyIdentifier(keyOrExecutionCallback);
+        const eventKeyVariants = [
+          ...normalizeKeyIdentifier(keyboardEvent.key),
+          ...normalizeKeyIdentifier(keyboardEvent.code),
+        ];
+        const hasMatchingKey = normalizedTargetVariants.some((targetVariant) =>
+          eventKeyVariants.includes(targetVariant)
+        );
+        if (hasMatchingKey) {
+          maybeKeyCallback?.();
+        }
+      };
+      window.addEventListener("keyup", keyboardReleaseEventHandler);
+      const cancelKeyboardListener = (): void => {
+        window.removeEventListener("keyup", keyboardReleaseEventHandler);
       };
       sceneCleanupCallbacksList.push(cancelKeyboardListener);
       return { cancel: cancelKeyboardListener };

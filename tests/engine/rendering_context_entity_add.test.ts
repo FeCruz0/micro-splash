@@ -548,6 +548,33 @@ describe("RenderingContextEntity .add() encadeado e hierarquia de nós PixiJS v8
     expect(renderingContextInstance.isMousePressed()).toBe(false);
     expect(renderingContextInstance.isMouseDown?.()).toBe(false);
 
+    let keyPressedCallbackTriggered = false;
+    let keyDownCallbackTriggered = false;
+    let keyReleaseCallbackTriggered = false;
+
+    const cancelKeyPress = renderingContextInstance.onKeyPress("up", () => {
+      keyPressedCallbackTriggered = true;
+    });
+    const cancelKeyDown = renderingContextInstance.onKeyDown("up", () => {
+      keyDownCallbackTriggered = true;
+    });
+    const cancelKeyRelease = renderingContextInstance.onKeyRelease("up", () => {
+      keyReleaseCallbackTriggered = true;
+    });
+
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", code: "ArrowUp" }));
+      expect(keyPressedCallbackTriggered).toBe(true);
+      expect(keyDownCallbackTriggered).toBe(true);
+
+      window.dispatchEvent(new KeyboardEvent("keyup", { key: "ArrowUp", code: "ArrowUp" }));
+      expect(keyReleaseCallbackTriggered).toBe(true);
+    }
+
+    cancelKeyPress.cancel();
+    cancelKeyDown.cancel();
+    cancelKeyRelease.cancel();
+
     renderingContextInstance.lifecycle.flushSceneResources();
     resetInputStateManager();
   });
