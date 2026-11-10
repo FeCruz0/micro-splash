@@ -135,12 +135,20 @@ export class InputStateManager {
   private anyInteractionPending: boolean = false;
   private previousStrokeDownState: boolean = false;
 
+  private pointerPositionCoordinateX: number = 0;
+  private pointerPositionCoordinateY: number = 0;
+  private pointerPressedState: boolean = false;
+
   private currentInputState: UnifiedInputState = INITIAL_UNIFIED_INPUT_STATE;
   private touchControlsSource: TouchControlsState | null = null;
 
   private keyboardKeyDownListener: ((keyboardEvent: KeyboardEvent) => void) | null = null;
   private keyboardKeyUpListener: ((keyboardEvent: KeyboardEvent) => void) | null = null;
   private windowPointerDownListener:
+    ((pointerEvent: PointerEvent | MouseEvent | TouchEvent) => void) | null = null;
+  private windowPointerUpListener:
+    ((pointerEvent: PointerEvent | MouseEvent | TouchEvent) => void) | null = null;
+  private windowPointerMoveListener:
     ((pointerEvent: PointerEvent | MouseEvent | TouchEvent) => void) | null = null;
 
   private mockStateOverride: Partial<UnifiedInputState> | null = null;
@@ -184,13 +192,35 @@ export class InputStateManager {
       }
     };
 
-    this.windowPointerDownListener = () => {
+    this.windowPointerDownListener = (pointerEvent: PointerEvent | MouseEvent | TouchEvent) => {
       this.anyInteractionPending = true;
+      this.pointerPressedState = true;
+      if ("clientX" in pointerEvent && typeof pointerEvent.clientX === "number") {
+        this.pointerPositionCoordinateX = pointerEvent.clientX;
+        this.pointerPositionCoordinateY = pointerEvent.clientY;
+      }
+    };
+
+    this.windowPointerUpListener = (pointerEvent: PointerEvent | MouseEvent | TouchEvent) => {
+      this.pointerPressedState = false;
+      if ("clientX" in pointerEvent && typeof pointerEvent.clientX === "number") {
+        this.pointerPositionCoordinateX = pointerEvent.clientX;
+        this.pointerPositionCoordinateY = pointerEvent.clientY;
+      }
+    };
+
+    this.windowPointerMoveListener = (pointerEvent: PointerEvent | MouseEvent | TouchEvent) => {
+      if ("clientX" in pointerEvent && typeof pointerEvent.clientX === "number") {
+        this.pointerPositionCoordinateX = pointerEvent.clientX;
+        this.pointerPositionCoordinateY = pointerEvent.clientY;
+      }
     };
 
     window.addEventListener("keydown", this.keyboardKeyDownListener);
     window.addEventListener("keyup", this.keyboardKeyUpListener);
     window.addEventListener("pointerdown", this.windowPointerDownListener, { passive: true });
+    window.addEventListener("pointerup", this.windowPointerUpListener, { passive: true });
+    window.addEventListener("pointermove", this.windowPointerMoveListener, { passive: true });
   }
 
   public setTouchControlsSource(touchControlsState: TouchControlsState | null): void {
@@ -246,6 +276,17 @@ export class InputStateManager {
       }
     }
     return false;
+  }
+
+  public getPointerPosition(): { readonly x: number; readonly y: number } {
+    return {
+      x: this.pointerPositionCoordinateX,
+      y: this.pointerPositionCoordinateY,
+    };
+  }
+
+  public isPointerPressed(): boolean {
+    return this.pointerPressedState;
   }
 
   /**
@@ -380,6 +421,9 @@ export class InputStateManager {
     this.currentFrameReleasedKeysSet.clear();
     this.anyInteractionPending = false;
     this.previousStrokeDownState = false;
+    this.pointerPressedState = false;
+    this.pointerPositionCoordinateX = 0;
+    this.pointerPositionCoordinateY = 0;
     this.currentInputState = INITIAL_UNIFIED_INPUT_STATE;
     this.mockStateOverride = null;
   }
@@ -397,6 +441,14 @@ export class InputStateManager {
       if (this.windowPointerDownListener) {
         window.removeEventListener("pointerdown", this.windowPointerDownListener);
         this.windowPointerDownListener = null;
+      }
+      if (this.windowPointerUpListener) {
+        window.removeEventListener("pointerup", this.windowPointerUpListener);
+        this.windowPointerUpListener = null;
+      }
+      if (this.windowPointerMoveListener) {
+        window.removeEventListener("pointermove", this.windowPointerMoveListener);
+        this.windowPointerMoveListener = null;
       }
     }
     this.reset();
