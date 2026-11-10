@@ -132,6 +132,8 @@ export interface RenderingContextEntity {
   width?: number;
   height?: number;
   radius?: number;
+  pts?: readonly { readonly x: number; readonly y: number }[];
+  points?: readonly { readonly x: number; readonly y: number }[];
   frame?: number;
   angle?: number;
   color?: unknown;
@@ -199,6 +201,17 @@ export interface RenderingContext {
   shake(intensity: number): void;
 
   circle(circleRadius: number): { readonly type: "circle"; readonly radius: number };
+  polygon(
+    polygonPointsList: readonly (
+      { readonly x: number; readonly y: number } | readonly [number, number] | unknown
+    )[],
+    polygonOptions?: Record<string, unknown>
+  ): {
+    readonly type: "polygon";
+    readonly pts: readonly { readonly x: number; readonly y: number }[];
+    readonly points: readonly { readonly x: number; readonly y: number }[];
+    readonly options?: Record<string, unknown>;
+  };
   anchor(anchorPoint: "center" | "topleft" | "left" | "right" | "top" | "botright" | string): {
     readonly type: "anchor";
     readonly anchorPoint: string;
@@ -475,6 +488,38 @@ export function createRenderingContext(
       return { type: "circle", radius: circleRadius };
     },
 
+    polygon(
+      polygonPointsList: readonly (
+        { readonly x: number; readonly y: number } | readonly [number, number] | unknown
+      )[],
+      polygonOptions?: Record<string, unknown>
+    ): {
+      readonly type: "polygon";
+      readonly pts: readonly { readonly x: number; readonly y: number }[];
+      readonly points: readonly { readonly x: number; readonly y: number }[];
+      readonly options?: Record<string, unknown>;
+    } {
+      const normalizedPolygonPoints = (polygonPointsList ?? []).map((rawPolygonPoint) => {
+        if (Array.isArray(rawPolygonPoint) && rawPolygonPoint.length >= 2) {
+          return { x: Number(rawPolygonPoint[0]), y: Number(rawPolygonPoint[1]) };
+        }
+        if (rawPolygonPoint && typeof rawPolygonPoint === "object") {
+          const vectorPoint = rawPolygonPoint as { x?: number; y?: number };
+          return {
+            x: typeof vectorPoint.x === "number" ? vectorPoint.x : 0,
+            y: typeof vectorPoint.y === "number" ? vectorPoint.y : 0,
+          };
+        }
+        return { x: 0, y: 0 };
+      });
+      return {
+        type: "polygon",
+        pts: normalizedPolygonPoints,
+        points: normalizedPolygonPoints,
+        options: polygonOptions,
+      };
+    },
+
     anchor(anchorPoint: "center" | "topleft" | "left" | "right" | "top" | "botright" | string): {
       readonly type: "anchor";
       readonly anchorPoint: string;
@@ -629,6 +674,7 @@ export function createRenderingContext(
         let rectangleHeightValue: number | null = null;
         let rectangleRadiusValue: number | null = null;
         let circleRadiusValue: number | null = null;
+        let polygonPointsCoordinatesList: Array<{ x: number; y: number }> | null = null;
         let spriteAssetIdentifier: string | null = null;
         let spriteOptionsRecord: Record<string, unknown> | null = null;
         let spriteAnimationControllerInstance: SpriteAnimationController | null = null;
@@ -1014,6 +1060,28 @@ export function createRenderingContext(
             ) {
               circleRadiusValue = componentRecord.radius;
             } else if (
+              componentRecord.type === "polygon" &&
+              (Array.isArray(componentRecord.pts) || Array.isArray(componentRecord.points))
+            ) {
+              const sourcePolygonPointsArray = (componentRecord.pts ??
+                componentRecord.points) as unknown[];
+              polygonPointsCoordinatesList = [];
+              for (let index = 0; index < sourcePolygonPointsArray.length; index++) {
+                const rawPolygonPoint = sourcePolygonPointsArray[index];
+                if (Array.isArray(rawPolygonPoint) && rawPolygonPoint.length >= 2) {
+                  polygonPointsCoordinatesList.push({
+                    x: Number(rawPolygonPoint[0]),
+                    y: Number(rawPolygonPoint[1]),
+                  });
+                } else if (rawPolygonPoint && typeof rawPolygonPoint === "object") {
+                  const vectorPoint = rawPolygonPoint as { x?: number; y?: number };
+                  polygonPointsCoordinatesList.push({
+                    x: typeof vectorPoint.x === "number" ? vectorPoint.x : 0,
+                    y: typeof vectorPoint.y === "number" ? vectorPoint.y : 0,
+                  });
+                }
+              }
+            } else if (
               componentRecord.type === "outline" &&
               typeof componentRecord.width === "number"
             ) {
@@ -1149,6 +1217,25 @@ export function createRenderingContext(
             targetDestinationContainer.addChild(rectangleShapeNode);
             entityVisualNode = rectangleShapeNode;
             entityInstance.renderNode = rectangleShapeNode;
+          } else if (
+            polygonPointsCoordinatesList !== null &&
+            polygonPointsCoordinatesList.length >= 3
+          ) {
+            const polygonShapeNode = renderEngineInstance.createGraphics(
+              `rendered_polygon_${Math.random().toString(36).slice(2, 9)}`
+            );
+            if (typeof polygonShapeNode.drawPolygon === "function") {
+              polygonShapeNode.drawPolygon(polygonPointsCoordinatesList, graphicStyle);
+            }
+            polygonShapeNode.setPosition(positionCoordinateX, positionCoordinateY);
+            polygonShapeNode.setZIndex(entityZIndex);
+            polygonShapeNode.setScale(scaleCoordinateX, scaleCoordinateY);
+            if (rotationDegreesValue !== 0) {
+              polygonShapeNode.setRotation((rotationDegreesValue * Math.PI) / 180);
+            }
+            targetDestinationContainer.addChild(polygonShapeNode);
+            entityVisualNode = polygonShapeNode;
+            entityInstance.renderNode = polygonShapeNode;
           } else if (spriteAssetIdentifier !== null) {
             try {
               const spriteShapeNode = renderEngineInstance.createSprite(
@@ -1325,6 +1412,41 @@ export function createRenderingContext(
               };
               graphicsNodeInstance.drawCircle(0, 0, Math.max(0, updatedRadiusValue), graphicStyle);
             }
+          },
+          configurable: true,
+          enumerable: true,
+        });
+
+        Object.defineProperty(entityInstance, "pts", {
+          get: () => polygonPointsCoordinatesList ?? undefined,
+          set: (updatedPolygonPointsList: Array<{ x: number; y: number }>) => {
+            polygonPointsCoordinatesList = updatedPolygonPointsList;
+            if (
+              entityVisualNode &&
+              "drawPolygon" in entityVisualNode &&
+              typeof (entityVisualNode as IGraphicsNode).drawPolygon === "function" &&
+              updatedPolygonPointsList &&
+              updatedPolygonPointsList.length >= 3
+            ) {
+              const graphicsNodeInstance = entityVisualNode as IGraphicsNode;
+              graphicsNodeInstance.clear();
+              const graphicStyle = {
+                fill: { color: entityRgbColor, alpha: entityOpacity },
+                ...(outlineWidthValue !== null
+                  ? { stroke: { width: outlineWidthValue, color: outlineColorValue } }
+                  : {}),
+              };
+              graphicsNodeInstance.drawPolygon(updatedPolygonPointsList, graphicStyle);
+            }
+          },
+          configurable: true,
+          enumerable: true,
+        });
+
+        Object.defineProperty(entityInstance, "points", {
+          get: () => polygonPointsCoordinatesList ?? undefined,
+          set: (updatedPolygonPointsList: Array<{ x: number; y: number }>) => {
+            entityInstance.pts = updatedPolygonPointsList;
           },
           configurable: true,
           enumerable: true,

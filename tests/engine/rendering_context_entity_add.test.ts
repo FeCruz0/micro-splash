@@ -338,4 +338,44 @@ describe("RenderingContextEntity .add() encadeado e hierarquia de nós PixiJS v8
     const taggedEntitiesList = renderingContextInstance.get("nova-tag-dinamica");
     expect(taggedEntitiesList).toContain(testEntity);
   });
+
+  it("suporta criação e renderização de formas poligonais via polygon() no PixiJS v8", () => {
+    const renderEngineAdapterInstance = new RenderEngineAdapter();
+    const sceneManagerInstance = new SceneManager();
+    const renderingContextInstance = createRenderingContext(
+      renderEngineAdapterInstance,
+      sceneManagerInstance
+    );
+
+    const trianglePoints = [
+      { x: 0, y: 0 },
+      { x: 100, y: 0 },
+      { x: 50, y: 80 },
+    ];
+
+    const polygonDescriptor = renderingContextInstance.polygon(trianglePoints);
+    expect(polygonDescriptor.type).toBe("polygon");
+    expect(polygonDescriptor.pts).toEqual(trianglePoints);
+    expect(polygonDescriptor.points).toEqual(trianglePoints);
+
+    const polygonEntity = renderingContextInstance.add([
+      renderingContextInstance.pos(20, 30),
+      polygonDescriptor,
+      renderingContextInstance.color(200, 230, 255),
+      renderingContextInstance.outline(2, [100, 150, 200]),
+      renderingContextInstance.opacity(0.8),
+    ]);
+
+    expect(polygonEntity).toBeDefined();
+    expect(polygonEntity.pts).toEqual(trianglePoints);
+    expect(polygonEntity.points).toEqual(trianglePoints);
+
+    const updatedPoints = [
+      { x: 10, y: 10 },
+      { x: 120, y: 10 },
+      { x: 60, y: 90 },
+    ];
+    polygonEntity.pts = updatedPoints;
+    expect(polygonEntity.pts).toEqual(updatedPoints);
+  });
 });
