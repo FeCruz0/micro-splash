@@ -100,7 +100,16 @@ export interface GameSceneEngineContext {
   isMousePressed(): boolean;
   onUpdate(callback: (deltaTimeInSeconds?: number) => void): unknown;
   wait(duration: number, callback: () => void): unknown;
-  camPos(): { x: number; y: number };
+  camPos(
+    cameraPositionOrCoordinateX?: number | { x: number; y: number },
+    cameraCoordinateY?: number
+  ): { x: number; y: number };
+  lerp?(startValue: number, endValue: number, progressRatio: number): number;
+  synchronizePlayerCameraTracking?(
+    playerCoordinateX: number,
+    playerCoordinateY?: number,
+    smoothingFactor?: number
+  ): { x: number; y: number };
   vec2(x: number, y: number): { x: number; y: number };
   width(): number;
   height(): number;
@@ -189,6 +198,58 @@ function initializePlayerEntityContext(
   );
 
   return gameScenePlayerInstance;
+}
+
+/**
+ * Sincroniza o rastreamento da câmera da cena para acompanhar suavemente a posição da baleia.
+ */
+function synchronizePlayerCameraTracking(
+  renderingContext: GameSceneSubsystemEngine,
+  playerController: PlayerController
+): { x: number; y: number } {
+  const playerEntity = playerController.gameObj;
+  if (!playerEntity || !playerEntity.pos) {
+    return typeof renderingContext.camPos === "function"
+      ? renderingContext.camPos()
+      : { x: 0, y: 0 };
+  }
+
+  const isFacingRight =
+    typeof playerController.isFacingRight === "function" ? playerController.isFacingRight() : true;
+  const cameraHorizontalOffset = isFacingRight ? 200 : -200;
+  const targetCameraPositionCoordinateX = playerEntity.pos.x + cameraHorizontalOffset;
+
+  if (
+    typeof (renderingContext as unknown as { synchronizePlayerCameraTracking?: unknown })
+      .synchronizePlayerCameraTracking === "function"
+  ) {
+    return (
+      renderingContext as unknown as {
+        synchronizePlayerCameraTracking: (
+          targetX: number,
+          targetY?: number,
+          smoothing?: number
+        ) => { x: number; y: number };
+      }
+    ).synchronizePlayerCameraTracking(targetCameraPositionCoordinateX, 0, 0.05);
+  }
+
+  const currentCameraPosition =
+    typeof renderingContext.camPos === "function" ? renderingContext.camPos() : { x: 0, y: 0 };
+
+  const targetInterpolatedCoordinateX =
+    typeof renderingContext.lerp === "function"
+      ? renderingContext.lerp(currentCameraPosition.x, targetCameraPositionCoordinateX, 0.05)
+      : currentCameraPosition.x +
+        (targetCameraPositionCoordinateX - currentCameraPosition.x) * 0.05;
+
+  const targetCameraPositionCoordinateY = currentCameraPosition.y ?? 0;
+
+  if (typeof renderingContext.camPos === "function") {
+    return renderingContext.camPos(targetInterpolatedCoordinateX, targetCameraPositionCoordinateY);
+  }
+
+  return { x: targetInterpolatedCoordinateX, y: targetCameraPositionCoordinateY };
 }
 
 export function createGameScene(
@@ -696,7 +757,7 @@ export function createGameScene(
         "culling",
         () => {
           const playerXPosition = playerController.gameObj.pos.x;
-          const currentCameraPosition = typeof k.camPos === "function" ? k.camPos() : k.vec2(0, 0);
+          const currentCameraPosition = synchronizePlayerCameraTracking(k, playerController);
           biomeManager.update(playerXPosition);
           spatialCulling.update(currentCameraPosition.x);
         },
@@ -710,7 +771,7 @@ export function createGameScene(
           if (isGameFinished) return;
 
           const playerXPosition = playerController.gameObj.pos.x;
-          const currentCameraPosition = typeof k.camPos === "function" ? k.camPos() : k.vec2(0, 0);
+          const currentCameraPosition = synchronizePlayerCameraTracking(k, playerController);
           const currentScreenWidth = typeof k.width === "function" ? k.width() : 1280;
           const currentScreenHeight = typeof k.height === "function" ? k.height() : 720;
 

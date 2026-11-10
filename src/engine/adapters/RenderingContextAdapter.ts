@@ -211,6 +211,47 @@ export function createRenderingContextVector2D(
   return vectorInstance;
 }
 
+export function updateCameraViewportPosition(
+  renderEngineInstance: IRenderEngine,
+  cameraPositionCoordinateX: number,
+  cameraPositionCoordinateY: number
+): { readonly x: number; readonly y: number } {
+  if (typeof renderEngineInstance.setCameraPosition === "function") {
+    renderEngineInstance.setCameraPosition(cameraPositionCoordinateX, cameraPositionCoordinateY);
+  }
+  const worldContainerNode =
+    typeof renderEngineInstance.getWorldContainer === "function"
+      ? renderEngineInstance.getWorldContainer()
+      : null;
+  if (worldContainerNode && typeof worldContainerNode.setPosition === "function") {
+    worldContainerNode.setPosition(-cameraPositionCoordinateX, -cameraPositionCoordinateY);
+  }
+  return typeof renderEngineInstance.getCameraPosition === "function"
+    ? renderEngineInstance.getCameraPosition()
+    : { x: cameraPositionCoordinateX, y: cameraPositionCoordinateY };
+}
+
+export function synchronizePlayerCameraTracking(
+  renderingContext: {
+    camPos(
+      cameraPositionOrCoordinateX?: number | { readonly x: number; readonly y: number },
+      cameraCoordinateY?: number
+    ): { readonly x: number; readonly y: number };
+    lerp?(startValue: number, endValue: number, progressRatio: number): number;
+  },
+  playerCoordinateX: number,
+  playerCoordinateY: number = 0,
+  smoothingFactor: number = 0.05
+): { readonly x: number; readonly y: number } {
+  const currentCameraPosition = renderingContext.camPos();
+  const targetCoordinateX =
+    typeof renderingContext.lerp === "function"
+      ? renderingContext.lerp(currentCameraPosition.x, playerCoordinateX, smoothingFactor)
+      : currentCameraPosition.x + (playerCoordinateX - currentCameraPosition.x) * smoothingFactor;
+
+  return renderingContext.camPos(targetCoordinateX, playerCoordinateY);
+}
+
 export function calculateOriginOffset(
   anchorAlignment: string,
   width: number,
@@ -484,6 +525,15 @@ export interface RenderingContext {
     cameraCoordinateY?: number
   ): { readonly x: number; readonly y: number };
   camScale?(scaleFactor: number | { readonly x: number; readonly y: number }): void;
+  updateCameraViewportPosition?(
+    cameraPositionCoordinateX: number,
+    cameraPositionCoordinateY: number
+  ): { readonly x: number; readonly y: number };
+  synchronizePlayerCameraTracking?(
+    playerCoordinateX: number,
+    playerCoordinateY?: number,
+    smoothingFactor?: number
+  ): { readonly x: number; readonly y: number };
 
   get(tagIdentifier: string): unknown[];
   onCollide(
@@ -2281,16 +2331,50 @@ export function createRenderingContext(
       cameraCoordinateY?: number
     ): { readonly x: number; readonly y: number } {
       if (typeof cameraPositionOrCoordinateX === "number") {
-        const currentCameraPosition = renderEngineInstance.getCameraPosition();
+        const currentCameraPosition =
+          typeof renderEngineInstance.getCameraPosition === "function"
+            ? renderEngineInstance.getCameraPosition()
+            : { x: 0, y: 0 };
         const targetCoordinateY = cameraCoordinateY ?? currentCameraPosition.y;
-        renderEngineInstance.setCameraPosition(cameraPositionOrCoordinateX, targetCoordinateY);
+        return updateCameraViewportPosition(
+          renderEngineInstance,
+          cameraPositionOrCoordinateX,
+          targetCoordinateY
+        );
       } else if (cameraPositionOrCoordinateX && typeof cameraPositionOrCoordinateX === "object") {
-        renderEngineInstance.setCameraPosition(
+        return updateCameraViewportPosition(
+          renderEngineInstance,
           cameraPositionOrCoordinateX.x,
           cameraPositionOrCoordinateX.y
         );
       }
-      return renderEngineInstance.getCameraPosition();
+      return typeof renderEngineInstance.getCameraPosition === "function"
+        ? renderEngineInstance.getCameraPosition()
+        : { x: 0, y: 0 };
+    },
+
+    updateCameraViewportPosition(
+      cameraPositionCoordinateX: number,
+      cameraPositionCoordinateY: number
+    ): { readonly x: number; readonly y: number } {
+      return updateCameraViewportPosition(
+        renderEngineInstance,
+        cameraPositionCoordinateX,
+        cameraPositionCoordinateY
+      );
+    },
+
+    synchronizePlayerCameraTracking(
+      playerCoordinateX: number,
+      playerCoordinateY: number = 0,
+      smoothingFactor: number = 0.05
+    ): { readonly x: number; readonly y: number } {
+      return synchronizePlayerCameraTracking(
+        renderingContext,
+        playerCoordinateX,
+        playerCoordinateY,
+        smoothingFactor
+      );
     },
 
     camScale(_scaleFactor: number | { readonly x: number; readonly y: number }): void {
