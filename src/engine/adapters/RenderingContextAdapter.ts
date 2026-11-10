@@ -92,9 +92,10 @@ export function calculateOriginOffset(
   }
 }
 
-export function resolveAnchorCoordinates(
-  anchorAlignment: string
-): { readonly anchorX: number; readonly anchorY: number } {
+export function resolveAnchorCoordinates(anchorAlignment: string): {
+  readonly anchorX: number;
+  readonly anchorY: number;
+} {
   switch (anchorAlignment) {
     case "center":
       return { anchorX: 0.5, anchorY: 0.5 };
@@ -136,6 +137,8 @@ export interface RenderingContextEntity {
   color?: unknown;
   outline?: { color?: unknown; width?: number };
   renderNode?: IRenderNode | null;
+  readonly children?: readonly RenderingContextEntity[];
+  add(childComponentOrDescriber: unknown[] | unknown): RenderingContextEntity;
   exists(): boolean;
   onUpdate(callback: () => void): unknown;
   onClick(callback: () => void): { cancel: () => void };
@@ -184,7 +187,10 @@ export interface RenderingContext {
     readonly type: "anchor";
     readonly anchorPoint: string;
   };
-  outline(outlineWidth: number, outlineColor?: unknown): {
+  outline(
+    outlineWidth: number,
+    outlineColor?: unknown
+  ): {
     readonly type: "outline";
     readonly width: number;
     readonly color?: unknown;
@@ -241,7 +247,7 @@ export interface RenderingContext {
     readonly options?: Record<string, unknown>;
   };
 
-  add(componentsList: unknown[]): RenderingContextEntity;
+  add(componentsListOrDescriber: unknown[] | unknown): RenderingContextEntity;
   destroy(targetEntity: unknown): void;
 
   tween(
@@ -460,7 +466,10 @@ export function createRenderingContext(
       return { type: "anchor", anchorPoint };
     },
 
-    outline(outlineWidth: number, outlineColor?: unknown): {
+    outline(
+      outlineWidth: number,
+      outlineColor?: unknown
+    ): {
       readonly type: "outline";
       readonly width: number;
       readonly color?: unknown;
@@ -579,100 +588,124 @@ export function createRenderingContext(
       return { type: "text", text: contentString, options: textOptions };
     },
 
-    add(componentsList: unknown[]): RenderingContextEntity {
-      let isFixedElement = false;
-      let positionCoordinateX = 0;
-      let positionCoordinateY = 0;
-      let anchorAlignment: "center" | "topleft" | "left" | "right" | "top" | "botright" | string =
-        "topleft";
-      let entityOpacity = 1;
-      let entityZIndex = 0;
-      let entityTextContent: string | null = null;
-      let textStyleOptionsRecord: Record<string, unknown> | null = null;
-      let rectangleWidthValue: number | null = null;
-      let rectangleHeightValue: number | null = null;
-      let rectangleRadiusValue: number | null = null;
-      let circleRadiusValue: number | null = null;
-      let spriteAssetIdentifier: string | null = null;
-      let spriteOptionsRecord: Record<string, unknown> | null = null;
-      let spriteAnimationControllerInstance: SpriteAnimationController | null = null;
-      let outlineWidthValue: number | null = null;
-      let outlineColorValue: [number, number, number] = [255, 255, 255];
-      let entityRgbColor: [number, number, number] = [255, 255, 255];
-      let scaleCoordinateX = 1;
-      let scaleCoordinateY = 1;
-      let rotationDegreesValue = 0;
-      let entityVisualNode: IRenderNode | null = null;
+    add(componentsListOrDescriber: unknown[] | unknown): RenderingContextEntity {
+      const buildRenderingContextEntity = (
+        componentsListOrDescriptor: unknown[] | unknown,
+        parentEntityVisualNode?: IRenderNode | null
+      ): RenderingContextEntity => {
+        const normalizedComponentsList = Array.isArray(componentsListOrDescriptor)
+          ? componentsListOrDescriptor
+          : componentsListOrDescriptor !== undefined && componentsListOrDescriptor !== null
+            ? [componentsListOrDescriptor]
+            : [];
 
-      const entityInstance: RenderingContextEntity = {
-        pos: { x: 0, y: 0 },
-        scale: { x: 1, y: 1 },
-        opacity: 1,
-        z: 0,
-        hidden: false,
-        fixed: false,
-        exists: () => true,
-        onUpdate: (updateCallback: () => void) => renderingContext.onUpdate(updateCallback),
-        onClick: (clickCallback: () => void) => {
-          if (
-            isFixedElement &&
-            rectangleWidthValue !== null &&
-            rectangleHeightValue !== null
-          ) {
-            const activeScreenChecker =
-              renderEngineInstance.isInitialized &&
-              typeof renderEngineInstance.getScreenLayerGeometryChecker === "function"
-                ? (renderEngineInstance.getScreenLayerGeometryChecker() as ReturnType<
-                    typeof getScreenLayerGeometryChecker
-                  >)
-                : getScreenLayerGeometryChecker();
+        const entityChildList: RenderingContextEntity[] = [];
+        let isFixedElement = false;
+        let positionCoordinateX = 0;
+        let positionCoordinateY = 0;
+        let anchorAlignment: "center" | "topleft" | "left" | "right" | "top" | "botright" | string =
+          "topleft";
+        let entityOpacity = 1;
+        let entityZIndex = 0;
+        let entityTextContent: string | null = null;
+        let textStyleOptionsRecord: Record<string, unknown> | null = null;
+        let rectangleWidthValue: number | null = null;
+        let rectangleHeightValue: number | null = null;
+        let rectangleRadiusValue: number | null = null;
+        let circleRadiusValue: number | null = null;
+        let spriteAssetIdentifier: string | null = null;
+        let spriteOptionsRecord: Record<string, unknown> | null = null;
+        let spriteAnimationControllerInstance: SpriteAnimationController | null = null;
+        let outlineWidthValue: number | null = null;
+        let outlineColorValue: [number, number, number] = [255, 255, 255];
+        let entityRgbColor: [number, number, number] = [255, 255, 255];
+        let scaleCoordinateX = 1;
+        let scaleCoordinateY = 1;
+        let rotationDegreesValue = 0;
+        let entityVisualNode: IRenderNode | null = null;
 
-            const buttonTargetWidth = rectangleWidthValue;
-            const buttonTargetHeight = rectangleHeightValue;
-            const originOffsets = calculateOriginOffset(
-              anchorAlignment,
-              buttonTargetWidth,
-              buttonTargetHeight
+        const entityInstance: RenderingContextEntity = {
+          pos: { x: 0, y: 0 },
+          scale: { x: 1, y: 1 },
+          opacity: 1,
+          z: 0,
+          hidden: false,
+          fixed: false,
+          exists: () => true,
+          onUpdate: (updateCallback: () => void) => renderingContext.onUpdate(updateCallback),
+          onClick: (clickCallback: () => void) => {
+            if (isFixedElement && rectangleWidthValue !== null && rectangleHeightValue !== null) {
+              const activeScreenChecker =
+                renderEngineInstance.isInitialized &&
+                typeof renderEngineInstance.getScreenLayerGeometryChecker === "function"
+                  ? (renderEngineInstance.getScreenLayerGeometryChecker() as ReturnType<
+                      typeof getScreenLayerGeometryChecker
+                    >)
+                  : getScreenLayerGeometryChecker();
+
+              const buttonTargetWidth = rectangleWidthValue;
+              const buttonTargetHeight = rectangleHeightValue;
+              const originOffsets = calculateOriginOffset(
+                anchorAlignment,
+                buttonTargetWidth,
+                buttonTargetHeight
+              );
+              const cancelHitTargetRegistration = activeScreenChecker.registerHitTarget({
+                id: `screen_button_${Math.random().toString(36).slice(2, 9)}`,
+                bounds: () => ({
+                  x: positionCoordinateX + originOffsets.originX,
+                  y: positionCoordinateY + originOffsets.originY,
+                  width: buttonTargetWidth,
+                  height: buttonTargetHeight,
+                }),
+                zIndex: entityZIndex,
+                onClick: () => clickCallback(),
+              });
+              sceneCleanupCallbacksList.push(cancelHitTargetRegistration);
+              return { cancel: cancelHitTargetRegistration };
+            }
+            return renderingContext.onMousePress(clickCallback);
+          },
+          onHoverUpdate: () => ({ cancel: () => {} }),
+          onHoverEnd: () => ({ cancel: () => {} }),
+          play: (animationName?: string) => {
+            if (animationName && spriteAnimationControllerInstance) {
+              spriteAnimationControllerInstance.play(animationName);
+            }
+          },
+          curAnim: () => {
+            return spriteAnimationControllerInstance?.getCurrentAnimationName() ?? null;
+          },
+          add: (childComponentOrDescriber: unknown[] | unknown): RenderingContextEntity => {
+            const childEntityInstance = buildRenderingContextEntity(
+              childComponentOrDescriber,
+              entityVisualNode
             );
-            const cancelHitTargetRegistration = activeScreenChecker.registerHitTarget({
-              id: `screen_button_${Math.random().toString(36).slice(2, 9)}`,
-              bounds: () => ({
-                x: positionCoordinateX + originOffsets.originX,
-                y: positionCoordinateY + originOffsets.originY,
-                width: buttonTargetWidth,
-                height: buttonTargetHeight,
-              }),
-              zIndex: entityZIndex,
-              onClick: () => clickCallback(),
-            });
-            sceneCleanupCallbacksList.push(cancelHitTargetRegistration);
-            return { cancel: cancelHitTargetRegistration };
-          }
-          return renderingContext.onMousePress(clickCallback);
-        },
-        onHoverUpdate: () => ({ cancel: () => {} }),
-        onHoverEnd: () => ({ cancel: () => {} }),
-        play: (animationName?: string) => {
-          if (animationName && spriteAnimationControllerInstance) {
-            spriteAnimationControllerInstance.play(animationName);
-          }
-        },
-        curAnim: () => {
-          return spriteAnimationControllerInstance?.getCurrentAnimationName() ?? null;
-        },
-        destroy: () => {
-          if (entityVisualNode) {
-            entityVisualNode.destroy();
-            entityVisualNode = null;
-          }
-          for (const entitySet of taggedEntitiesMap.values()) {
-            entitySet.delete(entityInstance);
-          }
-        },
-      };
+            entityChildList.push(childEntityInstance);
+            return childEntityInstance;
+          },
+          destroy: () => {
+            while (entityChildList.length > 0) {
+              const childEntity = entityChildList.pop();
+              childEntity?.destroy();
+            }
+            if (entityVisualNode) {
+              entityVisualNode.destroy();
+              entityVisualNode = null;
+            }
+            for (const entitySet of taggedEntitiesMap.values()) {
+              entitySet.delete(entityInstance);
+            }
+          },
+        };
 
-      if (Array.isArray(componentsList)) {
-        for (const rawComponent of componentsList) {
+        Object.defineProperty(entityInstance, "children", {
+          get: () => [...entityChildList],
+          enumerable: true,
+          configurable: true,
+        });
+
+        for (const rawComponent of normalizedComponentsList) {
           if (typeof rawComponent === "string") {
             let taggedBucket = taggedEntitiesMap.get(rawComponent);
             if (!taggedBucket) {
@@ -694,10 +727,7 @@ export function createRenderingContext(
               typeof componentRecord.opacity === "number"
             ) {
               entityOpacity = componentRecord.opacity;
-            } else if (
-              componentRecord.type === "z" &&
-              typeof componentRecord.z === "number"
-            ) {
+            } else if (componentRecord.type === "z" && typeof componentRecord.z === "number") {
               entityZIndex = componentRecord.z;
             } else if (componentRecord.type === "fixed") {
               isFixedElement = true;
@@ -712,8 +742,7 @@ export function createRenderingContext(
               typeof componentRecord.text === "string"
             ) {
               entityTextContent = componentRecord.text;
-              textStyleOptionsRecord =
-                (componentRecord.options as Record<string, unknown>) ?? null;
+              textStyleOptionsRecord = (componentRecord.options as Record<string, unknown>) ?? null;
               entityInstance.text = entityTextContent;
             } else if (
               componentRecord.type === "rect" &&
@@ -763,383 +792,390 @@ export function createRenderingContext(
               }
             } else if (componentRecord.type === "color" && Array.isArray(componentRecord.args)) {
               const colorArgumentsList = componentRecord.args as unknown[];
-              if (
-                colorArgumentsList.length === 3 &&
-                typeof colorArgumentsList[0] === "number"
-              ) {
+              if (colorArgumentsList.length === 3 && typeof colorArgumentsList[0] === "number") {
                 entityRgbColor = [
                   colorArgumentsList[0],
                   colorArgumentsList[1] as number,
                   colorArgumentsList[2] as number,
                 ];
-              } else if (
-                colorArgumentsList.length === 1 &&
-                Array.isArray(colorArgumentsList[0])
-              ) {
+              } else if (colorArgumentsList.length === 1 && Array.isArray(colorArgumentsList[0])) {
                 entityRgbColor = colorArgumentsList[0] as [number, number, number];
               }
+            } else if (!("type" in componentRecord)) {
+              Object.assign(entityInstance, componentRecord);
             }
           }
         }
-      }
 
-      if (renderEngineInstance.isInitialized) {
-        const destinationContainer = isFixedElement
-          ? renderEngineInstance.getScreenContainer()
-          : renderEngineInstance.getWorldContainer();
+        if (renderEngineInstance.isInitialized) {
+          const targetDestinationContainer: IRenderNode = parentEntityVisualNode
+            ? parentEntityVisualNode
+            : isFixedElement
+              ? renderEngineInstance.getScreenContainer()
+              : renderEngineInstance.getWorldContainer();
 
-        const graphicStyle = {
-          fill: { color: entityRgbColor, alpha: entityOpacity },
-          ...(outlineWidthValue !== null
-            ? { stroke: { width: outlineWidthValue, color: outlineColorValue } }
-            : {}),
-        };
+          const graphicStyle = {
+            fill: { color: entityRgbColor, alpha: entityOpacity },
+            ...(outlineWidthValue !== null
+              ? { stroke: { width: outlineWidthValue, color: outlineColorValue } }
+              : {}),
+          };
 
-        if (circleRadiusValue !== null) {
-          const circleShapeNode = renderEngineInstance.createGraphics(
-            `rendered_circle_${Math.random().toString(36).slice(2, 9)}`
-          );
-          circleShapeNode.drawCircle(0, 0, circleRadiusValue, graphicStyle);
-          circleShapeNode.setPosition(positionCoordinateX, positionCoordinateY);
-          circleShapeNode.setZIndex(entityZIndex);
-          circleShapeNode.setScale(scaleCoordinateX, scaleCoordinateY);
-          if (rotationDegreesValue !== 0) {
-            circleShapeNode.setRotation((rotationDegreesValue * Math.PI) / 180);
-          }
-          destinationContainer.addChild(circleShapeNode);
-          entityVisualNode = circleShapeNode;
-          entityInstance.renderNode = circleShapeNode;
-        } else if (rectangleWidthValue !== null && rectangleHeightValue !== null) {
-          const rectangleShapeNode = renderEngineInstance.createGraphics(
-            `rendered_rect_${Math.random().toString(36).slice(2, 9)}`
-          );
-          const originOffsets = calculateOriginOffset(
-            anchorAlignment,
-            rectangleWidthValue,
-            rectangleHeightValue
-          );
-          const originCoordinateX = originOffsets.originX;
-          const originCoordinateY = originOffsets.originY;
-
-          if (typeof rectangleRadiusValue === "number" && rectangleRadiusValue > 0) {
-            rectangleShapeNode.drawRoundedRect(
-              originCoordinateX,
-              originCoordinateY,
-              rectangleWidthValue,
-              rectangleHeightValue,
-              rectangleRadiusValue,
-              graphicStyle
+          if (circleRadiusValue !== null) {
+            const circleShapeNode = renderEngineInstance.createGraphics(
+              `rendered_circle_${Math.random().toString(36).slice(2, 9)}`
             );
-          } else {
-            rectangleShapeNode.drawRect(
-              originCoordinateX,
-              originCoordinateY,
-              rectangleWidthValue,
-              rectangleHeightValue,
-              graphicStyle
-            );
-          }
-          rectangleShapeNode.setPosition(positionCoordinateX, positionCoordinateY);
-          rectangleShapeNode.setZIndex(entityZIndex);
-          rectangleShapeNode.setScale(scaleCoordinateX, scaleCoordinateY);
-          if (rotationDegreesValue !== 0) {
-            rectangleShapeNode.setRotation((rotationDegreesValue * Math.PI) / 180);
-          }
-          destinationContainer.addChild(rectangleShapeNode);
-          entityVisualNode = rectangleShapeNode;
-          entityInstance.renderNode = rectangleShapeNode;
-        } else if (spriteAssetIdentifier !== null) {
-          try {
-            const spriteShapeNode = renderEngineInstance.createSprite(
-              spriteAssetIdentifier,
-              `rendered_sprite_${Math.random().toString(36).slice(2, 9)}`
-            );
-            spriteShapeNode.setPosition(positionCoordinateX, positionCoordinateY);
-            spriteShapeNode.setZIndex(entityZIndex);
-            spriteShapeNode.setOpacity(entityOpacity);
-            spriteShapeNode.setScale(scaleCoordinateX, scaleCoordinateY);
+            circleShapeNode.drawCircle(0, 0, circleRadiusValue, graphicStyle);
+            circleShapeNode.setPosition(positionCoordinateX, positionCoordinateY);
+            circleShapeNode.setZIndex(entityZIndex);
+            circleShapeNode.setScale(scaleCoordinateX, scaleCoordinateY);
             if (rotationDegreesValue !== 0) {
-              spriteShapeNode.setRotation((rotationDegreesValue * Math.PI) / 180);
+              circleShapeNode.setRotation((rotationDegreesValue * Math.PI) / 180);
             }
-            const anchorCoordinates = resolveAnchorCoordinates(anchorAlignment);
-            spriteShapeNode.setAnchor(anchorCoordinates.anchorX, anchorCoordinates.anchorY);
-
-            const spriteSheetManager = getSpriteSheetManager();
-            const initialAnimationName =
-              typeof spriteOptionsRecord?.anim === "string"
-                ? spriteOptionsRecord.anim
-                : undefined;
-            spriteAnimationControllerInstance = spriteSheetManager.createAnimationController(
-              spriteShapeNode,
-              spriteAssetIdentifier,
-              initialAnimationName
+            targetDestinationContainer.addChild(circleShapeNode);
+            entityVisualNode = circleShapeNode;
+            entityInstance.renderNode = circleShapeNode;
+          } else if (rectangleWidthValue !== null && rectangleHeightValue !== null) {
+            const rectangleShapeNode = renderEngineInstance.createGraphics(
+              `rendered_rect_${Math.random().toString(36).slice(2, 9)}`
             );
-            if (spriteAnimationControllerInstance) {
-              const cancelAnimationUpdate = renderingContext.onUpdate(
-                (deltaTimeInSeconds: number) => {
-                  spriteAnimationControllerInstance?.update(deltaTimeInSeconds);
-                }
-              );
-              sceneCleanupCallbacksList.push(cancelAnimationUpdate.cancel);
-            }
-
-            destinationContainer.addChild(spriteShapeNode);
-            entityVisualNode = spriteShapeNode;
-            entityInstance.renderNode = spriteShapeNode;
-          } catch {
-            // Degradação segura caso o sprite ainda não esteja pronto
-          }
-        } else if (entityTextContent !== null) {
-          const calculatedFontSize =
-            typeof textStyleOptionsRecord?.size === "number"
-              ? textStyleOptionsRecord.size
-              : 16;
-          const calculatedFontFamily =
-            typeof textStyleOptionsRecord?.font === "string"
-              ? textStyleOptionsRecord.font
-              : "Outfit";
-          const textShapeNode = renderEngineInstance.createText(
-            entityTextContent,
-            {
-              fontSize: calculatedFontSize,
-              fontFamily: calculatedFontFamily,
-              color: entityRgbColor,
-              ...(anchorAlignment === "center" ? { align: "center" } : {}),
-            },
-            `rendered_text_${Math.random().toString(36).slice(2, 9)}`
-          );
-          textShapeNode.setPosition(positionCoordinateX, positionCoordinateY);
-          textShapeNode.setZIndex(entityZIndex);
-          textShapeNode.setOpacity(entityOpacity);
-          textShapeNode.setScale(scaleCoordinateX, scaleCoordinateY);
-          if (rotationDegreesValue !== 0) {
-            textShapeNode.setRotation((rotationDegreesValue * Math.PI) / 180);
-          }
-          const anchorCoordinates = resolveAnchorCoordinates(anchorAlignment);
-          if (typeof textShapeNode.setAnchor === "function") {
-            textShapeNode.setAnchor(anchorCoordinates.anchorX, anchorCoordinates.anchorY);
-          }
-          destinationContainer.addChild(textShapeNode);
-          entityVisualNode = textShapeNode;
-          entityInstance.renderNode = textShapeNode;
-        }
-      }
-
-      Object.defineProperty(entityInstance, "opacity", {
-        get: () => entityOpacity,
-        set: (updatedOpacityValue: number) => {
-          entityOpacity = updatedOpacityValue;
-          if (entityVisualNode) {
-            entityVisualNode.setOpacity(updatedOpacityValue);
-          }
-        },
-        configurable: true,
-        enumerable: true,
-      });
-
-      Object.defineProperty(entityInstance, "text", {
-        get: () => entityTextContent ?? "",
-        set: (updatedTextValue: string) => {
-          entityTextContent = updatedTextValue;
-          if (entityVisualNode && "setText" in entityVisualNode) {
-            (entityVisualNode as ITextNode).setText(updatedTextValue);
-          }
-        },
-        configurable: true,
-        enumerable: true,
-      });
-
-      Object.defineProperty(entityInstance, "width", {
-        get: () => rectangleWidthValue ?? 0,
-        set: (updatedWidthValue: number) => {
-          rectangleWidthValue = updatedWidthValue;
-          if (
-            entityVisualNode &&
-            "drawRect" in entityVisualNode &&
-            rectangleHeightValue !== null
-          ) {
-            const graphicsNodeInstance = entityVisualNode as IGraphicsNode;
-            graphicsNodeInstance.clear();
             const originOffsets = calculateOriginOffset(
               anchorAlignment,
-              updatedWidthValue,
+              rectangleWidthValue,
               rectangleHeightValue
             );
             const originCoordinateX = originOffsets.originX;
             const originCoordinateY = originOffsets.originY;
-            const graphicStyle = {
-              fill: { color: entityRgbColor, alpha: entityOpacity },
-              ...(outlineWidthValue !== null
-                ? { stroke: { width: outlineWidthValue, color: outlineColorValue } }
-                : {}),
-            };
+
             if (typeof rectangleRadiusValue === "number" && rectangleRadiusValue > 0) {
-              graphicsNodeInstance.drawRoundedRect(
+              rectangleShapeNode.drawRoundedRect(
                 originCoordinateX,
                 originCoordinateY,
-                Math.max(0, updatedWidthValue),
+                rectangleWidthValue,
                 rectangleHeightValue,
                 rectangleRadiusValue,
                 graphicStyle
               );
             } else {
-              graphicsNodeInstance.drawRect(
+              rectangleShapeNode.drawRect(
                 originCoordinateX,
                 originCoordinateY,
-                Math.max(0, updatedWidthValue),
+                rectangleWidthValue,
                 rectangleHeightValue,
                 graphicStyle
               );
             }
-          }
-        },
-        configurable: true,
-        enumerable: true,
-      });
+            rectangleShapeNode.setPosition(positionCoordinateX, positionCoordinateY);
+            rectangleShapeNode.setZIndex(entityZIndex);
+            rectangleShapeNode.setScale(scaleCoordinateX, scaleCoordinateY);
+            if (rotationDegreesValue !== 0) {
+              rectangleShapeNode.setRotation((rotationDegreesValue * Math.PI) / 180);
+            }
+            targetDestinationContainer.addChild(rectangleShapeNode);
+            entityVisualNode = rectangleShapeNode;
+            entityInstance.renderNode = rectangleShapeNode;
+          } else if (spriteAssetIdentifier !== null) {
+            try {
+              const spriteShapeNode = renderEngineInstance.createSprite(
+                spriteAssetIdentifier,
+                `rendered_sprite_${Math.random().toString(36).slice(2, 9)}`
+              );
+              spriteShapeNode.setPosition(positionCoordinateX, positionCoordinateY);
+              spriteShapeNode.setZIndex(entityZIndex);
+              spriteShapeNode.setOpacity(entityOpacity);
+              spriteShapeNode.setScale(scaleCoordinateX, scaleCoordinateY);
+              if (rotationDegreesValue !== 0) {
+                spriteShapeNode.setRotation((rotationDegreesValue * Math.PI) / 180);
+              }
+              const anchorCoordinates = resolveAnchorCoordinates(anchorAlignment);
+              spriteShapeNode.setAnchor(anchorCoordinates.anchorX, anchorCoordinates.anchorY);
 
-      Object.defineProperty(entityInstance, "radius", {
-        get: () => circleRadiusValue ?? 0,
-        set: (updatedRadiusValue: number) => {
-          circleRadiusValue = updatedRadiusValue;
-          if (entityVisualNode && "drawCircle" in entityVisualNode) {
-            const graphicsNodeInstance = entityVisualNode as IGraphicsNode;
-            graphicsNodeInstance.clear();
-            const graphicStyle = {
-              fill: { color: entityRgbColor, alpha: entityOpacity },
-              ...(outlineWidthValue !== null
-                ? { stroke: { width: outlineWidthValue, color: outlineColorValue } }
-                : {}),
-            };
-            graphicsNodeInstance.drawCircle(
-              0,
-              0,
-              Math.max(0, updatedRadiusValue),
-              graphicStyle
+              const spriteSheetManager = getSpriteSheetManager();
+              const initialAnimationName =
+                typeof spriteOptionsRecord?.anim === "string"
+                  ? spriteOptionsRecord.anim
+                  : undefined;
+              spriteAnimationControllerInstance = spriteSheetManager.createAnimationController(
+                spriteShapeNode,
+                spriteAssetIdentifier,
+                initialAnimationName
+              );
+              if (spriteAnimationControllerInstance) {
+                const cancelAnimationUpdate = renderingContext.onUpdate(
+                  (deltaTimeInSeconds: number) => {
+                    spriteAnimationControllerInstance?.update(deltaTimeInSeconds);
+                  }
+                );
+                sceneCleanupCallbacksList.push(cancelAnimationUpdate.cancel);
+              }
+
+              targetDestinationContainer.addChild(spriteShapeNode);
+              entityVisualNode = spriteShapeNode;
+              entityInstance.renderNode = spriteShapeNode;
+            } catch {
+              // Degradação segura caso o sprite ainda não esteja pronto
+            }
+          } else if (entityTextContent !== null) {
+            const calculatedFontSize =
+              typeof textStyleOptionsRecord?.size === "number" ? textStyleOptionsRecord.size : 16;
+            const calculatedFontFamily =
+              typeof textStyleOptionsRecord?.font === "string"
+                ? textStyleOptionsRecord.font
+                : "Outfit";
+            const textShapeNode = renderEngineInstance.createText(
+              entityTextContent,
+              {
+                fontSize: calculatedFontSize,
+                fontFamily: calculatedFontFamily,
+                color: entityRgbColor,
+                ...(anchorAlignment === "center" ? { align: "center" } : {}),
+              },
+              `rendered_text_${Math.random().toString(36).slice(2, 9)}`
             );
-          }
-        },
-        configurable: true,
-        enumerable: true,
-      });
-
-      Object.defineProperty(entityInstance, "frame", {
-        get: () => spriteAnimationControllerInstance?.getFrame() ?? 0,
-        set: (updatedFrameIndex: number) => {
-          spriteAnimationControllerInstance?.setFrame(updatedFrameIndex);
-        },
-        configurable: true,
-        enumerable: true,
-      });
-
-      const positionCoordinateProxy = {
-        get x() {
-          return positionCoordinateX;
-        },
-        set x(updatedCoordinateX: number) {
-          positionCoordinateX = updatedCoordinateX;
-          if (entityVisualNode) {
-            entityVisualNode.setPosition(positionCoordinateX, positionCoordinateY);
-          }
-        },
-        get y() {
-          return positionCoordinateY;
-        },
-        set y(updatedCoordinateY: number) {
-          positionCoordinateY = updatedCoordinateY;
-          if (entityVisualNode) {
-            entityVisualNode.setPosition(positionCoordinateX, positionCoordinateY);
-          }
-        },
-      };
-      entityInstance.pos = positionCoordinateProxy;
-      entityInstance.z = entityZIndex;
-
-      const scaleCoordinateProxy = {
-        get x() {
-          return scaleCoordinateX;
-        },
-        set x(updatedScaleX: number) {
-          scaleCoordinateX = updatedScaleX;
-          if (entityVisualNode) {
-            entityVisualNode.setScale(scaleCoordinateX, scaleCoordinateY);
-          }
-        },
-        get y() {
-          return scaleCoordinateY;
-        },
-        set y(updatedScaleY: number) {
-          scaleCoordinateY = updatedScaleY;
-          if (entityVisualNode) {
-            entityVisualNode.setScale(scaleCoordinateX, scaleCoordinateY);
-          }
-        },
-      };
-
-      Object.defineProperty(entityInstance, "scale", {
-        get: () => scaleCoordinateProxy,
-        set: (updatedScaleValue: number | { x?: number; y?: number }) => {
-          if (typeof updatedScaleValue === "number") {
-            scaleCoordinateX = updatedScaleValue;
-            scaleCoordinateY = updatedScaleValue;
-          } else if (updatedScaleValue && typeof updatedScaleValue === "object") {
-            if (typeof updatedScaleValue.x === "number") {
-              scaleCoordinateX = updatedScaleValue.x;
+            textShapeNode.setPosition(positionCoordinateX, positionCoordinateY);
+            textShapeNode.setZIndex(entityZIndex);
+            textShapeNode.setOpacity(entityOpacity);
+            textShapeNode.setScale(scaleCoordinateX, scaleCoordinateY);
+            if (rotationDegreesValue !== 0) {
+              textShapeNode.setRotation((rotationDegreesValue * Math.PI) / 180);
             }
-            if (typeof updatedScaleValue.y === "number") {
-              scaleCoordinateY = updatedScaleValue.y;
+            const anchorCoordinates = resolveAnchorCoordinates(anchorAlignment);
+            if (typeof textShapeNode.setAnchor === "function") {
+              textShapeNode.setAnchor(anchorCoordinates.anchorX, anchorCoordinates.anchorY);
             }
-          }
-          if (entityVisualNode) {
-            entityVisualNode.setScale(scaleCoordinateX, scaleCoordinateY);
-          }
-        },
-        configurable: true,
-        enumerable: true,
-      });
-
-      Object.defineProperty(entityInstance, "angle", {
-        get: () => rotationDegreesValue,
-        set: (updatedAngleInDegrees: number) => {
-          rotationDegreesValue = updatedAngleInDegrees;
-          if (entityVisualNode) {
-            entityVisualNode.setRotation((updatedAngleInDegrees * Math.PI) / 180);
-          }
-        },
-        configurable: true,
-        enumerable: true,
-      });
-
-      Object.defineProperty(entityInstance, "color", {
-        get: () => entityRgbColor,
-        set: (updatedColorValue: [number, number, number]) => {
-          if (Array.isArray(updatedColorValue) && updatedColorValue.length === 3) {
-            entityRgbColor = updatedColorValue;
-            if (entityVisualNode && "setColor" in entityVisualNode) {
-              (entityVisualNode as ITextNode).setColor(entityRgbColor);
+            targetDestinationContainer.addChild(textShapeNode);
+            entityVisualNode = textShapeNode;
+            entityInstance.renderNode = textShapeNode;
+          } else {
+            // Cria um container PixiJS v8 para hospedar nós filhos ou servir de nó âncora posicional
+            const entityChildContainerNode = renderEngineInstance.createContainer(
+              `entity_container_${Math.random().toString(36).slice(2, 9)}`
+            );
+            entityChildContainerNode.setPosition(positionCoordinateX, positionCoordinateY);
+            entityChildContainerNode.setZIndex(entityZIndex);
+            entityChildContainerNode.setScale(scaleCoordinateX, scaleCoordinateY);
+            if (rotationDegreesValue !== 0) {
+              entityChildContainerNode.setRotation((rotationDegreesValue * Math.PI) / 180);
             }
+            targetDestinationContainer.addChild(entityChildContainerNode);
+            entityVisualNode = entityChildContainerNode;
+            entityInstance.renderNode = entityChildContainerNode;
           }
-        },
-        configurable: true,
-        enumerable: true,
-      });
+        }
 
-      let universalTaggedBucket = taggedEntitiesMap.get("*");
-      if (!universalTaggedBucket) {
-        universalTaggedBucket = new Set<unknown>();
-        taggedEntitiesMap.set("*", universalTaggedBucket);
-      }
-      universalTaggedBucket.add(entityInstance);
-
-      if (entityVisualNode) {
-        sceneCleanupCallbacksList.push(() => {
-          if (entityVisualNode) {
-            entityVisualNode.destroy();
-            entityVisualNode = null;
-          }
+        Object.defineProperty(entityInstance, "opacity", {
+          get: () => entityOpacity,
+          set: (updatedOpacityValue: number) => {
+            entityOpacity = updatedOpacityValue;
+            if (entityVisualNode) {
+              entityVisualNode.setOpacity(updatedOpacityValue);
+            }
+          },
+          configurable: true,
+          enumerable: true,
         });
-      }
 
-      return entityInstance;
+        Object.defineProperty(entityInstance, "text", {
+          get: () => entityTextContent ?? "",
+          set: (updatedTextValue: string) => {
+            entityTextContent = updatedTextValue;
+            if (entityVisualNode && "setText" in entityVisualNode) {
+              (entityVisualNode as ITextNode).setText(updatedTextValue);
+            }
+          },
+          configurable: true,
+          enumerable: true,
+        });
+
+        Object.defineProperty(entityInstance, "width", {
+          get: () => rectangleWidthValue ?? 0,
+          set: (updatedWidthValue: number) => {
+            rectangleWidthValue = updatedWidthValue;
+            if (
+              entityVisualNode &&
+              "drawRect" in entityVisualNode &&
+              rectangleHeightValue !== null
+            ) {
+              const graphicsNodeInstance = entityVisualNode as IGraphicsNode;
+              graphicsNodeInstance.clear();
+              const originOffsets = calculateOriginOffset(
+                anchorAlignment,
+                updatedWidthValue,
+                rectangleHeightValue
+              );
+              const originCoordinateX = originOffsets.originX;
+              const originCoordinateY = originOffsets.originY;
+              const graphicStyle = {
+                fill: { color: entityRgbColor, alpha: entityOpacity },
+                ...(outlineWidthValue !== null
+                  ? { stroke: { width: outlineWidthValue, color: outlineColorValue } }
+                  : {}),
+              };
+              if (typeof rectangleRadiusValue === "number" && rectangleRadiusValue > 0) {
+                graphicsNodeInstance.drawRoundedRect(
+                  originCoordinateX,
+                  originCoordinateY,
+                  Math.max(0, updatedWidthValue),
+                  rectangleHeightValue,
+                  rectangleRadiusValue,
+                  graphicStyle
+                );
+              } else {
+                graphicsNodeInstance.drawRect(
+                  originCoordinateX,
+                  originCoordinateY,
+                  Math.max(0, updatedWidthValue),
+                  rectangleHeightValue,
+                  graphicStyle
+                );
+              }
+            }
+          },
+          configurable: true,
+          enumerable: true,
+        });
+
+        Object.defineProperty(entityInstance, "radius", {
+          get: () => circleRadiusValue ?? 0,
+          set: (updatedRadiusValue: number) => {
+            circleRadiusValue = updatedRadiusValue;
+            if (entityVisualNode && "drawCircle" in entityVisualNode) {
+              const graphicsNodeInstance = entityVisualNode as IGraphicsNode;
+              graphicsNodeInstance.clear();
+              const graphicStyle = {
+                fill: { color: entityRgbColor, alpha: entityOpacity },
+                ...(outlineWidthValue !== null
+                  ? { stroke: { width: outlineWidthValue, color: outlineColorValue } }
+                  : {}),
+              };
+              graphicsNodeInstance.drawCircle(0, 0, Math.max(0, updatedRadiusValue), graphicStyle);
+            }
+          },
+          configurable: true,
+          enumerable: true,
+        });
+
+        Object.defineProperty(entityInstance, "frame", {
+          get: () => spriteAnimationControllerInstance?.getFrame() ?? 0,
+          set: (updatedFrameIndex: number) => {
+            spriteAnimationControllerInstance?.setFrame(updatedFrameIndex);
+          },
+          configurable: true,
+          enumerable: true,
+        });
+
+        const positionCoordinateProxy = {
+          get x() {
+            return positionCoordinateX;
+          },
+          set x(updatedCoordinateX: number) {
+            positionCoordinateX = updatedCoordinateX;
+            if (entityVisualNode) {
+              entityVisualNode.setPosition(positionCoordinateX, positionCoordinateY);
+            }
+          },
+          get y() {
+            return positionCoordinateY;
+          },
+          set y(updatedCoordinateY: number) {
+            positionCoordinateY = updatedCoordinateY;
+            if (entityVisualNode) {
+              entityVisualNode.setPosition(positionCoordinateX, positionCoordinateY);
+            }
+          },
+        };
+        entityInstance.pos = positionCoordinateProxy;
+        entityInstance.z = entityZIndex;
+
+        const scaleCoordinateProxy = {
+          get x() {
+            return scaleCoordinateX;
+          },
+          set x(updatedScaleX: number) {
+            scaleCoordinateX = updatedScaleX;
+            if (entityVisualNode) {
+              entityVisualNode.setScale(scaleCoordinateX, scaleCoordinateY);
+            }
+          },
+          get y() {
+            return scaleCoordinateY;
+          },
+          set y(updatedScaleY: number) {
+            scaleCoordinateY = updatedScaleY;
+            if (entityVisualNode) {
+              entityVisualNode.setScale(scaleCoordinateX, scaleCoordinateY);
+            }
+          },
+        };
+
+        Object.defineProperty(entityInstance, "scale", {
+          get: () => scaleCoordinateProxy,
+          set: (updatedScaleValue: number | { x?: number; y?: number }) => {
+            if (typeof updatedScaleValue === "number") {
+              scaleCoordinateX = updatedScaleValue;
+              scaleCoordinateY = updatedScaleValue;
+            } else if (updatedScaleValue && typeof updatedScaleValue === "object") {
+              if (typeof updatedScaleValue.x === "number") {
+                scaleCoordinateX = updatedScaleValue.x;
+              }
+              if (typeof updatedScaleValue.y === "number") {
+                scaleCoordinateY = updatedScaleValue.y;
+              }
+            }
+            if (entityVisualNode) {
+              entityVisualNode.setScale(scaleCoordinateX, scaleCoordinateY);
+            }
+          },
+          configurable: true,
+          enumerable: true,
+        });
+
+        Object.defineProperty(entityInstance, "angle", {
+          get: () => rotationDegreesValue,
+          set: (updatedAngleInDegrees: number) => {
+            rotationDegreesValue = updatedAngleInDegrees;
+            if (entityVisualNode) {
+              entityVisualNode.setRotation((updatedAngleInDegrees * Math.PI) / 180);
+            }
+          },
+          configurable: true,
+          enumerable: true,
+        });
+
+        Object.defineProperty(entityInstance, "color", {
+          get: () => entityRgbColor,
+          set: (updatedColorValue: [number, number, number]) => {
+            if (Array.isArray(updatedColorValue) && updatedColorValue.length === 3) {
+              entityRgbColor = updatedColorValue;
+              if (entityVisualNode && "setColor" in entityVisualNode) {
+                (entityVisualNode as ITextNode).setColor(entityRgbColor);
+              }
+            }
+          },
+          configurable: true,
+          enumerable: true,
+        });
+
+        let universalTaggedBucket = taggedEntitiesMap.get("*");
+        if (!universalTaggedBucket) {
+          universalTaggedBucket = new Set<unknown>();
+          taggedEntitiesMap.set("*", universalTaggedBucket);
+        }
+        universalTaggedBucket.add(entityInstance);
+
+        if (entityVisualNode && !parentEntityVisualNode) {
+          sceneCleanupCallbacksList.push(() => {
+            if (entityVisualNode) {
+              entityVisualNode.destroy();
+              entityVisualNode = null;
+            }
+          });
+        }
+
+        return entityInstance;
+      };
+
+      return buildRenderingContextEntity(componentsListOrDescriber, null);
     },
 
     destroy(targetEntity: unknown): void {
@@ -1162,9 +1198,7 @@ export function createRenderingContext(
       easingMethod?: unknown
     ): { then(resolvedCallback: () => void): void } {
       const activeEasingFunction =
-        typeof easingMethod === "function"
-          ? (easingMethod as EasingFunction)
-          : Easings.easeOutQuad;
+        typeof easingMethod === "function" ? (easingMethod as EasingFunction) : Easings.easeOutQuad;
       const renderTicker = renderEngineInstance.isInitialized
         ? renderEngineInstance.getTicker()
         : undefined;
@@ -1278,10 +1312,7 @@ export function createRenderingContext(
         const currentCameraPosition = renderEngineInstance.getCameraPosition();
         const targetCoordinateY = cameraCoordinateY ?? currentCameraPosition.y;
         renderEngineInstance.setCameraPosition(cameraPositionOrCoordinateX, targetCoordinateY);
-      } else if (
-        cameraPositionOrCoordinateX &&
-        typeof cameraPositionOrCoordinateX === "object"
-      ) {
+      } else if (cameraPositionOrCoordinateX && typeof cameraPositionOrCoordinateX === "object") {
         renderEngineInstance.setCameraPosition(
           cameraPositionOrCoordinateX.x,
           cameraPositionOrCoordinateX.y
