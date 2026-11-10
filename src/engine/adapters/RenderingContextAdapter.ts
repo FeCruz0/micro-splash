@@ -150,15 +150,17 @@ export interface RenderingContextEntity {
     targetTagOrCollisionHandler: string | ((collidedEntity: unknown) => void),
     maybeCollisionHandler?: (collidedEntity: unknown) => void
   ): { cancel: () => void };
-  onCollideUpdate?(
+  onCollideUpdate(
     targetTagOrCollisionHandler: string | ((collidedEntity: unknown) => void),
     maybeCollisionHandler?: (collidedEntity: unknown) => void
   ): { cancel: () => void };
-  onCollideEnd?(
+  onCollideEnd(
     targetTagOrCollisionHandler: string | ((collidedEntity: unknown) => void),
     maybeCollisionHandler?: (collidedEntity: unknown) => void
   ): { cancel: () => void };
   triggerCollision?(collidedEntity: unknown, collidedEntityTag?: string): void;
+  triggerCollisionUpdate?(collidedEntity: unknown, collidedEntityTag?: string): void;
+  triggerCollisionEnd?(collidedEntity: unknown, collidedEntityTag?: string): void;
   onClick(clickCallback: () => void): { cancel: () => void };
   onHoverUpdate(callback?: () => void): { cancel: () => void };
   onHoverEnd(callback?: () => void): { cancel: () => void };
@@ -305,6 +307,39 @@ export interface RenderingContext {
   camScale?(scaleFactor: number | { readonly x: number; readonly y: number }): void;
 
   get(tagIdentifier: string): unknown[];
+  onCollide(
+    firstTagOrCollisionHandler: string | ((firstEntity: unknown, secondEntity?: unknown) => void),
+    secondTagOrCollisionHandler?: string | ((firstEntity: unknown, secondEntity: unknown) => void),
+    maybeCollisionHandler?: (firstEntity: unknown, secondEntity: unknown) => void
+  ): { cancel: () => void };
+  onCollideUpdate(
+    firstTagOrCollisionHandler: string | ((firstEntity: unknown, secondEntity?: unknown) => void),
+    secondTagOrCollisionHandler?: string | ((firstEntity: unknown, secondEntity: unknown) => void),
+    maybeCollisionHandler?: (firstEntity: unknown, secondEntity: unknown) => void
+  ): { cancel: () => void };
+  onCollideEnd(
+    firstTagOrCollisionHandler: string | ((firstEntity: unknown, secondEntity?: unknown) => void),
+    secondTagOrCollisionHandler?: string | ((firstEntity: unknown, secondEntity: unknown) => void),
+    maybeCollisionHandler?: (firstEntity: unknown, secondEntity: unknown) => void
+  ): { cancel: () => void };
+  triggerCollision?(
+    firstEntity: unknown,
+    secondEntity: unknown,
+    firstEntityTag?: string,
+    secondEntityTag?: string
+  ): void;
+  triggerCollisionUpdate?(
+    firstEntity: unknown,
+    secondEntity: unknown,
+    firstEntityTag?: string,
+    secondEntityTag?: string
+  ): void;
+  triggerCollisionEnd?(
+    firstEntity: unknown,
+    secondEntity: unknown,
+    firstEntityTag?: string,
+    secondEntityTag?: string
+  ): void;
   setFullscreen(fullscreenEnabled: boolean): void;
   isFullscreen(): boolean;
 }
@@ -317,9 +352,18 @@ export function createRenderingContext(
   renderEngineInstance: IRenderEngine,
   sceneManagerInstance: ISceneManager
 ): RenderingContext {
+  interface GlobalCollisionListenerRegistration {
+    readonly firstTag: string;
+    readonly secondTag?: string;
+    readonly collisionHandler: (firstEntity: unknown, secondEntity: unknown) => void;
+  }
+
   const sceneLeaveCallbacksList: Array<() => void> = [];
   const sceneCleanupCallbacksList: Array<() => void> = [];
   const sceneUpdateCallbacksList: Array<(deltaTimeInSeconds: number) => void> = [];
+  const globalCollisionListenersList: GlobalCollisionListenerRegistration[] = [];
+  const globalCollisionUpdateListenersList: GlobalCollisionListenerRegistration[] = [];
+  const globalCollisionEndListenersList: GlobalCollisionListenerRegistration[] = [];
   const taggedEntitiesMap = new Map<string, Set<unknown>>();
   let mousePressedState = false;
 
@@ -350,7 +394,141 @@ export function createRenderingContext(
       }
     }
     sceneUpdateCallbacksList.length = 0;
+    globalCollisionListenersList.length = 0;
+    globalCollisionUpdateListenersList.length = 0;
+    globalCollisionEndListenersList.length = 0;
     taggedEntitiesMap.clear();
+  };
+
+  const matchesTag = (entity: unknown, expectedTag: string, providedTag?: string): boolean => {
+    if (expectedTag === "*") {
+      return true;
+    }
+    if (providedTag !== undefined && providedTag === expectedTag) {
+      return true;
+    }
+    if (
+      entity &&
+      typeof entity === "object" &&
+      "is" in entity &&
+      typeof (entity as { is: (tag: string) => boolean }).is === "function"
+    ) {
+      return (entity as { is: (tag: string) => boolean }).is(expectedTag);
+    }
+    if (
+      entity &&
+      typeof entity === "object" &&
+      "tag" in entity &&
+      (entity as { tag?: string }).tag === expectedTag
+    ) {
+      return true;
+    }
+    return false;
+  };
+
+  const registerGlobalCollisionListener = (
+    destinationRegistryList: GlobalCollisionListenerRegistration[],
+    firstTagOrCollisionHandler: string | ((firstEntity: unknown, secondEntity?: unknown) => void),
+    secondTagOrCollisionHandler?: string | ((firstEntity: unknown, secondEntity: unknown) => void),
+    maybeCollisionHandler?: (firstEntity: unknown, secondEntity: unknown) => void
+  ): { cancel: () => void } => {
+    let firstTag = "";
+    let secondTag: string | undefined = undefined;
+    let collisionHandler: (firstEntity: unknown, secondEntity: unknown) => void = () => {};
+
+    if (
+      typeof firstTagOrCollisionHandler === "string" &&
+      typeof secondTagOrCollisionHandler === "string" &&
+      typeof maybeCollisionHandler === "function"
+    ) {
+      firstTag = firstTagOrCollisionHandler;
+      secondTag = secondTagOrCollisionHandler;
+      collisionHandler = maybeCollisionHandler;
+    } else if (
+      typeof firstTagOrCollisionHandler === "string" &&
+      typeof secondTagOrCollisionHandler === "function"
+    ) {
+      firstTag = firstTagOrCollisionHandler;
+      secondTag = undefined;
+      collisionHandler = secondTagOrCollisionHandler as (
+        firstEntity: unknown,
+        secondEntity: unknown
+      ) => void;
+    } else if (typeof firstTagOrCollisionHandler === "function") {
+      firstTag = "*";
+      secondTag = undefined;
+      collisionHandler = firstTagOrCollisionHandler as (
+        firstEntity: unknown,
+        secondEntity: unknown
+      ) => void;
+    }
+
+    const registrationRecord: GlobalCollisionListenerRegistration = {
+      firstTag,
+      secondTag,
+      collisionHandler,
+    };
+    destinationRegistryList.push(registrationRecord);
+
+    const cancelRegistrationListener = (): void => {
+      const targetIndex = destinationRegistryList.indexOf(registrationRecord);
+      if (targetIndex !== -1) {
+        destinationRegistryList.splice(targetIndex, 1);
+      }
+    };
+    sceneCleanupCallbacksList.push(cancelRegistrationListener);
+    return { cancel: cancelRegistrationListener };
+  };
+
+  const dispatchGlobalCollisionEvent = (
+    registryList: GlobalCollisionListenerRegistration[],
+    firstEntity: unknown,
+    secondEntity: unknown,
+    firstEntityTag?: string,
+    secondEntityTag?: string
+  ): void => {
+    const registrySnapshot = registryList.slice();
+    for (let index = 0; index < registrySnapshot.length; index++) {
+      const registration = registrySnapshot[index];
+      if (registration.secondTag !== undefined) {
+        if (
+          matchesTag(firstEntity, registration.firstTag, firstEntityTag) &&
+          matchesTag(secondEntity, registration.secondTag, secondEntityTag)
+        ) {
+          try {
+            registration.collisionHandler(firstEntity, secondEntity);
+          } catch (error) {
+            console.error(
+              "[RenderingContext] Error during global collision callback execution:",
+              error
+            );
+          }
+        } else if (
+          matchesTag(secondEntity, registration.firstTag, secondEntityTag) &&
+          matchesTag(firstEntity, registration.secondTag, firstEntityTag)
+        ) {
+          try {
+            registration.collisionHandler(secondEntity, firstEntity);
+          } catch (error) {
+            console.error(
+              "[RenderingContext] Error during global collision callback execution:",
+              error
+            );
+          }
+        }
+      } else {
+        if (matchesTag(firstEntity, registration.firstTag, firstEntityTag)) {
+          try {
+            registration.collisionHandler(firstEntity, secondEntity);
+          } catch (error) {
+            console.error(
+              "[RenderingContext] Error during global single-tag collision callback execution:",
+              error
+            );
+          }
+        }
+      }
+    }
   };
 
   const runActiveSceneUpdateCallbacks = (deltaTimeInSeconds: number): void => {
@@ -861,6 +1039,58 @@ export function createRenderingContext(
                 } catch (error) {
                   console.error(
                     "[RenderingContextEntity] Error during onCollide callback execution:",
+                    error
+                  );
+                }
+              }
+            }
+          },
+          triggerCollisionUpdate: (collidedEntity: unknown, collidedEntityTag?: string): void => {
+            if (isEntityDestroyed) {
+              return;
+            }
+            for (let index = 0; index < entityCollisionUpdateListenersList.length; index++) {
+              const registration = entityCollisionUpdateListenersList[index];
+              if (
+                !registration.targetTag ||
+                registration.targetTag === collidedEntityTag ||
+                (collidedEntity &&
+                  typeof collidedEntity === "object" &&
+                  "is" in collidedEntity &&
+                  typeof (collidedEntity as { is: (tag: string) => boolean }).is === "function" &&
+                  (collidedEntity as { is: (tag: string) => boolean }).is(registration.targetTag))
+              ) {
+                try {
+                  registration.collisionUpdateHandler(collidedEntity);
+                } catch (error) {
+                  console.error(
+                    "[RenderingContextEntity] Error during onCollideUpdate callback execution:",
+                    error
+                  );
+                }
+              }
+            }
+          },
+          triggerCollisionEnd: (collidedEntity: unknown, collidedEntityTag?: string): void => {
+            if (isEntityDestroyed) {
+              return;
+            }
+            for (let index = 0; index < entityCollisionEndListenersList.length; index++) {
+              const registration = entityCollisionEndListenersList[index];
+              if (
+                !registration.targetTag ||
+                registration.targetTag === collidedEntityTag ||
+                (collidedEntity &&
+                  typeof collidedEntity === "object" &&
+                  "is" in collidedEntity &&
+                  typeof (collidedEntity as { is: (tag: string) => boolean }).is === "function" &&
+                  (collidedEntity as { is: (tag: string) => boolean }).is(registration.targetTag))
+              ) {
+                try {
+                  registration.collisionEndHandler(collidedEntity);
+                } catch (error) {
+                  console.error(
+                    "[RenderingContextEntity] Error during onCollideEnd callback execution:",
                     error
                   );
                 }
@@ -1725,6 +1955,93 @@ export function createRenderingContext(
     get(tagIdentifier: string): unknown[] {
       const taggedBucket = taggedEntitiesMap.get(tagIdentifier);
       return taggedBucket ? Array.from(taggedBucket) : [];
+    },
+
+    onCollide(
+      firstTagOrCollisionHandler: string | ((firstEntity: unknown, secondEntity?: unknown) => void),
+      secondTagOrCollisionHandler?:
+        string | ((firstEntity: unknown, secondEntity: unknown) => void),
+      maybeCollisionHandler?: (firstEntity: unknown, secondEntity: unknown) => void
+    ): { cancel: () => void } {
+      return registerGlobalCollisionListener(
+        globalCollisionListenersList,
+        firstTagOrCollisionHandler,
+        secondTagOrCollisionHandler,
+        maybeCollisionHandler
+      );
+    },
+
+    onCollideUpdate(
+      firstTagOrCollisionHandler: string | ((firstEntity: unknown, secondEntity?: unknown) => void),
+      secondTagOrCollisionHandler?:
+        string | ((firstEntity: unknown, secondEntity: unknown) => void),
+      maybeCollisionHandler?: (firstEntity: unknown, secondEntity: unknown) => void
+    ): { cancel: () => void } {
+      return registerGlobalCollisionListener(
+        globalCollisionUpdateListenersList,
+        firstTagOrCollisionHandler,
+        secondTagOrCollisionHandler,
+        maybeCollisionHandler
+      );
+    },
+
+    onCollideEnd(
+      firstTagOrCollisionHandler: string | ((firstEntity: unknown, secondEntity?: unknown) => void),
+      secondTagOrCollisionHandler?:
+        string | ((firstEntity: unknown, secondEntity: unknown) => void),
+      maybeCollisionHandler?: (firstEntity: unknown, secondEntity: unknown) => void
+    ): { cancel: () => void } {
+      return registerGlobalCollisionListener(
+        globalCollisionEndListenersList,
+        firstTagOrCollisionHandler,
+        secondTagOrCollisionHandler,
+        maybeCollisionHandler
+      );
+    },
+
+    triggerCollision(
+      firstEntity: unknown,
+      secondEntity: unknown,
+      firstEntityTag?: string,
+      secondEntityTag?: string
+    ): void {
+      dispatchGlobalCollisionEvent(
+        globalCollisionListenersList,
+        firstEntity,
+        secondEntity,
+        firstEntityTag,
+        secondEntityTag
+      );
+    },
+
+    triggerCollisionUpdate(
+      firstEntity: unknown,
+      secondEntity: unknown,
+      firstEntityTag?: string,
+      secondEntityTag?: string
+    ): void {
+      dispatchGlobalCollisionEvent(
+        globalCollisionUpdateListenersList,
+        firstEntity,
+        secondEntity,
+        firstEntityTag,
+        secondEntityTag
+      );
+    },
+
+    triggerCollisionEnd(
+      firstEntity: unknown,
+      secondEntity: unknown,
+      firstEntityTag?: string,
+      secondEntityTag?: string
+    ): void {
+      dispatchGlobalCollisionEvent(
+        globalCollisionEndListenersList,
+        firstEntity,
+        secondEntity,
+        firstEntityTag,
+        secondEntityTag
+      );
     },
 
     setFullscreen(fullscreenEnabled: boolean): void {

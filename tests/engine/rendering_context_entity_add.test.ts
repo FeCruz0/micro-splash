@@ -378,4 +378,114 @@ describe("RenderingContextEntity .add() encadeado e hierarquia de nós PixiJS v8
     polygonEntity.pts = updatedPoints;
     expect(polygonEntity.pts).toEqual(updatedPoints);
   });
+
+  it("suporta registro e despacho de onCollideUpdate e onCollideEnd nas entidades", () => {
+    const renderEngineAdapterInstance = new RenderEngineAdapter();
+    const sceneManagerInstance = new SceneManager();
+    const renderingContextInstance = createRenderingContext(
+      renderEngineAdapterInstance,
+      sceneManagerInstance
+    );
+
+    const playerEntity = renderingContextInstance.add([
+      renderingContextInstance.pos(0, 0),
+      "playerWhale",
+    ]);
+
+    let collisionUpdateTriggerCount = 0;
+    let collisionEndTriggerCount = 0;
+
+    const cancelUpdateHandle = playerEntity.onCollideUpdate("currentZone", () => {
+      collisionUpdateTriggerCount++;
+    });
+
+    const cancelEndHandle = playerEntity.onCollideEnd("currentZone", () => {
+      collisionEndTriggerCount++;
+    });
+
+    const currentZoneEntity = {
+      tag: "currentZone",
+      is: (tag: string) => tag === "currentZone",
+    };
+
+    playerEntity.triggerCollisionUpdate?.(currentZoneEntity, "currentZone");
+    playerEntity.triggerCollisionEnd?.(currentZoneEntity, "currentZone");
+
+    expect(collisionUpdateTriggerCount).toBe(1);
+    expect(collisionEndTriggerCount).toBe(1);
+
+    cancelUpdateHandle.cancel();
+    cancelEndHandle.cancel();
+
+    playerEntity.triggerCollisionUpdate?.(currentZoneEntity, "currentZone");
+    playerEntity.triggerCollisionEnd?.(currentZoneEntity, "currentZone");
+
+    expect(collisionUpdateTriggerCount).toBe(1);
+    expect(collisionEndTriggerCount).toBe(1);
+  });
+
+  it("suporta registro e despacho global de onCollideUpdate e onCollideEnd no contexto", () => {
+    const renderEngineAdapterInstance = new RenderEngineAdapter();
+    const sceneManagerInstance = new SceneManager();
+    const renderingContextInstance = createRenderingContext(
+      renderEngineAdapterInstance,
+      sceneManagerInstance
+    );
+
+    let globalUpdateCalledWithPlayer: unknown = null;
+    let globalUpdateCalledWithStream: unknown = null;
+    let globalEndCalledWithPlayer: unknown = null;
+    let globalEndCalledWithStream: unknown = null;
+
+    const cancelGlobalUpdate = renderingContextInstance.onCollideUpdate(
+      "player",
+      "upwelling",
+      (playerObject, streamObject) => {
+        globalUpdateCalledWithPlayer = playerObject;
+        globalUpdateCalledWithStream = streamObject;
+      }
+    );
+
+    const cancelGlobalEnd = renderingContextInstance.onCollideEnd(
+      "player",
+      "upwelling",
+      (playerObject, streamObject) => {
+        globalEndCalledWithPlayer = playerObject;
+        globalEndCalledWithStream = streamObject;
+      }
+    );
+
+    const mockPlayer = { tag: "player", is: (tag: string) => tag === "player" };
+    const mockStream = { tag: "upwelling", is: (tag: string) => tag === "upwelling" };
+
+    renderingContextInstance.triggerCollisionUpdate?.(
+      mockPlayer,
+      mockStream,
+      "player",
+      "upwelling"
+    );
+    expect(globalUpdateCalledWithPlayer).toBe(mockPlayer);
+    expect(globalUpdateCalledWithStream).toBe(mockStream);
+
+    renderingContextInstance.triggerCollisionEnd?.(mockPlayer, mockStream, "player", "upwelling");
+    expect(globalEndCalledWithPlayer).toBe(mockPlayer);
+    expect(globalEndCalledWithStream).toBe(mockStream);
+
+    cancelGlobalUpdate.cancel();
+    cancelGlobalEnd.cancel();
+
+    globalUpdateCalledWithPlayer = null;
+    globalEndCalledWithPlayer = null;
+
+    renderingContextInstance.triggerCollisionUpdate?.(
+      mockPlayer,
+      mockStream,
+      "player",
+      "upwelling"
+    );
+    renderingContextInstance.triggerCollisionEnd?.(mockPlayer, mockStream, "player", "upwelling");
+
+    expect(globalUpdateCalledWithPlayer).toBeNull();
+    expect(globalEndCalledWithPlayer).toBeNull();
+  });
 });
