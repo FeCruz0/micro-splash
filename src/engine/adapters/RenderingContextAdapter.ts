@@ -137,11 +137,27 @@ export interface RenderingContextEntity {
   color?: unknown;
   outline?: { color?: unknown; width?: number };
   renderNode?: IRenderNode | null;
+  readonly tag?: string;
+  is?(tagToCheck: string): boolean;
   readonly children?: readonly RenderingContextEntity[];
   add(childComponentOrDescriber: unknown[] | unknown): RenderingContextEntity;
   exists(): boolean;
-  onUpdate(callback: () => void): unknown;
-  onClick(callback: () => void): { cancel: () => void };
+  onUpdate(entityUpdateHandler: (deltaTimeInSeconds?: number) => void): { cancel: () => void };
+  onDestroy(entityDestroyHandler: () => void): { cancel: () => void };
+  onCollide(
+    targetTagOrCollisionHandler: string | ((collidedEntity: unknown) => void),
+    maybeCollisionHandler?: (collidedEntity: unknown) => void
+  ): { cancel: () => void };
+  onCollideUpdate?(
+    targetTagOrCollisionHandler: string | ((collidedEntity: unknown) => void),
+    maybeCollisionHandler?: (collidedEntity: unknown) => void
+  ): { cancel: () => void };
+  onCollideEnd?(
+    targetTagOrCollisionHandler: string | ((collidedEntity: unknown) => void),
+    maybeCollisionHandler?: (collidedEntity: unknown) => void
+  ): { cancel: () => void };
+  triggerCollision?(collidedEntity: unknown, collidedEntityTag?: string): void;
+  onClick(clickCallback: () => void): { cancel: () => void };
   onHoverUpdate(callback?: () => void): { cancel: () => void };
   onHoverEnd(callback?: () => void): { cancel: () => void };
   play(animationName?: string): void;
@@ -624,6 +640,23 @@ export function createRenderingContext(
         let rotationDegreesValue = 0;
         let entityVisualNode: IRenderNode | null = null;
 
+        let isEntityDestroyed = false;
+        const entityDestroyCallbacksList: Array<() => void> = [];
+        const entityActiveUpdateListenersList: Array<() => void> = [];
+        const entityCollisionListenersList: Array<{
+          readonly targetTag?: string;
+          readonly collisionHandler: (collidedEntity: unknown) => void;
+        }> = [];
+        const entityCollisionUpdateListenersList: Array<{
+          readonly targetTag?: string;
+          readonly collisionUpdateHandler: (collidedEntity: unknown) => void;
+        }> = [];
+        const entityCollisionEndListenersList: Array<{
+          readonly targetTag?: string;
+          readonly collisionEndHandler: (collidedEntity: unknown) => void;
+        }> = [];
+        const entityTagsSet = new Set<string>();
+
         const entityInstance: RenderingContextEntity = {
           pos: { x: 0, y: 0 },
           scale: { x: 1, y: 1 },
@@ -631,8 +664,163 @@ export function createRenderingContext(
           z: 0,
           hidden: false,
           fixed: false,
-          exists: () => true,
-          onUpdate: (updateCallback: () => void) => renderingContext.onUpdate(updateCallback),
+          exists: () => !isEntityDestroyed,
+          onUpdate: (
+            entityUpdateHandler: (deltaTimeInSeconds?: number) => void
+          ): { cancel: () => void } => {
+            if (isEntityDestroyed) {
+              return { cancel: () => {} };
+            }
+            const updateListenerHandle = renderingContext.onUpdate((deltaTimeInSeconds: number) => {
+              if (!isEntityDestroyed) {
+                entityUpdateHandler(deltaTimeInSeconds);
+              }
+            });
+            const cancelUpdateListener = (): void => {
+              updateListenerHandle.cancel();
+              const targetIndex = entityActiveUpdateListenersList.indexOf(cancelUpdateListener);
+              if (targetIndex !== -1) {
+                entityActiveUpdateListenersList.splice(targetIndex, 1);
+              }
+            };
+            entityActiveUpdateListenersList.push(cancelUpdateListener);
+            return { cancel: cancelUpdateListener };
+          },
+          onDestroy: (entityDestroyHandler: () => void): { cancel: () => void } => {
+            if (isEntityDestroyed) {
+              return { cancel: () => {} };
+            }
+            entityDestroyCallbacksList.push(entityDestroyHandler);
+            const cancelDestroyListener = (): void => {
+              const targetIndex = entityDestroyCallbacksList.indexOf(entityDestroyHandler);
+              if (targetIndex !== -1) {
+                entityDestroyCallbacksList.splice(targetIndex, 1);
+              }
+            };
+            return { cancel: cancelDestroyListener };
+          },
+          onCollide: (
+            targetTagOrCollisionHandler: string | ((collidedEntity: unknown) => void),
+            maybeCollisionHandler?: (collidedEntity: unknown) => void
+          ): { cancel: () => void } => {
+            const targetTag =
+              typeof targetTagOrCollisionHandler === "string"
+                ? targetTagOrCollisionHandler
+                : undefined;
+            const collisionHandler =
+              typeof targetTagOrCollisionHandler === "function"
+                ? targetTagOrCollisionHandler
+                : maybeCollisionHandler;
+
+            if (!collisionHandler) {
+              return { cancel: () => {} };
+            }
+
+            const collisionRegistration = {
+              targetTag,
+              collisionHandler,
+            };
+            entityCollisionListenersList.push(collisionRegistration);
+
+            const cancelCollisionListener = (): void => {
+              const targetIndex = entityCollisionListenersList.indexOf(collisionRegistration);
+              if (targetIndex !== -1) {
+                entityCollisionListenersList.splice(targetIndex, 1);
+              }
+            };
+            return { cancel: cancelCollisionListener };
+          },
+          onCollideUpdate: (
+            targetTagOrCollisionHandler: string | ((collidedEntity: unknown) => void),
+            maybeCollisionHandler?: (collidedEntity: unknown) => void
+          ): { cancel: () => void } => {
+            const targetTag =
+              typeof targetTagOrCollisionHandler === "string"
+                ? targetTagOrCollisionHandler
+                : undefined;
+            const collisionUpdateHandler =
+              typeof targetTagOrCollisionHandler === "function"
+                ? targetTagOrCollisionHandler
+                : maybeCollisionHandler;
+
+            if (!collisionUpdateHandler) {
+              return { cancel: () => {} };
+            }
+
+            const collisionUpdateRegistration = {
+              targetTag,
+              collisionUpdateHandler,
+            };
+            entityCollisionUpdateListenersList.push(collisionUpdateRegistration);
+
+            const cancelCollisionUpdateListener = (): void => {
+              const targetIndex = entityCollisionUpdateListenersList.indexOf(
+                collisionUpdateRegistration
+              );
+              if (targetIndex !== -1) {
+                entityCollisionUpdateListenersList.splice(targetIndex, 1);
+              }
+            };
+            return { cancel: cancelCollisionUpdateListener };
+          },
+          onCollideEnd: (
+            targetTagOrCollisionHandler: string | ((collidedEntity: unknown) => void),
+            maybeCollisionHandler?: (collidedEntity: unknown) => void
+          ): { cancel: () => void } => {
+            const targetTag =
+              typeof targetTagOrCollisionHandler === "string"
+                ? targetTagOrCollisionHandler
+                : undefined;
+            const collisionEndHandler =
+              typeof targetTagOrCollisionHandler === "function"
+                ? targetTagOrCollisionHandler
+                : maybeCollisionHandler;
+
+            if (!collisionEndHandler) {
+              return { cancel: () => {} };
+            }
+
+            const collisionEndRegistration = {
+              targetTag,
+              collisionEndHandler,
+            };
+            entityCollisionEndListenersList.push(collisionEndRegistration);
+
+            const cancelCollisionEndListener = (): void => {
+              const targetIndex = entityCollisionEndListenersList.indexOf(collisionEndRegistration);
+              if (targetIndex !== -1) {
+                entityCollisionEndListenersList.splice(targetIndex, 1);
+              }
+            };
+            return { cancel: cancelCollisionEndListener };
+          },
+          triggerCollision: (collidedEntity: unknown, collidedEntityTag?: string): void => {
+            if (isEntityDestroyed) {
+              return;
+            }
+            for (let index = 0; index < entityCollisionListenersList.length; index++) {
+              const registration = entityCollisionListenersList[index];
+              if (
+                !registration.targetTag ||
+                registration.targetTag === collidedEntityTag ||
+                (collidedEntity &&
+                  typeof collidedEntity === "object" &&
+                  "is" in collidedEntity &&
+                  typeof (collidedEntity as { is: (tag: string) => boolean }).is === "function" &&
+                  (collidedEntity as { is: (tag: string) => boolean }).is(registration.targetTag))
+              ) {
+                try {
+                  registration.collisionHandler(collidedEntity);
+                } catch (error) {
+                  console.error(
+                    "[RenderingContextEntity] Error during onCollide callback execution:",
+                    error
+                  );
+                }
+              }
+            }
+          },
+          is: (tagToCheck: string): boolean => entityTagsSet.has(tagToCheck),
           onClick: (clickCallback: () => void) => {
             if (isFixedElement && rectangleWidthValue !== null && rectangleHeightValue !== null) {
               const activeScreenChecker =
@@ -685,6 +873,39 @@ export function createRenderingContext(
             return childEntityInstance;
           },
           destroy: () => {
+            if (isEntityDestroyed) {
+              return;
+            }
+            isEntityDestroyed = true;
+
+            while (entityDestroyCallbacksList.length > 0) {
+              const entityDestroyHandler = entityDestroyCallbacksList.shift();
+              try {
+                entityDestroyHandler?.();
+              } catch (error) {
+                console.error(
+                  "[RenderingContextEntity] Error during onDestroy callback execution:",
+                  error
+                );
+              }
+            }
+
+            while (entityActiveUpdateListenersList.length > 0) {
+              const cancelUpdateListener = entityActiveUpdateListenersList.pop();
+              try {
+                cancelUpdateListener?.();
+              } catch (error) {
+                console.error(
+                  "[RenderingContextEntity] Error cancelling active update listener:",
+                  error
+                );
+              }
+            }
+
+            entityCollisionListenersList.length = 0;
+            entityCollisionUpdateListenersList.length = 0;
+            entityCollisionEndListenersList.length = 0;
+
             while (entityChildList.length > 0) {
               const childEntity = entityChildList.pop();
               childEntity?.destroy();
@@ -699,6 +920,12 @@ export function createRenderingContext(
           },
         };
 
+        Object.defineProperty(entityInstance, "tag", {
+          get: () => (entityTagsSet.size > 0 ? Array.from(entityTagsSet)[0] : undefined),
+          configurable: true,
+          enumerable: true,
+        });
+
         Object.defineProperty(entityInstance, "children", {
           get: () => [...entityChildList],
           enumerable: true,
@@ -707,6 +934,7 @@ export function createRenderingContext(
 
         for (const rawComponent of normalizedComponentsList) {
           if (typeof rawComponent === "string") {
+            entityTagsSet.add(rawComponent);
             let taggedBucket = taggedEntitiesMap.get(rawComponent);
             if (!taggedBucket) {
               taggedBucket = new Set<unknown>();
@@ -802,7 +1030,28 @@ export function createRenderingContext(
                 entityRgbColor = colorArgumentsList[0] as [number, number, number];
               }
             } else if (!("type" in componentRecord)) {
-              Object.assign(entityInstance, componentRecord);
+              if (componentRecord.tag && typeof componentRecord.tag === "string") {
+                entityTagsSet.add(componentRecord.tag);
+                let taggedBucket = taggedEntitiesMap.get(componentRecord.tag);
+                if (!taggedBucket) {
+                  taggedBucket = new Set<unknown>();
+                  taggedEntitiesMap.set(componentRecord.tag, taggedBucket);
+                }
+                taggedBucket.add(entityInstance);
+              }
+              if (
+                "onDestroy" in componentRecord &&
+                typeof componentRecord.onDestroy === "function"
+              ) {
+                entityDestroyCallbacksList.push(componentRecord.onDestroy as () => void);
+              }
+              if ("destroy" in componentRecord && typeof componentRecord.destroy === "function") {
+                entityDestroyCallbacksList.push(componentRecord.destroy as () => void);
+              }
+              const propertiesToAssign = { ...componentRecord };
+              delete propertiesToAssign.destroy;
+              delete propertiesToAssign.onDestroy;
+              Object.assign(entityInstance, propertiesToAssign);
             }
           }
         }

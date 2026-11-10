@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { RenderEngineAdapter } from "../../src/engine/adapters/RenderEngineAdapter";
 import { createRenderingContext } from "../../src/engine/adapters/RenderingContextAdapter";
 import { SceneManager } from "../../src/engine/SceneManager";
-import { IRenderNode } from "../../src/engine/contracts/INTERFACE_CONTRACTS";
+import type { IRenderNode } from "../../src/engine/contracts/INTERFACE_CONTRACTS";
 
 describe("RenderingContextEntity .add() encadeado e hierarquia de nós PixiJS v8", () => {
   it("permite que uma entidade pai anexe entidades filhas via .add()", () => {
@@ -80,6 +80,7 @@ describe("RenderingContextEntity .add() encadeado e hierarquia de nós PixiJS v8
         },
       },
     ]);
+    expect(childEntity).toBeDefined();
 
     expect(parentEntity.children?.length).toBe(1);
     parentEntity.destroy();
@@ -105,8 +106,10 @@ describe("RenderingContextEntity .add() encadeado e hierarquia de nós PixiJS v8
       },
     ]);
 
-    expect(typeof (entityWithCustomMethods as { reveal?: () => void }).reveal).toBe("function");
-    (entityWithCustomMethods as { reveal: () => void }).reveal();
+    expect(typeof (entityWithCustomMethods as unknown as { reveal?: () => void }).reveal).toBe(
+      "function"
+    );
+    (entityWithCustomMethods as unknown as { reveal: () => void }).reveal();
     expect(wasRevealed).toBe(true);
   });
 
@@ -133,8 +136,8 @@ describe("RenderingContextEntity .add() encadeado e hierarquia de nós PixiJS v8
         addedChildNodesList.push(childNode);
       },
       removeChild: () => {},
-      clearChildren: () => {},
       getChildren: () => addedChildNodesList,
+      getNativeNode: () => ({}) as any,
     };
 
     // Forçamos renderEngineAdapterInstance a estar inicializado com mock de nós
@@ -162,8 +165,8 @@ describe("RenderingContextEntity .add() encadeado e hierarquia de nós PixiJS v8
           addedChildNodesList.push(c);
         },
         removeChild: () => {},
-        clearChildren: () => {},
         getChildren: () => [],
+        getNativeNode: () => ({}) as any,
       };
       (graphicsNode as unknown as { drawRect: () => void; clear: () => void }).drawRect = () => {};
       (graphicsNode as unknown as { drawRect: () => void; clear: () => void }).clear = () => {};
@@ -191,5 +194,121 @@ describe("RenderingContextEntity .add() encadeado e hierarquia de nós PixiJS v8
     expect(childEntity.renderNode).toBeDefined();
     // O filho deve ter sido adicionado à lista de nós filhos do pai
     expect(addedChildNodesList).toContain(childEntity.renderNode);
+  });
+
+  it("suporta registro e execução do ciclo de vida onDestroy na entidade", () => {
+    const renderEngineAdapterInstance = new RenderEngineAdapter();
+    const sceneManagerInstance = new SceneManager();
+    const renderingContextInstance = createRenderingContext(
+      renderEngineAdapterInstance,
+      sceneManagerInstance
+    );
+
+    let firstDestroyCallbackExecuted = false;
+    let secondDestroyCallbackExecuted = false;
+    let cancelledDestroyCallbackExecuted = false;
+
+    const testEntity = renderingContextInstance.add([
+      renderingContextInstance.pos(50, 50),
+      "destructibleEntity",
+    ]);
+
+    expect(testEntity.exists()).toBe(true);
+
+    testEntity.onDestroy(() => {
+      firstDestroyCallbackExecuted = true;
+    });
+
+    testEntity.onDestroy(() => {
+      secondDestroyCallbackExecuted = true;
+    });
+
+    const cancellableHandle = testEntity.onDestroy(() => {
+      cancelledDestroyCallbackExecuted = true;
+    });
+    cancellableHandle.cancel();
+
+    testEntity.destroy();
+
+    expect(firstDestroyCallbackExecuted).toBe(true);
+    expect(secondDestroyCallbackExecuted).toBe(true);
+    expect(cancelledDestroyCallbackExecuted).toBe(false);
+    expect(testEntity.exists()).toBe(false);
+  });
+
+  it("despacha onUpdate pelo ciclo do contexto e cancela automaticamente ao destruir", () => {
+    const renderEngineAdapterInstance = new RenderEngineAdapter();
+    const sceneManagerInstance = new SceneManager();
+    const renderingContextInstance = createRenderingContext(
+      renderEngineAdapterInstance,
+      sceneManagerInstance
+    );
+
+    let updateTicksCount = 0;
+    let receivedDeltaTime = 0;
+
+    const testEntity = renderingContextInstance.add([renderingContextInstance.pos(10, 10)]);
+
+    testEntity.onUpdate((deltaTimeInSeconds?: number) => {
+      updateTicksCount++;
+      receivedDeltaTime = deltaTimeInSeconds ?? 0;
+    });
+
+    renderingContextInstance.lifecycle.runSceneUpdateCallbacks(0.016);
+    expect(updateTicksCount).toBe(1);
+    expect(receivedDeltaTime).toBe(0.016);
+
+    testEntity.destroy();
+
+    renderingContextInstance.lifecycle.runSceneUpdateCallbacks(0.016);
+    expect(updateTicksCount).toBe(1);
+  });
+
+  it("suporta registro e cancelamento de eventos de colisão onCollide e verificação com is()", () => {
+    const renderEngineAdapterInstance = new RenderEngineAdapter();
+    const sceneManagerInstance = new SceneManager();
+    const renderingContextInstance = createRenderingContext(
+      renderEngineAdapterInstance,
+      sceneManagerInstance
+    );
+
+    const testEntity = renderingContextInstance.add([
+      renderingContextInstance.pos(0, 0),
+      "playerWhale",
+    ]);
+
+    expect(testEntity.is?.("playerWhale")).toBe(true);
+    expect(testEntity.is?.("enemyShark")).toBe(false);
+    expect(testEntity.tag).toBe("playerWhale");
+
+    let specificCollisionDetected = false;
+    let genericCollisionDetected = false;
+    let cancelledCollisionDetected = false;
+
+    testEntity.onCollide("krill", (collidedEntity: unknown) => {
+      specificCollisionDetected = true;
+      expect((collidedEntity as { tag?: string }).tag).toBe("krill");
+    });
+
+    testEntity.onCollide((collidedEntity: unknown) => {
+      genericCollisionDetected = true;
+      expect(collidedEntity).toBeDefined();
+    });
+
+    const cancellableCollisionHandle = testEntity.onCollide("obstacle", () => {
+      cancelledCollisionDetected = true;
+    });
+    cancellableCollisionHandle.cancel();
+
+    const mockKrillEntity = {
+      tag: "krill",
+      is: (tag: string) => tag === "krill",
+    };
+
+    testEntity.triggerCollision?.(mockKrillEntity, "krill");
+
+    expect(specificCollisionDetected).toBe(true);
+    expect(genericCollisionDetected).toBe(true);
+    expect(cancelledCollisionDetected).toBe(false);
   });
 });
