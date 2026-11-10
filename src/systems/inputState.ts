@@ -62,7 +62,7 @@ export const INITIAL_UNIFIED_INPUT_STATE: UnifiedInputState = Object.freeze({
   anyInteractionPressed: false,
 });
 
-function normalizeKeyIdentifier(rawKey: string): string[] {
+export function normalizeKeyIdentifier(rawKey: string): string[] {
   const lowercasedKey = rawKey.toLowerCase();
   const normalizedIdentifiers: string[] = [lowercasedKey];
 
@@ -140,7 +140,8 @@ export class InputStateManager {
 
   private keyboardKeyDownListener: ((keyboardEvent: KeyboardEvent) => void) | null = null;
   private keyboardKeyUpListener: ((keyboardEvent: KeyboardEvent) => void) | null = null;
-  private windowPointerDownListener: ((pointerEvent: PointerEvent | MouseEvent | TouchEvent) => void) | null = null;
+  private windowPointerDownListener:
+    ((pointerEvent: PointerEvent | MouseEvent | TouchEvent) => void) | null = null;
 
   private mockStateOverride: Partial<UnifiedInputState> | null = null;
 
@@ -316,9 +317,7 @@ export class InputStateManager {
     const strokePressed = keyboardStrokePressed || touchStrokePressed || gamepadStrokePressed;
     const strokeDown = keyboardStrokeDown || touchStrokeDown || gamepadStrokeDown;
 
-    const strokeReleased =
-      keyboardStrokeReleased ||
-      (!strokeDown && this.previousStrokeDownState);
+    const strokeReleased = keyboardStrokeReleased || (!strokeDown && this.previousStrokeDownState);
 
     const sonarPressed = keyboardSonarPressed || touchSonarPressed || gamepadSonarPressed;
     const sonarDown = keyboardSonarDown || touchSonarPressed || gamepadSonarPressed;

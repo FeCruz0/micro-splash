@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { RenderEngineAdapter } from "../../src/engine/adapters/RenderEngineAdapter";
 import { createRenderingContext } from "../../src/engine/adapters/RenderingContextAdapter";
 import { SceneManager } from "../../src/engine/SceneManager";
+import { initInputStateManager, resetInputStateManager } from "../../src/systems/inputState";
 import type { IRenderNode } from "../../src/engine/contracts/INTERFACE_CONTRACTS";
 
 describe("RenderingContextEntity .add() encadeado e hierarquia de nós PixiJS v8", () => {
@@ -487,5 +488,67 @@ describe("RenderingContextEntity .add() encadeado e hierarquia de nós PixiJS v8
 
     expect(globalUpdateCalledWithPlayer).toBeNull();
     expect(globalEndCalledWithPlayer).toBeNull();
+  });
+
+  it("should query keyboard and mouse input states on context and entity", () => {
+    const inputStateManagerInstance = initInputStateManager();
+    const renderEngineAdapterInstance = new RenderEngineAdapter();
+    const sceneManagerInstance = new SceneManager();
+    const renderingContextInstance = createRenderingContext(
+      renderEngineAdapterInstance,
+      sceneManagerInstance
+    );
+
+    const testEntity = renderingContextInstance.add([
+      renderingContextInstance.pos(20, 30),
+      "interactive_character",
+    ]);
+
+    expect(renderingContextInstance.isKeyDown("space")).toBe(false);
+    expect(renderingContextInstance.isKeyPressed("space")).toBe(false);
+    expect(renderingContextInstance.isKeyReleased("space")).toBe(false);
+    expect(renderingContextInstance.isMousePressed()).toBe(false);
+    expect(renderingContextInstance.isMouseDown?.()).toBe(false);
+
+    expect(testEntity.isKeyDown?.("space")).toBe(false);
+    expect(testEntity.isKeyPressed?.("space")).toBe(false);
+    expect(testEntity.isKeyReleased?.("space")).toBe(false);
+
+    const initialMousePosition = renderingContextInstance.mousePos();
+    expect(initialMousePosition).toEqual({ x: 0, y: 0 });
+    expect(testEntity.mousePos?.()).toEqual({ x: 0, y: 0 });
+
+    inputStateManagerInstance.simulateKeyDown("space");
+    renderingContextInstance.lifecycle.runSceneUpdateCallbacks(0.016);
+    expect(renderingContextInstance.isKeyDown("space")).toBe(true);
+    expect(renderingContextInstance.isKeyPressed("space")).toBe(true);
+    expect(testEntity.isKeyDown?.("space")).toBe(true);
+    expect(testEntity.isKeyPressed?.("space")).toBe(true);
+
+    renderingContextInstance.lifecycle.runSceneUpdateCallbacks(0.016);
+    expect(renderingContextInstance.isKeyDown("space")).toBe(true);
+    expect(renderingContextInstance.isKeyPressed("space")).toBe(false);
+
+    inputStateManagerInstance.simulateKeyUp("space");
+    renderingContextInstance.lifecycle.runSceneUpdateCallbacks(0.016);
+    expect(renderingContextInstance.isKeyDown("space")).toBe(false);
+    expect(renderingContextInstance.isKeyReleased("space")).toBe(true);
+    expect(testEntity.isKeyReleased?.("space")).toBe(true);
+
+    renderingContextInstance.lifecycle.runSceneUpdateCallbacks(0.016);
+    expect(renderingContextInstance.isKeyReleased("space")).toBe(false);
+
+    inputStateManagerInstance.setMockStateOverride({ strokePressed: true, strokeDown: true });
+    renderingContextInstance.lifecycle.runSceneUpdateCallbacks(0.016);
+    expect(renderingContextInstance.isMousePressed()).toBe(true);
+    expect(renderingContextInstance.isMouseDown?.()).toBe(true);
+
+    inputStateManagerInstance.setMockStateOverride({ strokePressed: false, strokeDown: false });
+    renderingContextInstance.lifecycle.runSceneUpdateCallbacks(0.016);
+    expect(renderingContextInstance.isMousePressed()).toBe(false);
+    expect(renderingContextInstance.isMouseDown?.()).toBe(false);
+
+    renderingContextInstance.lifecycle.flushSceneResources();
+    resetInputStateManager();
   });
 });

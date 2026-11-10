@@ -23,6 +23,7 @@ import {
   exitDocumentFullscreen,
   isDocumentFullscreen,
 } from "../../systems/fullscreenHandler";
+import { getInputStateManager, normalizeKeyIdentifier } from "../../systems/inputState";
 
 /**
  * Ciclo de vida do contexto de renderização exposto às cenas: executa os callbacks registrados via
@@ -146,6 +147,10 @@ export interface RenderingContextEntity {
   exists(): boolean;
   onUpdate(entityUpdateHandler: (deltaTimeInSeconds?: number) => void): { cancel: () => void };
   onDestroy(entityDestroyHandler: () => void): { cancel: () => void };
+  isKeyDown?(keyIdentifier: string): boolean;
+  isKeyPressed?(keyIdentifier?: string): boolean;
+  isKeyReleased?(keyIdentifier?: string): boolean;
+  mousePos?(): { readonly x: number; readonly y: number };
   onCollide(
     targetTagOrCollisionHandler: string | ((collidedEntity: unknown) => void),
     maybeCollisionHandler?: (collidedEntity: unknown) => void
@@ -297,6 +302,11 @@ export interface RenderingContext {
   onMousePress(pointerPressCallback: () => void): { cancel: () => void };
   onClick(clickCallback: () => void): { cancel: () => void };
   isMousePressed(): boolean;
+  isMouseDown?(): boolean;
+  mousePos(): { readonly x: number; readonly y: number };
+  isKeyDown(keyIdentifier: string): boolean;
+  isKeyPressed(keyIdentifier?: string): boolean;
+  isKeyReleased(keyIdentifier?: string): boolean;
   onUpdate(updateCallback: (deltaTimeInSeconds: number) => void): { cancel: () => void };
   wait(durationInSeconds: number, timerCompletionCallback: () => void): { cancel: () => void };
 
@@ -366,13 +376,58 @@ export function createRenderingContext(
   const globalCollisionEndListenersList: GlobalCollisionListenerRegistration[] = [];
   const taggedEntitiesMap = new Map<string, Set<unknown>>();
   let mousePressedState = false;
+  const activeHeldKeysSet = new Set<string>();
+  const framePressedKeysSet = new Set<string>();
+  const frameReleasedKeysSet = new Set<string>();
+  let mousePointerCoordinateX = 0;
+  let mousePointerCoordinateY = 0;
 
   if (typeof window !== "undefined") {
-    window.addEventListener("pointerdown", () => {
+    const windowPointerDownListener = (pointerEvent: PointerEvent): void => {
       mousePressedState = true;
-    });
-    window.addEventListener("pointerup", () => {
+      mousePointerCoordinateX = pointerEvent.clientX;
+      mousePointerCoordinateY = pointerEvent.clientY;
+    };
+    const windowPointerUpListener = (pointerEvent: PointerEvent): void => {
       mousePressedState = false;
+      mousePointerCoordinateX = pointerEvent.clientX;
+      mousePointerCoordinateY = pointerEvent.clientY;
+    };
+    const windowPointerMoveListener = (pointerEvent: PointerEvent): void => {
+      mousePointerCoordinateX = pointerEvent.clientX;
+      mousePointerCoordinateY = pointerEvent.clientY;
+    };
+    const windowKeyDownListener = (keyboardEvent: KeyboardEvent): void => {
+      const normalizedKeyVariants = normalizeKeyIdentifier(keyboardEvent.key);
+      for (let index = 0; index < normalizedKeyVariants.length; index++) {
+        const keyVariant = normalizedKeyVariants[index];
+        if (!activeHeldKeysSet.has(keyVariant)) {
+          framePressedKeysSet.add(keyVariant);
+        }
+        activeHeldKeysSet.add(keyVariant);
+      }
+    };
+    const windowKeyUpListener = (keyboardEvent: KeyboardEvent): void => {
+      const normalizedKeyVariants = normalizeKeyIdentifier(keyboardEvent.key);
+      for (let index = 0; index < normalizedKeyVariants.length; index++) {
+        const keyVariant = normalizedKeyVariants[index];
+        activeHeldKeysSet.delete(keyVariant);
+        frameReleasedKeysSet.add(keyVariant);
+      }
+    };
+
+    window.addEventListener("pointerdown", windowPointerDownListener);
+    window.addEventListener("pointerup", windowPointerUpListener);
+    window.addEventListener("pointermove", windowPointerMoveListener);
+    window.addEventListener("keydown", windowKeyDownListener);
+    window.addEventListener("keyup", windowKeyUpListener);
+
+    sceneCleanupCallbacksList.push(() => {
+      window.removeEventListener("pointerdown", windowPointerDownListener);
+      window.removeEventListener("pointerup", windowPointerUpListener);
+      window.removeEventListener("pointermove", windowPointerMoveListener);
+      window.removeEventListener("keydown", windowKeyDownListener);
+      window.removeEventListener("keyup", windowKeyUpListener);
     });
   }
 
@@ -398,6 +453,10 @@ export function createRenderingContext(
     globalCollisionUpdateListenersList.length = 0;
     globalCollisionEndListenersList.length = 0;
     taggedEntitiesMap.clear();
+    activeHeldKeysSet.clear();
+    framePressedKeysSet.clear();
+    frameReleasedKeysSet.clear();
+    mousePressedState = false;
   };
 
   const matchesTag = (entity: unknown, expectedTag: string, providedTag?: string): boolean => {
@@ -532,6 +591,10 @@ export function createRenderingContext(
   };
 
   const runActiveSceneUpdateCallbacks = (deltaTimeInSeconds: number): void => {
+    const activeInputStateManager = getInputStateManager();
+    if (activeInputStateManager) {
+      activeInputStateManager.update();
+    }
     const updateCallbacksSnapshot = sceneUpdateCallbacksList.slice();
     for (let index = 0; index < updateCallbacksSnapshot.length; index++) {
       try {
@@ -540,6 +603,8 @@ export function createRenderingContext(
         console.error("[RenderingContext] Erro em callback de update da cena ativa:", error);
       }
     }
+    framePressedKeysSet.clear();
+    frameReleasedKeysSet.clear();
   };
 
   const renderContextLifecycle: RenderingContextLifecycle = {
@@ -1098,6 +1163,12 @@ export function createRenderingContext(
             }
           },
           is: (tagToCheck: string): boolean => entityTagsSet.has(tagToCheck),
+          isKeyDown: (keyIdentifier: string): boolean => renderingContext.isKeyDown(keyIdentifier),
+          isKeyPressed: (keyIdentifier?: string): boolean =>
+            renderingContext.isKeyPressed(keyIdentifier),
+          isKeyReleased: (keyIdentifier?: string): boolean =>
+            renderingContext.isKeyReleased(keyIdentifier),
+          mousePos: (): { readonly x: number; readonly y: number } => renderingContext.mousePos(),
           onClick: (clickCallback: () => void) => {
             if (isFixedElement && rectangleWidthValue !== null && rectangleHeightValue !== null) {
               const activeScreenChecker =
@@ -1901,7 +1972,89 @@ export function createRenderingContext(
     },
 
     isMousePressed(): boolean {
+      const activeInputStateManager = getInputStateManager();
+      if (activeInputStateManager) {
+        return (
+          activeInputStateManager.getState().strokePressed ||
+          activeInputStateManager.getState().anyInteractionPressed ||
+          mousePressedState
+        );
+      }
       return mousePressedState;
+    },
+
+    isMouseDown(): boolean {
+      const activeInputStateManager = getInputStateManager();
+      if (activeInputStateManager) {
+        return activeInputStateManager.getState().strokeDown || mousePressedState;
+      }
+      return mousePressedState;
+    },
+
+    mousePos(): { readonly x: number; readonly y: number } {
+      const canvasElement = renderEngineInstance.getCanvas();
+      if (canvasElement && typeof canvasElement.getBoundingClientRect === "function") {
+        const canvasBoundingRectangle = canvasElement.getBoundingClientRect();
+        return {
+          x: mousePointerCoordinateX - canvasBoundingRectangle.left,
+          y: mousePointerCoordinateY - canvasBoundingRectangle.top,
+        };
+      }
+      return {
+        x: mousePointerCoordinateX,
+        y: mousePointerCoordinateY,
+      };
+    },
+
+    isKeyDown(keyIdentifier: string): boolean {
+      const activeInputStateManager = getInputStateManager();
+      if (activeInputStateManager) {
+        return activeInputStateManager.isKeyDown(keyIdentifier);
+      }
+      const normalizedKeyVariants = normalizeKeyIdentifier(keyIdentifier);
+      for (let index = 0; index < normalizedKeyVariants.length; index++) {
+        if (activeHeldKeysSet.has(normalizedKeyVariants[index])) {
+          return true;
+        }
+      }
+      return false;
+    },
+
+    isKeyPressed(keyIdentifier?: string): boolean {
+      const activeInputStateManager = getInputStateManager();
+      if (typeof keyIdentifier === "string") {
+        if (activeInputStateManager) {
+          return activeInputStateManager.isKeyPressed(keyIdentifier);
+        }
+        const normalizedKeyVariants = normalizeKeyIdentifier(keyIdentifier);
+        for (let index = 0; index < normalizedKeyVariants.length; index++) {
+          if (framePressedKeysSet.has(normalizedKeyVariants[index])) {
+            return true;
+          }
+        }
+        return false;
+      }
+      if (activeInputStateManager) {
+        return activeInputStateManager.getState().anyInteractionPressed;
+      }
+      return framePressedKeysSet.size > 0;
+    },
+
+    isKeyReleased(keyIdentifier?: string): boolean {
+      const activeInputStateManager = getInputStateManager();
+      if (typeof keyIdentifier === "string") {
+        if (activeInputStateManager) {
+          return activeInputStateManager.isKeyReleased(keyIdentifier);
+        }
+        const normalizedKeyVariants = normalizeKeyIdentifier(keyIdentifier);
+        for (let index = 0; index < normalizedKeyVariants.length; index++) {
+          if (frameReleasedKeysSet.has(normalizedKeyVariants[index])) {
+            return true;
+          }
+        }
+        return false;
+      }
+      return frameReleasedKeysSet.size > 0;
     },
 
     onUpdate(updateCallback: (deltaTimeInSeconds: number) => void): { cancel: () => void } {
