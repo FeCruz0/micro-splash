@@ -23,7 +23,7 @@ import {
   exitDocumentFullscreen,
   isDocumentFullscreen,
 } from "../../systems/fullscreenHandler";
-import { getInputStateManager } from "../../systems/inputState";
+import { getInputStateManager, normalizeKeyIdentifier } from "../../systems/inputState";
 
 /**
  * Ciclo de vida do contexto de renderização exposto às cenas: executa os callbacks registrados via
@@ -1879,7 +1879,15 @@ export function createRenderingContext(
           keyOrExecutionCallback();
           return;
         }
-        if (event.key.toLowerCase() === keyOrExecutionCallback.toLowerCase()) {
+        const normalizedTargetVariants = normalizeKeyIdentifier(keyOrExecutionCallback);
+        const eventKeyVariants = [
+          ...normalizeKeyIdentifier(event.key),
+          ...normalizeKeyIdentifier(event.code),
+        ];
+        const hasMatchingKey = normalizedTargetVariants.some((targetVariant) =>
+          eventKeyVariants.includes(targetVariant)
+        );
+        if (hasMatchingKey) {
           maybeKeyCallback?.();
         }
       };
