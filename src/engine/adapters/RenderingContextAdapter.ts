@@ -23,7 +23,12 @@ import {
   exitDocumentFullscreen,
   isDocumentFullscreen,
 } from "../../systems/fullscreenHandler";
-import { getInputStateManager, normalizeKeyIdentifier } from "../../systems/inputState";
+import {
+  getInputStateManager,
+  singleFrameInputStateUpdater,
+  completeSingleFrameInputCycle,
+  normalizeKeyIdentifier,
+} from "../../systems/inputState";
 
 /**
  * Ciclo de vida do contexto de renderização exposto às cenas: executa os callbacks registrados via
@@ -61,6 +66,149 @@ export function withRenderingContextLifecycle(
       }
     },
   };
+}
+
+export interface RenderingContextVector2D {
+  x: number;
+  y: number;
+  scale(
+    scaleFactor: number | { readonly x: number; readonly y: number } | unknown,
+    verticalScaleFactor?: number
+  ): RenderingContextVector2D;
+  add(otherVector: { readonly x: number; readonly y: number } | unknown): RenderingContextVector2D;
+  sub(otherVector: { readonly x: number; readonly y: number } | unknown): RenderingContextVector2D;
+  len(): number;
+  unit(): RenderingContextVector2D;
+  dist(otherVector: { readonly x: number; readonly y: number } | unknown): number;
+}
+
+export function createRenderingContextVector2D(
+  coordinateX: number,
+  coordinateY: number
+): RenderingContextVector2D {
+  const vectorInstance: RenderingContextVector2D = {
+    x: coordinateX,
+    y: coordinateY,
+  } as RenderingContextVector2D;
+
+  Object.defineProperties(vectorInstance, {
+    scale: {
+      value(
+        this: RenderingContextVector2D,
+        scaleFactor: number | { readonly x: number; readonly y: number } | unknown,
+        verticalScaleFactor?: number
+      ): RenderingContextVector2D {
+        if (typeof scaleFactor === "number") {
+          const factorY =
+            typeof verticalScaleFactor === "number" ? verticalScaleFactor : scaleFactor;
+          return createRenderingContextVector2D(this.x * scaleFactor, this.y * factorY);
+        }
+        if (
+          scaleFactor !== null &&
+          typeof scaleFactor === "object" &&
+          "x" in scaleFactor &&
+          "y" in scaleFactor &&
+          typeof (scaleFactor as { x: unknown }).x === "number" &&
+          typeof (scaleFactor as { y: unknown }).y === "number"
+        ) {
+          const vectorTarget = scaleFactor as { readonly x: number; readonly y: number };
+          return createRenderingContextVector2D(this.x * vectorTarget.x, this.y * vectorTarget.y);
+        }
+        return createRenderingContextVector2D(this.x, this.y);
+      },
+      enumerable: false,
+      writable: true,
+      configurable: true,
+    },
+    add: {
+      value(
+        this: RenderingContextVector2D,
+        otherVector: { readonly x: number; readonly y: number } | unknown
+      ): RenderingContextVector2D {
+        if (
+          otherVector !== null &&
+          typeof otherVector === "object" &&
+          "x" in otherVector &&
+          "y" in otherVector &&
+          typeof (otherVector as { x: unknown }).x === "number" &&
+          typeof (otherVector as { y: unknown }).y === "number"
+        ) {
+          const vectorTarget = otherVector as { readonly x: number; readonly y: number };
+          return createRenderingContextVector2D(this.x + vectorTarget.x, this.y + vectorTarget.y);
+        }
+        return createRenderingContextVector2D(this.x, this.y);
+      },
+      enumerable: false,
+      writable: true,
+      configurable: true,
+    },
+    sub: {
+      value(
+        this: RenderingContextVector2D,
+        otherVector: { readonly x: number; readonly y: number } | unknown
+      ): RenderingContextVector2D {
+        if (
+          otherVector !== null &&
+          typeof otherVector === "object" &&
+          "x" in otherVector &&
+          "y" in otherVector &&
+          typeof (otherVector as { x: unknown }).x === "number" &&
+          typeof (otherVector as { y: unknown }).y === "number"
+        ) {
+          const vectorTarget = otherVector as { readonly x: number; readonly y: number };
+          return createRenderingContextVector2D(this.x - vectorTarget.x, this.y - vectorTarget.y);
+        }
+        return createRenderingContextVector2D(this.x, this.y);
+      },
+      enumerable: false,
+      writable: true,
+      configurable: true,
+    },
+    len: {
+      value(this: RenderingContextVector2D): number {
+        return Math.hypot(this.x, this.y);
+      },
+      enumerable: false,
+      writable: true,
+      configurable: true,
+    },
+    unit: {
+      value(this: RenderingContextVector2D): RenderingContextVector2D {
+        const vectorMagnitude = Math.hypot(this.x, this.y);
+        if (vectorMagnitude === 0) {
+          return createRenderingContextVector2D(0, 0);
+        }
+        return createRenderingContextVector2D(this.x / vectorMagnitude, this.y / vectorMagnitude);
+      },
+      enumerable: false,
+      writable: true,
+      configurable: true,
+    },
+    dist: {
+      value(
+        this: RenderingContextVector2D,
+        otherVector: { readonly x: number; readonly y: number } | unknown
+      ): number {
+        if (
+          otherVector !== null &&
+          typeof otherVector === "object" &&
+          "x" in otherVector &&
+          "y" in otherVector &&
+          typeof (otherVector as { x: unknown }).x === "number" &&
+          typeof (otherVector as { y: unknown }).y === "number"
+        ) {
+          const vectorTarget = otherVector as { readonly x: number; readonly y: number };
+          return Math.hypot(this.x - vectorTarget.x, this.y - vectorTarget.y);
+        }
+        return 0;
+      },
+      enumerable: false,
+      writable: true,
+      configurable: true,
+    },
+  });
+
+  return vectorInstance;
 }
 
 export function calculateOriginOffset(
@@ -142,6 +290,7 @@ export interface RenderingContextEntity {
   renderNode?: IRenderNode | null;
   tag?: string;
   is?(tagToCheck: string): boolean;
+  move?(speedX: number, speedY: number): void;
   readonly children?: readonly RenderingContextEntity[];
   add(childComponentOrDescriber: unknown[] | unknown): RenderingContextEntity;
   exists(): boolean;
@@ -215,7 +364,7 @@ export interface RenderingContext {
   deg2rad(degreesValue: number): number;
   rad2deg(radiansValue: number): number;
 
-  vec2(coordinateX: number, coordinateY: number): { readonly x: number; readonly y: number };
+  vec2(coordinateX: number, coordinateY: number): RenderingContextVector2D;
   rgb(redValue: number, greenValue: number, blueValue: number): readonly [number, number, number];
   shake(intensity: number): void;
 
@@ -554,7 +703,7 @@ export function createRenderingContext(
   const runActiveSceneUpdateCallbacks = (deltaTimeInSeconds: number): void => {
     const activeInputStateManager = getInputStateManager();
     if (activeInputStateManager) {
-      activeInputStateManager.update();
+      singleFrameInputStateUpdater(activeInputStateManager);
     }
     const updateCallbacksSnapshot = sceneUpdateCallbacksList.slice();
     for (let index = 0; index < updateCallbacksSnapshot.length; index++) {
@@ -564,6 +713,7 @@ export function createRenderingContext(
         console.error("[RenderingContext] Erro em callback de update da cena ativa:", error);
       }
     }
+    completeSingleFrameInputCycle();
   };
 
   const renderContextLifecycle: RenderingContextLifecycle = {
@@ -670,8 +820,8 @@ export function createRenderingContext(
       return radiansValue * (180 / Math.PI);
     },
 
-    vec2(coordinateX: number, coordinateY: number): { readonly x: number; readonly y: number } {
-      return { x: coordinateX, y: coordinateY };
+    vec2(coordinateX: number, coordinateY: number): RenderingContextVector2D {
+      return createRenderingContextVector2D(coordinateX, coordinateY);
     },
 
     rgb(
@@ -914,6 +1064,19 @@ export function createRenderingContext(
           hidden: false,
           fixed: false,
           exists: () => !isEntityDestroyed,
+          move: (speedX: number, speedY: number): void => {
+            if (isEntityDestroyed) {
+              return;
+            }
+            const rawDeltaTime =
+              typeof renderingContext.dt === "function" ? renderingContext.dt() : 0.0166;
+            const safeDeltaTime = Math.min(Math.max(0, rawDeltaTime), 0.1);
+            positionCoordinateX += speedX * safeDeltaTime;
+            positionCoordinateY += speedY * safeDeltaTime;
+            entityInstance.pos.x = positionCoordinateX;
+            entityInstance.pos.y = positionCoordinateY;
+            entityVisualNode?.setPosition(positionCoordinateX, positionCoordinateY);
+          },
           onUpdate: (
             entityUpdateHandler: (deltaTimeInSeconds?: number) => void
           ): { cancel: () => void } => {
@@ -2084,6 +2247,9 @@ export function createRenderingContext(
     },
 
     onUpdate(updateCallback: (deltaTimeInSeconds: number) => void): { cancel: () => void } {
+      if (typeof updateCallback !== "function") {
+        return { cancel: () => {} };
+      }
       const loopUpdateHandler = (deltaTimeInSeconds: number): void => {
         updateCallback(deltaTimeInSeconds);
       };

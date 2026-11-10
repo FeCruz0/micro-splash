@@ -22,6 +22,34 @@ export interface PlayerPhysicsEngineContext extends BreachSplashEngineContext<
   shake?(intensity: number): void;
 }
 
+export interface PlayerBuoyancyPhysicsResult {
+  readonly effectiveGravity: number;
+  readonly buoyancySinkRate: number;
+}
+
+/**
+ * Valida a física de empuxo e gravidade da baleia.
+ * Assegura que no ambiente aquático a gravidade seja nula para permitir o nado livre,
+ * aplicando apenas a taxa suave de afundamento (SINK_RATE), enquanto no ar a gravidade balística atua plenamente.
+ */
+export function validatePlayerBuoyancyPhysics(
+  inAir: boolean,
+  isBreaching: boolean
+): PlayerBuoyancyPhysicsResult {
+  if (inAir) {
+    const airGravity = isBreaching ? 620 : 340;
+    return {
+      effectiveGravity: airGravity,
+      buoyancySinkRate: 0,
+    };
+  }
+
+  return {
+    effectiveGravity: 0,
+    buoyancySinkRate: isBreaching ? 0 : GAME_CONFIG.SINK_RATE,
+  };
+}
+
 export class PlayerPhysicsManager {
   private k: PlayerPhysicsEngineContext;
   private currentSpeed: StrictPlayerVector2D;
@@ -86,6 +114,13 @@ export class PlayerPhysicsManager {
     }
   }
 
+  public validatePlayerBuoyancyPhysics(
+    inAir: boolean,
+    isBreaching: boolean
+  ): PlayerBuoyancyPhysicsResult {
+    return validatePlayerBuoyancyPhysics(inAir, isBreaching);
+  }
+
   public updateMovement(
     dt: number,
     baleia: PlayerGameObject,
@@ -95,11 +130,11 @@ export class PlayerPhysicsManager {
   ): { inAir: boolean; newAngle: number } {
     const inAir = baleia.pos.y < GAME_CONFIG.SEA_LEVEL + 6;
     let newAngle = angle;
+    const buoyancyPhysics = this.validatePlayerBuoyancyPhysics(inAir, isBreaching);
 
     if (inAir) {
       // Voo balístico majestoso pelo ar
-      const gravity = isBreaching ? 620 : 340;
-      this.currentSpeed.y += gravity * dt;
+      this.currentSpeed.y += buoyancyPhysics.effectiveGravity * dt;
       const airDragFactor = Math.pow(0.998, dt * 60);
       this.currentSpeed.x = this.currentSpeed.x * airDragFactor;
       baleia.move?.(this.currentSpeed.x, this.currentSpeed.y);
@@ -124,8 +159,8 @@ export class PlayerPhysicsManager {
         }
         baleia.move?.(this.currentSpeed.x, this.currentSpeed.y);
       } else {
-        // Nado hidrodinâmico na água
-        baleia.move?.(this.currentSpeed.x, this.currentSpeed.y + GAME_CONFIG.SINK_RATE);
+        // Nado hidrodinâmico na água com flutuação neutra/empuxo
+        baleia.move?.(this.currentSpeed.x, this.currentSpeed.y + buoyancyPhysics.buoyancySinkRate);
         const waterDragFactor = Math.pow(GAME_CONFIG.WATER_DRAG, dt * 60);
         this.currentSpeed = this.currentSpeed.scale(waterDragFactor);
       }

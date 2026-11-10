@@ -47,6 +47,10 @@ export type {
   PlayerVector2D,
   StrictPlayerVector2D,
 } from "./player/types";
+export {
+  validatePlayerBuoyancyPhysics,
+  type PlayerBuoyancyPhysicsResult,
+} from "./player/playerPhysics";
 export { calculateOceanIdleDrift };
 
 export interface PlayerEngineContext {
@@ -93,6 +97,7 @@ export interface PlayerEngineContext {
   ): unknown;
   createSprite?(texture: unknown, id?: string): unknown;
   getStageRoot?(): unknown;
+  onUpdate?(updateHandler: (deltaTimeInSeconds?: number) => void): { cancel: () => void } | void;
 }
 
 let activePlayerObject: PlayerGameObject | null = null;
@@ -116,13 +121,58 @@ export function getActivePlayerController(): PlayerController | null {
   return activePlayerController;
 }
 
+export interface PlayerCreationParameters {
+  readonly engineContext: PlayerEngineContext;
+  readonly initialPositionCoordinateX?: number;
+  readonly isSereneModeActive?: boolean;
+  readonly touchControlsState?: TouchControlsState;
+  readonly inputStateManager?: InputStateManager | null;
+}
+
+export function validatePlayerInitializationSignature(
+  contextOrParameters: PlayerEngineContext | PlayerCreationParameters,
+  initialPositionCoordinateX?: number,
+  isSereneModeActive?: boolean,
+  touchControlsState?: TouchControlsState,
+  inputStateManager?: InputStateManager | null
+): PlayerCreationParameters {
+  if (
+    typeof contextOrParameters === "object" &&
+    contextOrParameters !== null &&
+    "engineContext" in contextOrParameters
+  ) {
+    return contextOrParameters as PlayerCreationParameters;
+  }
+
+  return {
+    engineContext: contextOrParameters as PlayerEngineContext,
+    initialPositionCoordinateX: initialPositionCoordinateX ?? 120,
+    isSereneModeActive: isSereneModeActive ?? false,
+    touchControlsState,
+    inputStateManager,
+  };
+}
+
 export function createPlayer(
-  k: PlayerEngineContext,
-  initialX: number = 120,
-  isSereneMode: boolean = false,
-  touchState?: TouchControlsState,
+  contextOrParameters: PlayerEngineContext | PlayerCreationParameters,
+  initialPositionCoordinateX: number = 120,
+  isSereneModeActive: boolean = false,
+  touchControlsState?: TouchControlsState,
   inputStateManager?: InputStateManager | null
 ): PlayerController {
+  const playerCreationParameters = validatePlayerInitializationSignature(
+    contextOrParameters,
+    initialPositionCoordinateX,
+    isSereneModeActive,
+    touchControlsState,
+    inputStateManager
+  );
+
+  const k = playerCreationParameters.engineContext;
+  const initialX = playerCreationParameters.initialPositionCoordinateX ?? 120;
+  const isSereneMode = playerCreationParameters.isSereneModeActive ?? false;
+  const touchState = playerCreationParameters.touchControlsState;
+  const activeInputStateManager = playerCreationParameters.inputStateManager;
   const updateCallbacks: Array<() => void> = [];
   const destroyCallbacks: Array<() => void> = [];
 
@@ -167,9 +217,11 @@ export function createPlayer(
     color: typeof k.rgb === "function" ? k.rgb(255, 255, 255) : { r: 255, g: 255, b: 255 },
     opacity: 1,
     z: 20,
-    move: (deltaX: number, deltaY: number) => {
-      baleia.pos.x += deltaX;
-      baleia.pos.y += deltaY;
+    move: (speedX: number, speedY: number) => {
+      const rawDeltaTime = typeof k.dt === "function" ? k.dt() : 0.0166;
+      const safeDeltaTime = Math.min(Math.max(0, rawDeltaTime), GAME_CONFIG.MAX_DELTA_TIME);
+      baleia.pos.x += speedX * safeDeltaTime;
+      baleia.pos.y += speedY * safeDeltaTime;
     },
     play: (animationName: string) => {
       animState = animationName as WhaleAnimationState;
@@ -215,7 +267,7 @@ export function createPlayer(
   const oxygenMgr = new PlayerOxygenManager(k);
   const physicsMgr = new PlayerPhysicsManager(k);
   const sonarMgr = new PlayerSonarManager(k);
-  const controlsMgr = new PlayerControlsManager(k, touchState, inputStateManager);
+  const controlsMgr = new PlayerControlsManager(k, touchState, activeInputStateManager);
 
   let animState: WhaleAnimationState = "idle_swim";
   let feedTimer = 0;
@@ -335,7 +387,7 @@ export function createPlayer(
       }
     } else if (trapMgr.isTrapped()) {
       // 3. Presa em rede fantasma
-      const currentInputState = (inputStateManager ?? getInputStateManager())?.getState();
+      const currentInputState = (activeInputStateManager ?? getInputStateManager())?.getState();
       const isStrokePressedNow = currentInputState
         ? currentInputState.strokePressed
         : (typeof k.isKeyPressed === "function" ? k.isKeyPressed("space") : false) ||
@@ -774,10 +826,8 @@ export function createPlayer(
     currentRenderPipelineSnapshot.palette.bodyColor;
   playerSpriteNode.setTint([initialBodyRed, initialBodyGreen, initialBodyBlue]);
 
-  if (
-    typeof (k as unknown as { onUpdate?: (callback: () => void) => void }).onUpdate === "function"
-  ) {
-    (k as unknown as { onUpdate: (callback: () => void) => void }).onUpdate(() => {
+  if (typeof k.onUpdate === "function") {
+    k.onUpdate(() => {
       baleia._triggerUpdate?.();
     });
   }

@@ -1,6 +1,6 @@
 import { GAME_CONFIG, TAGS } from "../config";
 import type { IScene, ISceneManager } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { createPlayer } from "../entities/player";
+import { createPlayer, type PlayerController } from "../entities/player";
 import { createRescueBoat } from "../entities/boat";
 import { setupCollisions } from "../systems/collisions";
 import { createGameState, type GameOptions } from "../systems/state";
@@ -36,7 +36,7 @@ import { setupAbyssalFogSystem } from "../systems/abyssalFogSystem";
 import { setupCoastalSurfSystem } from "../systems/coastalSurfSystem";
 import { setupMarineSnowSystem } from "../systems/marineSnowSystem";
 import { setupDepthDarknessSystem } from "../systems/depthDarknessSystem";
-import { setupTouchControls } from "../ui/touchControls";
+import { setupTouchControls, type TouchControlsState } from "../ui/touchControls";
 import { initParticlePool } from "../systems/particlePool";
 import { initBiomeLifecycleManager } from "../systems/biomeLifecycleManager";
 import { initSpatialCullingManager } from "../systems/spatialCullingSystem";
@@ -53,7 +53,11 @@ import { initSpatialGrid } from "../systems/spatialHashGrid";
 import { FrameBudgetMonitor } from "../systems/frameBudgetMonitor";
 import { FrameRateMonitor } from "../utils/frameRateMonitor";
 import { initEntityFamilyTicker } from "../systems/entityFamilyTicker";
-import { initInputStateManager } from "../systems/inputState";
+import {
+  initInputStateManager,
+  singleFrameInputStateUpdater,
+  type InputStateManager,
+} from "../systems/inputState";
 
 export interface GameSceneUiObject {
   pos: { x: number; y: number };
@@ -163,6 +167,28 @@ export function registerGameScene(
       legacyScene.enter(options);
     });
   }
+}
+
+/**
+ * Inicializa a entidade do jogador na cena vinculando o contexto de renderização adaptado,
+ * as configurações de controle tátil e o gerenciador de estado de input unificado.
+ */
+function initializePlayerEntityContext(
+  renderingContext: GameSceneSubsystemEngine,
+  initialPositionCoordinateX: number,
+  isSereneModeActive: boolean,
+  touchControlsState: TouchControlsState,
+  inputStateManager: InputStateManager
+): PlayerController {
+  const gameScenePlayerInstance: PlayerController = createPlayer(
+    renderingContext,
+    initialPositionCoordinateX,
+    isSereneModeActive,
+    touchControlsState,
+    inputStateManager
+  );
+
+  return gameScenePlayerInstance;
 }
 
 export function createGameScene(
@@ -289,13 +315,14 @@ export function createGameScene(
         inputStateManager.destroy();
       });
       const gameState = createGameState(options);
-      const playerController = createPlayer(
+      const gameScenePlayerInstance = initializePlayerEntityContext(
         k,
         initialX,
         options.mode === "serene",
         touchControls.state,
         inputStateManager
       );
+      const playerController = gameScenePlayerInstance;
       const debugDistanceUI = createDebugDistanceUI(k, playerController);
       k.onSceneLeave(() => {
         debugDistanceUI.destroy();
@@ -509,7 +536,7 @@ export function createGameScene(
       systemRunner.register(
         "input",
         () => {
-          const inputState = inputStateManager.update();
+          const inputState = singleFrameInputStateUpdater(inputStateManager);
 
           // Desperta AudioContext com qualquer interação
           if (inputState.anyInteractionPressed) {

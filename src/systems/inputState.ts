@@ -138,6 +138,10 @@ export class InputStateManager {
   private pointerPositionCoordinateX: number = 0;
   private pointerPositionCoordinateY: number = 0;
   private pointerPressedState: boolean = false;
+  private pendingPointerPressedState: boolean = false;
+  private pendingPointerReleasedState: boolean = false;
+  private currentFramePointerPressedState: boolean = false;
+  private currentFramePointerReleasedState: boolean = false;
 
   private currentInputState: UnifiedInputState = INITIAL_UNIFIED_INPUT_STATE;
   private touchControlsSource: TouchControlsState | null = null;
@@ -195,6 +199,7 @@ export class InputStateManager {
     this.windowPointerDownListener = (pointerEvent: PointerEvent | MouseEvent | TouchEvent) => {
       this.anyInteractionPending = true;
       this.pointerPressedState = true;
+      this.pendingPointerPressedState = true;
       if ("clientX" in pointerEvent && typeof pointerEvent.clientX === "number") {
         this.pointerPositionCoordinateX = pointerEvent.clientX;
         this.pointerPositionCoordinateY = pointerEvent.clientY;
@@ -203,6 +208,7 @@ export class InputStateManager {
 
     this.windowPointerUpListener = (pointerEvent: PointerEvent | MouseEvent | TouchEvent) => {
       this.pointerPressedState = false;
+      this.pendingPointerReleasedState = true;
       if ("clientX" in pointerEvent && typeof pointerEvent.clientX === "number") {
         this.pointerPositionCoordinateX = pointerEvent.clientX;
         this.pointerPositionCoordinateY = pointerEvent.clientY;
@@ -299,6 +305,11 @@ export class InputStateManager {
     this.pendingPressedKeysSet.clear();
     this.pendingReleasedKeysSet.clear();
 
+    this.currentFramePointerPressedState = this.pendingPointerPressedState;
+    this.currentFramePointerReleasedState = this.pendingPointerReleasedState;
+    this.pendingPointerPressedState = false;
+    this.pendingPointerReleasedState = false;
+
     const gamepadSnapshot: GamepadSnapshot = gamepadSystem.pollGamepadState();
     const touchControls: TouchControlsState | null = this.touchControlsSource;
 
@@ -355,10 +366,18 @@ export class InputStateManager {
       verticalAxis = (moveDown ? 1 : 0) - (moveUp ? 1 : 0);
     }
 
-    const strokePressed = keyboardStrokePressed || touchStrokePressed || gamepadStrokePressed;
-    const strokeDown = keyboardStrokeDown || touchStrokeDown || gamepadStrokeDown;
+    const strokePressed =
+      keyboardStrokePressed ||
+      touchStrokePressed ||
+      gamepadStrokePressed ||
+      this.currentFramePointerPressedState;
+    const strokeDown =
+      keyboardStrokeDown || touchStrokeDown || gamepadStrokeDown || this.pointerPressedState;
 
-    const strokeReleased = keyboardStrokeReleased || (!strokeDown && this.previousStrokeDownState);
+    const strokeReleased =
+      keyboardStrokeReleased ||
+      this.currentFramePointerReleasedState ||
+      (!strokeDown && this.previousStrokeDownState);
 
     const sonarPressed = keyboardSonarPressed || touchSonarPressed || gamepadSonarPressed;
     const sonarDown = keyboardSonarDown || touchSonarPressed || gamepadSonarPressed;
@@ -371,6 +390,7 @@ export class InputStateManager {
     const anyInteractionPressed =
       this.anyInteractionPending ||
       this.currentFramePressedKeysSet.size > 0 ||
+      this.currentFramePointerPressedState ||
       touchStrokePressed ||
       touchSonarPressed ||
       gamepadStrokePressed ||
@@ -422,6 +442,10 @@ export class InputStateManager {
     this.anyInteractionPending = false;
     this.previousStrokeDownState = false;
     this.pointerPressedState = false;
+    this.pendingPointerPressedState = false;
+    this.pendingPointerReleasedState = false;
+    this.currentFramePointerPressedState = false;
+    this.currentFramePointerReleasedState = false;
     if (!preservePointerCoordinateState) {
       this.pointerPositionCoordinateX = 0;
       this.pointerPositionCoordinateY = 0;
@@ -471,9 +495,35 @@ export function getInputStateManager(): InputStateManager | null {
   return activeInputStateManagerInstance;
 }
 
+let hasInputStateUpdatedInCurrentFrame = false;
+
 export function resetInputStateManager(): void {
+  hasInputStateUpdatedInCurrentFrame = false;
   if (activeInputStateManagerInstance) {
     activeInputStateManagerInstance.destroy();
     activeInputStateManagerInstance = null;
   }
+}
+
+/**
+ * Executa a atualização única e determinística do estado unificado de input para o quadro corrente.
+ * Centraliza a leitura de periféricos exclusivamente na fase 'input' do ciclo de execução,
+ * evitando atualizações duplicadas no mesmo quadro e preservando eventos de pressionamento rápido.
+ */
+export function singleFrameInputStateUpdater(
+  inputStateManager: InputStateManager
+): UnifiedInputState {
+  if (hasInputStateUpdatedInCurrentFrame) {
+    return inputStateManager.getState();
+  }
+
+  hasInputStateUpdatedInCurrentFrame = true;
+  return inputStateManager.update();
+}
+
+/**
+ * Finaliza o ciclo de input do quadro atual, liberando a próxima atualização no próximo quadro.
+ */
+export function completeSingleFrameInputCycle(): void {
+  hasInputStateUpdatedInCurrentFrame = false;
 }
