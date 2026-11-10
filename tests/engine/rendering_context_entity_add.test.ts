@@ -311,4 +311,31 @@ describe("RenderingContextEntity .add() encadeado e hierarquia de nós PixiJS v8
     expect(genericCollisionDetected).toBe(true);
     expect(cancelledCollisionDetected).toBe(false);
   });
+
+  it("permite leitura e escrita dinâmica na propriedade tag sem disparar TypeError", () => {
+    const renderEngineAdapterInstance = new RenderEngineAdapter();
+    const sceneManagerInstance = new SceneManager();
+    const renderingContextInstance = createRenderingContext(
+      renderEngineAdapterInstance,
+      sceneManagerInstance
+    );
+
+    const testEntity = renderingContextInstance.add([
+      renderingContextInstance.pos(0, 0),
+      "tagOriginal",
+    ]);
+
+    expect(testEntity.tag).toBe("tagOriginal");
+    expect(testEntity.is?.("tagOriginal")).toBe(true);
+
+    expect(() => {
+      testEntity.tag = "nova-tag-dinamica";
+    }).not.toThrow();
+
+    expect(testEntity.tag).toBe("nova-tag-dinamica");
+    expect(testEntity.is?.("nova-tag-dinamica")).toBe(true);
+
+    const taggedEntitiesList = renderingContextInstance.get("nova-tag-dinamica");
+    expect(taggedEntitiesList).toContain(testEntity);
+  });
 });

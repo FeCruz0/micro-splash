@@ -137,7 +137,7 @@ export interface RenderingContextEntity {
   color?: unknown;
   outline?: { color?: unknown; width?: number };
   renderNode?: IRenderNode | null;
-  readonly tag?: string;
+  tag?: string;
   is?(tagToCheck: string): boolean;
   readonly children?: readonly RenderingContextEntity[];
   add(childComponentOrDescriber: unknown[] | unknown): RenderingContextEntity;
@@ -656,6 +656,7 @@ export function createRenderingContext(
           readonly collisionEndHandler: (collidedEntity: unknown) => void;
         }> = [];
         const entityTagsSet = new Set<string>();
+        let primaryEntityTagIdentifier: string | undefined = undefined;
 
         const entityInstance: RenderingContextEntity = {
           pos: { x: 0, y: 0 },
@@ -921,7 +922,26 @@ export function createRenderingContext(
         };
 
         Object.defineProperty(entityInstance, "tag", {
-          get: () => (entityTagsSet.size > 0 ? Array.from(entityTagsSet)[0] : undefined),
+          get: (): string | undefined => {
+            if (primaryEntityTagIdentifier !== undefined) {
+              return primaryEntityTagIdentifier;
+            }
+            return entityTagsSet.size > 0 ? Array.from(entityTagsSet)[0] : undefined;
+          },
+          set: (updatedTagIdentifier: string | undefined): void => {
+            if (typeof updatedTagIdentifier === "string" && updatedTagIdentifier.length > 0) {
+              primaryEntityTagIdentifier = updatedTagIdentifier;
+              entityTagsSet.add(updatedTagIdentifier);
+              let targetTaggedBucket = taggedEntitiesMap.get(updatedTagIdentifier);
+              if (!targetTaggedBucket) {
+                targetTaggedBucket = new Set<unknown>();
+                taggedEntitiesMap.set(updatedTagIdentifier, targetTaggedBucket);
+              }
+              targetTaggedBucket.add(entityInstance);
+            } else {
+              primaryEntityTagIdentifier = undefined;
+            }
+          },
           configurable: true,
           enumerable: true,
         });
@@ -935,6 +955,9 @@ export function createRenderingContext(
         for (const rawComponent of normalizedComponentsList) {
           if (typeof rawComponent === "string") {
             entityTagsSet.add(rawComponent);
+            if (primaryEntityTagIdentifier === undefined) {
+              primaryEntityTagIdentifier = rawComponent;
+            }
             let taggedBucket = taggedEntitiesMap.get(rawComponent);
             if (!taggedBucket) {
               taggedBucket = new Set<unknown>();
@@ -1032,6 +1055,9 @@ export function createRenderingContext(
             } else if (!("type" in componentRecord)) {
               if (componentRecord.tag && typeof componentRecord.tag === "string") {
                 entityTagsSet.add(componentRecord.tag);
+                if (primaryEntityTagIdentifier === undefined) {
+                  primaryEntityTagIdentifier = componentRecord.tag;
+                }
                 let taggedBucket = taggedEntitiesMap.get(componentRecord.tag);
                 if (!taggedBucket) {
                   taggedBucket = new Set<unknown>();
