@@ -1,4 +1,4 @@
-import { GAME_CONFIG, TAGS } from "../config";
+import { GAME_CONFIG, TAGS, centralizedDeltaTimeClamp } from "../config";
 import type { IScene, ISceneManager } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { createPlayer, type PlayerController } from "../entities/player";
 import { createRescueBoat } from "../entities/boat";
@@ -877,10 +877,7 @@ export function createGameScene(
     },
     update: (deltaTimeInSeconds: number) => {
       if (updateGameLoopHandler) {
-        const clampedDeltaTimeInSeconds = Math.min(
-          Math.max(0, deltaTimeInSeconds),
-          GAME_CONFIG.MAX_DELTA_TIME
-        );
+        const clampedDeltaTimeInSeconds = centralizedDeltaTimeClamp(deltaTimeInSeconds);
         updateGameLoopHandler(clampedDeltaTimeInSeconds);
       }
     },

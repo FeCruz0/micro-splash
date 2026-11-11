@@ -48,6 +48,8 @@ export interface PresentationEngineContext {
   destroy(target: unknown): void;
   vec2(x: number, y: number): Parameters<PlayerController["setSpeed"]>[0];
   camPos(x?: number | { x: number; y: number }, y?: number): { x: number; y: number };
+  setPaused?(pausedState: boolean): void;
+  debug?: { paused: boolean };
 }
 
 export const PRESENTATION_POINTS: PresentationPoint[] = [
@@ -207,6 +209,15 @@ export class PresentationModeManager {
 
   public togglePause(): void {
     this.isPaused = !this.isPaused;
+    if (this.k) {
+      if (
+        typeof (this.k as { setPaused?: (pausedState: boolean) => void }).setPaused === "function"
+      ) {
+        (this.k as { setPaused: (pausedState: boolean) => void }).setPaused(this.isPaused);
+      } else if (this.k.debug) {
+        this.k.debug.paused = this.isPaused;
+      }
+    }
     if (this.pauseBtnText) {
       this.pauseBtnText.text = this.isPaused ? "▶️ RETOMAR" : "⏸️ PAUSA DIDÁTICA";
     }

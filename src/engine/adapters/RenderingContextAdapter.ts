@@ -35,6 +35,7 @@ import {
   createEntityPositionBinding,
   type EntityPositionBinding,
 } from "./entityPositionBinding";
+import { centralizedDeltaTimeClamp } from "../../config";
 
 /**
  * Ciclo de vida do contexto de renderização exposto às cenas: executa os callbacks registrados via
@@ -43,6 +44,8 @@ import {
 export interface RenderingContextLifecycle {
   runSceneUpdateCallbacks(deltaTimeInSeconds: number): void;
   flushSceneResources(): void;
+  setClockPaused?(pausedState: boolean): void;
+  isClockPaused?(): boolean;
 }
 
 /**
@@ -268,6 +271,8 @@ export interface RenderingContext {
   height(): number;
   dt(): number;
   time(): number;
+  isPaused(): boolean;
+  setPaused(pausedState: boolean): void;
 
   rand(minimumValue?: number, maximumValue?: number): number;
   choose<T>(choicesList: readonly T[]): T;
@@ -624,9 +629,44 @@ export function createRenderingContext(
   let accumulatedSceneTimeInSeconds: number =
     (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
   let currentSceneDeltaTimeInSeconds: number = 0.0166;
+  let freezeEngineClockDuringPause: boolean = false;
+
+  const debugConfiguration = {
+    get paused(): boolean {
+      return freezeEngineClockDuringPause;
+    },
+    set paused(shouldPauseClock: boolean) {
+      freezeEngineClockDuringPause = Boolean(shouldPauseClock);
+    },
+  };
+
+  const isEngineClockPaused = (): boolean => {
+    return freezeEngineClockDuringPause;
+  };
 
   const runActiveSceneUpdateCallbacks = (deltaTimeInSeconds: number): void => {
-    const safeDeltaTime = Math.min(Math.max(0, deltaTimeInSeconds), 0.1);
+    if (isEngineClockPaused()) {
+      currentSceneDeltaTimeInSeconds = 0;
+      const activeInputStateManager = getInputStateManager();
+      if (activeInputStateManager) {
+        singleFrameInputStateUpdater(activeInputStateManager);
+      }
+      const updateCallbacksSnapshot = sceneUpdateCallbacksList.slice();
+      for (let index = 0; index < updateCallbacksSnapshot.length; index++) {
+        try {
+          updateCallbacksSnapshot[index](0);
+        } catch (error) {
+          console.error(
+            "[RenderingContext] Erro em callback de update da cena ativa durante pausa:",
+            error
+          );
+        }
+      }
+      completeSingleFrameInputCycle();
+      return;
+    }
+
+    const safeDeltaTime = centralizedDeltaTimeClamp(deltaTimeInSeconds);
     currentSceneDeltaTimeInSeconds = safeDeltaTime;
     accumulatedSceneTimeInSeconds += safeDeltaTime;
 
@@ -648,13 +688,17 @@ export function createRenderingContext(
   const renderContextLifecycle: RenderingContextLifecycle = {
     runSceneUpdateCallbacks: runActiveSceneUpdateCallbacks,
     flushSceneResources: flushActiveSceneResources,
+    setClockPaused: (pausedState: boolean) => {
+      freezeEngineClockDuringPause = Boolean(pausedState);
+    },
+    isClockPaused: isEngineClockPaused,
   };
 
   const renderingContext: RenderingContext = {
     renderEngine: renderEngineInstance,
     sceneManager: sceneManagerInstance,
     lifecycle: renderContextLifecycle,
-    debug: { paused: false },
+    debug: debugConfiguration,
     easings: {
       easeOutQuad: Easings.easeOutQuad,
       easeInQuad: Easings.easeInQuad,
@@ -704,6 +748,9 @@ export function createRenderingContext(
     },
 
     dt(): number {
+      if (isEngineClockPaused()) {
+        return 0;
+      }
       return renderEngineInstance.isInitialized
         ? renderEngineInstance.getTicker().getDeltaTime()
         : currentSceneDeltaTimeInSeconds;
@@ -711,6 +758,14 @@ export function createRenderingContext(
 
     time(): number {
       return accumulatedSceneTimeInSeconds;
+    },
+
+    isPaused(): boolean {
+      return isEngineClockPaused();
+    },
+
+    setPaused(pausedState: boolean): void {
+      freezeEngineClockDuringPause = Boolean(pausedState);
     },
 
     rand(minimumValue?: number, maximumValue?: number): number {
@@ -1017,7 +1072,7 @@ export function createRenderingContext(
               return;
             }
             if (velocityVectorInstance.x !== 0 || velocityVectorInstance.y !== 0) {
-              const safeDeltaTime = Math.min(Math.max(0, deltaTimeInSeconds), 0.1);
+              const safeDeltaTime = centralizedDeltaTimeClamp(deltaTimeInSeconds);
               positionCoordinateX += velocityVectorInstance.x * safeDeltaTime;
               positionCoordinateY += velocityVectorInstance.y * safeDeltaTime;
               entityVisualNode?.setPosition(positionCoordinateX, positionCoordinateY);
@@ -1052,7 +1107,7 @@ export function createRenderingContext(
             }
             const rawDeltaTime =
               typeof renderingContext.dt === "function" ? renderingContext.dt() : 0.0166;
-            const safeDeltaTime = Math.min(Math.max(0, rawDeltaTime), 0.1);
+            const safeDeltaTime = centralizedDeltaTimeClamp(rawDeltaTime);
             positionCoordinateX += speedX * safeDeltaTime;
             positionCoordinateY += speedY * safeDeltaTime;
             entityVisualNode?.setPosition(positionCoordinateX, positionCoordinateY);
@@ -1084,7 +1139,7 @@ export function createRenderingContext(
             if (typeof speed === "number" && speed > 0) {
               const rawDeltaTime =
                 typeof renderingContext.dt === "function" ? renderingContext.dt() : 0.0166;
-              const safeDeltaTime = Math.min(Math.max(0, rawDeltaTime), 0.1);
+              const safeDeltaTime = centralizedDeltaTimeClamp(rawDeltaTime);
               const deltaX = targetX - positionCoordinateX;
               const deltaY = targetY - positionCoordinateY;
               const distanceToTarget = Math.hypot(deltaX, deltaY);
@@ -1569,6 +1624,12 @@ export function createRenderingContext(
               spriteAssetIdentifier = componentRecord.sprite;
               if (componentRecord.options && typeof componentRecord.options === "object") {
                 spriteOptionsRecord = componentRecord.options as Record<string, unknown>;
+                if (typeof spriteOptionsRecord.flipX === "boolean") {
+                  isFlippedHorizontally = spriteOptionsRecord.flipX;
+                }
+                if (typeof spriteOptionsRecord.flipY === "boolean") {
+                  isFlippedVertically = spriteOptionsRecord.flipY;
+                }
               }
             } else if (componentRecord.type === "color" && Array.isArray(componentRecord.args)) {
               const colorArgumentsList = componentRecord.args as unknown[];
@@ -1735,6 +1796,7 @@ export function createRenderingContext(
               targetDestinationContainer.addChild(spriteShapeNode);
               entityVisualNode = spriteShapeNode;
               entityInstance.renderNode = spriteShapeNode;
+              updateEntityNodeScale();
             } catch {
               // Degradação segura caso o sprite ainda não esteja pronto
             }
@@ -1975,6 +2037,45 @@ export function createRenderingContext(
           set: (updatedZIndex: number) => {
             entityZIndex = updatedZIndex;
             entityVisualNode?.setZIndex(updatedZIndex);
+          },
+          configurable: true,
+          enumerable: true,
+        });
+
+        Object.defineProperty(entityInstance, "fixed", {
+          get: () => isFixedElement,
+          set: (shouldBeFixedToScreen: boolean) => {
+            const normalizedFixedFlag = Boolean(shouldBeFixedToScreen);
+            if (isFixedElement === normalizedFixedFlag) {
+              return;
+            }
+            isFixedElement = normalizedFixedFlag;
+            if (entityVisualNode && renderEngineInstance.isInitialized && !parentEntityVisualNode) {
+              const currentContainer = normalizedFixedFlag
+                ? renderEngineInstance.getWorldContainer()
+                : renderEngineInstance.getScreenContainer();
+              const targetContainer = normalizedFixedFlag
+                ? renderEngineInstance.getScreenContainer()
+                : renderEngineInstance.getWorldContainer();
+              try {
+                currentContainer.removeChild(entityVisualNode);
+              } catch {
+                // Nó pode já não estar no container anterior
+              }
+              targetContainer.addChild(entityVisualNode);
+            }
+          },
+          configurable: true,
+          enumerable: true,
+        });
+
+        Object.defineProperty(entityInstance, "renderNode", {
+          get: () => entityVisualNode,
+          set: (updatedVisualNode: IRenderNode | null) => {
+            entityVisualNode = updatedVisualNode;
+            if (entityVisualNode) {
+              updateEntityNodeScale();
+            }
           },
           configurable: true,
           enumerable: true,

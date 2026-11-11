@@ -84,6 +84,8 @@ describe("RenderingContextEntity .add() encadeado e hierarquia de nós PixiJS v8
     expect(childEntity).toBeDefined();
 
     expect(parentEntity.children?.length).toBe(1);
+    (childEntity as unknown as { customCleanUp: () => void }).customCleanUp();
+    expect(childDestroyCount).toBe(1);
     parentEntity.destroy();
 
     expect(parentEntity.children?.length).toBe(0);

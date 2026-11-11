@@ -41,6 +41,20 @@ export const GAME_CONFIG = {
   MAX_DELTA_TIME: 0.1, // Teto máximo de delta time (100ms / 10 FPS) para prevenir tunneling sem penalizar 30-60 FPS
 };
 
+/**
+ * Aplica o teto determinístico centralizado de delta time para prevenir tunelamento
+ * físico e oscilações bruscas quando a taxa de quadros oscilar ou ocorrer queda de frames.
+ */
+export function centralizedDeltaTimeClamp(
+  rawDeltaTimeInSeconds: number,
+  maximumDeltaTimeLimit: number = GAME_CONFIG.MAX_DELTA_TIME
+): number {
+  if (typeof rawDeltaTimeInSeconds !== "number" || Number.isNaN(rawDeltaTimeInSeconds)) {
+    return 0;
+  }
+  return Math.min(Math.max(0, rawDeltaTimeInSeconds), maximumDeltaTimeLimit);
+}
+
 export const TAGS = {
   PLAYER: "baleia",
   TRASH: "lixo_plastico",

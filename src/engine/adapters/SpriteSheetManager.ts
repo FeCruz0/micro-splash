@@ -6,7 +6,7 @@
  * Suporta animações em loop com controle de taxa de quadros e integração direta com o PixiRenderTicker.
  */
 
-import { Rectangle, Texture } from "pixi.js";
+import { Assets, Rectangle, Texture } from "pixi.js";
 import type { ISpriteNode } from "../contracts/INTERFACE_CONTRACTS";
 
 export interface SpriteAtlasAnimationConfiguration {
@@ -34,7 +34,10 @@ export interface SpriteAtlasDescriptorConfiguration {
 export class SpriteAnimationController {
   private readonly targetSpriteNode: ISpriteNode;
   private readonly cachedFrameTextures: readonly Texture[];
-  private readonly animationConfigurations: Record<string, number | SpriteAtlasAnimationConfiguration>;
+  private readonly animationConfigurations: Record<
+    string,
+    number | SpriteAtlasAnimationConfiguration
+  >;
   private activeAnimationName: string | null = null;
   private currentFrameIndex: number = 0;
   private animationElapsedTimeInSeconds: number = 0;
@@ -217,9 +220,17 @@ export class SpriteSheetManager {
   }
 
   public sliceAtlasTexture(assetAlias: string, baseTexture: Texture): Texture[] {
+    const sourcePixelWidth = baseTexture.source?.width ?? 0;
+    const sourcePixelHeight = baseTexture.source?.height ?? 0;
+
     const cachedFrames = this.slicedAtlasFramesCache.get(assetAlias);
     if (cachedFrames && cachedFrames.length > 0) {
-      return cachedFrames;
+      const firstFrame = cachedFrames[0];
+      const isProvisional =
+        firstFrame.frame.width <= 1 || (sourcePixelWidth > 1 && firstFrame.source.width <= 1);
+      if (!isProvisional) {
+        return cachedFrames;
+      }
     }
 
     const descriptor = this.registeredDescriptorsMap.get(assetAlias);
@@ -231,17 +242,12 @@ export class SpriteSheetManager {
     const sliceCountY = Math.max(1, descriptor.sliceCountY);
     const totalFrameCount = sliceCountX * sliceCountY;
 
-    const sourcePixelWidth = baseTexture.source?.width ?? 0;
-    const sourcePixelHeight = baseTexture.source?.height ?? 0;
-
     const framePixelWidth =
-      sourcePixelWidth > 0
-        ? sourcePixelWidth / sliceCountX
-        : descriptor.nominalFrameWidth ?? 128;
+      sourcePixelWidth > 1 ? sourcePixelWidth / sliceCountX : (descriptor.nominalFrameWidth ?? 128);
     const framePixelHeight =
-      sourcePixelHeight > 0
+      sourcePixelHeight > 1
         ? sourcePixelHeight / sliceCountY
-        : descriptor.nominalFrameHeight ?? 64;
+        : (descriptor.nominalFrameHeight ?? 64);
 
     const generatedFrameTextures: Texture[] = [];
 
@@ -267,6 +273,18 @@ export class SpriteSheetManager {
       }
     }
 
+    if (sourcePixelWidth <= 1 && baseTexture.source) {
+      const textureSourceEventEmitter = baseTexture.source as unknown as {
+        once?: (eventName: string, eventCallback: () => void) => void;
+      };
+      if (typeof textureSourceEventEmitter.once === "function") {
+        textureSourceEventEmitter.once("update", () => {
+          this.slicedAtlasFramesCache.delete(assetAlias);
+          this.sliceAtlasTexture(assetAlias, baseTexture);
+        });
+      }
+    }
+
     this.slicedAtlasFramesCache.set(assetAlias, generatedFrameTextures);
     return generatedFrameTextures;
   }
@@ -274,8 +292,11 @@ export class SpriteSheetManager {
   public getFrameTexture(assetAlias: string, frameIndex: number = 0): Texture | null {
     const cachedFrames = this.slicedAtlasFramesCache.get(assetAlias);
     if (cachedFrames && cachedFrames.length > 0) {
-      const clampedIndex = Math.max(0, Math.min(cachedFrames.length - 1, frameIndex));
-      return cachedFrames[clampedIndex] ?? null;
+      const firstFrame = cachedFrames[0];
+      if (firstFrame.frame.width > 1) {
+        const clampedIndex = Math.max(0, Math.min(cachedFrames.length - 1, frameIndex));
+        return cachedFrames[clampedIndex] ?? null;
+      }
     }
 
     if (!this.hasAtlasDescriptor(assetAlias)) {
@@ -283,7 +304,13 @@ export class SpriteSheetManager {
     }
 
     try {
-      const baseTexture = Texture.from(assetAlias);
+      let baseTexture: Texture | null = null;
+      if (Assets.cache.has(assetAlias)) {
+        baseTexture = Assets.get(assetAlias);
+      }
+      if (!baseTexture) {
+        baseTexture = Texture.from(assetAlias);
+      }
       const newlySlicedFrames = this.sliceAtlasTexture(assetAlias, baseTexture);
       const clampedIndex = Math.max(0, Math.min(newlySlicedFrames.length - 1, frameIndex));
       return newlySlicedFrames[clampedIndex] ?? null;
@@ -303,9 +330,15 @@ export class SpriteSheetManager {
     }
 
     let frames = this.slicedAtlasFramesCache.get(assetAlias);
-    if (!frames || frames.length === 0) {
+    if (!frames || frames.length === 0 || frames[0].frame.width <= 1) {
       try {
-        const baseTexture = Texture.from(assetAlias);
+        let baseTexture: Texture | null = null;
+        if (Assets.cache.has(assetAlias)) {
+          baseTexture = Assets.get(assetAlias);
+        }
+        if (!baseTexture) {
+          baseTexture = Texture.from(assetAlias);
+        }
         frames = this.sliceAtlasTexture(assetAlias, baseTexture);
       } catch {
         frames = [];

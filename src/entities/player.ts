@@ -4,7 +4,7 @@ import { getActiveRenderEngine } from "../engine/adapters/RenderEngineAdapter";
 import type { IRenderEngine, ISpriteNode } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { getParticlePool } from "../systems/particlePool";
 import { safeShake } from "../utils/camera";
-import { GAME_CONFIG, TAGS, PLAYER_ANIMATION_CONFIG } from "../config";
+import { GAME_CONFIG, TAGS, PLAYER_ANIMATION_CONFIG, centralizedDeltaTimeClamp } from "../config";
 import { getRandomFloat } from "../utils/random";
 import { audioSystem } from "../systems/audioSystem";
 import type { TouchControlsState } from "../ui/touchControls";
@@ -219,7 +219,7 @@ export function createPlayer(
     z: 20,
     move: (speedX: number, speedY: number) => {
       const rawDeltaTime = typeof k.dt === "function" ? k.dt() : 0.0166;
-      const safeDeltaTime = Math.min(Math.max(0, rawDeltaTime), GAME_CONFIG.MAX_DELTA_TIME);
+      const safeDeltaTime = centralizedDeltaTimeClamp(rawDeltaTime);
       baleia.pos.x += speedX * safeDeltaTime;
       baleia.pos.y += speedY * safeDeltaTime;
     },
@@ -317,7 +317,7 @@ export function createPlayer(
 
   baleia.onUpdate(() => {
     const rawDeltaTime = typeof k.dt === "function" ? k.dt() : 0.0166;
-    const dt = Math.min(Math.max(0, rawDeltaTime), GAME_CONFIG.MAX_DELTA_TIME);
+    const dt = centralizedDeltaTimeClamp(rawDeltaTime);
 
     // Se o jogador estiver congelado (fim de jogo, modal ou vitória), bloqueia movimentos e controles
     if (trapMgr.isFrozen()) {
