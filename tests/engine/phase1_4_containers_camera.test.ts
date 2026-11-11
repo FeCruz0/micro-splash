@@ -1,8 +1,13 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { PixiContainerNode, PixiGraphicsNode } from "../../src/engine/adapters/PixiNodes";
+import { RenderEngineAdapter } from "../../src/engine/adapters/RenderEngineAdapter";
 import { setupLetterboxBorders } from "../../src/systems/letterboxSystem";
 import { CameraSystem } from "../../src/systems/cameraSystem";
-import type { IRenderEngine, IRenderNode, Vector2D } from "../../src/engine/contracts/INTERFACE_CONTRACTS";
+import type {
+  IRenderEngine,
+  IRenderNode,
+  Vector2D,
+} from "../../src/engine/contracts/INTERFACE_CONTRACTS";
 
 describe("Etapa 1.4: Containers de Mundo/Tela, Câmera e Letterbox", () => {
   beforeEach(() => {
@@ -109,6 +114,21 @@ describe("Etapa 1.4: Containers de Mundo/Tela, Câmera e Letterbox", () => {
       expect(targetPosition.y).toBeCloseTo(55, 1);
       expect(worldContainer.getPosition().x).toBeCloseTo(-110, 1);
       expect(worldContainer.getPosition().y).toBeCloseTo(-55, 1);
+      expect(screenContainer.getPosition()).toEqual({ x: 0, y: 0 });
+    });
+
+    it("deve posicionar o ponto focado no centro da tela ao utilizar RenderEngineAdapter", () => {
+      const adapter = new RenderEngineAdapter();
+      const worldContainer = new PixiContainerNode(undefined, "world_container");
+      const screenContainer = new PixiContainerNode(undefined, "screen_container");
+      (adapter as any).worldContainer = worldContainer;
+      (adapter as any).screenContainer = screenContainer;
+
+      // Viewport padrão 800x600, centro em (400, 300)
+      adapter.setCameraPosition(1200, 500);
+
+      expect(adapter.getCameraPosition()).toEqual({ x: 1200, y: 500 });
+      expect(worldContainer.getPosition()).toEqual({ x: -800, y: -200 });
       expect(screenContainer.getPosition()).toEqual({ x: 0, y: 0 });
     });
   });

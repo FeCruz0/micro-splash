@@ -71,7 +71,13 @@ export class CameraSystem {
   }
 
   public reset(): void {
-    this.setCameraPosition(0, 0);
+    const activeEngine = this.renderEngineInstance ?? getActiveRenderEngine();
+    if (activeEngine && typeof activeEngine.getDimensions === "function") {
+      const dimensions = activeEngine.getDimensions();
+      this.setCameraPosition(dimensions.width / 2, dimensions.height / 2);
+    } else {
+      this.setCameraPosition(400, 300);
+    }
   }
 }
 

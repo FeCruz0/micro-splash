@@ -775,12 +775,8 @@ export function createPlayer(
       typeof k.lerp === "function" && typeof k.camPos === "function"
         ? k.lerp(k.camPos().x, baleia.pos.x + controlsMgr.getTargetCamOffset(), 0.05)
         : baleia.pos.x + controlsMgr.getTargetCamOffset();
-    const targetCameraPositionY = typeof k.camPos === "function" ? k.camPos().y : 0;
+    const targetCameraPositionY = typeof k.camPos === "function" ? k.camPos().y : 300;
 
-    const currentRenderEngine = getActiveRenderEngine();
-    if (currentRenderEngine !== null && currentRenderEngine.isInitialized) {
-      currentRenderEngine.setCameraPosition(targetCameraPositionX, targetCameraPositionY);
-    }
     if (typeof k.camPos === "function") {
       k.camPos(targetCameraPositionX, targetCameraPositionY);
     }

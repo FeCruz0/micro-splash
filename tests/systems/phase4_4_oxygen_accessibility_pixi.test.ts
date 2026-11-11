@@ -137,7 +137,7 @@ describe("Etapa 4.4: Integração de Oxigênio, Acessibilidade e Shake no PixiJS
       (adapter as any).tickerAdapter = mockTicker;
 
       adapter.setCameraPosition(1000, 250);
-      expect(worldContainer.getPosition()).toEqual({ x: -1000, y: -250 });
+      expect(worldContainer.getPosition()).toEqual({ x: -600, y: 50 });
       expect(screenContainer.getPosition()).toEqual({ x: 0, y: 0 });
 
       // Dispara o tremor de tela
@@ -150,9 +150,9 @@ describe("Etapa 4.4: Integração de Oxigênio, Acessibilidade e Shake no PixiJS
       const offsetAfterShake = adapter.getShakeOffset();
       expect(Math.abs(offsetAfterShake.x) + Math.abs(offsetAfterShake.y)).toBeGreaterThan(0);
 
-      // O worldContainer reflete o deslocamento do tremor somado à câmera
-      expect(worldContainer.getPosition().x).toBeCloseTo(-1000 + offsetAfterShake.x, 2);
-      expect(worldContainer.getPosition().y).toBeCloseTo(-250 + offsetAfterShake.y, 2);
+      // O worldContainer reflete o deslocamento do tremor somado à câmera centralizada
+      expect(worldContainer.getPosition().x).toBeCloseTo(-600 + offsetAfterShake.x, 2);
+      expect(worldContainer.getPosition().y).toBeCloseTo(50 + offsetAfterShake.y, 2);
 
       // O screenContainer permanece em (0, 0)
       expect(screenContainer.getPosition()).toEqual({ x: 0, y: 0 });
@@ -160,7 +160,7 @@ describe("Etapa 4.4: Integração de Oxigênio, Acessibilidade e Shake no PixiJS
       // Avança além da duração total para encerrar o tremor
       tickCallback!(0.25);
       expect(adapter.getShakeOffset()).toEqual({ x: 0, y: 0 });
-      expect(worldContainer.getPosition()).toEqual({ x: -1000, y: -250 });
+      expect(worldContainer.getPosition()).toEqual({ x: -600, y: 50 });
     });
 
     it("suprime o tremor de tela completamente quando o movimento reduzido está ativo", () => {
@@ -186,7 +186,7 @@ describe("Etapa 4.4: Integração de Oxigênio, Acessibilidade e Shake no PixiJS
       // Ticker de tremor não deve ser adicionado
       expect(mockTicker.add).not.toHaveBeenCalled();
       expect(adapter.getShakeOffset()).toEqual({ x: 0, y: 0 });
-      expect(worldContainer.getPosition()).toEqual({ x: -500, y: -100 });
+      expect(worldContainer.getPosition()).toEqual({ x: -100, y: 200 });
     });
   });
 

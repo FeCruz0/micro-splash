@@ -253,12 +253,14 @@ export function createKrill<TDestroyable = unknown, TColor = unknown>(
       const pulseBreathe = 0.85 + Math.sin(time * 5.5) * 0.15;
 
       if (haloCircle) {
-        haloCircle.pos = krillCluster.pos;
+        haloCircle.pos.x = krillCluster.pos.x;
+        haloCircle.pos.y = krillCluster.pos.y;
         haloCircle.radius = (28 + Math.sin(time * 4) * 4) * pulseBreathe;
         haloCircle.opacity = 0.45 * revealProgress * pulseBreathe;
       }
       if (haloInner) {
-        haloInner.pos = krillCluster.pos;
+        haloInner.pos.x = krillCluster.pos.x;
+        haloInner.pos.y = krillCluster.pos.y;
         haloInner.radius = 16 * pulseBreathe;
         haloInner.opacity = 0.35 * revealProgress;
       }

@@ -124,7 +124,7 @@ export class RenderEngineAdapter implements IRenderEngine {
   private stageRoot: PixiContainerNode | null = null;
   private worldContainer: PixiContainerNode | null = null;
   private screenContainer: PixiContainerNode | null = null;
-  private cameraPosition: Vector2D = { x: 0, y: 0 };
+  private cameraPosition: Vector2D = { x: 400, y: 300 };
   private shakeOffset: Vector2D = { x: 0, y: 0 };
   private activeShakeIntensity: number = 0;
   private shakeDurationRemaining: number = 0;
@@ -156,6 +156,7 @@ export class RenderEngineAdapter implements IRenderEngine {
 
     this.viewportWidth = options.width;
     this.viewportHeight = options.height;
+    this.cameraPosition = { x: options.width / 2, y: options.height / 2 };
 
     const app = new Application();
     await app.init({
@@ -248,6 +249,7 @@ export class RenderEngineAdapter implements IRenderEngine {
     if (this.screenLayerGeometryCheckerInstance) {
       this.screenLayerGeometryCheckerInstance.setDimensions(width, height);
     }
+    this.updateWorldContainerPosition();
   }
 
   getDimensions(): { readonly width: number; readonly height: number } {
@@ -299,9 +301,11 @@ export class RenderEngineAdapter implements IRenderEngine {
 
   private updateWorldContainerPosition(): void {
     if (this.worldContainer) {
+      const halfViewportWidth = this.viewportWidth / 2;
+      const halfViewportHeight = this.viewportHeight / 2;
       this.worldContainer.setPosition(
-        -this.cameraPosition.x + this.shakeOffset.x,
-        -this.cameraPosition.y + this.shakeOffset.y
+        -(this.cameraPosition.x - halfViewportWidth) + this.shakeOffset.x,
+        -(this.cameraPosition.y - halfViewportHeight) + this.shakeOffset.y
       );
     }
   }

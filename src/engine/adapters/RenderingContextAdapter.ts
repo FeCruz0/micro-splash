@@ -29,6 +29,12 @@ import {
   completeSingleFrameInputCycle,
   normalizeKeyIdentifier,
 } from "../../systems/inputState";
+import {
+  createRenderingContextVector2D,
+  type RenderingContextVector2D,
+  createEntityPositionBinding,
+  type EntityPositionBinding,
+} from "./entityPositionBinding";
 
 /**
  * Ciclo de vida do contexto de renderização exposto às cenas: executa os callbacks registrados via
@@ -68,148 +74,12 @@ export function withRenderingContextLifecycle(
   };
 }
 
-export interface RenderingContextVector2D {
-  x: number;
-  y: number;
-  scale(
-    scaleFactor: number | { readonly x: number; readonly y: number } | unknown,
-    verticalScaleFactor?: number
-  ): RenderingContextVector2D;
-  add(otherVector: { readonly x: number; readonly y: number } | unknown): RenderingContextVector2D;
-  sub(otherVector: { readonly x: number; readonly y: number } | unknown): RenderingContextVector2D;
-  len(): number;
-  unit(): RenderingContextVector2D;
-  dist(otherVector: { readonly x: number; readonly y: number } | unknown): number;
-}
-
-export function createRenderingContextVector2D(
-  coordinateX: number,
-  coordinateY: number
-): RenderingContextVector2D {
-  const vectorInstance: RenderingContextVector2D = {
-    x: coordinateX,
-    y: coordinateY,
-  } as RenderingContextVector2D;
-
-  Object.defineProperties(vectorInstance, {
-    scale: {
-      value(
-        this: RenderingContextVector2D,
-        scaleFactor: number | { readonly x: number; readonly y: number } | unknown,
-        verticalScaleFactor?: number
-      ): RenderingContextVector2D {
-        if (typeof scaleFactor === "number") {
-          const factorY =
-            typeof verticalScaleFactor === "number" ? verticalScaleFactor : scaleFactor;
-          return createRenderingContextVector2D(this.x * scaleFactor, this.y * factorY);
-        }
-        if (
-          scaleFactor !== null &&
-          typeof scaleFactor === "object" &&
-          "x" in scaleFactor &&
-          "y" in scaleFactor &&
-          typeof (scaleFactor as { x: unknown }).x === "number" &&
-          typeof (scaleFactor as { y: unknown }).y === "number"
-        ) {
-          const vectorTarget = scaleFactor as { readonly x: number; readonly y: number };
-          return createRenderingContextVector2D(this.x * vectorTarget.x, this.y * vectorTarget.y);
-        }
-        return createRenderingContextVector2D(this.x, this.y);
-      },
-      enumerable: false,
-      writable: true,
-      configurable: true,
-    },
-    add: {
-      value(
-        this: RenderingContextVector2D,
-        otherVector: { readonly x: number; readonly y: number } | unknown
-      ): RenderingContextVector2D {
-        if (
-          otherVector !== null &&
-          typeof otherVector === "object" &&
-          "x" in otherVector &&
-          "y" in otherVector &&
-          typeof (otherVector as { x: unknown }).x === "number" &&
-          typeof (otherVector as { y: unknown }).y === "number"
-        ) {
-          const vectorTarget = otherVector as { readonly x: number; readonly y: number };
-          return createRenderingContextVector2D(this.x + vectorTarget.x, this.y + vectorTarget.y);
-        }
-        return createRenderingContextVector2D(this.x, this.y);
-      },
-      enumerable: false,
-      writable: true,
-      configurable: true,
-    },
-    sub: {
-      value(
-        this: RenderingContextVector2D,
-        otherVector: { readonly x: number; readonly y: number } | unknown
-      ): RenderingContextVector2D {
-        if (
-          otherVector !== null &&
-          typeof otherVector === "object" &&
-          "x" in otherVector &&
-          "y" in otherVector &&
-          typeof (otherVector as { x: unknown }).x === "number" &&
-          typeof (otherVector as { y: unknown }).y === "number"
-        ) {
-          const vectorTarget = otherVector as { readonly x: number; readonly y: number };
-          return createRenderingContextVector2D(this.x - vectorTarget.x, this.y - vectorTarget.y);
-        }
-        return createRenderingContextVector2D(this.x, this.y);
-      },
-      enumerable: false,
-      writable: true,
-      configurable: true,
-    },
-    len: {
-      value(this: RenderingContextVector2D): number {
-        return Math.hypot(this.x, this.y);
-      },
-      enumerable: false,
-      writable: true,
-      configurable: true,
-    },
-    unit: {
-      value(this: RenderingContextVector2D): RenderingContextVector2D {
-        const vectorMagnitude = Math.hypot(this.x, this.y);
-        if (vectorMagnitude === 0) {
-          return createRenderingContextVector2D(0, 0);
-        }
-        return createRenderingContextVector2D(this.x / vectorMagnitude, this.y / vectorMagnitude);
-      },
-      enumerable: false,
-      writable: true,
-      configurable: true,
-    },
-    dist: {
-      value(
-        this: RenderingContextVector2D,
-        otherVector: { readonly x: number; readonly y: number } | unknown
-      ): number {
-        if (
-          otherVector !== null &&
-          typeof otherVector === "object" &&
-          "x" in otherVector &&
-          "y" in otherVector &&
-          typeof (otherVector as { x: unknown }).x === "number" &&
-          typeof (otherVector as { y: unknown }).y === "number"
-        ) {
-          const vectorTarget = otherVector as { readonly x: number; readonly y: number };
-          return Math.hypot(this.x - vectorTarget.x, this.y - vectorTarget.y);
-        }
-        return 0;
-      },
-      enumerable: false,
-      writable: true,
-      configurable: true,
-    },
-  });
-
-  return vectorInstance;
-}
+export {
+  createRenderingContextVector2D,
+  type RenderingContextVector2D,
+  createEntityPositionBinding,
+  type EntityPositionBinding,
+};
 
 export function updateCameraViewportPosition(
   renderEngineInstance: IRenderEngine,
@@ -218,13 +88,6 @@ export function updateCameraViewportPosition(
 ): { readonly x: number; readonly y: number } {
   if (typeof renderEngineInstance.setCameraPosition === "function") {
     renderEngineInstance.setCameraPosition(cameraPositionCoordinateX, cameraPositionCoordinateY);
-  }
-  const worldContainerNode =
-    typeof renderEngineInstance.getWorldContainer === "function"
-      ? renderEngineInstance.getWorldContainer()
-      : null;
-  if (worldContainerNode && typeof worldContainerNode.setPosition === "function") {
-    worldContainerNode.setPosition(-cameraPositionCoordinateX, -cameraPositionCoordinateY);
   }
   return typeof renderEngineInstance.getCameraPosition === "function"
     ? renderEngineInstance.getCameraPosition()
@@ -312,12 +175,15 @@ export function resolveAnchorCoordinates(anchorAlignment: string): {
 }
 
 export interface RenderingContextEntity {
-  pos: { x: number; y: number };
+  pos: RenderingContextVector2D;
   scale: { x: number; y: number };
   opacity: number;
   z: number;
   hidden: boolean;
   fixed: boolean;
+  flipX?: boolean;
+  flipY?: boolean;
+  vel?: RenderingContextVector2D;
   text?: string;
   width?: number;
   height?: number;
@@ -331,7 +197,12 @@ export interface RenderingContextEntity {
   renderNode?: IRenderNode | null;
   tag?: string;
   is?(tagToCheck: string): boolean;
-  move?(speedX: number, speedY: number): void;
+  move?(speedXOrVector: number | { x: number; y: number }, speedY?: number): void;
+  moveTo?(
+    targetCoordinateXOrVector: number | { x: number; y: number },
+    targetCoordinateYOrSpeed?: number,
+    optionalSpeedValue?: number
+  ): void;
   readonly children?: readonly RenderingContextEntity[];
   add(childComponentOrDescriber: unknown[] | unknown): RenderingContextEntity;
   exists(): boolean;
@@ -750,7 +621,15 @@ export function createRenderingContext(
     }
   };
 
+  let accumulatedSceneTimeInSeconds: number =
+    (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
+  let currentSceneDeltaTimeInSeconds: number = 0.0166;
+
   const runActiveSceneUpdateCallbacks = (deltaTimeInSeconds: number): void => {
+    const safeDeltaTime = Math.min(Math.max(0, deltaTimeInSeconds), 0.1);
+    currentSceneDeltaTimeInSeconds = safeDeltaTime;
+    accumulatedSceneTimeInSeconds += safeDeltaTime;
+
     const activeInputStateManager = getInputStateManager();
     if (activeInputStateManager) {
       singleFrameInputStateUpdater(activeInputStateManager);
@@ -758,7 +637,7 @@ export function createRenderingContext(
     const updateCallbacksSnapshot = sceneUpdateCallbacksList.slice();
     for (let index = 0; index < updateCallbacksSnapshot.length; index++) {
       try {
-        updateCallbacksSnapshot[index](deltaTimeInSeconds);
+        updateCallbacksSnapshot[index](safeDeltaTime);
       } catch (error) {
         console.error("[RenderingContext] Erro em callback de update da cena ativa:", error);
       }
@@ -827,11 +706,11 @@ export function createRenderingContext(
     dt(): number {
       return renderEngineInstance.isInitialized
         ? renderEngineInstance.getTicker().getDeltaTime()
-        : 0.0166;
+        : currentSceneDeltaTimeInSeconds;
     },
 
     time(): number {
-      return (typeof performance !== "undefined" ? performance.now() : Date.now()) / 1000;
+      return accumulatedSceneTimeInSeconds;
     },
 
     rand(minimumValue?: number, maximumValue?: number): number {
@@ -1105,26 +984,123 @@ export function createRenderingContext(
         }> = [];
         const entityTagsSet = new Set<string>();
         let primaryEntityTagIdentifier: string | undefined = undefined;
+        let isEntityHidden = false;
+        let isFlippedHorizontally = false;
+        let isFlippedVertically = false;
+
+        const updateEntityNodeScale = (): void => {
+          if (entityVisualNode) {
+            const horizontalSign = isFlippedHorizontally ? -1 : 1;
+            const verticalSign = isFlippedVertically ? -1 : 1;
+            entityVisualNode.setScale(
+              scaleCoordinateX * horizontalSign,
+              scaleCoordinateY * verticalSign
+            );
+          }
+        };
+
+        const entityPositionBindingInstance = createEntityPositionBinding(
+          () => positionCoordinateX,
+          () => positionCoordinateY,
+          (updatedCoordinateX: number, updatedCoordinateY: number) => {
+            positionCoordinateX = updatedCoordinateX;
+            positionCoordinateY = updatedCoordinateY;
+            entityVisualNode?.setPosition(positionCoordinateX, positionCoordinateY);
+          }
+        );
+
+        const velocityVectorInstance = createRenderingContextVector2D(0, 0);
+
+        const velocityPhysicsUpdateHandler = renderingContext.onUpdate(
+          (deltaTimeInSeconds: number) => {
+            if (isEntityDestroyed) {
+              return;
+            }
+            if (velocityVectorInstance.x !== 0 || velocityVectorInstance.y !== 0) {
+              const safeDeltaTime = Math.min(Math.max(0, deltaTimeInSeconds), 0.1);
+              positionCoordinateX += velocityVectorInstance.x * safeDeltaTime;
+              positionCoordinateY += velocityVectorInstance.y * safeDeltaTime;
+              entityVisualNode?.setPosition(positionCoordinateX, positionCoordinateY);
+            }
+          }
+        );
+        entityActiveUpdateListenersList.push(velocityPhysicsUpdateHandler.cancel);
 
         const entityInstance: RenderingContextEntity = {
-          pos: { x: 0, y: 0 },
+          pos: entityPositionBindingInstance,
           scale: { x: 1, y: 1 },
           opacity: 1,
           z: 0,
           hidden: false,
           fixed: false,
           exists: () => !isEntityDestroyed,
-          move: (speedX: number, speedY: number): void => {
+          move: (
+            speedXOrVector: number | { readonly x: number; readonly y: number },
+            maybeSpeedY?: number
+          ): void => {
             if (isEntityDestroyed) {
               return;
+            }
+            let speedX = 0;
+            let speedY = 0;
+            if (typeof speedXOrVector === "number") {
+              speedX = speedXOrVector;
+              speedY = typeof maybeSpeedY === "number" ? maybeSpeedY : 0;
+            } else if (speedXOrVector && typeof speedXOrVector === "object") {
+              speedX = typeof speedXOrVector.x === "number" ? speedXOrVector.x : 0;
+              speedY = typeof speedXOrVector.y === "number" ? speedXOrVector.y : 0;
             }
             const rawDeltaTime =
               typeof renderingContext.dt === "function" ? renderingContext.dt() : 0.0166;
             const safeDeltaTime = Math.min(Math.max(0, rawDeltaTime), 0.1);
             positionCoordinateX += speedX * safeDeltaTime;
             positionCoordinateY += speedY * safeDeltaTime;
-            entityInstance.pos.x = positionCoordinateX;
-            entityInstance.pos.y = positionCoordinateY;
+            entityVisualNode?.setPosition(positionCoordinateX, positionCoordinateY);
+          },
+          moveTo: (
+            targetCoordinateXOrVector: number | { readonly x: number; readonly y: number },
+            targetCoordinateYOrSpeed?: number,
+            optionalSpeedValue?: number
+          ): void => {
+            if (isEntityDestroyed) {
+              return;
+            }
+            let targetX = 0;
+            let targetY = 0;
+            let speed: number | undefined;
+
+            if (typeof targetCoordinateXOrVector === "number") {
+              targetX = targetCoordinateXOrVector;
+              targetY = typeof targetCoordinateYOrSpeed === "number" ? targetCoordinateYOrSpeed : 0;
+              speed = optionalSpeedValue;
+            } else if (targetCoordinateXOrVector && typeof targetCoordinateXOrVector === "object") {
+              targetX =
+                typeof targetCoordinateXOrVector.x === "number" ? targetCoordinateXOrVector.x : 0;
+              targetY =
+                typeof targetCoordinateXOrVector.y === "number" ? targetCoordinateXOrVector.y : 0;
+              speed = targetCoordinateYOrSpeed;
+            }
+
+            if (typeof speed === "number" && speed > 0) {
+              const rawDeltaTime =
+                typeof renderingContext.dt === "function" ? renderingContext.dt() : 0.0166;
+              const safeDeltaTime = Math.min(Math.max(0, rawDeltaTime), 0.1);
+              const deltaX = targetX - positionCoordinateX;
+              const deltaY = targetY - positionCoordinateY;
+              const distanceToTarget = Math.hypot(deltaX, deltaY);
+              const stepDistance = speed * safeDeltaTime;
+
+              if (distanceToTarget <= stepDistance || distanceToTarget === 0) {
+                positionCoordinateX = targetX;
+                positionCoordinateY = targetY;
+              } else {
+                positionCoordinateX += (deltaX / distanceToTarget) * stepDistance;
+                positionCoordinateY += (deltaY / distanceToTarget) * stepDistance;
+              }
+            } else {
+              positionCoordinateX = targetX;
+              positionCoordinateY = targetY;
+            }
             entityVisualNode?.setPosition(positionCoordinateX, positionCoordinateY);
           },
           onUpdate: (
@@ -1946,28 +1922,63 @@ export function createRenderingContext(
           enumerable: true,
         });
 
-        const positionCoordinateProxy = {
-          get x() {
-            return positionCoordinateX;
-          },
-          set x(updatedCoordinateX: number) {
-            positionCoordinateX = updatedCoordinateX;
-            if (entityVisualNode) {
-              entityVisualNode.setPosition(positionCoordinateX, positionCoordinateY);
+        Object.defineProperty(entityInstance, "pos", {
+          get: () => entityPositionBindingInstance,
+          set: (incomingPositionValue: unknown) => {
+            if (incomingPositionValue && typeof incomingPositionValue === "object") {
+              const vectorRecord = incomingPositionValue as { x?: unknown; y?: unknown };
+              const updatedX =
+                typeof vectorRecord.x === "number" ? vectorRecord.x : positionCoordinateX;
+              const updatedY =
+                typeof vectorRecord.y === "number" ? vectorRecord.y : positionCoordinateY;
+              positionCoordinateX = updatedX;
+              positionCoordinateY = updatedY;
+              entityVisualNode?.setPosition(positionCoordinateX, positionCoordinateY);
             }
           },
-          get y() {
-            return positionCoordinateY;
+          configurable: true,
+          enumerable: true,
+        });
+
+        Object.defineProperty(entityInstance, "hidden", {
+          get: () => isEntityHidden,
+          set: (shouldHideEntity: boolean) => {
+            isEntityHidden = Boolean(shouldHideEntity);
+            entityVisualNode?.setVisible(!isEntityHidden);
           },
-          set y(updatedCoordinateY: number) {
-            positionCoordinateY = updatedCoordinateY;
-            if (entityVisualNode) {
-              entityVisualNode.setPosition(positionCoordinateX, positionCoordinateY);
-            }
+          configurable: true,
+          enumerable: true,
+        });
+
+        Object.defineProperty(entityInstance, "flipX", {
+          get: () => isFlippedHorizontally,
+          set: (shouldFlipHorizontally: boolean) => {
+            isFlippedHorizontally = Boolean(shouldFlipHorizontally);
+            updateEntityNodeScale();
           },
-        };
-        entityInstance.pos = positionCoordinateProxy;
-        entityInstance.z = entityZIndex;
+          configurable: true,
+          enumerable: true,
+        });
+
+        Object.defineProperty(entityInstance, "flipY", {
+          get: () => isFlippedVertically,
+          set: (shouldFlipVertically: boolean) => {
+            isFlippedVertically = Boolean(shouldFlipVertically);
+            updateEntityNodeScale();
+          },
+          configurable: true,
+          enumerable: true,
+        });
+
+        Object.defineProperty(entityInstance, "z", {
+          get: () => entityZIndex,
+          set: (updatedZIndex: number) => {
+            entityZIndex = updatedZIndex;
+            entityVisualNode?.setZIndex(updatedZIndex);
+          },
+          configurable: true,
+          enumerable: true,
+        });
 
         const scaleCoordinateProxy = {
           get x() {
@@ -1975,18 +1986,14 @@ export function createRenderingContext(
           },
           set x(updatedScaleX: number) {
             scaleCoordinateX = updatedScaleX;
-            if (entityVisualNode) {
-              entityVisualNode.setScale(scaleCoordinateX, scaleCoordinateY);
-            }
+            updateEntityNodeScale();
           },
           get y() {
             return scaleCoordinateY;
           },
           set y(updatedScaleY: number) {
             scaleCoordinateY = updatedScaleY;
-            if (entityVisualNode) {
-              entityVisualNode.setScale(scaleCoordinateX, scaleCoordinateY);
-            }
+            updateEntityNodeScale();
           },
         };
 
@@ -2004,8 +2011,21 @@ export function createRenderingContext(
                 scaleCoordinateY = updatedScaleValue.y;
               }
             }
-            if (entityVisualNode) {
-              entityVisualNode.setScale(scaleCoordinateX, scaleCoordinateY);
+            updateEntityNodeScale();
+          },
+          configurable: true,
+          enumerable: true,
+        });
+
+        Object.defineProperty(entityInstance, "vel", {
+          get: () => velocityVectorInstance,
+          set: (incomingVelocityValue: unknown) => {
+            if (incomingVelocityValue && typeof incomingVelocityValue === "object") {
+              const vectorRecord = incomingVelocityValue as { x?: unknown; y?: unknown };
+              const vx = typeof vectorRecord.x === "number" ? vectorRecord.x : 0;
+              const vy = typeof vectorRecord.y === "number" ? vectorRecord.y : 0;
+              velocityVectorInstance.x = vx;
+              velocityVectorInstance.y = vy;
             }
           },
           configurable: true,
