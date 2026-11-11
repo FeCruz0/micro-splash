@@ -8,7 +8,7 @@
 
 import { accessibilitySystem } from "../../systems/accessibilitySystem";
 import type { IRenderEngine } from "../../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveInitializedRenderEngine } from "../../engine/contracts/INTERFACE_CONTRACTS";
 import { createTween, Easings } from "../../engine/utils/Tween";
 
 export interface ScoreCounterOptions {
@@ -100,7 +100,8 @@ export function animateScoreCounter(
 
   let isCancelled = false;
 
-  if (isRenderEngine(engineOrContext)) {
+  const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrContext);
+  if (resolvedRenderEngine) {
     const tween = createTween(
       startValue,
       targetScore,
@@ -111,7 +112,7 @@ export function animateScoreCounter(
         }
       },
       Easings.easeOutQuad,
-      engineOrContext.getTicker()
+      resolvedRenderEngine.getTicker()
     );
 
     tween.promise.then(() => {

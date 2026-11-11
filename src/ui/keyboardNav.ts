@@ -11,7 +11,7 @@ import type {
   IGraphicsNode,
   Vector2D,
 } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 
 export interface FocusableItem {
   id?: string;
@@ -128,12 +128,13 @@ export function createFocusGroup(
     }
   };
 
-  if (isRenderEngine(engineOrContext)) {
+  const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrContext);
+  if (resolvedRenderEngine) {
     const screenContainer =
-      typeof engineOrContext.getScreenContainer === "function"
-        ? engineOrContext.getScreenContainer()
-        : engineOrContext.getStageRoot();
-    const focusRingNode: IGraphicsNode = engineOrContext.createGraphics("keyboard_focus_ring");
+      typeof resolvedRenderEngine.getScreenContainer === "function"
+        ? resolvedRenderEngine.getScreenContainer()
+        : resolvedRenderEngine.getStageRoot();
+    const focusRingNode: IGraphicsNode = resolvedRenderEngine.createGraphics("keyboard_focus_ring");
     focusRingNode.setZIndex(ringZ);
     focusRingNode.setOpacity(0);
     screenContainer.addChild(focusRingNode);
@@ -153,7 +154,7 @@ export function createFocusGroup(
     redrawRing();
 
     let ringAnimTime = 0;
-    const tickerCleanup = engineOrContext.getTicker().add((deltaTime: number) => {
+    const tickerCleanup = resolvedRenderEngine.getTicker().add((deltaTime: number) => {
       if (options.isEnabled && !options.isEnabled()) {
         focusRingNode.setOpacity(0);
         return;

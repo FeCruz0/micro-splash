@@ -12,7 +12,7 @@ import type {
   Vector2D,
   ColorRepresentation,
 } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 
 export type TextAnchor =
   "topleft" | "top" | "topright" | "left" | "center" | "right" | "botleft" | "bot" | "botright";
@@ -101,13 +101,14 @@ export function addShadowedText<
   const fontName = opts.font ?? FONT_BODY;
   const anchor = opts.anchor ?? "topleft";
 
-  if (isRenderEngine(engineOrContext)) {
+  const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrContext);
+  if (resolvedRenderEngine) {
     const screenContainer =
-      typeof engineOrContext.getScreenContainer === "function"
-        ? engineOrContext.getScreenContainer()
-        : engineOrContext.getStageRoot();
+      typeof resolvedRenderEngine.getScreenContainer === "function"
+        ? resolvedRenderEngine.getScreenContainer()
+        : resolvedRenderEngine.getStageRoot();
 
-    const shadowNode = engineOrContext.createText(
+    const shadowNode = resolvedRenderEngine.createText(
       content,
       {
         fontFamily: fontName,
@@ -124,7 +125,7 @@ export function addShadowedText<
     shadowNode.setZIndex(shadowZ);
     screenContainer.addChild(shadowNode);
 
-    const mainNode = engineOrContext.createText(
+    const mainNode = resolvedRenderEngine.createText(
       content,
       {
         fontFamily: fontName,

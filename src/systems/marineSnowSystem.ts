@@ -8,7 +8,7 @@
 import { GAME_CONFIG } from "../config";
 import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 import type { IRenderEngine, IRenderNode, Vector2D } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { resolveCameraX } from "./cameraSystem";
 import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
 
@@ -185,13 +185,13 @@ interface LegacyMarineSnowEngineContext {
  */
 export function setupMarineSnowSystem(engineOrContext: IRenderEngine | unknown): () => void {
   const particles: MarineSnowFlake[] = [];
-  const isPixi = isRenderEngine(engineOrContext);
-  const legacyEngineContext = !isPixi
+  const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrContext);
+  const legacyEngineContext = !resolvedRenderEngine
     ? (engineOrContext as LegacyMarineSnowEngineContext)
     : undefined;
 
-  const screenDimensions = isPixi
-    ? engineOrContext.getDimensions()
+  const screenDimensions = resolvedRenderEngine
+    ? resolvedRenderEngine.getDimensions()
     : {
         width: legacyEngineContext ? legacyEngineContext.width() : 640,
         height: legacyEngineContext ? legacyEngineContext.height() : 360,
@@ -211,8 +211,8 @@ export function setupMarineSnowSystem(engineOrContext: IRenderEngine | unknown):
 
     let node: IRenderNode;
 
-    if (isRenderEngine(engineOrContext)) {
-      const graphicsNode = engineOrContext.createGraphics(`marine_snow_${index}`);
+    if (resolvedRenderEngine) {
+      const graphicsNode = resolvedRenderEngine.createGraphics(`marine_snow_${index}`);
       graphicsNode.drawCircle(0, 0, radius, {
         fill: {
           color: MARINE_SNOW_CONFIG.BASE_COLOR,
@@ -221,7 +221,7 @@ export function setupMarineSnowSystem(engineOrContext: IRenderEngine | unknown):
       });
       graphicsNode.setPosition(0, initialY);
       graphicsNode.setZIndex(-1);
-      resolveWorldRenderContainer(engineOrContext).addChild(graphicsNode);
+      resolveWorldRenderContainer(resolvedRenderEngine).addChild(graphicsNode);
       node = graphicsNode;
     } else if (legacyEngineContext) {
       const legacyObject = legacyEngineContext.add([
@@ -281,7 +281,7 @@ export function setupMarineSnowSystem(engineOrContext: IRenderEngine | unknown):
     if (!isSystemActive) return;
 
     timeAccumulator += deltaTime;
-    const cameraX = resolveCameraX(engineOrContext);
+    const cameraX = resolveCameraX(resolvedRenderEngine ?? engineOrContext);
     const screenLeft = cameraX - screenWidth / 2;
 
     const isInPelagic =
@@ -326,8 +326,8 @@ export function setupMarineSnowSystem(engineOrContext: IRenderEngine | unknown):
 
   let unregisterTicker: () => void;
 
-  if (isRenderEngine(engineOrContext)) {
-    unregisterTicker = engineOrContext.getTicker().add((deltaTime) => {
+  if (resolvedRenderEngine) {
+    unregisterTicker = resolvedRenderEngine.getTicker().add((deltaTime) => {
       stepUpdate(deltaTime);
     });
   } else if (legacyEngineContext) {

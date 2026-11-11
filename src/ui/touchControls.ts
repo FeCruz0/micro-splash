@@ -12,7 +12,7 @@ import type {
   IGraphicsNode,
   ITextNode,
 } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 
 export interface TouchControlsState {
   up: boolean;
@@ -138,12 +138,13 @@ export function setupTouchControls(engineOrContext: IRenderEngine | LegacyTouchC
 
   let isDestroyed = false;
 
-  if (isRenderEngine(engineOrContext)) {
+  const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrContext);
+  if (resolvedRenderEngine) {
     const screenContainer =
-      typeof engineOrContext.getScreenContainer === "function"
-        ? engineOrContext.getScreenContainer()
-        : engineOrContext.getStageRoot();
-    const dimensions = engineOrContext.getDimensions();
+      typeof resolvedRenderEngine.getScreenContainer === "function"
+        ? resolvedRenderEngine.getScreenContainer()
+        : resolvedRenderEngine.getStageRoot();
+    const dimensions = resolvedRenderEngine.getDimensions();
     const createdNodes: Array<IGraphicsNode | ITextNode> = [];
 
     const buildPixiControls = () => {
@@ -155,7 +156,7 @@ export function setupTouchControls(engineOrContext: IRenderEngine | LegacyTouchC
       const spacing = 55;
 
       // Base circular suave sob o D-Pad
-      const dpadBase = engineOrContext.createGraphics("touch_dpad_base");
+      const dpadBase = resolvedRenderEngine.createGraphics("touch_dpad_base");
       dpadBase.drawCircle(0, 0, 88, { fill: { color: [10, 25, 55], alpha: 0.45 } });
       dpadBase.setPosition(dpadBaseX, dpadBaseY);
       dpadBase.setZIndex(190);
@@ -168,7 +169,7 @@ export function setupTouchControls(engineOrContext: IRenderEngine | LegacyTouchC
         offsetY: number,
         onState: (down: boolean) => void
       ) => {
-        const btnNode = engineOrContext.createGraphics(`touch_dpad_${label}`);
+        const btnNode = resolvedRenderEngine.createGraphics(`touch_dpad_${label}`);
         const posX = dpadBaseX + offsetX;
         const posY = dpadBaseY + offsetY;
 
@@ -188,7 +189,7 @@ export function setupTouchControls(engineOrContext: IRenderEngine | LegacyTouchC
         screenContainer.addChild(btnNode);
         createdNodes.push(btnNode);
 
-        const labelNode = engineOrContext.createText(
+        const labelNode = resolvedRenderEngine.createText(
           label,
           { fontFamily: "Outfit", fontSize: 24, color: [220, 245, 255], align: "center" },
           `touch_dpad_label_${label}`
@@ -234,7 +235,7 @@ export function setupTouchControls(engineOrContext: IRenderEngine | LegacyTouchC
       const strokeBtnY = dimensions.height - 110;
       const strokeRadius = 52;
 
-      const strokeBtn = engineOrContext.createGraphics("touch_stroke_btn");
+      const strokeBtn = resolvedRenderEngine.createGraphics("touch_stroke_btn");
       const drawStrokeButton = (isPressed: boolean) => {
         strokeBtn.clear();
         strokeBtn.drawCircle(0, 0, strokeRadius, {
@@ -251,7 +252,7 @@ export function setupTouchControls(engineOrContext: IRenderEngine | LegacyTouchC
       screenContainer.addChild(strokeBtn);
       createdNodes.push(strokeBtn);
 
-      const strokeLabel = engineOrContext.createText(
+      const strokeLabel = resolvedRenderEngine.createText(
         "NADO\n🌊",
         { fontFamily: "Outfit", fontSize: 16.5, color: [255, 255, 255], align: "center" },
         "touch_stroke_label"
@@ -290,7 +291,7 @@ export function setupTouchControls(engineOrContext: IRenderEngine | LegacyTouchC
       const sonarBtnY = dimensions.height - 85;
       const sonarRadius = 38;
 
-      const sonarBtn = engineOrContext.createGraphics("touch_sonar_btn");
+      const sonarBtn = resolvedRenderEngine.createGraphics("touch_sonar_btn");
       sonarBtn.drawCircle(0, 0, sonarRadius, {
         fill: { color: [20, 50, 95], alpha: 0.7 },
         stroke: { width: 2, color: [0, 230, 255], alpha: 1 },
@@ -300,7 +301,7 @@ export function setupTouchControls(engineOrContext: IRenderEngine | LegacyTouchC
       screenContainer.addChild(sonarBtn);
       createdNodes.push(sonarBtn);
 
-      const sonarLabel = engineOrContext.createText(
+      const sonarLabel = resolvedRenderEngine.createText(
         "SONAR\n📡",
         { fontFamily: "Outfit", fontSize: 13, color: [180, 245, 255], align: "center" },
         "touch_sonar_label"
@@ -358,7 +359,7 @@ export function setupTouchControls(engineOrContext: IRenderEngine | LegacyTouchC
     let clearStrokeNext = false;
     let clearSonarNext = false;
 
-    const unregisterTicker = engineOrContext.getTicker().add(() => {
+    const unregisterTicker = resolvedRenderEngine.getTicker().add(() => {
       if (clearStrokeNext) {
         state.strokePressed = false;
         clearStrokeNext = false;

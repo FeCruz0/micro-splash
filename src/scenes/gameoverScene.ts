@@ -7,8 +7,7 @@ import type { GameState, GameOptions } from "../systems/state";
 import { audioSystem } from "../systems/audioSystem";
 
 export interface GameOverSceneEngineContext extends ShowChallengeEndEngineContext {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-  scene(id: string, action: Function): unknown;
+  scene(id: string, action: (transitionData?: unknown) => void): unknown;
   go(id: string, ...args: unknown[]): unknown;
 }
 
@@ -52,7 +51,8 @@ export function registerGameOverScene(
   }
 
   if (typeof engineContext.scene === "function") {
-    engineContext.scene("gameover", (data: GameOverTransitionData) => {
+    engineContext.scene("gameover", (transitionData?: unknown) => {
+      const data = transitionData as GameOverTransitionData;
       showChallengeEndScreen(
         engineContext,
         data.gameState,

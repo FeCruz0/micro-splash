@@ -2,8 +2,7 @@ import type { IScene, ISceneManager } from "../engine/contracts/INTERFACE_CONTRA
 import { createSplashScreen, type ShowSplashEngineContext } from "../ui/splashScreen";
 
 export interface SplashSceneEngineContext extends ShowSplashEngineContext {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-  scene(id: string, action: Function): unknown;
+  scene(id: string, action: (transitionData?: unknown) => void): unknown;
   go(id: string, ...args: unknown[]): unknown;
 }
 

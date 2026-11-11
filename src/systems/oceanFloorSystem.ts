@@ -8,7 +8,7 @@
 import { GAME_CONFIG, TAGS } from "../config";
 import { getSpatialCullingManager } from "./spatialCullingSystem";
 import type { IRenderEngine, Vector2D } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
 
 export interface SubmarineRelief {
@@ -293,12 +293,12 @@ interface LegacyOceanFloorEngineContext {
  * Cria a topografia do leito marinho com colisões sólidas e resposta ao Biosonar.
  */
 export function setupOceanFloorSystem(engineOrContext: IRenderEngine | unknown): void {
-  const isPixi = isRenderEngine(engineOrContext);
-  const legacyEngineContext = !isPixi
+  const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrContext);
+  const legacyEngineContext = !resolvedRenderEngine
     ? (engineOrContext as LegacyOceanFloorEngineContext)
     : undefined;
-  const screenH = isPixi
-    ? engineOrContext.getDimensions().height
+  const screenH = resolvedRenderEngine
+    ? resolvedRenderEngine.getDimensions().height
     : typeof legacyEngineContext?.height === "function"
       ? legacyEngineContext.height()
       : 360;
@@ -340,11 +340,11 @@ export function setupOceanFloorSystem(engineOrContext: IRenderEngine | unknown):
     const bodyPoints: Vector2D[] = generateReliefPolygonPoints(relief, floorBaseY);
     const capPoints: Vector2D[] = generateReliefCapPolygonPoints(relief, floorBaseY);
 
-    if (isPixi) {
+    if (resolvedRenderEngine) {
       type CullingTarget = Parameters<NonNullable<typeof cullingManager>["registerEntity"]>[0];
 
       // Relevo Geológico Unificado em nó único consolidado
-      const reliefGfx = engineOrContext.createGraphics(`ocean_relief_${relief.startX}`);
+      const reliefGfx = resolvedRenderEngine.createGraphics(`ocean_relief_${relief.startX}`);
 
       // 1. Corpo Geológico Poligonal do Relevo
       reliefGfx.drawPolygon(bodyPoints, {
@@ -378,7 +378,7 @@ export function setupOceanFloorSystem(engineOrContext: IRenderEngine | unknown):
       if (typeof reliefGfx.freeze === "function") {
         reliefGfx.freeze(true);
       }
-      resolveWorldRenderContainer(engineOrContext).addChild(reliefGfx);
+      resolveWorldRenderContainer(resolvedRenderEngine).addChild(reliefGfx);
       cullingManager?.registerEntity(
         reliefGfx as unknown as CullingTarget,
         () => relief.startX,

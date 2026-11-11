@@ -8,7 +8,7 @@
 import type { PlayerController } from "../entities/player";
 import { accessibilitySystem } from "./accessibilitySystem";
 import type { IRenderEngine, IRenderNode } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { createTween, Easings } from "../engine/utils/Tween";
 import { resolveScreenRenderContainer } from "../engine/adapters/RenderEngineAdapter";
 
@@ -120,8 +120,9 @@ export function setupBiomeVignetteSystem(
   const triggeredDistances = new Set<number>();
   let lastRecordedX = playerController.gameObj?.pos?.x ?? 0;
 
-  if (isRenderEngine(engineOrContext)) {
-    const renderEngine = engineOrContext;
+  const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrContext);
+  if (resolvedRenderEngine) {
+    const renderEngine = resolvedRenderEngine;
     const screenContainer = resolveScreenRenderContainer(renderEngine);
     const { width: screenWidth, height: screenHeight } = renderEngine.getDimensions();
 

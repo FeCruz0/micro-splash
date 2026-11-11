@@ -5,7 +5,7 @@
  */
 
 import { createTween, Easings } from "../engine/utils/Tween";
-import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 
 export const UI_TRANSITIONS = {
   MODAL_ENTER_DURATION: 0.25,
@@ -94,7 +94,8 @@ export function animateModalEntrance(
     cardObj.opacity = 0;
   }
 
-  if (isRenderEngine(engineContext)) {
+  const resolvedRenderEngineForEntrance = resolveInitializedRenderEngine(engineContext);
+  if (resolvedRenderEngineForEntrance) {
     const entranceTweenHandle = createTween(
       startScale,
       1.0,
@@ -109,7 +110,7 @@ export function animateModalEntrance(
         } catch {}
       },
       Easings.easeOutBack,
-      engineContext.getTicker()
+      resolvedRenderEngineForEntrance.getTicker()
     );
     entranceTweenHandle.promise.then(() => {
       try {
@@ -173,7 +174,8 @@ export function animateModalExit(
     return typeof engineContext.vec2 === "function" ? engineContext.vec2(x, y) : { x, y };
   };
 
-  if (isRenderEngine(engineContext)) {
+  const resolvedRenderEngineForExit = resolveInitializedRenderEngine(engineContext);
+  if (resolvedRenderEngineForExit) {
     const exitTweenHandle = createTween(
       1.0,
       endScale,
@@ -188,7 +190,7 @@ export function animateModalExit(
         } catch {}
       },
       Easings.easeInQuad,
-      engineContext.getTicker()
+      resolvedRenderEngineForExit.getTicker()
     );
     exitTweenHandle.promise.then(() => {
       options.onComplete?.();
@@ -418,7 +420,8 @@ export function createResolutionTransitionOverlay(
 
   const overlayUi = overlay as unknown as AnimationUiObject;
 
-  if (isRenderEngine(engineContext)) {
+  const resolvedRenderEngineForFade = resolveInitializedRenderEngine(engineContext);
+  if (resolvedRenderEngineForFade) {
     const fadeTweenHandle = createTween(
       0,
       1,
@@ -429,7 +432,7 @@ export function createResolutionTransitionOverlay(
         } catch {}
       },
       Easings.easeOutQuad,
-      engineContext.getTicker()
+      resolvedRenderEngineForFade.getTicker()
     );
     fadeTweenHandle.promise.then(() => {
       onComplete();

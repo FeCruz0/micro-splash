@@ -14,7 +14,7 @@ import { getSpatialCullingManager } from "./spatialCullingSystem";
 import { safeShake } from "../utils/camera";
 import { getRandomFloat } from "../utils/random";
 import type { IRenderEngine, IRenderNode, Vector2D } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { create16BitIceTextures } from "./ice/ice16BitTextures";
 import { getSpatialGrid } from "./spatialHashGrid";
 import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
@@ -123,8 +123,9 @@ export function setupIceSurfaceSystem(
   const cullingManager = getSpatialCullingManager();
   type CullingTarget = Parameters<NonNullable<typeof cullingManager>["registerEntity"]>[0];
 
-  if (isRenderEngine(engineOrContext)) {
-    const engine = engineOrContext;
+  const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrContext);
+  if (resolvedRenderEngine) {
+    const engine = resolvedRenderEngine;
     const worldContainer = resolveWorldRenderContainer(engine);
     const screenH = engine.getDimensions().height;
 

@@ -17,7 +17,7 @@ import type {
   ITextNode,
   Vector2D,
 } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 
 const ONBOARDING_STORAGE_KEY = "micro_splash_onboarding_done";
 
@@ -133,7 +133,7 @@ export interface LegacyOnboardingContext {
 }
 
 export function showOnboardingModal(
-  engineOrContext: IRenderEngine | LegacyOnboardingContext,
+  engineOrLegacyContext: IRenderEngine | LegacyOnboardingContext,
   onDone: () => void
 ): void {
   audioSystem.playUiClick();
@@ -141,12 +141,13 @@ export function showOnboardingModal(
   let currentSlide = 0;
   let isClosed = false;
 
-  if (isRenderEngine(engineOrContext)) {
+  const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrLegacyContext);
+  if (resolvedRenderEngine) {
     const screenContainer =
-      typeof engineOrContext.getScreenContainer === "function"
-        ? engineOrContext.getScreenContainer()
-        : engineOrContext.getStageRoot();
-    const dimensions = engineOrContext.getDimensions();
+      typeof resolvedRenderEngine.getScreenContainer === "function"
+        ? resolvedRenderEngine.getScreenContainer()
+        : resolvedRenderEngine.getStageRoot();
+    const dimensions = resolvedRenderEngine.getDimensions();
     const screenW = dimensions.width;
     const screenH = dimensions.height;
     const cX = screenW / 2;
@@ -186,7 +187,7 @@ export function showOnboardingModal(
     };
 
     // Backdrop escuro
-    const backdrop = engineOrContext.createGraphics("onboarding-backdrop");
+    const backdrop = resolvedRenderEngine.createGraphics("onboarding-backdrop");
     backdrop.drawRect(0, 0, screenW, screenH, {
       fill: { color: [5, 15, 32], alpha: 0.95 },
     });
@@ -195,7 +196,7 @@ export function showOnboardingModal(
     createdNodes.push(backdrop);
 
     // Card principal
-    const card = engineOrContext.createGraphics("onboarding-card");
+    const card = resolvedRenderEngine.createGraphics("onboarding-card");
     card.drawRoundedRect(cX - cardW / 2, cY - cardH / 2, cardW, cardH, 16, {
       fill: { color: [10, 28, 56], alpha: 1 },
       stroke: { color: [56, 189, 248], width: 2.5 },
@@ -207,7 +208,7 @@ export function showOnboardingModal(
     const initialSlide = ONBOARDING_SLIDES[0];
 
     // Badge
-    const badgeText = engineOrContext.createText(
+    const badgeText = resolvedRenderEngine.createText(
       initialSlide.badge,
       {
         fontSize: accessibilitySystem.scaleFont(TEXT_SIZE_CAPTION + 1),
@@ -226,7 +227,7 @@ export function showOnboardingModal(
     createdNodes.push(badgeText);
 
     // Título
-    const titleText = engineOrContext.createText(
+    const titleText = resolvedRenderEngine.createText(
       initialSlide.title,
       {
         fontSize: accessibilitySystem.scaleFont(TEXT_SIZE_H1),
@@ -245,7 +246,7 @@ export function showOnboardingModal(
     createdNodes.push(titleText);
 
     // Subtítulo
-    const subtitleText = engineOrContext.createText(
+    const subtitleText = resolvedRenderEngine.createText(
       initialSlide.subtitle,
       {
         fontSize: accessibilitySystem.scaleFont(TEXT_SIZE_BODY),
@@ -280,7 +281,7 @@ export function showOnboardingModal(
       const pt = initialSlide.points[idx];
 
       // Fundo do tópico
-      const itemBox = engineOrContext.createGraphics(`onboarding-box-${idx}`);
+      const itemBox = resolvedRenderEngine.createGraphics(`onboarding-box-${idx}`);
       itemBox.drawRoundedRect(cX - boxW / 2, itemY - boxH / 2, boxW, boxH, 12, {
         fill: { color: [14, 36, 72], alpha: 1 },
         stroke: { color: [38, 78, 130], width: 1.5 },
@@ -291,7 +292,7 @@ export function showOnboardingModal(
 
       // Badge de Ícone à esquerda
       const iconPillX = cX - boxW / 2 + 36;
-      const iconBox = engineOrContext.createGraphics(`onboarding-iconbox-${idx}`);
+      const iconBox = resolvedRenderEngine.createGraphics(`onboarding-iconbox-${idx}`);
       iconBox.drawRoundedRect(iconPillX - 27, itemY - 27, 54, 54, 10, {
         fill: { color: [20, 52, 100], alpha: 1 },
         stroke: { color: [56, 189, 248], width: 1.5 },
@@ -300,7 +301,7 @@ export function showOnboardingModal(
       screenContainer.addChild(iconBox);
       createdNodes.push(iconBox);
 
-      const iconText = engineOrContext.createText(
+      const iconText = resolvedRenderEngine.createText(
         pt.icon,
         {
           fontSize: accessibilitySystem.scaleFont(26),
@@ -321,7 +322,7 @@ export function showOnboardingModal(
       // Coluna de Texto
       const textStartX = cX - boxW / 2 + 76;
 
-      const pTitle = engineOrContext.createText(
+      const pTitle = resolvedRenderEngine.createText(
         pt.title,
         {
           fontSize: accessibilitySystem.scaleFont(17),
@@ -337,7 +338,7 @@ export function showOnboardingModal(
       createdNodes.push(pTitle);
       pointTitleTexts.push(pTitle);
 
-      const pDesc = engineOrContext.createText(
+      const pDesc = resolvedRenderEngine.createText(
         pt.desc,
         {
           fontSize: accessibilitySystem.scaleFont(14.5),
@@ -358,7 +359,7 @@ export function showOnboardingModal(
 
     // Indicadores visuais de bolinhas no rodapé
     const dotsY = cY + cardH / 2 - 62;
-    const dotsGraphics = engineOrContext.createGraphics("onboarding-dots");
+    const dotsGraphics = resolvedRenderEngine.createGraphics("onboarding-dots");
     dotsGraphics.setZIndex(553);
     screenContainer.addChild(dotsGraphics);
     createdNodes.push(dotsGraphics);
@@ -380,7 +381,7 @@ export function showOnboardingModal(
 
     // Botão Pular (canto superior direito)
     const btnSkipPos: Vector2D = { x: cX + cardW / 2 - 54, y: cY - cardH / 2 + 30 };
-    const btnSkip = engineOrContext.createGraphics("onboarding-btn-skip");
+    const btnSkip = resolvedRenderEngine.createGraphics("onboarding-btn-skip");
     const drawSkip = (hovered: boolean) => {
       btnSkip.clear();
       btnSkip.drawRoundedRect(btnSkipPos.x - 47, btnSkipPos.y - 18, 94, 36, 8, {
@@ -393,7 +394,7 @@ export function showOnboardingModal(
     screenContainer.addChild(btnSkip);
     createdNodes.push(btnSkip);
 
-    const btnSkipText = engineOrContext.createText(
+    const btnSkipText = resolvedRenderEngine.createText(
       "Pular ✕",
       {
         fontSize: accessibilitySystem.scaleFont(14),
@@ -432,7 +433,7 @@ export function showOnboardingModal(
 
     // Botão Anterior
     const btnPrevPos: Vector2D = { x: cX - 120, y: actionBtnY };
-    const btnPrev = engineOrContext.createGraphics("onboarding-btn-prev");
+    const btnPrev = resolvedRenderEngine.createGraphics("onboarding-btn-prev");
     const drawPrev = (hovered: boolean) => {
       btnPrev.clear();
       btnPrev.drawRoundedRect(btnPrevPos.x - 80, btnPrevPos.y - 23, 160, 46, 9, {
@@ -446,7 +447,7 @@ export function showOnboardingModal(
     screenContainer.addChild(btnPrev);
     createdNodes.push(btnPrev);
 
-    const btnPrevText = engineOrContext.createText(
+    const btnPrevText = resolvedRenderEngine.createText(
       "◀ Anterior",
       {
         fontSize: accessibilitySystem.scaleFont(15.5),
@@ -487,12 +488,12 @@ export function showOnboardingModal(
     }
 
     // Botão Próximo / Concluir
-    const btnNext = engineOrContext.createGraphics("onboarding-btn-next");
+    const btnNext = resolvedRenderEngine.createGraphics("onboarding-btn-next");
     btnNext.setZIndex(554);
     screenContainer.addChild(btnNext);
     createdNodes.push(btnNext);
 
-    const btnNextText = engineOrContext.createText(
+    const btnNextText = resolvedRenderEngine.createText(
       "Próximo ▶",
       {
         fontSize: accessibilitySystem.scaleFont(16),
@@ -642,7 +643,7 @@ export function showOnboardingModal(
     }
 
     const initialFocusItems = getFocusItemsForSlide(0);
-    focusGroup = createFocusGroup(engineOrContext, {
+    focusGroup = createFocusGroup(resolvedRenderEngine, {
       items: initialFocusItems,
       initialIndex: initialFocusItems.length - 1,
       ringZ: 560,
@@ -653,6 +654,7 @@ export function showOnboardingModal(
   }
 
   // --- MODO LEGADO (COMPATIBILIDADE REVERSA) ---
+  const engineOrContext = engineOrLegacyContext as LegacyOnboardingContext;
   const elements: Array<{ destroy?: () => void } | object> = [];
   let focusGroup: FocusGroup | null = null;
 

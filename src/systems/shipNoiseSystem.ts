@@ -7,8 +7,8 @@ import { safeShake } from "../utils/camera";
 import { getRandomFloat, getRandomInteger } from "../utils/random";
 import { getSpatialCullingManager, type CullableTargetObject } from "./spatialCullingSystem";
 import { getSpatialGrid } from "./spatialHashGrid";
-import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
-import type { IRenderEngine, ISpriteNode } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import type { ISpriteNode } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { getParticlePool } from "./particlePool";
 import { getEntityFamilyTicker } from "./entityFamilyTicker";
 import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
@@ -86,8 +86,7 @@ export function setupShipNoiseSystem<
   const allShipBodies: { pos: { x: number; y: number }; hidden?: boolean }[] = [];
   const cullingManager = getSpatialCullingManager();
   const spatialGrid = getSpatialGrid();
-  const isEngine = isRenderEngine(k);
-  const engineContext = isEngine ? (k as unknown as IRenderEngine) : null;
+  const engineContext = resolveInitializedRenderEngine(k);
 
   // Pre-bake de texturas de navio cargueiro e anel de ruído exclusivamente no carregamento (SKILL.md / Seção 3)
   let bakedCargoShipTexture: unknown = null;

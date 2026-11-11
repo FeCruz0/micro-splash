@@ -18,7 +18,7 @@ import type {
   IGraphicsNode,
   ITextNode,
 } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 
 export interface PwaInstallModalOptions {
   onClose: () => void;
@@ -47,15 +47,16 @@ export interface LegacyPwaModalContext {
 }
 
 export function showPwaInstallModal(
-  engineOrContext: IRenderEngine | LegacyPwaModalContext,
+  engineOrLegacyContext: IRenderEngine | LegacyPwaModalContext,
   options: PwaInstallModalOptions
 ): void {
-  if (isRenderEngine(engineOrContext)) {
+  const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrLegacyContext);
+  if (resolvedRenderEngine) {
     const screenContainer =
-      typeof engineOrContext.getScreenContainer === "function"
-        ? engineOrContext.getScreenContainer()
-        : engineOrContext.getStageRoot();
-    const dimensions = engineOrContext.getDimensions();
+      typeof resolvedRenderEngine.getScreenContainer === "function"
+        ? resolvedRenderEngine.getScreenContainer()
+        : resolvedRenderEngine.getStageRoot();
+    const dimensions = resolvedRenderEngine.getDimensions();
     const screenWidth = dimensions.width;
     const screenHeight = dimensions.height;
     const centerX = screenWidth / 2;
@@ -80,7 +81,7 @@ export function showPwaInstallModal(
     };
 
     // Fundo escuro semitransparente
-    const overlay = engineOrContext.createGraphics("pwa-overlay");
+    const overlay = resolvedRenderEngine.createGraphics("pwa-overlay");
     overlay.drawRect(0, 0, screenWidth, screenHeight, {
       fill: { color: [6, 18, 42], alpha: 0.85 },
     });
@@ -89,7 +90,7 @@ export function showPwaInstallModal(
     createdNodes.push(overlay);
 
     // Cartão central
-    const card = engineOrContext.createGraphics("pwa-card");
+    const card = resolvedRenderEngine.createGraphics("pwa-card");
     card.drawRoundedRect(
       centerX - modalWidth / 2,
       centerY - modalHeight / 2,
@@ -106,7 +107,7 @@ export function showPwaInstallModal(
     createdNodes.push(card);
 
     // Ícone e Título
-    const titleText = engineOrContext.createText(
+    const titleText = resolvedRenderEngine.createText(
       "📱 Instalar Micro Splash",
       {
         fontSize: accessibilitySystem.scaleFont(22),
@@ -127,7 +128,7 @@ export function showPwaInstallModal(
     createdNodes.push(titleText);
 
     // Descrição
-    const descText = engineOrContext.createText(
+    const descText = resolvedRenderEngine.createText(
       "Instale o jogo para jogar offline em feiras, totens e telas cheias com carregamento instantâneo!",
       {
         fontSize: accessibilitySystem.scaleFont(14),
@@ -156,7 +157,7 @@ export function showPwaInstallModal(
     const cancelCenterX = centerX + buttonWidth / 2 + 12;
 
     // Botão Instalar
-    const btnInstall = engineOrContext.createGraphics("pwa-btn-install");
+    const btnInstall = resolvedRenderEngine.createGraphics("pwa-btn-install");
     const drawInstallBtn = (hovered: boolean) => {
       btnInstall.clear();
       btnInstall.drawRoundedRect(
@@ -176,7 +177,7 @@ export function showPwaInstallModal(
     screenContainer.addChild(btnInstall);
     createdNodes.push(btnInstall);
 
-    const btnInstallText = engineOrContext.createText(
+    const btnInstallText = resolvedRenderEngine.createText(
       "Instalar 🚀",
       {
         fontSize: accessibilitySystem.scaleFont(15),
@@ -226,7 +227,7 @@ export function showPwaInstallModal(
     }
 
     // Botão Cancelar
-    const btnCancel = engineOrContext.createGraphics("pwa-btn-cancel");
+    const btnCancel = resolvedRenderEngine.createGraphics("pwa-btn-cancel");
     const drawCancelBtn = (hovered: boolean) => {
       btnCancel.clear();
       btnCancel.drawRoundedRect(
@@ -246,7 +247,7 @@ export function showPwaInstallModal(
     screenContainer.addChild(btnCancel);
     createdNodes.push(btnCancel);
 
-    const btnCancelText = engineOrContext.createText(
+    const btnCancelText = resolvedRenderEngine.createText(
       "Agora Não",
       {
         fontSize: accessibilitySystem.scaleFont(15),
@@ -289,6 +290,7 @@ export function showPwaInstallModal(
   }
 
   // Fallback para contexto legado
+  const engineOrContext = engineOrLegacyContext as LegacyPwaModalContext;
   const elements: Array<{ destroy?: () => void } | object> = [];
   let isClosed = false;
 

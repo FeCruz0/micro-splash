@@ -17,7 +17,7 @@ import type {
   IGraphicsNode,
   ITextNode,
 } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 
 export type OxygenUrgencyState = "calm" | "warning" | "critical";
 
@@ -142,17 +142,18 @@ export function setupHudSystem(
 } {
   const isHighContrast = accessibilitySystem.isHighContrast();
 
-  if (isRenderEngine(engineOrContext)) {
+  const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrContext);
+  if (resolvedRenderEngine) {
     const screenContainer =
-      typeof engineOrContext.getScreenContainer === "function"
-        ? engineOrContext.getScreenContainer()
-        : engineOrContext.getStageRoot();
-    const dimensions = engineOrContext.getDimensions();
+      typeof resolvedRenderEngine.getScreenContainer === "function"
+        ? resolvedRenderEngine.getScreenContainer()
+        : resolvedRenderEngine.getStageRoot();
+    const dimensions = resolvedRenderEngine.getDimensions();
     const screenWidth = dimensions.width;
     const screenHeight = dimensions.height;
 
     // 1. Vinheta periférica de emergência
-    const vignetteNode: IGraphicsNode = engineOrContext.createGraphics("hud_vignette");
+    const vignetteNode: IGraphicsNode = resolvedRenderEngine.createGraphics("hud_vignette");
     vignetteNode.drawRect(0, 0, screenWidth, screenHeight, {
       fill: { color: [180, 10, 30], alpha: 1 },
     });
@@ -164,7 +165,7 @@ export function setupHudSystem(
     // 2. Card Container
     const cardWidth = 236;
     const cardHeight = 62;
-    const cardNode: IGraphicsNode = engineOrContext.createGraphics("hud_card");
+    const cardNode: IGraphicsNode = resolvedRenderEngine.createGraphics("hud_card");
     const outlineColor: [number, number, number] = isHighContrast ? [255, 255, 255] : [30, 80, 140];
     cardNode.drawRoundedRect(0, 0, cardWidth, cardHeight, 8, {
       fill: { color: [6, 18, 42], alpha: 0.85 },
@@ -175,7 +176,7 @@ export function setupHudSystem(
     screenContainer.addChild(cardNode);
 
     // Linha 1: Distância dupla
-    const distanceText: ITextNode = engineOrContext.createText(
+    const distanceText: ITextNode = resolvedRenderEngine.createText(
       "0m • 0,0 mn • 0%",
       {
         fontFamily: FONT_TITLE,
@@ -189,7 +190,7 @@ export function setupHudSystem(
     screenContainer.addChild(distanceText);
 
     // Linha 2: Bioma
-    const biomeText: ITextNode = engineOrContext.createText(
+    const biomeText: ITextNode = resolvedRenderEngine.createText(
       "❄️ Oceano Antártico",
       {
         fontFamily: FONT_BODY,
@@ -206,7 +207,7 @@ export function setupHudSystem(
     const barMaxWidth = cardWidth - 20; // 216px
     const barHeight = 7;
 
-    const barBgNode: IGraphicsNode = engineOrContext.createGraphics("hud_oxygen_bg");
+    const barBgNode: IGraphicsNode = resolvedRenderEngine.createGraphics("hud_oxygen_bg");
     barBgNode.drawRoundedRect(0, 0, barMaxWidth, barHeight, 3, {
       fill: { color: [12, 28, 55], alpha: 0.95 },
     });
@@ -214,7 +215,7 @@ export function setupHudSystem(
     barBgNode.setZIndex(111);
     screenContainer.addChild(barBgNode);
 
-    const oxygenBarFill: IGraphicsNode = engineOrContext.createGraphics("hud_oxygen_fill");
+    const oxygenBarFill: IGraphicsNode = resolvedRenderEngine.createGraphics("hud_oxygen_fill");
     oxygenBarFill.setPosition(24, 59);
     oxygenBarFill.setZIndex(112);
     screenContainer.addChild(oxygenBarFill);
@@ -223,7 +224,7 @@ export function setupHudSystem(
     let currentUrgency: OxygenUrgencyState = "calm";
 
     const updateHud = () => {
-      const deltaTime = engineOrContext.getTicker().getDeltaTime();
+      const deltaTime = resolvedRenderEngine.getTicker().getDeltaTime();
       totalTime += deltaTime;
 
       const currentDistance =
@@ -292,7 +293,7 @@ export function setupHudSystem(
       }
     };
 
-    const unregisterTicker = engineOrContext.getTicker().add(updateHud);
+    const unregisterTicker = resolvedRenderEngine.getTicker().add(updateHud);
 
     return {
       update: updateHud,

@@ -243,3 +243,39 @@ export function isRenderEngine(target: unknown): target is IRenderEngine {
     "getDimensions" in target
   );
 }
+
+/**
+ * Valida se a instância candidata de `IRenderEngine` está inicializada para uso seguro.
+ * Preserva compatibilidade com mocks de teste que omitem `isInitialized`.
+ */
+function isRenderEngineReadyForUse(candidateEngine: IRenderEngine): boolean {
+  const initializationFlag = (candidateEngine as { isInitialized?: unknown }).isInitialized;
+  return typeof initializationFlag === "boolean" ? initializationFlag : true;
+}
+
+/**
+ * Desempacota e resolve uma instância ativa e inicializada de `IRenderEngine` a partir do
+ * próprio motor ou de um wrapper `RenderingContext` (`engineOrContext.renderEngine`).
+ * Retorna `null` para contextos legados ou adaptadores ainda não inicializados.
+ */
+export function resolveInitializedRenderEngine(engineOrContext: unknown): IRenderEngine | null {
+  if (isRenderEngine(engineOrContext)) {
+    return isRenderEngineReadyForUse(engineOrContext) ? engineOrContext : null;
+  }
+
+  if (
+    typeof engineOrContext === "object" &&
+    engineOrContext !== null &&
+    "renderEngine" in engineOrContext
+  ) {
+    const wrappedEngineCandidate = (engineOrContext as { renderEngine?: unknown }).renderEngine;
+    if (
+      isRenderEngine(wrappedEngineCandidate) &&
+      isRenderEngineReadyForUse(wrappedEngineCandidate)
+    ) {
+      return wrappedEngineCandidate;
+    }
+  }
+
+  return null;
+}

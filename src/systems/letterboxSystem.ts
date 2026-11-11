@@ -7,7 +7,7 @@
 
 import { getSavedDisplayMode, getSavedLetterboxColor, type LetterboxColor } from "../config";
 import type { IRenderEngine, IGraphicsNode } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 
 export interface LetterboxHandle {
   update: () => void;
@@ -21,14 +21,25 @@ interface LetterboxBorderElement {
   destroy?: () => void;
 }
 
+interface LegacyLetterboxEngineContext {
+  width(): number;
+  height(): number;
+  rgb?(red: number, green: number, blue: number): unknown;
+  rect(width: number, height: number): unknown;
+  pos(coordinateX: number, coordinateY: number): unknown;
+  color(colorValue: unknown): unknown;
+  fixed?(): unknown;
+  z(layerIndex: number): unknown;
+  add(components: unknown[]): unknown;
+  destroy?(targetEntity: unknown): void;
+}
+
 /**
  * Sistema de Barras Protetoras de Letterbox.
  * Renderiza barras opacas nas margens com z: 999 cobrindo qualquer overflow de conteúdo
  * quando a tela estiver em modo letterbox, com suporte a cores preto (#000000) ou azul oceânico (#06122a).
  */
-export function setupLetterboxBorders(
-  engineOrContext: IRenderEngine | unknown
-): LetterboxHandle {
+export function setupLetterboxBorders(engineOrContext: IRenderEngine | unknown): LetterboxHandle {
   const displayMode = getSavedDisplayMode();
   if (displayMode !== "letterbox") {
     return {
@@ -47,22 +58,23 @@ export function setupLetterboxBorders(
     document.body.style.backgroundColor = backgroundHex;
   }
 
-  if (isRenderEngine(engineOrContext)) {
+  const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrContext);
+  if (resolvedRenderEngine) {
     const targetContainer =
-      typeof engineOrContext.getScreenContainer === "function"
-        ? engineOrContext.getScreenContainer()
-        : engineOrContext.getStageRoot();
+      typeof resolvedRenderEngine.getScreenContainer === "function"
+        ? resolvedRenderEngine.getScreenContainer()
+        : resolvedRenderEngine.getStageRoot();
 
     const { width: currentScreenWidth, height: currentScreenHeight } =
-      engineOrContext.getDimensions();
+      resolvedRenderEngine.getDimensions();
 
     const getPixiColor = (color: LetterboxColor): readonly [number, number, number] =>
       color === "ocean" ? [6, 18, 42] : [0, 0, 0];
 
-    const topBar = engineOrContext.createGraphics("letterbox_border_top");
-    const bottomBar = engineOrContext.createGraphics("letterbox_border_bottom");
-    const leftBar = engineOrContext.createGraphics("letterbox_border_left");
-    const rightBar = engineOrContext.createGraphics("letterbox_border_right");
+    const topBar = resolvedRenderEngine.createGraphics("letterbox_border_top");
+    const bottomBar = resolvedRenderEngine.createGraphics("letterbox_border_bottom");
+    const leftBar = resolvedRenderEngine.createGraphics("letterbox_border_left");
+    const rightBar = resolvedRenderEngine.createGraphics("letterbox_border_right");
 
     const bars: IGraphicsNode[] = [topBar, bottomBar, leftBar, rightBar];
     bars.forEach((bar) => {
@@ -70,11 +82,7 @@ export function setupLetterboxBorders(
       targetContainer.addChild(bar);
     });
 
-    const redrawBars = (
-      color: LetterboxColor,
-      screenWidth: number,
-      screenHeight: number
-    ): void => {
+    const redrawBars = (color: LetterboxColor, screenWidth: number, screenHeight: number): void => {
       const colorTuple = getPixiColor(color);
 
       topBar.clear();
@@ -106,12 +114,12 @@ export function setupLetterboxBorders(
 
     return {
       update: () => {
-        const { width: updatedWidth, height: updatedHeight } = engineOrContext.getDimensions();
+        const { width: updatedWidth, height: updatedHeight } = resolvedRenderEngine.getDimensions();
         redrawBars(currentColor, updatedWidth, updatedHeight);
       },
       setColor: (color: LetterboxColor) => {
         currentColor = color;
-        const { width: updatedWidth, height: updatedHeight } = engineOrContext.getDimensions();
+        const { width: updatedWidth, height: updatedHeight } = resolvedRenderEngine.getDimensions();
         redrawBars(color, updatedWidth, updatedHeight);
         if (typeof document !== "undefined" && document.body) {
           document.body.style.backgroundColor = color === "ocean" ? "#06122a" : "#000000";
@@ -124,7 +132,7 @@ export function setupLetterboxBorders(
   }
 
   // Modo Legacy Kaboom Bridge
-  const legacyCtx = engineOrContext as any;
+  const legacyCtx = engineOrContext as LegacyLetterboxEngineContext;
 
   const getRgbColor = (color: LetterboxColor) =>
     typeof legacyCtx.rgb === "function"

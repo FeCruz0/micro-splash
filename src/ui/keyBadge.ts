@@ -7,7 +7,7 @@
 
 import { FONT_TITLE, TEXT_SIZE_CAPTION } from "../config";
 import type { IRenderEngine, Vector2D } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 
 export interface KeyBadgeOptions {
   pos: Vector2D;
@@ -46,7 +46,7 @@ export interface LegacyKeyBadgeEngine {
  * instruções textuais genéricas por identificadores visuais táteis reconhecíveis.
  */
 export function createKeyBadge(
-  engineOrContext: IRenderEngine | LegacyKeyBadgeEngine,
+  engineOrLegacyContext: IRenderEngine | LegacyKeyBadgeEngine,
   opts: KeyBadgeOptions
 ): KeyBadgeHandle {
   const z = opts.z ?? 100;
@@ -59,14 +59,15 @@ export function createKeyBadge(
   const calculatedWidth = Math.max(opts.minWidth ?? 26, textLength * 8.5 + paddingHorizontal);
   const badgeHeight = 22;
 
-  if (isRenderEngine(engineOrContext)) {
+  const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrLegacyContext);
+  if (resolvedRenderEngine) {
     const screenContainer =
-      typeof engineOrContext.getScreenContainer === "function"
-        ? engineOrContext.getScreenContainer()
-        : engineOrContext.getStageRoot();
+      typeof resolvedRenderEngine.getScreenContainer === "function"
+        ? resolvedRenderEngine.getScreenContainer()
+        : resolvedRenderEngine.getStageRoot();
 
     // 1. Sombra / Chanfro inferior 3D da tecla
-    const baseShadow = engineOrContext.createGraphics("key_badge_shadow");
+    const baseShadow = resolvedRenderEngine.createGraphics("key_badge_shadow");
     baseShadow.drawRoundedRect(
       opts.pos.x - calculatedWidth / 2,
       opts.pos.y + 2 - badgeHeight / 2,
@@ -79,7 +80,7 @@ export function createKeyBadge(
     screenContainer.addChild(baseShadow);
 
     // 2. Face superior da tecla
-    const keyCap = engineOrContext.createGraphics("key_badge_cap");
+    const keyCap = resolvedRenderEngine.createGraphics("key_badge_cap");
     keyCap.drawRoundedRect(
       opts.pos.x - calculatedWidth / 2,
       opts.pos.y - badgeHeight / 2,
@@ -95,7 +96,7 @@ export function createKeyBadge(
     screenContainer.addChild(keyCap);
 
     // 3. Rótulo centralizado
-    const keyText = engineOrContext.createText(
+    const keyText = resolvedRenderEngine.createText(
       opts.keyLabel,
       {
         fontFamily: FONT_TITLE,
@@ -127,6 +128,7 @@ export function createKeyBadge(
   }
 
   // Fallback e interoperabilidade para contexto legado
+  const engineOrContext = engineOrLegacyContext as LegacyKeyBadgeEngine;
   const elements: unknown[] = [];
 
   const resolveRgb = (red: number, green: number, blue: number): unknown => {

@@ -6,7 +6,7 @@
  */
 
 import type { IRenderEngine, IGraphicsNode } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { resolveCameraX } from "./cameraSystem";
 import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
 
@@ -86,17 +86,17 @@ interface LegacyAbyssalFogEngineContext {
  * dissolvendo o fundo oceânico nas trevas abissais e eliminando cortes geométricos secos.
  */
 export function setupAbyssalFogSystem(engineOrContext: IRenderEngine | unknown): AbyssalFogSystem {
-  const isPixi = isRenderEngine(engineOrContext);
-  const legacyEngineContext = !isPixi
+  const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrContext);
+  const legacyEngineContext = !resolvedRenderEngine
     ? (engineOrContext as LegacyAbyssalFogEngineContext)
     : undefined;
-  const screenH = isPixi
-    ? engineOrContext.getDimensions().height
+  const screenH = resolvedRenderEngine
+    ? resolvedRenderEngine.getDimensions().height
     : typeof legacyEngineContext?.height === "function"
       ? legacyEngineContext.height()
       : 360;
-  const screenW = isPixi
-    ? engineOrContext.getDimensions().width
+  const screenW = resolvedRenderEngine
+    ? resolvedRenderEngine.getDimensions().width
     : typeof legacyEngineContext?.width === "function"
       ? legacyEngineContext.width()
       : 640;
@@ -108,10 +108,10 @@ export function setupAbyssalFogSystem(engineOrContext: IRenderEngine | unknown):
     { offsetY: 18, h: 18, opacity: 0.7 },
   ];
 
-  if (isPixi) {
-    const worldContainer = resolveWorldRenderContainer(engineOrContext);
+  if (resolvedRenderEngine) {
+    const worldContainer = resolveWorldRenderContainer(resolvedRenderEngine);
     const layers: FogRenderObject[] = layerConfigs.map((cfg) => {
-      const g = engineOrContext.createGraphics("abyssal_fog_layer");
+      const g = resolvedRenderEngine.createGraphics("abyssal_fog_layer");
       g.drawRect(0, 0, screenW * 2.2, cfg.h, {
         fill: { color: [6, 12, 28], alpha: 1 },
       });
@@ -123,8 +123,8 @@ export function setupAbyssalFogSystem(engineOrContext: IRenderEngine | unknown):
       return new PixiFogNodeProxy(g, initialY);
     });
 
-    const unregister = engineOrContext.getTicker().add(() => {
-      const camX = resolveCameraX(engineOrContext);
+    const unregister = resolvedRenderEngine.getTicker().add(() => {
+      const camX = resolveCameraX(resolvedRenderEngine);
       const leftX = camX - screenW * 1.1;
       layers.forEach((layer) => {
         layer.pos.x = leftX;

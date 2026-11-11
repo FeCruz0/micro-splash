@@ -16,7 +16,7 @@ import type {
   ITextNode,
   Vector2D,
 } from "../../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveInitializedRenderEngine } from "../../engine/contracts/INTERFACE_CONTRACTS";
 
 export type CardButtonVariant = "primary" | "secondary" | "danger" | "ghost";
 
@@ -123,12 +123,13 @@ export function createCardButton<
     onActivate: trigger,
   };
 
-  if (isRenderEngine(engineOrContext)) {
+  const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrContext);
+  if (resolvedRenderEngine) {
     const screenContainer =
-      typeof engineOrContext.getScreenContainer === "function"
-        ? engineOrContext.getScreenContainer()
-        : engineOrContext.getStageRoot();
-    const btnNode: IGraphicsNode = engineOrContext.createGraphics("card_button_bg");
+      typeof resolvedRenderEngine.getScreenContainer === "function"
+        ? resolvedRenderEngine.getScreenContainer()
+        : resolvedRenderEngine.getStageRoot();
+    const btnNode: IGraphicsNode = resolvedRenderEngine.createGraphics("card_button_bg");
     const radius = options.radius ?? UI_RADII.md;
 
     const drawButton = (isHover: boolean) => {
@@ -150,7 +151,7 @@ export function createCardButton<
     btnNode.setZIndex(zBase);
     screenContainer.addChild(btnNode);
 
-    const txtNode: ITextNode = engineOrContext.createText(
+    const txtNode: ITextNode = resolvedRenderEngine.createText(
       options.label,
       {
         fontFamily: options.fontFamily ?? "Outfit",

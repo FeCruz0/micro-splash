@@ -8,7 +8,7 @@
 
 import { accessibilitySystem } from "../../systems/accessibilitySystem";
 import type { IRenderEngine, Vector2D } from "../../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveInitializedRenderEngine } from "../../engine/contracts/INTERFACE_CONTRACTS";
 import { createTween, Easings } from "../../engine/utils/Tween";
 
 export interface PulseEffectOptions {
@@ -100,8 +100,9 @@ export function attachPulseEffect(
     }
   };
 
-  if (isRenderEngine(engineOrContext)) {
-    const unregister = engineOrContext.getTicker().add((deltaTime: number) => {
+  const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrContext);
+  if (resolvedRenderEngine) {
+    const unregister = resolvedRenderEngine.getTicker().add((deltaTime: number) => {
       if (isStopped) return;
 
       if (checkReducedMotion()) {
@@ -231,8 +232,9 @@ export function staggerElementsEntrance(
 
   let completedCount = 0;
 
-  if (isRenderEngine(engineOrContext)) {
-    const ticker = engineOrContext.getTicker();
+  const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrContext);
+  if (resolvedRenderEngine) {
+    const ticker = resolvedRenderEngine.getTicker();
 
     validElements.forEach((el, index) => {
       const originalY =

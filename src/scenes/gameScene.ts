@@ -68,8 +68,7 @@ export interface GameSceneUiObject {
 }
 
 export interface GameSceneEngineContext {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-  scene(id: string, action: Function): unknown;
+  scene(id: string, action: (transitionData?: unknown) => void): unknown;
   setGravity(gravity: number): unknown;
   add(components?: unknown): unknown;
   rect(width: number, height: number, options?: unknown): unknown;
@@ -172,8 +171,8 @@ export function registerGameScene(
 
   const legacyScene = createGameScene(engineContext);
   if (typeof engineContext.scene === "function") {
-    engineContext.scene("game", (options: GameOptions = { mode: "standard" }) => {
-      legacyScene.enter(options);
+    engineContext.scene("game", (transitionData?: unknown) => {
+      legacyScene.enter(transitionData);
     });
   }
 }
@@ -477,6 +476,9 @@ export function createGameScene(
       k.onSceneLeave(() => {
         spatialGrid.clear();
         entityFamilyTicker.clear();
+        if (typeof particlePool.destroy === "function") {
+          particlePool.destroy();
+        }
       });
 
       // Trava escala da câmera permanentemente em 1.0 (Zero Dynamic Zoom)
@@ -499,7 +501,12 @@ export function createGameScene(
       setupCanyonSystem(k);
       setupOceanFloorSystem(k);
       setupLightRaysSystem(k);
-      setupParallaxSkySystem(k);
+      const parallaxSkySystem = setupParallaxSkySystem(k);
+      k.onSceneLeave(() => {
+        if (typeof parallaxSkySystem?.destroy === "function") {
+          parallaxSkySystem.destroy();
+        }
+      });
       setupBenthicFloorSystem(k);
       setupOilSpillSystem(k, playerController);
       setupDolphinDraftingSystem(k, playerController);
@@ -507,13 +514,26 @@ export function createGameScene(
       setupWeatherSystem(k, playerController);
 
       // Fase 20: Imersão Visual Avançada
-      setupDynamicShadowSystem(k, playerController);
-      setupBioluminescenceSystem(k, playerController);
+      const dynamicShadowSystem = setupDynamicShadowSystem(k, playerController);
+      const bioluminescenceSystem = setupBioluminescenceSystem(k, playerController);
       // Vinhetas de localização e marcos geográficos exclusivas da Migração Serena
-      if (options.mode === "serene") {
-        setupBiomeVignetteSystem(k, playerController);
-      }
+      const biomeVignetteSystem =
+        options.mode === "serene" ? setupBiomeVignetteSystem(k, playerController) : null;
       const sereneInsights = setupSereneInsightsSystem(k, options.mode === "serene");
+      k.onSceneLeave(() => {
+        if (typeof dynamicShadowSystem?.destroy === "function") {
+          dynamicShadowSystem.destroy();
+        }
+        if (typeof bioluminescenceSystem?.destroy === "function") {
+          bioluminescenceSystem.destroy();
+        }
+        if (typeof biomeVignetteSystem?.destroy === "function") {
+          biomeVignetteSystem.destroy();
+        }
+        if (typeof sereneInsights?.destroy === "function") {
+          sereneInsights.destroy();
+        }
+      });
 
       // Fase 56 & 60: Baleia-Guia / Co-Migrante - Tutorial Mimético e Co-Migração Serena
       const isCoMigrationMode = options.mode === "serene";
@@ -533,13 +553,30 @@ export function createGameScene(
       setupCinematicCameraSystem(k, playerController);
 
       // Fase 29: Superfície, Céu & Atmosfera
-      setupAuroraSystem(k);
-      setupAbyssalFogSystem(k);
-      setupCoastalSurfSystem(k);
+      const auroraSystem = setupAuroraSystem(k);
+      const abyssalFogSystem = setupAbyssalFogSystem(k);
+      const coastalSurfSystem = setupCoastalSurfSystem(k);
 
       // Fase 30: Fundo Submarino, Iluminação & Identidade dos Obstáculos
-      setupMarineSnowSystem(k);
-      setupDepthDarknessSystem(k, playerController);
+      const cleanupMarineSnowSystem = setupMarineSnowSystem(k);
+      const depthDarknessSystem = setupDepthDarknessSystem(k, playerController);
+      k.onSceneLeave(() => {
+        if (typeof auroraSystem?.destroy === "function") {
+          auroraSystem.destroy();
+        }
+        if (typeof abyssalFogSystem?.destroy === "function") {
+          abyssalFogSystem.destroy();
+        }
+        if (typeof coastalSurfSystem?.destroy === "function") {
+          coastalSurfSystem.destroy();
+        }
+        if (typeof cleanupMarineSnowSystem === "function") {
+          cleanupMarineSnowSystem();
+        }
+        if (typeof depthDarknessSystem?.destroy === "function") {
+          depthDarknessSystem.destroy();
+        }
+      });
 
       // 4. Inicializa áudio da migração
       audioSystem.startMigrationAudio(initialX);

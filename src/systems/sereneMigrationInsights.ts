@@ -2,7 +2,7 @@ import { FONT_TITLE, FONT_BODY } from "../config";
 import { ttsSystem } from "./ttsSystem";
 import { accessibilitySystem } from "./accessibilitySystem";
 import { createTween, Easings } from "../engine/utils/Tween";
-import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 
 export type InsightCategory = "biology" | "oceanography" | "conservation";
 
@@ -270,8 +270,9 @@ export class SereneInsightsManager {
 
     const isReducedMotion = accessibilitySystem.isReducedMotion();
     const transitionDuration = isReducedMotion ? 0.05 : 0.45;
+    const resolvedRenderEngine = resolveInitializedRenderEngine(k);
 
-    if (!isRenderEngine(k) && typeof k.tween === "function" && k.easings?.easeOutQuad) {
+    if (!resolvedRenderEngine && typeof k.tween === "function" && k.easings?.easeOutQuad) {
       k.tween(
         startY,
         targetY + boxHeight / 2,
@@ -311,7 +312,7 @@ export class SereneInsightsManager {
       return;
     }
 
-    const explicitTicker = isRenderEngine(k) ? k.getTicker() : undefined;
+    const explicitTicker = resolvedRenderEngine ? resolvedRenderEngine.getTicker() : undefined;
 
     // Animação de entrada
     const entranceTweenHandle = createTween(

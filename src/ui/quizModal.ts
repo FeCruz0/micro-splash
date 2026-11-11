@@ -18,7 +18,7 @@ import type {
   IGraphicsNode,
   ITextNode,
 } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 
 export interface QuizQuestion {
   id: string;
@@ -123,7 +123,7 @@ export interface LegacyQuizModalContext {
 }
 
 export function showQuizModal(
-  engineOrContext: IRenderEngine | LegacyQuizModalContext,
+  engineOrLegacyContext: IRenderEngine | LegacyQuizModalContext,
   gameState: GameState,
   onComplete: (scoreGained: number, correctCount: number) => void,
   onCancel: () => void
@@ -144,12 +144,13 @@ export function showQuizModal(
   let currentSelectOption: ((idx: number) => void) | null = null;
   let onAdvanceCallback: (() => void) | null = null;
 
-  if (isRenderEngine(engineOrContext)) {
+  const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrLegacyContext);
+  if (resolvedRenderEngine) {
     const screenContainer =
-      typeof engineOrContext.getScreenContainer === "function"
-        ? engineOrContext.getScreenContainer()
-        : engineOrContext.getStageRoot();
-    const dimensions = engineOrContext.getDimensions();
+      typeof resolvedRenderEngine.getScreenContainer === "function"
+        ? resolvedRenderEngine.getScreenContainer()
+        : resolvedRenderEngine.getStageRoot();
+    const dimensions = resolvedRenderEngine.getDimensions();
     const screenW = dimensions.width;
     const screenH = dimensions.height;
     const cX = screenW / 2;
@@ -193,7 +194,7 @@ export function showQuizModal(
     };
 
     // Fundo escuro semi-transparente
-    const backdrop = engineOrContext.createGraphics("quiz-backdrop");
+    const backdrop = resolvedRenderEngine.createGraphics("quiz-backdrop");
     backdrop.drawRect(0, 0, screenW, screenH, {
       fill: { color: [4, 12, 28], alpha: 0.95 },
     });
@@ -202,7 +203,7 @@ export function showQuizModal(
     staticNodes.push(backdrop);
 
     // Card do Quiz
-    const card = engineOrContext.createGraphics("quiz-card");
+    const card = resolvedRenderEngine.createGraphics("quiz-card");
     card.drawRoundedRect(cX - cardW / 2, cY - cardH / 2, cardW, cardH, 16, {
       fill: { color: [10, 28, 56], alpha: 1 },
       stroke: { color: [100, 220, 255], width: 2.5 },
@@ -212,7 +213,7 @@ export function showQuizModal(
     staticNodes.push(card);
 
     // Título do Quiz
-    const titleText = engineOrContext.createText(
+    const titleText = resolvedRenderEngine.createText(
       "DESAFIO DE CONHECIMENTO ECOLÓGICO 🧪🐋",
       {
         fontSize: accessibilitySystem.scaleFont(26),
@@ -233,7 +234,7 @@ export function showQuizModal(
     // Botão Fechar (✕)
     const btnCloseX = cX + cardW / 2 - 28;
     const btnCloseY = cY - cardH / 2 + 28;
-    const btnClose = engineOrContext.createGraphics("quiz-btn-close");
+    const btnClose = resolvedRenderEngine.createGraphics("quiz-btn-close");
     const drawCloseBtn = (hovered: boolean) => {
       btnClose.clear();
       btnClose.drawRoundedRect(btnCloseX - 17, btnCloseY - 17, 34, 34, 8, {
@@ -246,7 +247,7 @@ export function showQuizModal(
     screenContainer.addChild(btnClose);
     staticNodes.push(btnClose);
 
-    const closeText = engineOrContext.createText(
+    const closeText = resolvedRenderEngine.createText(
       "✕",
       {
         fontSize: accessibilitySystem.scaleFont(16),
@@ -336,7 +337,7 @@ export function showQuizModal(
         `Bônus: +${scoreGained} pts`,
       ].filter(Boolean);
 
-      const metaText = engineOrContext.createText(
+      const metaText = resolvedRenderEngine.createText(
         metaParts.join("  •  "),
         {
           fontSize: accessibilitySystem.scaleFont(15),
@@ -354,7 +355,7 @@ export function showQuizModal(
       screenContainer.addChild(metaText);
       dynamicNodes.push(metaText);
 
-      const questionText = engineOrContext.createText(
+      const questionText = resolvedRenderEngine.createText(
         q.question,
         {
           fontSize: accessibilitySystem.scaleFont(19),
@@ -426,7 +427,7 @@ export function showQuizModal(
           }
         });
 
-        const feedbackText = engineOrContext.createText(
+        const feedbackText = resolvedRenderEngine.createText(
           `${isCorrect ? "✅ Correto! (+100 pts)" : "❌ Incorreto!"} ${q.explanation}`,
           {
             fontSize: accessibilitySystem.scaleFont(14.5),
@@ -450,7 +451,7 @@ export function showQuizModal(
 
         const isLastQuestion = currentQuestionIdx === questions.length - 1;
         const btnNextY = cY + cardH / 2 - 30;
-        const btnNext = engineOrContext.createGraphics("quiz-btn-next");
+        const btnNext = resolvedRenderEngine.createGraphics("quiz-btn-next");
         const drawNextBtn = (hovered: boolean) => {
           btnNext.clear();
           btnNext.drawRoundedRect(cX - 140, btnNextY - 23, 280, 46, 9, {
@@ -463,7 +464,7 @@ export function showQuizModal(
         screenContainer.addChild(btnNext);
         dynamicNodes.push(btnNext);
 
-        const btnNextText = engineOrContext.createText(
+        const btnNextText = resolvedRenderEngine.createText(
           isLastQuestion ? "Ver Resultado 🏆 (ENTER)" : "Próxima Pergunta ▶ (ENTER)",
           {
             fontSize: accessibilitySystem.scaleFont(16),
@@ -513,7 +514,7 @@ export function showQuizModal(
 
       q.options.forEach((optText, optIdx) => {
         const optY = startY + optIdx * optionSpacing;
-        const optBtn = engineOrContext.createGraphics(`quiz-opt-${optIdx}`);
+        const optBtn = resolvedRenderEngine.createGraphics(`quiz-opt-${optIdx}`);
         const drawOption = (hovered: boolean) => {
           optBtn.clear();
           optBtn.drawRoundedRect(cX - btnW / 2, optY - btnH / 2, btnW, btnH, 9, {
@@ -527,7 +528,7 @@ export function showQuizModal(
         dynamicNodes.push(optBtn);
         optionButtons.push(optBtn);
 
-        const optLabel = engineOrContext.createText(
+        const optLabel = resolvedRenderEngine.createText(
           `${optionLetters[optIdx]}) ${optText}`,
           {
             fontSize: accessibilitySystem.scaleFont(16),
@@ -577,7 +578,7 @@ export function showQuizModal(
 
       audioSystem.playVictoryFanfare();
 
-      const congratText = engineOrContext.createText(
+      const congratText = resolvedRenderEngine.createText(
         "PARABÉNS PELO DESEMPENHO ECOLÓGICO! 🎉",
         {
           fontSize: accessibilitySystem.scaleFont(26),
@@ -597,7 +598,7 @@ export function showQuizModal(
       screenContainer.addChild(congratText);
       dynamicNodes.push(congratText);
 
-      const scoreText = engineOrContext.createText(
+      const scoreText = resolvedRenderEngine.createText(
         `Você acertou ${correctAnswers} de ${questions.length} perguntas!\n` +
           `Bônus Conquistado: +${scoreGained} Eco-Pontos somados à sua pontuação!`,
         {
@@ -619,7 +620,7 @@ export function showQuizModal(
       screenContainer.addChild(scoreText);
       dynamicNodes.push(scoreText);
 
-      const certText = engineOrContext.createText(
+      const certText = resolvedRenderEngine.createText(
         "Seus conhecimentos sobre a migração e conservação marinha\n" +
           "foram registrados no seu Certificado Oficial da Expedição!",
         {
@@ -640,7 +641,7 @@ export function showQuizModal(
       dynamicNodes.push(certText);
 
       const finishBtnY = cY + 130;
-      const btnFinish = engineOrContext.createGraphics("quiz-btn-finish");
+      const btnFinish = resolvedRenderEngine.createGraphics("quiz-btn-finish");
       const drawFinishBtn = (hovered: boolean) => {
         btnFinish.clear();
         btnFinish.drawRoundedRect(cX - 150, finishBtnY - 25, 300, 50, 10, {
@@ -653,7 +654,7 @@ export function showQuizModal(
       screenContainer.addChild(btnFinish);
       dynamicNodes.push(btnFinish);
 
-      const finishLabel = engineOrContext.createText(
+      const finishLabel = resolvedRenderEngine.createText(
         "Concluir e Voltar 📜 (ENTER)",
         {
           fontSize: accessibilitySystem.scaleFont(16.5),
@@ -701,6 +702,7 @@ export function showQuizModal(
   }
 
   // --- MODO LEGADO (COMPATIBILIDADE REVERSA) ---
+  const engineOrContext = engineOrLegacyContext as LegacyQuizModalContext;
   const elements: Array<{ destroy?: () => void } | object> = [];
   let dynamicElements: Array<{ destroy?: () => void } | object> = [];
   const keyListeners: Array<{ cancel?: () => void }> = [];

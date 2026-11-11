@@ -8,7 +8,7 @@
 import { GAME_CONFIG } from "../config";
 import { getSpatialCullingManager } from "./spatialCullingSystem";
 import type { IRenderEngine, IGraphicsNode } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { resolveCameraX } from "./cameraSystem";
 import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
 import {
@@ -95,22 +95,22 @@ interface LegacyLightRaysEngineContext {
  * Traz atmosfera cinematográfica e sensação de profundidade através da luz solar filtrada na água.
  */
 export function setupLightRaysSystem(engineOrContext: IRenderEngine | unknown): void {
-  const isPixi = isRenderEngine(engineOrContext);
-  const legacyEngineContext = !isPixi
+  const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrContext);
+  const legacyEngineContext = !resolvedRenderEngine
     ? (engineOrContext as LegacyLightRaysEngineContext)
     : undefined;
   const rayCount = 15;
   const causticSegments = 10;
-  const screenWidth = isPixi
-    ? engineOrContext.getDimensions().width
+  const screenWidth = resolvedRenderEngine
+    ? resolvedRenderEngine.getDimensions().width
     : typeof legacyEngineContext?.width === "function"
       ? legacyEngineContext.width()
       : 640;
 
   let isSystemVisible = true;
 
-  if (isPixi) {
-    const worldContainer = resolveWorldRenderContainer(engineOrContext);
+  if (resolvedRenderEngine) {
+    const worldContainer = resolveWorldRenderContainer(resolvedRenderEngine);
     const godRays: { node: IGraphicsNode; profile: RayGeometryProfile; data: GodRayData }[] = [];
     const caustics: { node: IGraphicsNode; data: CausticData }[] = [];
 
@@ -119,7 +119,7 @@ export function setupLightRaysSystem(engineOrContext: IRenderEngine | unknown): 
       const baseAngleDeg = -18 + index * 2.6;
       const profile = createVolumetricRayProfile(baseWidth);
 
-      const graphicsNode = engineOrContext.createGraphics("god_ray");
+      const graphicsNode = resolvedRenderEngine.createGraphics("god_ray");
       drawVolumetricRay(graphicsNode, profile, [120, 195, 235]);
       graphicsNode.setPosition(0, GAME_CONFIG.SEA_LEVEL);
       graphicsNode.setRotation((baseAngleDeg * Math.PI) / 180);
@@ -141,7 +141,7 @@ export function setupLightRaysSystem(engineOrContext: IRenderEngine | unknown): 
 
     const causticWidth = screenWidth / causticSegments + 10;
     for (let c = 0; c < causticSegments; c++) {
-      const g = engineOrContext.createGraphics("caustic_surface");
+      const g = resolvedRenderEngine.createGraphics("caustic_surface");
       g.drawRoundedRect(0, 0, causticWidth, 4, 2, {
         fill: { color: [220, 245, 255], alpha: 1 },
       });
@@ -173,11 +173,11 @@ export function setupLightRaysSystem(engineOrContext: IRenderEngine | unknown): 
     let time = 0;
     let lastColor: readonly [number, number, number] | null = null;
 
-    engineOrContext.getTicker().add((deltaTimeInSeconds: number) => {
+    resolvedRenderEngine.getTicker().add((deltaTimeInSeconds: number) => {
       if (!isSystemVisible) return;
       time += deltaTimeInSeconds;
 
-      const cameraXPosition = resolveCameraX(engineOrContext);
+      const cameraXPosition = resolveCameraX(resolvedRenderEngine);
       const screenLeft = cameraXPosition - screenWidth / 2;
       const atmospheric = resolveBiomeLightColor(cameraXPosition);
 

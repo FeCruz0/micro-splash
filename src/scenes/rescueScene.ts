@@ -4,8 +4,7 @@ import type { GameState } from "../systems/state";
 import { audioSystem } from "../systems/audioSystem";
 
 export interface RescueSceneEngineContext extends ShowRescueEngineContext {
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-  scene(id: string, action: Function): unknown;
+  scene(id: string, action: (transitionData?: unknown) => void): unknown;
   go(id: string, ...args: unknown[]): unknown;
 }
 
@@ -37,7 +36,8 @@ export function registerRescueScene(
   }
 
   if (typeof engineContext.scene === "function") {
-    engineContext.scene("rescue", (gameState: GameState) => {
+    engineContext.scene("rescue", (transitionData?: unknown) => {
+      const gameState = transitionData as GameState;
       showRescueScreen(engineContext, gameState, () => {
         audioSystem.stopMigrationAudio();
         if (typeof engineContext.go === "function") {

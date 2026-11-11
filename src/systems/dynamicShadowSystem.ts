@@ -9,7 +9,7 @@ import { GAME_CONFIG } from "../config";
 import type { PlayerController } from "../entities/player";
 import { getCurrentBiome } from "./oceanEnvironment";
 import type { IRenderEngine, IGraphicsNode } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
 
 export interface ShadowMetrics {
@@ -201,14 +201,14 @@ export function setupDynamicShadowSystem(
   engineOrContext: IRenderEngine | unknown,
   playerController: PlayerController
 ): DynamicShadowSystem {
-  const isPixi = isRenderEngine(engineOrContext);
+  const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrContext);
 
-  if (isPixi) {
-    const worldContainer = resolveWorldRenderContainer(engineOrContext);
-    const screenH = engineOrContext.getDimensions().height;
+  if (resolvedRenderEngine) {
+    const worldContainer = resolveWorldRenderContainer(resolvedRenderEngine);
+    const screenH = resolvedRenderEngine.getDimensions().height;
 
     // Camada 1: Penumbra externa difusa
-    const penumbraHalo = engineOrContext.createGraphics("player_shadow_penumbra");
+    const penumbraHalo = resolvedRenderEngine.createGraphics("player_shadow_penumbra");
     penumbraHalo.drawRoundedRect(-57, -7, 114, 14, 7, {
       fill: { color: [6, 16, 32], alpha: 1 },
     });
@@ -218,7 +218,7 @@ export function setupDynamicShadowSystem(
     worldContainer.addChild(penumbraHalo);
 
     // Camada 2: Umbra central
-    const umbraCore = engineOrContext.createGraphics("player_dynamic_shadow");
+    const umbraCore = resolvedRenderEngine.createGraphics("player_dynamic_shadow");
     umbraCore.drawRoundedRect(-41, -4, 82, 8, 4, {
       fill: { color: [3, 10, 22], alpha: 1 },
     });
@@ -230,7 +230,7 @@ export function setupDynamicShadowSystem(
     const penumbraProxy = new PixiShadowNodeProxy(penumbraHalo);
     const umbraProxy = new PixiShadowNodeProxy(umbraCore);
 
-    const unregister = engineOrContext.getTicker().add((deltaTime: number) => {
+    const unregister = resolvedRenderEngine.getTicker().add((deltaTime: number) => {
       const baleia = playerController.gameObj;
       if (!baleia || !baleia.pos) return;
 

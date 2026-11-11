@@ -8,7 +8,7 @@
 import { GAME_CONFIG } from "../config";
 import type { PlayerController } from "../entities/player";
 import type { IRenderEngine, IRenderNode, Vector2D } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { resolveScreenRenderContainer } from "../engine/adapters/RenderEngineAdapter";
 
 class FallbackRenderNodeAdapter implements IRenderNode {
@@ -161,19 +161,19 @@ export function setupDepthDarknessSystem(
   engineOrContext: IRenderEngine | unknown,
   playerController: PlayerController
 ): DepthDarknessHandle {
-  const isPixi = isRenderEngine(engineOrContext);
+  const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrContext);
 
-  if (isPixi) {
-    const { width, height } = engineOrContext.getDimensions();
-    const overlay = engineOrContext.createGraphics("depth_darkness_overlay");
+  if (resolvedRenderEngine) {
+    const { width, height } = resolvedRenderEngine.getDimensions();
+    const overlay = resolvedRenderEngine.createGraphics("depth_darkness_overlay");
     overlay.drawRect(0, 0, width, height, {
       fill: { color: [0, 10, 25], alpha: 1 },
     });
     overlay.setOpacity(0);
     overlay.setZIndex(8);
-    resolveScreenRenderContainer(engineOrContext).addChild(overlay);
+    resolveScreenRenderContainer(resolvedRenderEngine).addChild(overlay);
 
-    const unregister = engineOrContext.getTicker().add((dt: number) => {
+    const unregister = resolvedRenderEngine.getTicker().add((dt: number) => {
       const playerObj = playerController.gameObj;
       if (!playerObj) return;
 

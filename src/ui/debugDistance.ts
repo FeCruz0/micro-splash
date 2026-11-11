@@ -9,7 +9,7 @@ import { GAME_CONFIG, getSavedDisplayMode } from "../config";
 import { getCurrentBiome } from "../systems/oceanEnvironment";
 import type { PlayerController } from "../entities/player";
 import type { IRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 
 export interface PerformanceStats {
   fps?: number;
@@ -115,16 +115,17 @@ export function formatResolutionInfo(
   let w = 1280;
   let h = 720;
   if (engineOrContext) {
-    if (isRenderEngine(engineOrContext)) {
-      const dims = engineOrContext.getDimensions();
+    const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrContext);
+    if (resolvedRenderEngine) {
+      const dims = resolvedRenderEngine.getDimensions();
       w = dims.width;
       h = dims.height;
     } else if (
-      typeof engineOrContext.width === "function" &&
-      typeof engineOrContext.height === "function"
+      typeof (engineOrContext as LegacyDebugDistanceContext).width === "function" &&
+      typeof (engineOrContext as LegacyDebugDistanceContext).height === "function"
     ) {
-      w = engineOrContext.width();
-      h = engineOrContext.height();
+      w = (engineOrContext as LegacyDebugDistanceContext).width!();
+      h = (engineOrContext as LegacyDebugDistanceContext).height!();
     }
   }
   const displayMode = getSavedDisplayMode();
@@ -133,7 +134,7 @@ export function formatResolutionInfo(
 }
 
 export function createDebugDistanceUI(
-  engineOrContext: IRenderEngine | LegacyDebugDistanceContext,
+  engineOrLegacyContext: IRenderEngine | LegacyDebugDistanceContext,
   playerController?: PlayerController
 ): DebugDistanceUIHandle {
   const fpsHistory: number[] = [];
@@ -141,8 +142,9 @@ export function createDebugDistanceUI(
   const totalFormatted = GAME_CONFIG.ROUTE_TOTAL_DISTANCE.toLocaleString("pt-BR");
   const isSerene = playerController?.isSereneMode?.() ?? false;
 
-  if (isRenderEngine(engineOrContext)) {
-    const dimensions = engineOrContext.getDimensions();
+  const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrLegacyContext);
+  if (resolvedRenderEngine) {
+    const dimensions = resolvedRenderEngine.getDimensions();
     const screenW = dimensions.width;
     const isHighRes = screenW >= 1920;
     const isMediumRes = screenW >= 1280;
@@ -159,17 +161,17 @@ export function createDebugDistanceUI(
     const fontSizeTech = Math.round(11 * scale);
 
     const screenContainer =
-      typeof engineOrContext.getScreenContainer === "function"
-        ? engineOrContext.getScreenContainer()
-        : engineOrContext.getStageRoot();
+      typeof resolvedRenderEngine.getScreenContainer === "function"
+        ? resolvedRenderEngine.getScreenContainer()
+        : resolvedRenderEngine.getStageRoot();
 
-    const container = engineOrContext.createContainer("dev_debug_telemetry_container");
+    const container = resolvedRenderEngine.createContainer("dev_debug_telemetry_container");
     container.setPosition(padding, padding);
     container.setZIndex(300);
     container.setVisible(false);
     screenContainer.addChild(container);
 
-    const bg = engineOrContext.createGraphics("debug-bg");
+    const bg = resolvedRenderEngine.createGraphics("debug-bg");
     bg.drawRoundedRect(0, 0, containerWidth, containerHeight, 12, {
       fill: { color: [7, 18, 36], alpha: 0.95 },
       stroke: { color: isSerene ? [52, 211, 153] : [56, 189, 248], width: 1.8 },
@@ -250,7 +252,7 @@ export function createDebugDistanceUI(
     }
     container.addChild(bg);
 
-    const titleText = engineOrContext.createText(
+    const titleText = resolvedRenderEngine.createText(
       isSerene ? "MIGRAÇÃO SERENA" : "TELEMETRIA DEV",
       {
         fontSize: fontSizeTitle,
@@ -262,7 +264,7 @@ export function createDebugDistanceUI(
     titleText.setPosition(Math.round(32 * scale), Math.round(13 * scale));
     container.addChild(titleText);
 
-    const f8Text = engineOrContext.createText(
+    const f8Text = resolvedRenderEngine.createText(
       "[F8]",
       { fontSize: fontSizeTitle, fontFamily: "Outfit", color: [160, 215, 255] },
       "debug-f8"
@@ -281,7 +283,7 @@ export function createDebugDistanceUI(
       Math.round(6 * scale) -
       fpsBadgeWidth;
 
-    const fpsBadgeBg = engineOrContext.createGraphics("debug-fps-bg");
+    const fpsBadgeBg = resolvedRenderEngine.createGraphics("debug-fps-bg");
     fpsBadgeBg.drawRoundedRect(
       fpsBadgeX,
       Math.round(10 * scale),
@@ -295,7 +297,7 @@ export function createDebugDistanceUI(
     );
     container.addChild(fpsBadgeBg);
 
-    const fpsBadgeText = engineOrContext.createText(
+    const fpsBadgeText = resolvedRenderEngine.createText(
       "-- FPS",
       { fontSize: fontSizeTech, fontFamily: "Outfit", color: [74, 222, 128] },
       "debug-fps-label"
@@ -303,7 +305,7 @@ export function createDebugDistanceUI(
     fpsBadgeText.setPosition(fpsBadgeX + Math.round(8 * scale), Math.round(14 * scale));
     container.addChild(fpsBadgeText);
 
-    const routeText = engineOrContext.createText(
+    const routeText = resolvedRenderEngine.createText(
       `Bioma: --\nDistância: 0m / ${totalFormatted}m (0%)`,
       { fontSize: fontSizePrimary, fontFamily: "Outfit", color: [255, 255, 255], lineSpacing: 4 },
       "debug-route"
@@ -311,10 +313,10 @@ export function createDebugDistanceUI(
     routeText.setPosition(Math.round(20 * scale), Math.round(46 * scale));
     container.addChild(routeText);
 
-    const progressBarFill = engineOrContext.createGraphics("debug-prog-fill");
+    const progressBarFill = resolvedRenderEngine.createGraphics("debug-prog-fill");
     container.addChild(progressBarFill);
 
-    const statusText = engineOrContext.createText(
+    const statusText = resolvedRenderEngine.createText(
       "Fôlego: 100%   •   Nutrição: +0%",
       { fontSize: fontSizeSecondary, fontFamily: "Inter", color: [210, 240, 255] },
       "debug-status"
@@ -322,7 +324,7 @@ export function createDebugDistanceUI(
     statusText.setPosition(Math.round(14 * scale), Math.round(108 * scale));
     container.addChild(statusText);
 
-    const powerupText = engineOrContext.createText(
+    const powerupText = resolvedRenderEngine.createText(
       "",
       { fontSize: fontSizeSecondary - 1, fontFamily: "Inter", color: [255, 225, 110] },
       "debug-powerup"
@@ -330,7 +332,7 @@ export function createDebugDistanceUI(
     powerupText.setPosition(Math.round(14 * scale), Math.round(122 * scale));
     container.addChild(powerupText);
 
-    const speedText = engineOrContext.createText(
+    const speedText = resolvedRenderEngine.createText(
       `Velocidade: 0 / ${GAME_CONFIG.MAX_SPEED} px/s (0%)`,
       { fontSize: fontSizeSecondary, fontFamily: "Inter", color: [190, 235, 255] },
       "debug-speed"
@@ -338,10 +340,10 @@ export function createDebugDistanceUI(
     speedText.setPosition(Math.round(14 * scale), Math.round(126 * scale));
     container.addChild(speedText);
 
-    const speedBarFill = engineOrContext.createGraphics("debug-speed-fill");
+    const speedBarFill = resolvedRenderEngine.createGraphics("debug-speed-fill");
     container.addChild(speedBarFill);
 
-    const perfText = engineOrContext.createText(
+    const perfText = resolvedRenderEngine.createText(
       "Taxa: -- FPS   •   Objetos: --   •   Pool: --",
       { fontSize: fontSizeTech, fontFamily: "Inter", color: [175, 225, 250] },
       "debug-perf"
@@ -350,7 +352,7 @@ export function createDebugDistanceUI(
     perfText.setVisible(!isSerene);
     container.addChild(perfText);
 
-    const sparklineText = engineOrContext.createText(
+    const sparklineText = resolvedRenderEngine.createText(
       "Desempenho Estável: 60 FPS",
       { fontSize: fontSizeTech, fontFamily: "Inter", color: [130, 245, 190] },
       "debug-sparkline"
@@ -359,7 +361,7 @@ export function createDebugDistanceUI(
     sparklineText.setVisible(!isSerene);
     container.addChild(sparklineText);
 
-    const frameTimeText = engineOrContext.createText(
+    const frameTimeText = resolvedRenderEngine.createText(
       "Latência: -- ms (p95: -- | p99: --)",
       { fontSize: fontSizeTech, fontFamily: "Inter", color: [165, 215, 255] },
       "debug-latency"
@@ -368,8 +370,8 @@ export function createDebugDistanceUI(
     frameTimeText.setVisible(!isSerene);
     container.addChild(frameTimeText);
 
-    const resInfoText = engineOrContext.createText(
-      `Tela: ${formatResolutionInfo(engineOrContext)}`,
+    const resInfoText = resolvedRenderEngine.createText(
+      `Tela: ${formatResolutionInfo(resolvedRenderEngine)}`,
       { fontSize: fontSizeTech, fontFamily: "Inter", color: [140, 210, 255] },
       "debug-res"
     );
@@ -406,7 +408,7 @@ export function createDebugDistanceUI(
         if (perfStats && perfStats.fps !== undefined) {
           curFps = Math.round(perfStats.fps);
         } else {
-          const dt = engineOrContext.getTicker().getDeltaTime();
+          const dt = resolvedRenderEngine.getTicker().getDeltaTime();
           curFps = dt > 0 ? Math.round(1 / dt) : 60;
         }
 
@@ -606,7 +608,7 @@ export function createDebugDistanceUI(
           }
         }
 
-        const nextResolutionInfoString = `Tela: ${formatResolutionInfo(engineOrContext)}`;
+        const nextResolutionInfoString = `Tela: ${formatResolutionInfo(resolvedRenderEngine)}`;
         if (resInfoText.getText() !== nextResolutionInfoString) {
           resInfoText.setText(nextResolutionInfoString);
         }
@@ -615,6 +617,7 @@ export function createDebugDistanceUI(
   }
 
   // --- MODO LEGADO (COMPATIBILIDADE REVERSA) ---
+  const engineOrContext = engineOrLegacyContext as LegacyDebugDistanceContext;
   const widthFn = typeof engineOrContext.width === "function" ? engineOrContext.width : () => 1280;
   const screenW = widthFn();
   const isHighRes = screenW >= 1920;

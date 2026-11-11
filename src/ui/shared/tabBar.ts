@@ -14,7 +14,7 @@ import type {
   IGraphicsNode,
   ITextNode,
 } from "../../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveInitializedRenderEngine } from "../../engine/contracts/INTERFACE_CONTRACTS";
 
 export interface TabItem<T extends string> {
   id: T;
@@ -85,11 +85,12 @@ export function createTabBar<T extends string, TObj = never>(
   );
   const totalTabsWidth = count * tabWidth + totalGaps;
 
-  if (isRenderEngine(engineOrContext)) {
+  const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrContext);
+  if (resolvedRenderEngine) {
     const screenContainer =
-      typeof engineOrContext.getScreenContainer === "function"
-        ? engineOrContext.getScreenContainer()
-        : engineOrContext.getStageRoot();
+      typeof resolvedRenderEngine.getScreenContainer === "function"
+        ? resolvedRenderEngine.getScreenContainer()
+        : resolvedRenderEngine.getStageRoot();
     const elements: Array<IGraphicsNode | ITextNode> = [];
 
     const tabEntities: Array<{
@@ -119,8 +120,8 @@ export function createTabBar<T extends string, TObj = never>(
       const tabY = options.posY;
       const isSelected = currentTab === tab.id;
 
-      const btnNode: IGraphicsNode = engineOrContext.createGraphics(`tab_btn_${tab.id}`);
-      const txtNode: ITextNode = engineOrContext.createText(
+      const btnNode: IGraphicsNode = resolvedRenderEngine.createGraphics(`tab_btn_${tab.id}`);
+      const txtNode: ITextNode = resolvedRenderEngine.createText(
         tab.label,
         {
           fontFamily: "Outfit",

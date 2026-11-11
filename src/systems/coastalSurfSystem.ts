@@ -7,7 +7,7 @@
 
 import { GAME_CONFIG } from "../config";
 import type { IRenderEngine, IGraphicsNode } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { resolveCameraX } from "./cameraSystem";
 import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
 
@@ -95,13 +95,13 @@ interface LegacyCoastalSurfEngineContext {
 export function setupCoastalSurfSystem(
   engineOrContext: IRenderEngine | unknown
 ): CoastalSurfSystem {
-  const isPixi = isRenderEngine(engineOrContext);
+  const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrContext);
   const count = 12;
-  const legacyEngineContext = !isPixi
+  const legacyEngineContext = !resolvedRenderEngine
     ? (engineOrContext as LegacyCoastalSurfEngineContext)
     : undefined;
-  const screenW = isPixi
-    ? engineOrContext.getDimensions().width
+  const screenW = resolvedRenderEngine
+    ? resolvedRenderEngine.getDimensions().width
     : typeof legacyEngineContext?.width === "function"
       ? legacyEngineContext.width()
       : 640;
@@ -117,8 +117,8 @@ export function setupCoastalSurfSystem(
 
   const foamList: FoamData[] = [];
 
-  if (isPixi) {
-    const worldContainer = resolveWorldRenderContainer(engineOrContext);
+  if (resolvedRenderEngine) {
+    const worldContainer = resolveWorldRenderContainer(resolvedRenderEngine);
 
     for (let i = 0; i < count; i++) {
       const width = 10 + ((i * 7) % 17);
@@ -126,7 +126,7 @@ export function setupCoastalSurfSystem(
       const baseY = GAME_CONFIG.SEA_LEVEL + ((i % 3) - 1);
       const speedX = 16 + ((i * 5) % 17);
 
-      const g = engineOrContext.createGraphics("coastal_surf_foam");
+      const g = resolvedRenderEngine.createGraphics("coastal_surf_foam");
       g.drawRoundedRect(0, 0, width, 2.2, 1, {
         fill: { color: [255, 255, 255], alpha: 1 },
       });
@@ -148,10 +148,10 @@ export function setupCoastalSurfSystem(
     }
 
     let time = 0;
-    const unregister = engineOrContext.getTicker().add((dt: number) => {
+    const unregister = resolvedRenderEngine.getTicker().add((dt: number) => {
       time += dt;
 
-      const camX = resolveCameraX(engineOrContext);
+      const camX = resolveCameraX(resolvedRenderEngine);
       const screenLeft = camX - screenW / 2;
       const coastalIntensity = camX < 24800 ? 0 : camX > 25500 ? 1 : (camX - 24800) / 700;
 

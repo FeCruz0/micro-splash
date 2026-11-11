@@ -21,7 +21,7 @@ import type {
   ITextNode,
   Vector2D,
 } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 
 export interface LegacyStatsModalContext {
   width(): number;
@@ -51,7 +51,7 @@ export interface LegacyStatsModalContext {
 }
 
 export function showStatsModal(
-  engineOrContext: IRenderEngine | LegacyStatsModalContext,
+  engineOrLegacyContext: IRenderEngine | LegacyStatsModalContext,
   onClose: () => void
 ): void {
   audioSystem.playUiClick();
@@ -111,12 +111,13 @@ export function showStatsModal(
     },
   ];
 
-  if (isRenderEngine(engineOrContext)) {
+  const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrLegacyContext);
+  if (resolvedRenderEngine) {
     const screenContainer =
-      typeof engineOrContext.getScreenContainer === "function"
-        ? engineOrContext.getScreenContainer()
-        : engineOrContext.getStageRoot();
-    const dimensions = engineOrContext.getDimensions();
+      typeof resolvedRenderEngine.getScreenContainer === "function"
+        ? resolvedRenderEngine.getScreenContainer()
+        : resolvedRenderEngine.getStageRoot();
+    const dimensions = resolvedRenderEngine.getDimensions();
     const screenW = dimensions.width;
     const screenH = dimensions.height;
     const cX = screenW / 2;
@@ -155,7 +156,7 @@ export function showStatsModal(
     };
 
     // Backdrop
-    const backdrop = engineOrContext.createGraphics("stats-backdrop");
+    const backdrop = resolvedRenderEngine.createGraphics("stats-backdrop");
     backdrop.drawRect(0, 0, screenW, screenH, {
       fill: { color: [4, 12, 28], alpha: 0.94 },
     });
@@ -164,7 +165,7 @@ export function showStatsModal(
     createdNodes.push(backdrop);
 
     // Card principal
-    const card = engineOrContext.createGraphics("stats-card");
+    const card = resolvedRenderEngine.createGraphics("stats-card");
     card.drawRoundedRect(cX - cardW / 2, cY - cardH / 2, cardW, cardH, 16, {
       fill: { color: [10, 28, 56], alpha: 1 },
       stroke: { color: [56, 189, 248], width: 2.5 },
@@ -175,7 +176,7 @@ export function showStatsModal(
 
     // Botão Fechar [✕]
     const btnXPos: Vector2D = { x: cX + cardW / 2 - 32, y: cY - cardH / 2 + 32 };
-    const btnX = engineOrContext.createGraphics("stats-btn-x");
+    const btnX = resolvedRenderEngine.createGraphics("stats-btn-x");
     const drawBtnX = (hovered: boolean) => {
       btnX.clear();
       btnX.drawRoundedRect(btnXPos.x - 19, btnXPos.y - 19, 38, 38, 8, {
@@ -188,7 +189,7 @@ export function showStatsModal(
     screenContainer.addChild(btnX);
     createdNodes.push(btnX);
 
-    const xLabel = engineOrContext.createText(
+    const xLabel = resolvedRenderEngine.createText(
       "✕",
       {
         fontSize: accessibilitySystem.scaleFont(20),
@@ -222,7 +223,7 @@ export function showStatsModal(
     }
 
     // Título Principal
-    const title = engineOrContext.createText(
+    const title = resolvedRenderEngine.createText(
       "📊 IMPACTO ECOLÓGICO COLETIVO",
       {
         fontSize: accessibilitySystem.scaleFont(28),
@@ -241,7 +242,7 @@ export function showStatsModal(
     createdNodes.push(title);
 
     // Subtítulo
-    const subtitle = engineOrContext.createText(
+    const subtitle = resolvedRenderEngine.createText(
       "Métricas agregadas de todas as migrações oceânicas realizadas",
       {
         fontSize: accessibilitySystem.scaleFont(16),
@@ -260,7 +261,7 @@ export function showStatsModal(
     createdNodes.push(subtitle);
 
     // Linha divisória
-    const divider = engineOrContext.createGraphics("stats-divider");
+    const divider = resolvedRenderEngine.createGraphics("stats-divider");
     divider.drawRoundedRect(cX - (cardW - 60) / 2, cY - cardH / 2 + 97, cardW - 60, 2, 1, {
       fill: { color: [35, 80, 140], alpha: 1 },
     });
@@ -283,7 +284,7 @@ export function showStatsModal(
       const posX = col === 0 ? col0X : col1X;
       const posY = startRowY + row * rowGap;
 
-      const metricBox = engineOrContext.createGraphics(`stats-metric-box-${index}`);
+      const metricBox = resolvedRenderEngine.createGraphics(`stats-metric-box-${index}`);
       const drawBox = (hovered: boolean) => {
         metricBox.clear();
         metricBox.drawRoundedRect(posX - boxW / 2, posY - boxH / 2, boxW, boxH, 12, {
@@ -308,7 +309,7 @@ export function showStatsModal(
 
       // Ícone
       const iconPillX = posX - boxW / 2 + 36;
-      const iconPill = engineOrContext.createGraphics(`stats-icon-pill-${index}`);
+      const iconPill = resolvedRenderEngine.createGraphics(`stats-icon-pill-${index}`);
       iconPill.drawRoundedRect(iconPillX - 27, posY - 27, 54, 54, 10, {
         fill: { color: [18, 48, 92], alpha: 1 },
         stroke: { color: [56, 189, 248], width: 1 },
@@ -317,7 +318,7 @@ export function showStatsModal(
       screenContainer.addChild(iconPill);
       createdNodes.push(iconPill);
 
-      const iconText = engineOrContext.createText(
+      const iconText = resolvedRenderEngine.createText(
         item.icon,
         {
           fontSize: accessibilitySystem.scaleFont(26),
@@ -339,7 +340,7 @@ export function showStatsModal(
       // Coluna de textos
       const textStartX = posX - boxW / 2 + 76;
 
-      const titleNode = engineOrContext.createText(
+      const titleNode = resolvedRenderEngine.createText(
         item.title,
         {
           fontSize: accessibilitySystem.scaleFont(14.5),
@@ -354,7 +355,7 @@ export function showStatsModal(
       screenContainer.addChild(titleNode);
       createdNodes.push(titleNode);
 
-      const mainValNode = engineOrContext.createText(
+      const mainValNode = resolvedRenderEngine.createText(
         item.mainVal,
         {
           fontSize: accessibilitySystem.scaleFont(27),
@@ -369,7 +370,7 @@ export function showStatsModal(
       screenContainer.addChild(mainValNode);
       createdNodes.push(mainValNode);
 
-      const subValNode = engineOrContext.createText(
+      const subValNode = resolvedRenderEngine.createText(
         item.subVal,
         {
           fontSize: accessibilitySystem.scaleFont(14),
@@ -386,7 +387,7 @@ export function showStatsModal(
     });
 
     // Rodapé
-    const footer = engineOrContext.createText(
+    const footer = resolvedRenderEngine.createText(
       "🌱 Cada jornada no oceano reforça a preservação marinha e a proteção das baleias-jubarte.",
       {
         fontSize: accessibilitySystem.scaleFont(14.5),
@@ -406,7 +407,7 @@ export function showStatsModal(
 
     // Botão Voltar ao Menu
     const btnClosePos: Vector2D = { x: cX, y: cY + cardH / 2 - 46 };
-    const btnClose = engineOrContext.createGraphics("stats-btn-back");
+    const btnClose = resolvedRenderEngine.createGraphics("stats-btn-back");
     const drawBackBtn = (hovered: boolean) => {
       btnClose.clear();
       btnClose.drawRoundedRect(btnClosePos.x - 150, btnClosePos.y - 25, 300, 50, 10, {
@@ -419,7 +420,7 @@ export function showStatsModal(
     screenContainer.addChild(btnClose);
     createdNodes.push(btnClose);
 
-    const btnText = engineOrContext.createText(
+    const btnText = resolvedRenderEngine.createText(
       "VOLTAR AO MENU ↩",
       {
         fontSize: accessibilitySystem.scaleFont(16.5),
@@ -471,7 +472,7 @@ export function showStatsModal(
       },
     ];
 
-    focusGroup = createFocusGroup(engineOrContext, {
+    focusGroup = createFocusGroup(resolvedRenderEngine, {
       items: focusItems,
       initialIndex: 1,
       isEnabled: () => !isClosed && canInteract,
@@ -491,6 +492,7 @@ export function showStatsModal(
   }
 
   // --- MODO LEGADO (COMPATIBILIDADE REVERSA) ---
+  const engineOrContext = engineOrLegacyContext as LegacyStatsModalContext;
   const elements: Array<{ destroy?: () => void } | object> = [];
 
   if (typeof engineOrContext.wait === "function") {

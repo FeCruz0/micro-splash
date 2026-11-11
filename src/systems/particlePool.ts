@@ -12,7 +12,7 @@ import type {
   IGraphicsNode,
   ISpriteNode,
 } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
 
 export interface ParticleVec2 {
@@ -331,17 +331,18 @@ export class ParticlePool {
   }
 
   private initPools(circleCount: number, rectCount: number): void {
-    if (isRenderEngine(this.engineOrContext)) {
-      const worldContainer = resolveWorldRenderContainer(this.engineOrContext);
+    const resolvedRenderEngine = resolveInitializedRenderEngine(this.engineOrContext);
+    if (resolvedRenderEngine) {
+      const worldContainer = resolveWorldRenderContainer(resolvedRenderEngine);
 
       if (
-        typeof this.engineOrContext.generateTexture === "function" &&
-        typeof this.engineOrContext.createGraphics === "function"
+        typeof resolvedRenderEngine.generateTexture === "function" &&
+        typeof resolvedRenderEngine.createGraphics === "function"
       ) {
         try {
-          const tempG = this.engineOrContext.createGraphics("pooled_circle_baker");
+          const tempG = resolvedRenderEngine.createGraphics("pooled_circle_baker");
           tempG.drawCircle(0, 0, 2, { fill: { color: [255, 255, 255], alpha: 1 } });
-          this.sharedCircleTexture = this.engineOrContext.generateTexture(tempG, {
+          this.sharedCircleTexture = resolvedRenderEngine.generateTexture(tempG, {
             resolution: 0.5,
             scaleMode: "nearest",
           });
@@ -355,9 +356,9 @@ export class ParticlePool {
         let node: IRenderNode;
         let isSprite = false;
 
-        if (this.sharedCircleTexture && typeof this.engineOrContext.createSprite === "function") {
+        if (this.sharedCircleTexture && typeof resolvedRenderEngine.createSprite === "function") {
           try {
-            const spr = this.engineOrContext.createSprite(
+            const spr = resolvedRenderEngine.createSprite(
               this.sharedCircleTexture,
               "pooled_particle"
             );
@@ -375,12 +376,12 @@ export class ParticlePool {
             node = spr;
             isSprite = true;
           } catch {
-            const g = this.engineOrContext.createGraphics("pooled_particle");
+            const g = resolvedRenderEngine.createGraphics("pooled_particle");
             g.drawCircle(0, 0, 2, { fill: { color: [255, 255, 255], alpha: 1 } });
             node = g;
           }
         } else {
-          const g = this.engineOrContext.createGraphics("pooled_particle");
+          const g = resolvedRenderEngine.createGraphics("pooled_particle");
           g.drawCircle(0, 0, 2, { fill: { color: [255, 255, 255], alpha: 1 } });
           node = g;
         }
@@ -418,9 +419,9 @@ export class ParticlePool {
         let node: IRenderNode;
         let isSprite = false;
 
-        if (typeof this.engineOrContext.createSprite === "function") {
+        if (typeof resolvedRenderEngine.createSprite === "function") {
           try {
-            const spr = this.engineOrContext.createSprite("white", "pooled_rect_particle");
+            const spr = resolvedRenderEngine.createSprite("white", "pooled_rect_particle");
             spr.setSize(10, 2);
             const nativeSpr = spr.getNativeNode<{
               roundPixels?: boolean;
@@ -435,12 +436,12 @@ export class ParticlePool {
             node = spr;
             isSprite = true;
           } catch {
-            const g = this.engineOrContext.createGraphics("pooled_rect_particle");
+            const g = resolvedRenderEngine.createGraphics("pooled_rect_particle");
             g.drawRect(0, 0, 10, 2, { fill: { color: [255, 255, 255], alpha: 1 } });
             node = g;
           }
         } else {
-          const g = this.engineOrContext.createGraphics("pooled_rect_particle");
+          const g = resolvedRenderEngine.createGraphics("pooled_rect_particle");
           g.drawRect(0, 0, 10, 2, { fill: { color: [255, 255, 255], alpha: 1 } });
           node = g;
         }

@@ -18,7 +18,7 @@ import type {
   IGraphicsNode,
   ITextNode,
 } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 
 export interface LegacyShareModalContext {
   width(): number;
@@ -41,7 +41,7 @@ export interface LegacyShareModalContext {
 }
 
 export function showShareModal(
-  engineOrContext: IRenderEngine | LegacyShareModalContext,
+  engineOrLegacyContext: IRenderEngine | LegacyShareModalContext,
   data: VictoryCardData,
   onClose: () => void
 ): void {
@@ -51,12 +51,13 @@ export function showShareModal(
   const currentUrl =
     typeof window !== "undefined" ? window.location.href : "https://micro-splash.local";
 
-  if (isRenderEngine(engineOrContext)) {
+  const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrLegacyContext);
+  if (resolvedRenderEngine) {
     const screenContainer =
-      typeof engineOrContext.getScreenContainer === "function"
-        ? engineOrContext.getScreenContainer()
-        : engineOrContext.getStageRoot();
-    const dimensions = engineOrContext.getDimensions();
+      typeof resolvedRenderEngine.getScreenContainer === "function"
+        ? resolvedRenderEngine.getScreenContainer()
+        : resolvedRenderEngine.getStageRoot();
+    const dimensions = resolvedRenderEngine.getDimensions();
     const screenW = dimensions.width;
     const screenH = dimensions.height;
     const cX = screenW / 2;
@@ -102,7 +103,7 @@ export function showShareModal(
     }
 
     // Fundo escuro
-    const backdrop = engineOrContext.createGraphics("share-backdrop");
+    const backdrop = resolvedRenderEngine.createGraphics("share-backdrop");
     backdrop.drawRect(0, 0, screenW, screenH, {
       fill: { color: [4, 12, 28], alpha: 0.95 },
     });
@@ -111,7 +112,7 @@ export function showShareModal(
     createdNodes.push(backdrop);
 
     // Card principal
-    const card = engineOrContext.createGraphics("share-card");
+    const card = resolvedRenderEngine.createGraphics("share-card");
     card.drawRoundedRect(cX - cardW / 2, cY - cardH / 2, cardW, cardH, 14, {
       fill: { color: [10, 30, 64], alpha: 1 },
       stroke: { color: [100, 220, 255], width: 2.5 },
@@ -121,7 +122,7 @@ export function showShareModal(
     createdNodes.push(card);
 
     // Título
-    const title = engineOrContext.createText(
+    const title = resolvedRenderEngine.createText(
       "COMPARTILHAR CERTIFICADO 📲🌊",
       {
         fontSize: accessibilitySystem.scaleFont(22),
@@ -140,7 +141,7 @@ export function showShareModal(
     createdNodes.push(title);
 
     // Subtítulo
-    const subtitle = engineOrContext.createText(
+    const subtitle = resolvedRenderEngine.createText(
       "Mostre sua pontuação nas redes e ajude na conscientização da vida marinha!",
       {
         fontSize: accessibilitySystem.scaleFont(14.5),
@@ -161,7 +162,7 @@ export function showShareModal(
 
     // Preview das Conquistas
     const previewY = cY - cardH / 2 + 110;
-    const previewBox = engineOrContext.createGraphics("share-preview-box");
+    const previewBox = resolvedRenderEngine.createGraphics("share-preview-box");
     previewBox.drawRoundedRect(cX - (cardW - 50) / 2, previewY - 30, cardW - 50, 60, 10, {
       fill: { color: [14, 42, 85], alpha: 1 },
       stroke: { color: [80, 160, 230], width: 1.5 },
@@ -170,7 +171,7 @@ export function showShareModal(
     screenContainer.addChild(previewBox);
     createdNodes.push(previewBox);
 
-    const scoreLine = engineOrContext.createText(
+    const scoreLine = resolvedRenderEngine.createText(
       `⭐ ${data.finalScore.toLocaleString("pt-BR")} Eco-Pontos   |   ${data.rank}`,
       {
         fontSize: accessibilitySystem.scaleFont(16.5),
@@ -188,7 +189,7 @@ export function showShareModal(
     screenContainer.addChild(scoreLine);
     createdNodes.push(scoreLine);
 
-    const statsLine = engineOrContext.createText(
+    const statsLine = resolvedRenderEngine.createText(
       `📏 ${Math.floor(data.distance).toLocaleString("pt-BR")}m percorridos   •   🦐 ${data.krillCount} Krill   •   🗑️ ${data.trashCount} Lixo`,
       {
         fontSize: accessibilitySystem.scaleFont(13.5),
@@ -209,7 +210,7 @@ export function showShareModal(
     // Botão Fechar [✕]
     const btnCloseX = cX + cardW / 2 - 28;
     const btnCloseY = cY - cardH / 2 + 28;
-    const btnClose = engineOrContext.createGraphics("share-btn-close");
+    const btnClose = resolvedRenderEngine.createGraphics("share-btn-close");
     const drawCloseBtn = (hovered: boolean) => {
       btnClose.clear();
       btnClose.drawRoundedRect(btnCloseX - 17, btnCloseY - 17, 34, 34, 8, {
@@ -222,7 +223,7 @@ export function showShareModal(
     screenContainer.addChild(btnClose);
     createdNodes.push(btnClose);
 
-    const closeText = engineOrContext.createText(
+    const closeText = resolvedRenderEngine.createText(
       "✕",
       {
         fontSize: accessibilitySystem.scaleFont(16),
@@ -263,7 +264,7 @@ export function showShareModal(
 
     // 1. WhatsApp
     const btnWhatsAppY = startBtnY;
-    const btnWhatsApp = engineOrContext.createGraphics("share-btn-wa");
+    const btnWhatsApp = resolvedRenderEngine.createGraphics("share-btn-wa");
     const drawWa = (hovered: boolean) => {
       btnWhatsApp.clear();
       btnWhatsApp.drawRoundedRect(cX - btnW / 2, btnWhatsAppY - btnH / 2, btnW, btnH, 8, {
@@ -276,7 +277,7 @@ export function showShareModal(
     screenContainer.addChild(btnWhatsApp);
     createdNodes.push(btnWhatsApp);
 
-    const waText = engineOrContext.createText(
+    const waText = resolvedRenderEngine.createText(
       "📱 Compartilhar no WhatsApp",
       {
         fontSize: accessibilitySystem.scaleFont(15),
@@ -315,7 +316,7 @@ export function showShareModal(
 
     // 2. X / Twitter
     const btnTwitterY = startBtnY + btnSpacing;
-    const btnTwitter = engineOrContext.createGraphics("share-btn-tw");
+    const btnTwitter = resolvedRenderEngine.createGraphics("share-btn-tw");
     const drawTw = (hovered: boolean) => {
       btnTwitter.clear();
       btnTwitter.drawRoundedRect(cX - btnW / 2, btnTwitterY - btnH / 2, btnW, btnH, 8, {
@@ -328,7 +329,7 @@ export function showShareModal(
     screenContainer.addChild(btnTwitter);
     createdNodes.push(btnTwitter);
 
-    const twText = engineOrContext.createText(
+    const twText = resolvedRenderEngine.createText(
       "🐦 Compartilhar no X (Twitter)",
       {
         fontSize: accessibilitySystem.scaleFont(15),
@@ -367,7 +368,7 @@ export function showShareModal(
 
     // 3. Copiar Texto Formatado
     const btnCopyY = startBtnY + btnSpacing * 2;
-    const btnCopy = engineOrContext.createGraphics("share-btn-copy");
+    const btnCopy = resolvedRenderEngine.createGraphics("share-btn-copy");
     const drawCopy = (hovered: boolean) => {
       btnCopy.clear();
       btnCopy.drawRoundedRect(cX - btnW / 2, btnCopyY - btnH / 2, btnW, btnH, 8, {
@@ -380,7 +381,7 @@ export function showShareModal(
     screenContainer.addChild(btnCopy);
     createdNodes.push(btnCopy);
 
-    const copyLabel = engineOrContext.createText(
+    const copyLabel = resolvedRenderEngine.createText(
       "📋 Copiar Texto do Certificado (Instagram / Discord)",
       {
         fontSize: accessibilitySystem.scaleFont(14.5),
@@ -432,7 +433,7 @@ export function showShareModal(
     const hasNativeShare =
       typeof navigator !== "undefined" && typeof navigator.share === "function";
     const btnActionY = startBtnY + btnSpacing * 3;
-    const btnAction = engineOrContext.createGraphics("share-btn-action");
+    const btnAction = resolvedRenderEngine.createGraphics("share-btn-action");
     const drawAction = (hovered: boolean) => {
       btnAction.clear();
       const baseColor: [number, number, number] = hasNativeShare ? [18, 110, 120] : [18, 90, 75];
@@ -450,7 +451,7 @@ export function showShareModal(
     screenContainer.addChild(btnAction);
     createdNodes.push(btnAction);
 
-    const actionLabel = engineOrContext.createText(
+    const actionLabel = resolvedRenderEngine.createText(
       hasNativeShare
         ? "✨ Compartilhar Imagem com App (Nativo)"
         : "📥 Baixar Imagem PNG do Certificado",
@@ -512,7 +513,7 @@ export function showShareModal(
 
     // Botão Concluir / Voltar
     const btnDoneY = cY + cardH / 2 - 26;
-    const btnDone = engineOrContext.createGraphics("share-btn-done");
+    const btnDone = resolvedRenderEngine.createGraphics("share-btn-done");
     const drawDone = (hovered: boolean) => {
       btnDone.clear();
       btnDone.drawRoundedRect(cX - 105, btnDoneY - 20, 210, 40, 8, {
@@ -525,7 +526,7 @@ export function showShareModal(
     screenContainer.addChild(btnDone);
     createdNodes.push(btnDone);
 
-    const doneLabel = engineOrContext.createText(
+    const doneLabel = resolvedRenderEngine.createText(
       "Voltar (ESC)",
       {
         fontSize: accessibilitySystem.scaleFont(14.5),
@@ -562,6 +563,7 @@ export function showShareModal(
   }
 
   // --- MODO LEGADO (COMPATIBILIDADE REVERSA) ---
+  const engineOrContext = engineOrLegacyContext as LegacyShareModalContext;
   const elements: Array<{ destroy?: () => void } | object> = [];
   const keyListeners: Array<{ cancel?: () => void }> = [];
   let isClosed = false;

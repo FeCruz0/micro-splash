@@ -14,7 +14,7 @@ import type {
   IGraphicsNode,
   ITextNode,
 } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { createTween, Easings } from "../engine/utils/Tween";
 
 export interface LegacyFactPopupContext {
@@ -53,12 +53,13 @@ export function showFactPopup(
 ): void {
   telemetrySystem.recordFactRead(fact.id);
 
-  const screenW = isRenderEngine(engineOrContext)
-    ? engineOrContext.getDimensions().width
-    : engineOrContext.width();
-  const screenH = isRenderEngine(engineOrContext)
-    ? engineOrContext.getDimensions().height
-    : engineOrContext.height();
+  const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrContext);
+  const screenW = resolvedRenderEngine
+    ? resolvedRenderEngine.getDimensions().width
+    : (engineOrContext as LegacyFactPopupContext).width();
+  const screenH = resolvedRenderEngine
+    ? resolvedRenderEngine.getDimensions().height
+    : (engineOrContext as LegacyFactPopupContext).height();
 
   // Quebra de linha adaptativa em conteúdo educacional (Fase 32.4)
   const contentW = Math.min(500, screenW - 80);
@@ -70,15 +71,15 @@ export function showFactPopup(
   // Narração por voz acessível via Web Speech API
   ttsSystem.speak(`${fact.title}. ${fact.description}`);
 
-  if (isRenderEngine(engineOrContext)) {
+  if (resolvedRenderEngine) {
     const screenContainer =
-      typeof engineOrContext.getScreenContainer === "function"
-        ? engineOrContext.getScreenContainer()
-        : engineOrContext.getStageRoot();
-    const ticker = engineOrContext.getTicker();
+      typeof resolvedRenderEngine.getScreenContainer === "function"
+        ? resolvedRenderEngine.getScreenContainer()
+        : resolvedRenderEngine.getStageRoot();
+    const ticker = resolvedRenderEngine.getTicker();
 
     // Painel de fundo com cantos arredondados e borda dourada
-    const panelNode: IGraphicsNode = engineOrContext.createGraphics("fact_popup_panel");
+    const panelNode: IGraphicsNode = resolvedRenderEngine.createGraphics("fact_popup_panel");
     panelNode.drawRoundedRect(-width / 2, -height / 2, width, height, 10, {
       fill: { color: [15, 30, 50], alpha: 0.92 },
       stroke: { width: 2, color: [240, 190, 70], alpha: 1 },
@@ -88,7 +89,7 @@ export function showFactPopup(
     screenContainer.addChild(panelNode);
 
     // Ícone pedagógico e título
-    const titleNode: ITextNode = engineOrContext.createText(
+    const titleNode: ITextNode = resolvedRenderEngine.createText(
       `📖 ${fact.title} (${fact.location})`,
       {
         fontFamily: FONT_TITLE,
@@ -103,7 +104,7 @@ export function showFactPopup(
     screenContainer.addChild(titleNode);
 
     // Descrição do fato científico
-    const descNode: ITextNode = engineOrContext.createText(
+    const descNode: ITextNode = resolvedRenderEngine.createText(
       fact.description,
       {
         fontFamily: FONT_BODY,

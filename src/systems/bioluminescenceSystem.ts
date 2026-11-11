@@ -15,7 +15,7 @@ import type {
   IGraphicsNode,
   Vector2D,
 } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { resolveCameraX } from "./cameraSystem";
 import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
 
@@ -231,8 +231,8 @@ export function setupBioluminescenceSystem(
   let spawnCooldownTimer = 0;
   let colorCyclePhase = 0;
 
-  const isPixi = isRenderEngine(engineOrContext);
-  const legacyEngineContext = !isPixi
+  const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrContext);
+  const legacyEngineContext = !resolvedRenderEngine
     ? (engineOrContext as LegacyBioluminescenceEngineContext)
     : undefined;
 
@@ -242,13 +242,13 @@ export function setupBioluminescenceSystem(
     let node: IRenderNode;
     let legacyRaw: unknown = undefined;
 
-    if (isPixi) {
-      const gfx = engineOrContext.createGraphics(`biolum_particle_${index}`);
+    if (resolvedRenderEngine) {
+      const gfx = resolvedRenderEngine.createGraphics(`biolum_particle_${index}`);
       gfx.drawCircle(0, 0, size, { fill: { color: [40, 240, 210], alpha: 0 } });
       gfx.setPosition(-9999, -9999);
       gfx.setZIndex(14);
       gfx.setVisible(false);
-      resolveWorldRenderContainer(engineOrContext).addChild(gfx);
+      resolveWorldRenderContainer(resolvedRenderEngine).addChild(gfx);
       node = gfx;
     } else if (legacyEngineContext) {
       const rawObj = legacyEngineContext.add([
@@ -285,8 +285,8 @@ export function setupBioluminescenceSystem(
   const ambientCount = 24;
   const ambientPlankton: AmbientPlanktonParticle[] = [];
 
-  const screenDimensions = isPixi
-    ? engineOrContext.getDimensions()
+  const screenDimensions = resolvedRenderEngine
+    ? resolvedRenderEngine.getDimensions()
     : {
         width: legacyEngineContext ? legacyEngineContext.width() : 640,
         height: legacyEngineContext ? legacyEngineContext.height() : 360,
@@ -301,13 +301,13 @@ export function setupBioluminescenceSystem(
     let node: IRenderNode;
     let legacyRaw: unknown = undefined;
 
-    if (isPixi) {
-      const gfx = engineOrContext.createGraphics(`ambient_plankton_${index}`);
+    if (resolvedRenderEngine) {
+      const gfx = resolvedRenderEngine.createGraphics(`ambient_plankton_${index}`);
       gfx.drawCircle(0, 0, size, { fill: { color: [60, 230, 215], alpha: 0 } });
       gfx.setPosition(-9999, -9999);
       gfx.setZIndex(13);
       gfx.setVisible(false);
-      resolveWorldRenderContainer(engineOrContext).addChild(gfx);
+      resolveWorldRenderContainer(resolvedRenderEngine).addChild(gfx);
       node = gfx;
     } else if (legacyEngineContext) {
       const rawObj = legacyEngineContext.add([
@@ -478,7 +478,7 @@ export function setupBioluminescenceSystem(
 
     totalAmbientTime += deltaTime;
     const ambientActive = isAmbientPlanktonActive(baleia.pos.x);
-    const camX = resolveCameraX(engineOrContext) || baleia.pos.x || 0;
+    const camX = resolveCameraX(resolvedRenderEngine ?? engineOrContext) || baleia.pos.x || 0;
 
     for (let index = 0; index < ambientPlankton.length; index++) {
       const p = ambientPlankton[index];
@@ -503,8 +503,8 @@ export function setupBioluminescenceSystem(
 
   let unregisterTicker: () => void;
 
-  if (isPixi) {
-    unregisterTicker = engineOrContext.getTicker().add((deltaTime) => {
+  if (resolvedRenderEngine) {
+    unregisterTicker = resolvedRenderEngine.getTicker().add((deltaTime) => {
       stepUpdate(deltaTime);
     });
   } else if (legacyEngineContext) {

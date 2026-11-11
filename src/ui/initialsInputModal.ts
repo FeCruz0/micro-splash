@@ -14,7 +14,7 @@ import type {
   IGraphicsNode,
   ITextNode,
 } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 
 export interface LegacyInitialsContext {
   width(): number;
@@ -48,12 +48,13 @@ export function showInitialsInputModal(
   const initials = ["A", "A", "A"];
   let activeIndex = 0;
 
-  if (isRenderEngine(engineOrContext)) {
+  const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrContext);
+  if (resolvedRenderEngine) {
     const screenContainer =
-      typeof engineOrContext.getScreenContainer === "function"
-        ? engineOrContext.getScreenContainer()
-        : engineOrContext.getStageRoot();
-    const dimensions = engineOrContext.getDimensions();
+      typeof resolvedRenderEngine.getScreenContainer === "function"
+        ? resolvedRenderEngine.getScreenContainer()
+        : resolvedRenderEngine.getStageRoot();
+    const dimensions = resolvedRenderEngine.getDimensions();
     const screenW = dimensions.width;
     const screenH = dimensions.height;
     const centerX = screenW / 2;
@@ -65,7 +66,7 @@ export function showInitialsInputModal(
     const createdNodes: Array<IGraphicsNode | ITextNode> = [];
 
     // Backdrop
-    const backdropNode = engineOrContext.createGraphics("initials_backdrop");
+    const backdropNode = resolvedRenderEngine.createGraphics("initials_backdrop");
     backdropNode.drawRect(0, 0, screenW, screenH, {
       fill: { color: [4, 14, 32], alpha: 0.92 },
     });
@@ -74,7 +75,7 @@ export function showInitialsInputModal(
     createdNodes.push(backdropNode);
 
     // Card
-    const cardNode = engineOrContext.createGraphics("initials_card");
+    const cardNode = resolvedRenderEngine.createGraphics("initials_card");
     cardNode.drawRoundedRect(-cardW / 2, -cardH / 2, cardW, cardH, 16, {
       fill: { color: [10, 32, 68], alpha: 1 },
       stroke: { width: 3, color: [255, 215, 60], alpha: 1 },
@@ -85,7 +86,7 @@ export function showInitialsInputModal(
     createdNodes.push(cardNode);
 
     // Título
-    const titleNode = engineOrContext.createText(
+    const titleNode = resolvedRenderEngine.createText(
       mode === "weekly" ? "📅 NOVO RECORDE SEMANAL!" : "🏆 NOVO RECORDE NO TOP 10!",
       {
         fontFamily: "Outfit",
@@ -101,7 +102,7 @@ export function showInitialsInputModal(
     createdNodes.push(titleNode);
 
     // Subtítulo
-    const scoreNode = engineOrContext.createText(
+    const scoreNode = resolvedRenderEngine.createText(
       `⭐ ${score} Eco-Pontos  |  🌊 ${Math.floor(distance)}m`,
       {
         fontFamily: "Outfit",
@@ -116,7 +117,7 @@ export function showInitialsInputModal(
     screenContainer.addChild(scoreNode);
     createdNodes.push(scoreNode);
 
-    const promptNode = engineOrContext.createText(
+    const promptNode = resolvedRenderEngine.createText(
       "Insira 3 letras para registrar seu nome no ranking arcade:",
       {
         fontFamily: "Inter",
@@ -169,7 +170,7 @@ export function showInitialsInputModal(
       const slotX = startX + i * slotSpacing;
 
       // Seta ▲
-      const btnUp = engineOrContext.createGraphics(`slot_up_${i}`);
+      const btnUp = resolvedRenderEngine.createGraphics(`slot_up_${i}`);
       btnUp.drawRoundedRect(-30, -17, 60, 34, 7, {
         fill: { color: [20, 60, 110], alpha: 1 },
         stroke: { width: 1.5, color: [120, 200, 255], alpha: 1 },
@@ -179,7 +180,7 @@ export function showInitialsInputModal(
       screenContainer.addChild(btnUp);
       createdNodes.push(btnUp);
 
-      const txtUp = engineOrContext.createText(
+      const txtUp = resolvedRenderEngine.createText(
         "▲",
         {
           fontFamily: "Outfit",
@@ -209,14 +210,14 @@ export function showInitialsInputModal(
       }
 
       // Caixa da letra
-      const box = engineOrContext.createGraphics(`slot_box_${i}`);
+      const box = resolvedRenderEngine.createGraphics(`slot_box_${i}`);
       box.setPosition(slotX, slotY);
       box.setZIndex(402);
       screenContainer.addChild(box);
       slotBoxes.push(box);
       createdNodes.push(box);
 
-      const letter = engineOrContext.createText(
+      const letter = resolvedRenderEngine.createText(
         initials[i],
         {
           fontFamily: "Outfit",
@@ -248,7 +249,7 @@ export function showInitialsInputModal(
       }
 
       // Seta ▼
-      const btnDown = engineOrContext.createGraphics(`slot_down_${i}`);
+      const btnDown = resolvedRenderEngine.createGraphics(`slot_down_${i}`);
       btnDown.drawRoundedRect(-30, -17, 60, 34, 7, {
         fill: { color: [20, 60, 110], alpha: 1 },
         stroke: { width: 1.5, color: [120, 200, 255], alpha: 1 },
@@ -258,7 +259,7 @@ export function showInitialsInputModal(
       screenContainer.addChild(btnDown);
       createdNodes.push(btnDown);
 
-      const txtDown = engineOrContext.createText(
+      const txtDown = resolvedRenderEngine.createText(
         "▼",
         {
           fontFamily: "Outfit",
@@ -291,7 +292,7 @@ export function showInitialsInputModal(
     updateSlots();
 
     // Botão Confirmar
-    const btnSubmit = engineOrContext.createGraphics("initials_submit_btn");
+    const btnSubmit = resolvedRenderEngine.createGraphics("initials_submit_btn");
     const drawSubmit = (isHover: boolean) => {
       btnSubmit.clear();
       btnSubmit.drawRoundedRect(-200, -26, 400, 52, 10, {
@@ -305,7 +306,7 @@ export function showInitialsInputModal(
     screenContainer.addChild(btnSubmit);
     createdNodes.push(btnSubmit);
 
-    const txtSubmit = engineOrContext.createText(
+    const txtSubmit = resolvedRenderEngine.createText(
       "💾 SALVAR NO RANKING (ENTER)",
       {
         fontFamily: "Outfit",

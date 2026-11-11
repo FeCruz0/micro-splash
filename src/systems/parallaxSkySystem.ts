@@ -12,7 +12,7 @@ import type {
   IRenderNode,
   IGraphicsNode,
 } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { resolveCameraX } from "./cameraSystem";
 import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
 
@@ -288,24 +288,27 @@ function createCloudObject(
     textureCache: Map<string, unknown>;
   }
 ): SkyRenderObject {
-  if (isRenderEngine(engineOrContext)) {
+  const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrContext);
+  if (resolvedRenderEngine) {
     const { width, height, baseY, puffs, textureCache } = options;
     const cacheKey = `${width}_${height}_${puffs}`;
 
-    const gfx = engineOrContext.createGraphics("sky_cloud");
+    const gfx = resolvedRenderEngine.createGraphics("sky_cloud");
     drawRetro16BitCloud(gfx, width, height, puffs);
 
     let bakedTexture: unknown = textureCache.get(cacheKey) ?? null;
     if (!bakedTexture) {
-      if (typeof engineOrContext.generateTexture === "function") {
-        bakedTexture = engineOrContext.generateTexture(gfx, {
+      if (typeof resolvedRenderEngine.generateTexture === "function") {
+        bakedTexture = resolvedRenderEngine.generateTexture(gfx, {
           resolution: 0.5,
           scaleMode: "nearest",
         });
       } else {
         const renderer =
-          typeof engineOrContext.getRenderer === "function"
-            ? (engineOrContext.getRenderer() as { generateTexture?: (opts: unknown) => unknown })
+          typeof resolvedRenderEngine.getRenderer === "function"
+            ? (resolvedRenderEngine.getRenderer() as {
+                generateTexture?: (opts: unknown) => unknown;
+              })
             : null;
         if (renderer && typeof renderer.generateTexture === "function") {
           const nativeGfx = typeof gfx.getNativeNode === "function" ? gfx.getNativeNode() : gfx;
@@ -326,9 +329,9 @@ function createCloudObject(
     }
 
     let renderNode: IRenderNode = gfx;
-    if (bakedTexture && typeof engineOrContext.createSprite === "function") {
+    if (bakedTexture && typeof resolvedRenderEngine.createSprite === "function") {
       try {
-        const spriteNode = engineOrContext.createSprite(bakedTexture, "sky_cloud");
+        const spriteNode = resolvedRenderEngine.createSprite(bakedTexture, "sky_cloud");
         const nativeSprite = spriteNode.getNativeNode<{
           roundPixels?: boolean;
           cullable?: boolean;
@@ -349,7 +352,7 @@ function createCloudObject(
     renderNode.setPosition(0, baseY);
     renderNode.setZIndex(-8);
     renderNode.setOpacity(1);
-    resolveWorldRenderContainer(engineOrContext).addChild(renderNode);
+    resolveWorldRenderContainer(resolvedRenderEngine).addChild(renderNode);
 
     const comps: unknown[] = [
       "sky_cloud",
@@ -417,7 +420,8 @@ function createSkyObject(
     textureCache?: Map<string, unknown>;
   }
 ): SkyRenderObject {
-  if (isRenderEngine(engineOrContext)) {
+  const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrContext);
+  if (resolvedRenderEngine) {
     const isPlainRect =
       options.type === "rect" &&
       (!options.radius || options.radius <= 0) &&
@@ -425,8 +429,8 @@ function createSkyObject(
       options.height !== undefined;
 
     // A. Retângulos planos (faixas de pôr do sol, estrelas, reflexos da lua, partes de aves): instanciar como Sprite com zero overhead
-    if (isPlainRect && typeof engineOrContext.createSprite === "function") {
-      const sprite = engineOrContext.createSprite("white", options.tag);
+    if (isPlainRect && typeof resolvedRenderEngine.createSprite === "function") {
+      const sprite = resolvedRenderEngine.createSprite("white", options.tag);
       sprite.setPosition(options.x, options.y);
       if (typeof sprite.setSize === "function") {
         sprite.setSize(options.width ?? 1, options.height ?? 1);
@@ -452,7 +456,7 @@ function createSkyObject(
         nativeSprite.eventMode = "none";
       }
 
-      resolveWorldRenderContainer(engineOrContext).addChild(sprite);
+      resolveWorldRenderContainer(resolvedRenderEngine).addChild(sprite);
 
       const comps: unknown[] = [
         options.tag,
@@ -476,7 +480,7 @@ function createSkyObject(
     const cacheKey = `${options.tag}_${options.type}_${options.radius ?? 0}_${options.width ?? 0}_${options.height ?? 0}`;
     let bakedTexture: unknown = options.textureCache?.get(cacheKey) ?? null;
 
-    const gfx = engineOrContext.createGraphics(options.tag);
+    const gfx = resolvedRenderEngine.createGraphics(options.tag);
     if (options.type === "circle" && options.radius !== undefined) {
       gfx.drawCircle(0, 0, options.radius, {
         fill: { color: options.color, alpha: 1 },
@@ -502,15 +506,17 @@ function createSkyObject(
     }
 
     if (!bakedTexture && options.textureCache) {
-      if (typeof engineOrContext.generateTexture === "function") {
-        bakedTexture = engineOrContext.generateTexture(gfx, {
+      if (typeof resolvedRenderEngine.generateTexture === "function") {
+        bakedTexture = resolvedRenderEngine.generateTexture(gfx, {
           resolution: 0.5,
           scaleMode: "nearest",
         });
       } else {
         const renderer =
-          typeof engineOrContext.getRenderer === "function"
-            ? (engineOrContext.getRenderer() as { generateTexture?: (opts: unknown) => unknown })
+          typeof resolvedRenderEngine.getRenderer === "function"
+            ? (resolvedRenderEngine.getRenderer() as {
+                generateTexture?: (opts: unknown) => unknown;
+              })
             : null;
         if (renderer && typeof renderer.generateTexture === "function") {
           const nativeGfx = typeof gfx.getNativeNode === "function" ? gfx.getNativeNode() : gfx;
@@ -531,9 +537,9 @@ function createSkyObject(
     }
 
     let renderNode: IRenderNode = gfx;
-    if (bakedTexture && typeof engineOrContext.createSprite === "function") {
+    if (bakedTexture && typeof resolvedRenderEngine.createSprite === "function") {
       try {
-        const sprite = engineOrContext.createSprite(bakedTexture, options.tag);
+        const sprite = resolvedRenderEngine.createSprite(bakedTexture, options.tag);
         const nativeSprite = sprite.getNativeNode<{
           roundPixels?: boolean;
           cullable?: boolean;
@@ -554,7 +560,7 @@ function createSkyObject(
     renderNode.setPosition(options.x, options.y);
     renderNode.setZIndex(options.zIndex);
     renderNode.setOpacity(options.opacity);
-    resolveWorldRenderContainer(engineOrContext).addChild(renderNode);
+    resolveWorldRenderContainer(resolvedRenderEngine).addChild(renderNode);
 
     const comps: unknown[] = [
       options.tag,
@@ -619,12 +625,12 @@ function createSkyObject(
 export function setupParallaxSkySystem(
   engineOrContext: IRenderEngine | unknown
 ): ParallaxSkySystem {
-  const isPixi = isRenderEngine(engineOrContext);
-  const legacyEngineContext = !isPixi
+  const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrContext);
+  const legacyEngineContext = !resolvedRenderEngine
     ? (engineOrContext as LegacyParallaxSkyEngineContext)
     : undefined;
-  const screenW = isPixi
-    ? engineOrContext.getDimensions().width
+  const screenW = resolvedRenderEngine
+    ? resolvedRenderEngine.getDimensions().width
     : typeof legacyEngineContext?.width === "function"
       ? legacyEngineContext.width()
       : 640;
@@ -883,7 +889,7 @@ export function setupParallaxSkySystem(
 
   const stepUpdate = (deltaTime: number): void => {
     time += deltaTime;
-    const camX = resolveCameraX(engineOrContext);
+    const camX = resolveCameraX(resolvedRenderEngine ?? engineOrContext);
     const screenLeft = camX - screenW / 2;
 
     // A. Pôr do Sol
@@ -992,8 +998,8 @@ export function setupParallaxSkySystem(
 
   let unregisterTicker: () => void;
 
-  if (isPixi) {
-    unregisterTicker = engineOrContext.getTicker().add((deltaTime) => {
+  if (resolvedRenderEngine) {
+    unregisterTicker = resolvedRenderEngine.getTicker().add((deltaTime) => {
       stepUpdate(deltaTime);
     });
   } else if (legacyEngineContext) {

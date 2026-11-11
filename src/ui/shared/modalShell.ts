@@ -30,7 +30,7 @@ import type {
   IGraphicsNode,
   ITextNode,
 } from "../../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveInitializedRenderEngine } from "../../engine/contracts/INTERFACE_CONTRACTS";
 
 export interface ModalShellOptions {
   title: string;
@@ -99,12 +99,13 @@ export function createModalShell<
   const canInteract = options.canInteract ?? (() => true);
   const zBase = options.zBase ?? UI_Z_INDEX.backdrop;
 
-  if (isRenderEngine(engineOrContext)) {
+  const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrContext);
+  if (resolvedRenderEngine) {
     const screenContainer =
-      typeof engineOrContext.getScreenContainer === "function"
-        ? engineOrContext.getScreenContainer()
-        : engineOrContext.getStageRoot();
-    const dimensionsEngine = engineOrContext.getDimensions();
+      typeof resolvedRenderEngine.getScreenContainer === "function"
+        ? resolvedRenderEngine.getScreenContainer()
+        : resolvedRenderEngine.getStageRoot();
+    const dimensionsEngine = resolvedRenderEngine.getDimensions();
     const screenW = dimensionsEngine.width;
     const screenH = dimensionsEngine.height;
 
@@ -126,7 +127,7 @@ export function createModalShell<
     const elements: Array<IGraphicsNode | ITextNode> = [];
 
     // 1. Backdrop
-    const backdropNode = engineOrContext.createGraphics("modal_backdrop");
+    const backdropNode = resolvedRenderEngine.createGraphics("modal_backdrop");
     backdropNode.drawRect(0, 0, screenW, screenH, {
       fill: {
         color: [UI_COLORS.backdrop[0], UI_COLORS.backdrop[1], UI_COLORS.backdrop[2]],
@@ -139,7 +140,7 @@ export function createModalShell<
 
     // 2. Card
     const borderColor = options.borderColor ?? UI_COLORS.border;
-    const cardNode = engineOrContext.createGraphics("modal_card");
+    const cardNode = resolvedRenderEngine.createGraphics("modal_card");
     cardNode.drawRoundedRect(-cardW / 2, -cardH / 2, cardW, cardH, UI_RADII.xl, {
       fill: {
         color: [UI_COLORS.panel[0], UI_COLORS.panel[1], UI_COLORS.panel[2]],
@@ -157,7 +158,7 @@ export function createModalShell<
     elements.push(cardNode);
 
     // 3. Título com sombra
-    const titleHandle = addShadowedText(engineOrContext, options.title, {
+    const titleHandle = addShadowedText(resolvedRenderEngine, options.title, {
       pos: { x: cX, y: dimensions.top + 32 },
       size: accessibilitySystem.scaleFont(TEXT_SIZE_H1 + 2),
       font: FONT_TITLE,
@@ -167,7 +168,7 @@ export function createModalShell<
 
     // 4. Subtítulo opcional
     if (options.subtitle) {
-      const subtitleNode = engineOrContext.createText(
+      const subtitleNode = resolvedRenderEngine.createText(
         options.subtitle,
         {
           fontFamily: FONT_BODY,
@@ -220,7 +221,7 @@ export function createModalShell<
       const btnXPos = cX + cardW / 2 - 32;
       const btnYPos = dimensions.top + 32;
 
-      closeBtnNode = engineOrContext.createGraphics("modal_close_btn");
+      closeBtnNode = resolvedRenderEngine.createGraphics("modal_close_btn");
       closeBtnNode.drawRoundedRect(-19, -19, 38, 38, UI_RADII.md, {
         fill: { color: [22, 50, 90], alpha: 1 },
         stroke: { width: 1.5, color: [100, 200, 255], alpha: 1 },
@@ -230,7 +231,7 @@ export function createModalShell<
       screenContainer.addChild(closeBtnNode);
       elements.push(closeBtnNode);
 
-      const closeLabel = engineOrContext.createText(
+      const closeLabel = resolvedRenderEngine.createText(
         "✕",
         {
           fontFamily: "Outfit",
@@ -294,7 +295,7 @@ export function createModalShell<
         focusItems.push(item);
       },
       createFocusGroup: (initialIndex?: number) => {
-        focusGroup = createFocusGroup(engineOrContext, {
+        focusGroup = createFocusGroup(resolvedRenderEngine, {
           items: focusItems,
           initialIndex: initialIndex ?? (focusItems.length > 0 ? focusItems.length - 1 : 0),
           ringZ: zBase + 15,

@@ -7,7 +7,7 @@
 
 import { GAME_CONFIG, TAGS } from "../config";
 import type { IRenderEngine, IGraphicsNode } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { resolveCameraX } from "./cameraSystem";
 import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
 
@@ -169,22 +169,22 @@ export function createWaterSurfaceSystem(
   engineOrContext: IRenderEngine | unknown
 ): WaterSurfaceSystem {
   const segmentCount = 14;
-  const isPixi = isRenderEngine(engineOrContext);
-  const legacyEngineContext = !isPixi
+  const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrContext);
+  const legacyEngineContext = !resolvedRenderEngine
     ? (engineOrContext as LegacyWaterSurfaceEngineContext)
     : undefined;
-  const viewWidth = isPixi
-    ? engineOrContext.getDimensions().width
+  const viewWidth = resolvedRenderEngine
+    ? resolvedRenderEngine.getDimensions().width
     : typeof legacyEngineContext?.width === "function"
       ? legacyEngineContext.width()
       : 640;
   const segmentWidth = Math.ceil((viewWidth * 1.4) / segmentCount);
 
-  if (isPixi) {
-    const worldContainer = resolveWorldRenderContainer(engineOrContext);
+  if (resolvedRenderEngine) {
+    const worldContainer = resolveWorldRenderContainer(resolvedRenderEngine);
 
     // 1. Colisor físico estável
-    const colliderG = engineOrContext.createGraphics("water_surface_collider");
+    const colliderG = resolvedRenderEngine.createGraphics("water_surface_collider");
     colliderG.drawRect(0, 0, viewWidth * 2.2, 16, {
       fill: { color: [20, 50, 120], alpha: 1 },
     });
@@ -209,7 +209,7 @@ export function createWaterSurfaceSystem(
     const foamSegments: PixiSurfaceSegmentProxy[] = [];
 
     for (let i = 0; i < segmentCount; i++) {
-      const segG = engineOrContext.createGraphics("water_surface_segment");
+      const segG = resolvedRenderEngine.createGraphics("water_surface_segment");
       segG.drawRect(0, 0, segmentWidth + 2, 22, {
         fill: { color: [20, 50, 120], alpha: 1 },
       });
@@ -230,7 +230,7 @@ export function createWaterSurfaceSystem(
       );
       segments.push(segProxy);
 
-      const foamG = engineOrContext.createGraphics("water_surface_foam");
+      const foamG = resolvedRenderEngine.createGraphics("water_surface_foam");
       foamG.drawRoundedRect(0, 0, segmentWidth + 2, 3.5, 1, {
         fill: { color: [235, 250, 255], alpha: 1 },
       });
@@ -281,9 +281,9 @@ export function createWaterSurfaceSystem(
 
     collider.updateSurfaceColor = updateColor;
 
-    const unregister = engineOrContext.getTicker().add((dt: number) => {
+    const unregister = resolvedRenderEngine.getTicker().add((dt: number) => {
       time += dt;
-      const camX = resolveCameraX(engineOrContext);
+      const camX = resolveCameraX(resolvedRenderEngine);
       updatePosition(camX);
     });
 

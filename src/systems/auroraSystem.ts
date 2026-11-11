@@ -6,7 +6,7 @@
  */
 
 import type { IRenderEngine, IGraphicsNode } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { resolveCameraX } from "./cameraSystem";
 import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
 
@@ -94,11 +94,13 @@ interface LegacyAuroraEngineContext {
  * no céu polar antártico (0m a 5.000m).
  */
 export function setupAuroraSystem(engineOrContext: IRenderEngine | unknown): AuroraSystem {
-  const isPixi = isRenderEngine(engineOrContext);
+  const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrContext);
   const count = 6;
-  const legacyEngineContext = !isPixi ? (engineOrContext as LegacyAuroraEngineContext) : undefined;
-  const screenW = isPixi
-    ? engineOrContext.getDimensions().width
+  const legacyEngineContext = !resolvedRenderEngine
+    ? (engineOrContext as LegacyAuroraEngineContext)
+    : undefined;
+  const screenW = resolvedRenderEngine
+    ? resolvedRenderEngine.getDimensions().width
     : typeof legacyEngineContext?.width === "function"
       ? legacyEngineContext.width()
       : 640;
@@ -125,8 +127,8 @@ export function setupAuroraSystem(engineOrContext: IRenderEngine | unknown): Aur
     [180, 75, 225], // Violeta
   ];
 
-  if (isPixi) {
-    const worldContainer = resolveWorldRenderContainer(engineOrContext);
+  if (resolvedRenderEngine) {
+    const worldContainer = resolveWorldRenderContainer(resolvedRenderEngine);
 
     for (let i = 0; i < count; i++) {
       const width = 22 + (i % 3) * 6;
@@ -134,7 +136,7 @@ export function setupAuroraSystem(engineOrContext: IRenderEngine | unknown): Aur
       const baseY = 6 + (i % 3) * 4;
       const relX = (i / count) * screenW + (i % 2) * 20;
 
-      const g = engineOrContext.createGraphics("sky_aurora");
+      const g = resolvedRenderEngine.createGraphics("sky_aurora");
       g.drawRoundedRect(0, 0, width, height, 8, {
         fill: { color: rawColors[i % rawColors.length], alpha: 1 },
       });
@@ -158,10 +160,10 @@ export function setupAuroraSystem(engineOrContext: IRenderEngine | unknown): Aur
     }
 
     let time = 0;
-    const unregister = engineOrContext.getTicker().add((dt: number) => {
+    const unregister = resolvedRenderEngine.getTicker().add((dt: number) => {
       time += dt;
 
-      const camX = resolveCameraX(engineOrContext);
+      const camX = resolveCameraX(resolvedRenderEngine);
       const screenLeft = camX - screenW / 2;
       const polarIntensity = camX < 4400 ? 1 : camX > 5200 ? 0 : (5200 - camX) / 800;
 

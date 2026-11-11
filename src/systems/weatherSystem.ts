@@ -11,7 +11,7 @@ import { getRandomFloat } from "../utils/random";
 import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 import { getParticlePool } from "./particlePool";
 import type { IRenderEngine, IGraphicsNode } from "../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { resolveCameraX } from "./cameraSystem";
 import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
 
@@ -193,15 +193,17 @@ export function setupWeatherSystem(
   engineOrContext: IRenderEngine | unknown,
   playerController: PlayerController
 ) {
-  const isPixi = isRenderEngine(engineOrContext);
-  const legacyEngineContext = !isPixi ? (engineOrContext as LegacyWeatherEngineContext) : undefined;
-  const screenW = isPixi
-    ? engineOrContext.getDimensions().width
+  const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrContext);
+  const legacyEngineContext = !resolvedRenderEngine
+    ? (engineOrContext as LegacyWeatherEngineContext)
+    : undefined;
+  const screenW = resolvedRenderEngine
+    ? resolvedRenderEngine.getDimensions().width
     : typeof legacyEngineContext?.width === "function"
       ? legacyEngineContext.width()
       : 640;
-  const screenH = isPixi
-    ? engineOrContext.getDimensions().height
+  const screenH = resolvedRenderEngine
+    ? resolvedRenderEngine.getDimensions().height
     : typeof legacyEngineContext?.height === "function"
       ? legacyEngineContext.height()
       : 360;
@@ -221,13 +223,13 @@ export function setupWeatherSystem(
   const glintCount = 26;
   const goldenGlints: WeatherParticle[] = [];
 
-  if (isPixi) {
-    const worldContainer = resolveWorldRenderContainer(engineOrContext);
+  if (resolvedRenderEngine) {
+    const worldContainer = resolveWorldRenderContainer(resolvedRenderEngine);
 
     // 1. POOL DE NEVASCA POLAR
     for (let i = 0; i < snowflakeCount; i++) {
       const size = getRandomFloat(1.5, 3.2);
-      const g = engineOrContext.createGraphics("weather_snow");
+      const g = resolvedRenderEngine.createGraphics("weather_snow");
       g.drawCircle(0, 0, size, { fill: { color: [240, 248, 255], alpha: 1 } });
       g.setOpacity(0);
       g.setZIndex(26);
@@ -250,7 +252,7 @@ export function setupWeatherSystem(
     // 2. POOL DE VENDAVAL E CHUVA
     for (let i = 0; i < raindropCount; i++) {
       const len = getRandomFloat(8, 15);
-      const g = engineOrContext.createGraphics("weather_rain");
+      const g = resolvedRenderEngine.createGraphics("weather_rain");
       g.drawRoundedRect(0, 0, 1.6, len, 0.8, { fill: { color: [200, 225, 255], alpha: 1 } });
       g.setRotation((-22 * Math.PI) / 180);
       g.setOpacity(0);
@@ -274,7 +276,7 @@ export function setupWeatherSystem(
     // 3. POOL DE CALMARIA SOLAR
     for (let i = 0; i < glintCount; i++) {
       const size = getRandomFloat(1.8, 3.8);
-      const g = engineOrContext.createGraphics("weather_sun_glint");
+      const g = resolvedRenderEngine.createGraphics("weather_sun_glint");
       g.drawCircle(0, 0, size, { fill: { color: [255, 230, 110], alpha: 1 } });
       g.setOpacity(0);
       g.setZIndex(17);
@@ -328,7 +330,7 @@ export function setupWeatherSystem(
       });
     }
 
-    engineOrContext.getTicker().add((dt: number) => {
+    resolvedRenderEngine.getTicker().add((dt: number) => {
       if (!isWeatherActive) return;
 
       const playerPos = playerController.gameObj.pos;
@@ -356,7 +358,7 @@ export function setupWeatherSystem(
         return;
       }
 
-      const camX = resolveCameraX(engineOrContext);
+      const camX = resolveCameraX(resolvedRenderEngine);
       const camLeft = camX - screenW / 2;
 
       // Nevasca
