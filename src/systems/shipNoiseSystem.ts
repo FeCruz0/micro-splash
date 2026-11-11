@@ -11,6 +11,7 @@ import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import type { IRenderEngine, ISpriteNode } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { getParticlePool } from "./particlePool";
 import { getEntityFamilyTicker } from "./entityFamilyTicker";
+import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
 
 function resolveCameraX(engineOrContext: unknown): number {
   if (
@@ -140,13 +141,14 @@ export function setupShipNoiseSystem<
       tempRing.destroy();
 
       if (bakedNoiseRingTexture) {
+        const worldContainer = resolveWorldRenderContainer(engineContext);
         for (let r = 0; r < 8; r++) {
           const spr = engineContext.createSprite(bakedNoiseRingTexture, "pooled_noise_ring");
           spr.setAnchor(0.5, 0.5);
           spr.setVisible(false);
           spr.setOpacity(0);
           spr.setZIndex(8);
-          engineContext.getStageRoot().addChild(spr);
+          worldContainer.addChild(spr);
           pooledNoiseRings.push({
             sprite: spr,
             active: false,
@@ -300,8 +302,7 @@ export function setupShipNoiseSystem<
               particlePool.spawnCircle({
                 pos: { x: ship.pos.x, y: ship.pos.y + 20 },
                 radius: 20,
-                color:
-                  typeof k.rgb === "function" ? k.rgb(255, 80, 50) : { r: 255, g: 80, b: 50 },
+                color: typeof k.rgb === "function" ? k.rgb(255, 80, 50) : { r: 255, g: 80, b: 50 },
                 opacity: 0.6,
                 growthRate: 120,
                 fadeRate: 0.25,

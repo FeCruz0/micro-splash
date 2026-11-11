@@ -10,6 +10,7 @@ import { accessibilitySystem } from "./accessibilitySystem";
 import type { IRenderEngine, IRenderNode } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { createTween, Easings } from "../engine/utils/Tween";
+import { resolveScreenRenderContainer } from "../engine/adapters/RenderEngineAdapter";
 
 export interface BiomeMilestone {
   triggerDistance: number;
@@ -72,6 +73,37 @@ export function checkBiomeVignetteTrigger(
   return null;
 }
 
+interface LegacyBiomeVignetteEngineContext {
+  destroy(obj: unknown): void;
+  width(): number;
+  height(): number;
+  add(components: unknown[]): unknown;
+  rect(width: number, height: number, options?: unknown): unknown;
+  pos(x: number, y: number): unknown;
+  color(r: number, g: number, b: number): unknown;
+  color(c: unknown): unknown;
+  rgb(r: number, g: number, b: number): unknown;
+  outline(width: number, color: unknown): unknown;
+  opacity(alpha: number): unknown;
+  z(layer: number): unknown;
+  fixed(): unknown;
+  anchor(alignment: string): unknown;
+  text(content: string, options?: unknown): unknown;
+  wait(delayInSeconds: number, callback: () => void): { cancel: () => void };
+  tween(
+    from: number,
+    to: number,
+    duration: number,
+    setter: (val: number) => void,
+    easing?: (progress: number) => number
+  ): { then: (callback: () => void) => unknown };
+  easings?: {
+    easeOutQuad?: (progress: number) => number;
+    easeInQuad?: (progress: number) => number;
+  };
+  onUpdate(callback: () => void): () => void;
+}
+
 export interface BiomeVignetteSystem {
   destroy: () => void;
   getTriggeredDistances: () => number[];
@@ -90,7 +122,7 @@ export function setupBiomeVignetteSystem(
 
   if (isRenderEngine(engineOrContext)) {
     const renderEngine = engineOrContext;
-    const stageRoot = renderEngine.getStageRoot();
+    const screenContainer = resolveScreenRenderContainer(renderEngine);
     const { width: screenWidth, height: screenHeight } = renderEngine.getDimensions();
 
     let activeNodes: IRenderNode[] = [];
@@ -125,7 +157,7 @@ export function setupBiomeVignetteSystem(
       card.setPosition(screenWidth / 2, bannerYPosition);
       card.setOpacity(0);
       card.setZIndex(160);
-      stageRoot.addChild(card);
+      screenContainer.addChild(card);
 
       const title = renderEngine.createText(`${milestone.icon} ${milestone.title}`, {
         fontFamily: "Outfit",
@@ -136,7 +168,7 @@ export function setupBiomeVignetteSystem(
       title.setPosition(screenWidth / 2, bannerYPosition - 13);
       title.setOpacity(0);
       title.setZIndex(161);
-      stageRoot.addChild(title);
+      screenContainer.addChild(title);
 
       const subtitle = renderEngine.createText(milestone.subtitle, {
         fontFamily: "Inter",
@@ -148,7 +180,7 @@ export function setupBiomeVignetteSystem(
       subtitle.setPosition(screenWidth / 2, bannerYPosition + 13);
       subtitle.setOpacity(0);
       subtitle.setZIndex(161);
-      stageRoot.addChild(subtitle);
+      screenContainer.addChild(subtitle);
 
       activeNodes = [card, title, subtitle];
 
@@ -227,7 +259,7 @@ export function setupBiomeVignetteSystem(
   }
 
   // Modo Legacy Kaboom Bridge
-  const legacyCtx = engineOrContext as any;
+  const legacyCtx = engineOrContext as LegacyBiomeVignetteEngineContext;
 
   interface LegacyObj {
     opacity: number;

@@ -9,6 +9,7 @@ import { GAME_CONFIG, TAGS } from "../config";
 import { getSpatialCullingManager } from "./spatialCullingSystem";
 import type { IRenderEngine, Vector2D } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
 
 export interface SubmarineRelief {
   startX: number;
@@ -270,15 +271,36 @@ export function generateReliefCapPolygonPoints(
   }
 }
 
+interface LegacyOceanFloorEngineContext {
+  height?(): number;
+  dt(): number;
+  vec2?(x: number, y: number): unknown;
+  rgb?(r: number, g: number, b: number): unknown;
+  polygon(points: unknown[]): unknown;
+  rect(width: number, height: number, options?: unknown): unknown;
+  pos(x: number, y: number): unknown;
+  area?(options?: unknown): unknown;
+  body?(options?: unknown): unknown;
+  color(r: number, g: number, b: number): unknown;
+  opacity(alpha: number): unknown;
+  outline?(width: number, color: unknown): unknown;
+  z(layer: number): unknown;
+  add(components: unknown[]): unknown;
+  onUpdate(callback: () => void): (() => void) | { cancel: () => void };
+}
+
 /**
  * Cria a topografia do leito marinho com colisões sólidas e resposta ao Biosonar.
  */
-export function setupOceanFloorSystem(engineOrContext: IRenderEngine | any): void {
+export function setupOceanFloorSystem(engineOrContext: IRenderEngine | unknown): void {
   const isPixi = isRenderEngine(engineOrContext);
+  const legacyEngineContext = !isPixi
+    ? (engineOrContext as LegacyOceanFloorEngineContext)
+    : undefined;
   const screenH = isPixi
     ? engineOrContext.getDimensions().height
-    : typeof engineOrContext.height === "function"
-      ? engineOrContext.height()
+    : typeof legacyEngineContext?.height === "function"
+      ? legacyEngineContext.height()
       : 360;
 
   const floorBaseY = screenH - 40;
@@ -356,11 +378,15 @@ export function setupOceanFloorSystem(engineOrContext: IRenderEngine | any): voi
       if (typeof reliefGfx.freeze === "function") {
         reliefGfx.freeze(true);
       }
-      engineOrContext.getStageRoot().addChild(reliefGfx);
-      cullingManager?.registerEntity(reliefGfx as unknown as CullingTarget, () => relief.startX);
+      resolveWorldRenderContainer(engineOrContext).addChild(reliefGfx);
+      cullingManager?.registerEntity(
+        reliefGfx as unknown as CullingTarget,
+        () => relief.startX,
+        relief.width
+      );
     } else {
       // Legacy Kaboom engine
-      const legacyCtx = engineOrContext as any;
+      const legacyCtx = legacyEngineContext as LegacyOceanFloorEngineContext;
 
       const kBodyPoints = bodyPoints.map((pt) =>
         typeof legacyCtx.vec2 === "function" ? legacyCtx.vec2(pt.x, pt.y) : pt

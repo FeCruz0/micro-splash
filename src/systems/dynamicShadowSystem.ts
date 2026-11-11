@@ -10,6 +10,7 @@ import type { PlayerController } from "../entities/player";
 import { getCurrentBiome } from "./oceanEnvironment";
 import type { IRenderEngine, IGraphicsNode } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
 
 export interface ShadowMetrics {
   positionX: number;
@@ -175,6 +176,24 @@ export function calculateShadowMetrics(
   };
 }
 
+interface LegacyDynamicShadowEngineContext {
+  height?(): number;
+  dt?(): number;
+  lerp?(startValue: number, endValue: number, progress: number): number;
+  rgb?(r: number, g: number, b: number): unknown;
+  add(components: unknown[]): unknown;
+  rect(width: number, height: number, options?: unknown): unknown;
+  pos(x: number, y: number): unknown;
+  rotate(degrees: number): unknown;
+  scale(scaleX: number, scaleY: number): unknown;
+  anchor(alignment: string): unknown;
+  color(r: number, g: number, b: number): unknown;
+  opacity(alpha: number): unknown;
+  z(layer: number): unknown;
+  destroy?(targetEntity: unknown): void;
+  onUpdate(callback: () => void): (() => void) | { cancel: () => void };
+}
+
 /**
  * Inicializa o sistema de Sombras Dinâmicas da Jubarte.
  */
@@ -185,7 +204,7 @@ export function setupDynamicShadowSystem(
   const isPixi = isRenderEngine(engineOrContext);
 
   if (isPixi) {
-    const stageRoot = engineOrContext.getStageRoot();
+    const worldContainer = resolveWorldRenderContainer(engineOrContext);
     const screenH = engineOrContext.getDimensions().height;
 
     // Camada 1: Penumbra externa difusa
@@ -196,7 +215,7 @@ export function setupDynamicShadowSystem(
     penumbraHalo.setPosition(-9999, -9999);
     penumbraHalo.setOpacity(0);
     penumbraHalo.setZIndex(1);
-    stageRoot.addChild(penumbraHalo);
+    worldContainer.addChild(penumbraHalo);
 
     // Camada 2: Umbra central
     const umbraCore = engineOrContext.createGraphics("player_dynamic_shadow");
@@ -206,7 +225,7 @@ export function setupDynamicShadowSystem(
     umbraCore.setPosition(-9999, -9999);
     umbraCore.setOpacity(0);
     umbraCore.setZIndex(1);
-    stageRoot.addChild(umbraCore);
+    worldContainer.addChild(umbraCore);
 
     const penumbraProxy = new PixiShadowNodeProxy(penumbraHalo);
     const umbraProxy = new PixiShadowNodeProxy(umbraCore);
@@ -277,7 +296,7 @@ export function setupDynamicShadowSystem(
     };
   }
 
-  const legacyCtx = engineOrContext as any;
+  const legacyCtx = engineOrContext as LegacyDynamicShadowEngineContext;
 
   const penumbraHalo = legacyCtx.add([
     legacyCtx.rect(114, 14, { radius: 7 }),

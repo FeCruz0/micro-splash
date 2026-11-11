@@ -9,6 +9,7 @@ import { GAME_CONFIG } from "../config";
 import type { IRenderEngine, IGraphicsNode } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { resolveCameraX } from "./cameraSystem";
+import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
 
 export interface FoamRenderObject {
   opacity: number;
@@ -71,20 +72,38 @@ class PixiFoamNodeProxy implements FoamRenderObject {
   }
 }
 
+interface LegacyCoastalSurfEngineContext {
+  width(): number;
+  dt(): number;
+  rand?(min: number, max: number): number;
+  add(components: unknown[]): unknown;
+  rect(width: number, height: number, options?: unknown): unknown;
+  pos(x: number, y: number): unknown;
+  color(r: number, g: number, b: number): unknown;
+  opacity(alpha: number): unknown;
+  z(layer: number): unknown;
+  camPos?(): { x: number; y: number };
+  destroy?(targetEntity: unknown): void;
+  onUpdate(callback: () => void): () => void;
+}
+
 /**
  * Sistema de Ondas e Espuma Costeira em Arraial do Cabo (Fase 29.4)
  * Gera partículas de rebentação e filetes de espuma flutuantes deslizando suavemente
  * pela superfície da Enseada dos Anjos (24.800m+).
  */
 export function setupCoastalSurfSystem(
-  engineOrContext: IRenderEngine | any
+  engineOrContext: IRenderEngine | unknown
 ): CoastalSurfSystem {
   const isPixi = isRenderEngine(engineOrContext);
   const count = 12;
+  const legacyEngineContext = !isPixi
+    ? (engineOrContext as LegacyCoastalSurfEngineContext)
+    : undefined;
   const screenW = isPixi
     ? engineOrContext.getDimensions().width
-    : typeof engineOrContext.width === "function"
-      ? engineOrContext.width()
+    : typeof legacyEngineContext?.width === "function"
+      ? legacyEngineContext.width()
       : 640;
 
   interface FoamData {
@@ -99,7 +118,7 @@ export function setupCoastalSurfSystem(
   const foamList: FoamData[] = [];
 
   if (isPixi) {
-    const stageRoot = engineOrContext.getStageRoot();
+    const worldContainer = resolveWorldRenderContainer(engineOrContext);
 
     for (let i = 0; i < count; i++) {
       const width = 10 + ((i * 7) % 17);
@@ -114,7 +133,7 @@ export function setupCoastalSurfSystem(
       g.setPosition(0, baseY);
       g.setOpacity(0);
       g.setZIndex(2);
-      stageRoot.addChild(g);
+      worldContainer.addChild(g);
 
       const proxy = new PixiFoamNodeProxy(g);
 
@@ -162,7 +181,7 @@ export function setupCoastalSurfSystem(
     };
   }
 
-  const legacyCtx = engineOrContext as any;
+  const legacyCtx = legacyEngineContext as LegacyCoastalSurfEngineContext;
 
   for (let i = 0; i < count; i++) {
     const width = typeof legacyCtx.rand === "function" ? legacyCtx.rand(10, 26) : 16;

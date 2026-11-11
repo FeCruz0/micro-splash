@@ -10,6 +10,7 @@ import { getSpatialCullingManager } from "./spatialCullingSystem";
 import type { IRenderEngine, IGraphicsNode } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { resolveCameraX } from "./cameraSystem";
+import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
 import {
   createVolumetricRayProfile,
   getRaySegmentPolygonVertices,
@@ -73,24 +74,43 @@ function drawVolumetricRay(
   }
 }
 
+interface LegacyLightRaysEngineContext {
+  width?(): number;
+  dt(): number;
+  camPos?(): { readonly x: number; readonly y: number };
+  vec2?(x: number, y: number): unknown;
+  rgb?(r: number, g: number, b: number): unknown;
+  polygon(points: readonly unknown[]): unknown;
+  rect(width: number, height: number, options?: unknown): unknown;
+  pos(x: number, y: number): unknown;
+  color(r: number, g: number, b: number): unknown;
+  opacity(alpha: number): unknown;
+  z(layer: number): unknown;
+  add(components: unknown[]): unknown;
+  onUpdate(callback: () => void): (() => void) | { cancel: () => void };
+}
+
 /**
  * Sistema de Iluminação Subaquática: God Rays (Feixes Volumétricos) & Cáusticos de Superfície
  * Traz atmosfera cinematográfica e sensação de profundidade através da luz solar filtrada na água.
  */
-export function setupLightRaysSystem(engineOrContext: IRenderEngine | any): void {
+export function setupLightRaysSystem(engineOrContext: IRenderEngine | unknown): void {
   const isPixi = isRenderEngine(engineOrContext);
+  const legacyEngineContext = !isPixi
+    ? (engineOrContext as LegacyLightRaysEngineContext)
+    : undefined;
   const rayCount = 15;
   const causticSegments = 10;
   const screenWidth = isPixi
     ? engineOrContext.getDimensions().width
-    : typeof engineOrContext.width === "function"
-      ? engineOrContext.width()
+    : typeof legacyEngineContext?.width === "function"
+      ? legacyEngineContext.width()
       : 640;
 
   let isSystemVisible = true;
 
   if (isPixi) {
-    const stageRoot = engineOrContext.getStageRoot();
+    const worldContainer = resolveWorldRenderContainer(engineOrContext);
     const godRays: { node: IGraphicsNode; profile: RayGeometryProfile; data: GodRayData }[] = [];
     const caustics: { node: IGraphicsNode; data: CausticData }[] = [];
 
@@ -105,7 +125,7 @@ export function setupLightRaysSystem(engineOrContext: IRenderEngine | any): void
       graphicsNode.setRotation((baseAngleDeg * Math.PI) / 180);
       graphicsNode.setOpacity(0.04);
       graphicsNode.setZIndex(-2);
-      stageRoot.addChild(graphicsNode);
+      worldContainer.addChild(graphicsNode);
 
       godRays.push({
         node: graphicsNode,
@@ -128,7 +148,7 @@ export function setupLightRaysSystem(engineOrContext: IRenderEngine | any): void
       g.setPosition(c * (screenWidth / causticSegments), GAME_CONFIG.SEA_LEVEL + 2);
       g.setOpacity(0.1);
       g.setZIndex(1);
-      stageRoot.addChild(g);
+      worldContainer.addChild(g);
 
       caustics.push({ node: g, data: { index: c } });
     }
@@ -194,7 +214,7 @@ export function setupLightRaysSystem(engineOrContext: IRenderEngine | any): void
     });
   } else {
     // Modo Legacy Kaboom Bridge
-    const legacyCtx = engineOrContext;
+    const legacyCtx = legacyEngineContext as LegacyLightRaysEngineContext;
     const godRays: LegacyRayGroup[] = [];
 
     for (let index = 0; index < rayCount; index++) {

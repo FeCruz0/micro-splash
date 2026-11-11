@@ -10,11 +10,13 @@ import { Assets } from "pixi.js";
 import type {
   IRenderEngine,
   IRenderNode,
+  ISpriteNode,
   IGraphicsNode,
   ITextNode,
   IScene,
   ISceneManager,
 } from "../contracts/INTERFACE_CONTRACTS";
+import { resolveWorldRenderContainer, resolveScreenRenderContainer } from "./RenderEngineAdapter";
 import { createTween, Easings, type EasingFunction } from "../utils/Tween";
 import { getScreenLayerGeometryChecker } from "../screenLayerGeometryChecker";
 import { getSpriteSheetManager, type SpriteAnimationController } from "./SpriteSheetManager";
@@ -36,6 +38,31 @@ import {
   type EntityPositionBinding,
 } from "./entityPositionBinding";
 import { centralizedDeltaTimeClamp } from "../../config";
+
+function normalizeRgbColorTuple(rawColorValue: unknown): [number, number, number] | null {
+  if (Array.isArray(rawColorValue) && rawColorValue.length >= 3) {
+    return [
+      Number(rawColorValue[0]) || 0,
+      Number(rawColorValue[1]) || 0,
+      Number(rawColorValue[2]) || 0,
+    ];
+  }
+  if (rawColorValue && typeof rawColorValue === "object") {
+    const colorObject = rawColorValue as { r?: unknown; g?: unknown; b?: unknown };
+    if (
+      typeof colorObject.r === "number" &&
+      typeof colorObject.g === "number" &&
+      typeof colorObject.b === "number"
+    ) {
+      return [colorObject.r, colorObject.g, colorObject.b];
+    }
+  }
+  return null;
+}
+
+function isGraphicsRenderNode(renderNode: IRenderNode): renderNode is IGraphicsNode {
+  return "drawRect" in renderNode || "drawCircle" in renderNode || "drawPolygon" in renderNode;
+}
 
 /**
  * Ciclo de vida do contexto de renderização exposto às cenas: executa os callbacks registrados via
@@ -106,7 +133,7 @@ export function synchronizePlayerCameraTracking(
     lerp?(startValue: number, endValue: number, progressRatio: number): number;
   },
   playerCoordinateX: number,
-  playerCoordinateY: number = 0,
+  playerCoordinateY?: number,
   smoothingFactor: number = 0.05
 ): { readonly x: number; readonly y: number } {
   const currentCameraPosition = renderingContext.camPos();
@@ -115,7 +142,11 @@ export function synchronizePlayerCameraTracking(
       ? renderingContext.lerp(currentCameraPosition.x, playerCoordinateX, smoothingFactor)
       : currentCameraPosition.x + (playerCoordinateX - currentCameraPosition.x) * smoothingFactor;
 
-  return renderingContext.camPos(targetCoordinateX, playerCoordinateY);
+  // Preserva a coordenada Y atual caso nenhuma coordenada vertical explícita seja fornecida
+  const targetCameraCoordinateY =
+    typeof playerCoordinateY === "number" ? playerCoordinateY : currentCameraPosition.y;
+
+  return renderingContext.camPos(targetCoordinateX, targetCameraCoordinateY);
 }
 
 export function calculateOriginOffset(
@@ -283,6 +314,7 @@ export interface RenderingContext {
 
   vec2(coordinateX: number, coordinateY: number): RenderingContextVector2D;
   rgb(redValue: number, greenValue: number, blueValue: number): readonly [number, number, number];
+  setBackground?(backgroundColor: unknown): void;
   shake(intensity: number): void;
 
   circle(circleRadius: number): { readonly type: "circle"; readonly radius: number };
@@ -816,6 +848,17 @@ export function createRenderingContext(
       return [redValue, greenValue, blueValue] as const;
     },
 
+    setBackground(backgroundColor: unknown): void {
+      const normalizedRgb = normalizeRgbColorTuple(backgroundColor);
+      if (normalizedRgb) {
+        renderEngineInstance.setBackground?.(normalizedRgb);
+        return;
+      }
+      if (typeof backgroundColor === "number" || typeof backgroundColor === "string") {
+        renderEngineInstance.setBackground?.(backgroundColor);
+      }
+    },
+
     shake(intensity: number): void {
       renderEngineInstance.shake?.(intensity);
     },
@@ -1017,6 +1060,7 @@ export function createRenderingContext(
         let outlineWidthValue: number | null = null;
         let outlineColorValue: [number, number, number] = [255, 255, 255];
         let entityRgbColor: [number, number, number] = [255, 255, 255];
+        let hasExplicitColorComponent = false;
         let scaleCoordinateX = 1;
         let scaleCoordinateY = 1;
         let rotationDegreesValue = 0;
@@ -1051,6 +1095,59 @@ export function createRenderingContext(
               scaleCoordinateX * horizontalSign,
               scaleCoordinateY * verticalSign
             );
+          }
+        };
+
+        const redrawEntityGraphicsShape = (
+          graphicsNodeInstance: IGraphicsNode,
+          shouldClearBeforeDraw: boolean
+        ): void => {
+          if (shouldClearBeforeDraw && typeof graphicsNodeInstance.clear === "function") {
+            graphicsNodeInstance.clear();
+          }
+          const graphicStyle = {
+            fill: { color: entityRgbColor, alpha: 1 },
+            ...(outlineWidthValue !== null
+              ? { stroke: { width: outlineWidthValue, color: outlineColorValue, alpha: 1 } }
+              : {}),
+          };
+          if (circleRadiusValue !== null) {
+            graphicsNodeInstance.drawCircle(0, 0, Math.max(0, circleRadiusValue), graphicStyle);
+          } else if (rectangleWidthValue !== null && rectangleHeightValue !== null) {
+            const originOffsets = calculateOriginOffset(
+              anchorAlignment,
+              rectangleWidthValue,
+              rectangleHeightValue
+            );
+            const sanitizedWidth = Math.max(0, rectangleWidthValue);
+            const sanitizedHeight = Math.max(0, rectangleHeightValue);
+            if (typeof rectangleRadiusValue === "number" && rectangleRadiusValue > 0) {
+              graphicsNodeInstance.drawRoundedRect(
+                originOffsets.originX,
+                originOffsets.originY,
+                sanitizedWidth,
+                sanitizedHeight,
+                rectangleRadiusValue,
+                graphicStyle
+              );
+            } else {
+              graphicsNodeInstance.drawRect(
+                originOffsets.originX,
+                originOffsets.originY,
+                sanitizedWidth,
+                sanitizedHeight,
+                graphicStyle
+              );
+            }
+          } else if (
+            polygonPointsCoordinatesList !== null &&
+            polygonPointsCoordinatesList.length >= 3 &&
+            typeof graphicsNodeInstance.drawPolygon === "function"
+          ) {
+            graphicsNodeInstance.drawPolygon(polygonPointsCoordinatesList, graphicStyle);
+          }
+          if (typeof graphicsNodeInstance.setOpacity === "function") {
+            graphicsNodeInstance.setOpacity(entityOpacity);
           }
         };
 
@@ -1602,8 +1699,9 @@ export function createRenderingContext(
               typeof componentRecord.width === "number"
             ) {
               outlineWidthValue = componentRecord.width;
-              if (Array.isArray(componentRecord.color) && componentRecord.color.length === 3) {
-                outlineColorValue = componentRecord.color as [number, number, number];
+              const parsedOutlineColor = normalizeRgbColorTuple(componentRecord.color);
+              if (parsedOutlineColor) {
+                outlineColorValue = parsedOutlineColor;
               }
             } else if (componentRecord.type === "scale") {
               if (typeof componentRecord.scaleX === "number") {
@@ -1633,14 +1731,13 @@ export function createRenderingContext(
               }
             } else if (componentRecord.type === "color" && Array.isArray(componentRecord.args)) {
               const colorArgumentsList = componentRecord.args as unknown[];
-              if (colorArgumentsList.length === 3 && typeof colorArgumentsList[0] === "number") {
-                entityRgbColor = [
-                  colorArgumentsList[0],
-                  colorArgumentsList[1] as number,
-                  colorArgumentsList[2] as number,
-                ];
-              } else if (colorArgumentsList.length === 1 && Array.isArray(colorArgumentsList[0])) {
-                entityRgbColor = colorArgumentsList[0] as [number, number, number];
+              const parsedTupleColor =
+                colorArgumentsList.length === 3
+                  ? normalizeRgbColorTuple(colorArgumentsList)
+                  : normalizeRgbColorTuple(colorArgumentsList[0]);
+              if (parsedTupleColor) {
+                entityRgbColor = parsedTupleColor;
+                hasExplicitColorComponent = true;
               }
             } else if (!("type" in componentRecord)) {
               if (componentRecord.tag && typeof componentRecord.tag === "string") {
@@ -1676,88 +1773,33 @@ export function createRenderingContext(
           const targetDestinationContainer: IRenderNode = parentEntityVisualNode
             ? parentEntityVisualNode
             : isFixedElement
-              ? renderEngineInstance.getScreenContainer()
-              : renderEngineInstance.getWorldContainer();
+              ? resolveScreenRenderContainer(renderEngineInstance)
+              : resolveWorldRenderContainer(renderEngineInstance);
 
-          const graphicStyle = {
-            fill: { color: entityRgbColor, alpha: entityOpacity },
-            ...(outlineWidthValue !== null
-              ? { stroke: { width: outlineWidthValue, color: outlineColorValue } }
-              : {}),
-          };
+          const hasCircleShape = circleRadiusValue !== null;
+          const hasRectangleShape = rectangleWidthValue !== null && rectangleHeightValue !== null;
+          const hasPolygonShape =
+            polygonPointsCoordinatesList !== null && polygonPointsCoordinatesList.length >= 3;
 
-          if (circleRadiusValue !== null) {
-            const circleShapeNode = renderEngineInstance.createGraphics(
-              `rendered_circle_${Math.random().toString(36).slice(2, 9)}`
+          if (hasCircleShape || hasRectangleShape || hasPolygonShape) {
+            const shapeKindPrefix = hasCircleShape
+              ? "circle"
+              : hasRectangleShape
+                ? "rect"
+                : "polygon";
+            const graphicsShapeNode = renderEngineInstance.createGraphics(
+              `rendered_${shapeKindPrefix}_${Math.random().toString(36).slice(2, 9)}`
             );
-            circleShapeNode.drawCircle(0, 0, circleRadiusValue, graphicStyle);
-            circleShapeNode.setPosition(positionCoordinateX, positionCoordinateY);
-            circleShapeNode.setZIndex(entityZIndex);
-            circleShapeNode.setScale(scaleCoordinateX, scaleCoordinateY);
+            redrawEntityGraphicsShape(graphicsShapeNode, false);
+            graphicsShapeNode.setPosition(positionCoordinateX, positionCoordinateY);
+            graphicsShapeNode.setZIndex(entityZIndex);
+            graphicsShapeNode.setScale(scaleCoordinateX, scaleCoordinateY);
             if (rotationDegreesValue !== 0) {
-              circleShapeNode.setRotation((rotationDegreesValue * Math.PI) / 180);
+              graphicsShapeNode.setRotation((rotationDegreesValue * Math.PI) / 180);
             }
-            targetDestinationContainer.addChild(circleShapeNode);
-            entityVisualNode = circleShapeNode;
-            entityInstance.renderNode = circleShapeNode;
-          } else if (rectangleWidthValue !== null && rectangleHeightValue !== null) {
-            const rectangleShapeNode = renderEngineInstance.createGraphics(
-              `rendered_rect_${Math.random().toString(36).slice(2, 9)}`
-            );
-            const originOffsets = calculateOriginOffset(
-              anchorAlignment,
-              rectangleWidthValue,
-              rectangleHeightValue
-            );
-            const originCoordinateX = originOffsets.originX;
-            const originCoordinateY = originOffsets.originY;
-
-            if (typeof rectangleRadiusValue === "number" && rectangleRadiusValue > 0) {
-              rectangleShapeNode.drawRoundedRect(
-                originCoordinateX,
-                originCoordinateY,
-                rectangleWidthValue,
-                rectangleHeightValue,
-                rectangleRadiusValue,
-                graphicStyle
-              );
-            } else {
-              rectangleShapeNode.drawRect(
-                originCoordinateX,
-                originCoordinateY,
-                rectangleWidthValue,
-                rectangleHeightValue,
-                graphicStyle
-              );
-            }
-            rectangleShapeNode.setPosition(positionCoordinateX, positionCoordinateY);
-            rectangleShapeNode.setZIndex(entityZIndex);
-            rectangleShapeNode.setScale(scaleCoordinateX, scaleCoordinateY);
-            if (rotationDegreesValue !== 0) {
-              rectangleShapeNode.setRotation((rotationDegreesValue * Math.PI) / 180);
-            }
-            targetDestinationContainer.addChild(rectangleShapeNode);
-            entityVisualNode = rectangleShapeNode;
-            entityInstance.renderNode = rectangleShapeNode;
-          } else if (
-            polygonPointsCoordinatesList !== null &&
-            polygonPointsCoordinatesList.length >= 3
-          ) {
-            const polygonShapeNode = renderEngineInstance.createGraphics(
-              `rendered_polygon_${Math.random().toString(36).slice(2, 9)}`
-            );
-            if (typeof polygonShapeNode.drawPolygon === "function") {
-              polygonShapeNode.drawPolygon(polygonPointsCoordinatesList, graphicStyle);
-            }
-            polygonShapeNode.setPosition(positionCoordinateX, positionCoordinateY);
-            polygonShapeNode.setZIndex(entityZIndex);
-            polygonShapeNode.setScale(scaleCoordinateX, scaleCoordinateY);
-            if (rotationDegreesValue !== 0) {
-              polygonShapeNode.setRotation((rotationDegreesValue * Math.PI) / 180);
-            }
-            targetDestinationContainer.addChild(polygonShapeNode);
-            entityVisualNode = polygonShapeNode;
-            entityInstance.renderNode = polygonShapeNode;
+            targetDestinationContainer.addChild(graphicsShapeNode);
+            entityVisualNode = graphicsShapeNode;
+            entityInstance.renderNode = graphicsShapeNode;
           } else if (spriteAssetIdentifier !== null) {
             try {
               const spriteShapeNode = renderEngineInstance.createSprite(
@@ -1767,6 +1809,9 @@ export function createRenderingContext(
               spriteShapeNode.setPosition(positionCoordinateX, positionCoordinateY);
               spriteShapeNode.setZIndex(entityZIndex);
               spriteShapeNode.setOpacity(entityOpacity);
+              if (hasExplicitColorComponent && typeof spriteShapeNode.setTint === "function") {
+                spriteShapeNode.setTint(entityRgbColor);
+              }
               spriteShapeNode.setScale(scaleCoordinateX, scaleCoordinateY);
               if (rotationDegreesValue !== 0) {
                 spriteShapeNode.setRotation((rotationDegreesValue * Math.PI) / 180);
@@ -1838,6 +1883,7 @@ export function createRenderingContext(
             );
             entityChildContainerNode.setPosition(positionCoordinateX, positionCoordinateY);
             entityChildContainerNode.setZIndex(entityZIndex);
+            entityChildContainerNode.setOpacity(entityOpacity);
             entityChildContainerNode.setScale(scaleCoordinateX, scaleCoordinateY);
             if (rotationDegreesValue !== 0) {
               entityChildContainerNode.setRotation((rotationDegreesValue * Math.PI) / 180);
@@ -1881,39 +1927,7 @@ export function createRenderingContext(
               "drawRect" in entityVisualNode &&
               rectangleHeightValue !== null
             ) {
-              const graphicsNodeInstance = entityVisualNode as IGraphicsNode;
-              graphicsNodeInstance.clear();
-              const originOffsets = calculateOriginOffset(
-                anchorAlignment,
-                updatedWidthValue,
-                rectangleHeightValue
-              );
-              const originCoordinateX = originOffsets.originX;
-              const originCoordinateY = originOffsets.originY;
-              const graphicStyle = {
-                fill: { color: entityRgbColor, alpha: entityOpacity },
-                ...(outlineWidthValue !== null
-                  ? { stroke: { width: outlineWidthValue, color: outlineColorValue } }
-                  : {}),
-              };
-              if (typeof rectangleRadiusValue === "number" && rectangleRadiusValue > 0) {
-                graphicsNodeInstance.drawRoundedRect(
-                  originCoordinateX,
-                  originCoordinateY,
-                  Math.max(0, updatedWidthValue),
-                  rectangleHeightValue,
-                  rectangleRadiusValue,
-                  graphicStyle
-                );
-              } else {
-                graphicsNodeInstance.drawRect(
-                  originCoordinateX,
-                  originCoordinateY,
-                  Math.max(0, updatedWidthValue),
-                  rectangleHeightValue,
-                  graphicStyle
-                );
-              }
+              redrawEntityGraphicsShape(entityVisualNode as IGraphicsNode, true);
             }
           },
           configurable: true,
@@ -1925,15 +1939,7 @@ export function createRenderingContext(
           set: (updatedRadiusValue: number) => {
             circleRadiusValue = updatedRadiusValue;
             if (entityVisualNode && "drawCircle" in entityVisualNode) {
-              const graphicsNodeInstance = entityVisualNode as IGraphicsNode;
-              graphicsNodeInstance.clear();
-              const graphicStyle = {
-                fill: { color: entityRgbColor, alpha: entityOpacity },
-                ...(outlineWidthValue !== null
-                  ? { stroke: { width: outlineWidthValue, color: outlineColorValue } }
-                  : {}),
-              };
-              graphicsNodeInstance.drawCircle(0, 0, Math.max(0, updatedRadiusValue), graphicStyle);
+              redrawEntityGraphicsShape(entityVisualNode as IGraphicsNode, true);
             }
           },
           configurable: true,
@@ -1951,15 +1957,7 @@ export function createRenderingContext(
               updatedPolygonPointsList &&
               updatedPolygonPointsList.length >= 3
             ) {
-              const graphicsNodeInstance = entityVisualNode as IGraphicsNode;
-              graphicsNodeInstance.clear();
-              const graphicStyle = {
-                fill: { color: entityRgbColor, alpha: entityOpacity },
-                ...(outlineWidthValue !== null
-                  ? { stroke: { width: outlineWidthValue, color: outlineColorValue } }
-                  : {}),
-              };
-              graphicsNodeInstance.drawPolygon(updatedPolygonPointsList, graphicStyle);
+              redrawEntityGraphicsShape(entityVisualNode as IGraphicsNode, true);
             }
           },
           configurable: true,
@@ -2147,12 +2145,25 @@ export function createRenderingContext(
 
         Object.defineProperty(entityInstance, "color", {
           get: () => entityRgbColor,
-          set: (updatedColorValue: [number, number, number]) => {
-            if (Array.isArray(updatedColorValue) && updatedColorValue.length === 3) {
-              entityRgbColor = updatedColorValue;
-              if (entityVisualNode && "setColor" in entityVisualNode) {
-                (entityVisualNode as ITextNode).setColor(entityRgbColor);
-              }
+          set: (updatedColorValue: unknown) => {
+            const normalizedColor = normalizeRgbColorTuple(updatedColorValue);
+            if (!normalizedColor) {
+              return;
+            }
+            entityRgbColor = normalizedColor;
+            hasExplicitColorComponent = true;
+            if (!entityVisualNode) {
+              return;
+            }
+            if ("setColor" in entityVisualNode) {
+              (entityVisualNode as ITextNode).setColor(entityRgbColor);
+            } else if (
+              "setTint" in entityVisualNode &&
+              typeof (entityVisualNode as ISpriteNode).setTint === "function"
+            ) {
+              (entityVisualNode as ISpriteNode).setTint(entityRgbColor);
+            } else if (isGraphicsRenderNode(entityVisualNode)) {
+              redrawEntityGraphicsShape(entityVisualNode, true);
             }
           },
           configurable: true,
@@ -2487,7 +2498,7 @@ export function createRenderingContext(
 
     synchronizePlayerCameraTracking(
       playerCoordinateX: number,
-      playerCoordinateY: number = 0,
+      playerCoordinateY?: number,
       smoothingFactor: number = 0.05
     ): { readonly x: number; readonly y: number } {
       return synchronizePlayerCameraTracking(

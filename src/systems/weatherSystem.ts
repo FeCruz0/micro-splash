@@ -13,6 +13,7 @@ import { getParticlePool } from "./particlePool";
 import type { IRenderEngine, IGraphicsNode } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { resolveCameraX } from "./cameraSystem";
+import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
 
 /**
  * Tipo identificador do micro-clima em execução.
@@ -168,23 +169,41 @@ class PixiWeatherParticleProxy implements WeatherParticleObject {
   }
 }
 
+interface LegacyWeatherEngineContext {
+  width?(): number;
+  height?(): number;
+  camPos(): { readonly x: number; readonly y: number };
+  rand(min: number, max: number): number;
+  add(components: unknown[]): unknown;
+  circle(radius: number): unknown;
+  rect(width: number, height: number, options?: unknown): unknown;
+  pos(x: number, y: number): unknown;
+  rotate(degrees: number): unknown;
+  color(r: number, g: number, b: number): unknown;
+  opacity(alpha: number): unknown;
+  z(layer: number): unknown;
+  dt(): number;
+  onUpdate(callback: () => void): (() => void) | { cancel: () => void };
+}
+
 /**
  * Inicializa os geradores de partículas atmosféricas e micro-climas dinâmicos.
  */
 export function setupWeatherSystem(
-  engineOrContext: IRenderEngine | any,
+  engineOrContext: IRenderEngine | unknown,
   playerController: PlayerController
 ) {
   const isPixi = isRenderEngine(engineOrContext);
+  const legacyEngineContext = !isPixi ? (engineOrContext as LegacyWeatherEngineContext) : undefined;
   const screenW = isPixi
     ? engineOrContext.getDimensions().width
-    : typeof engineOrContext.width === "function"
-      ? engineOrContext.width()
+    : typeof legacyEngineContext?.width === "function"
+      ? legacyEngineContext.width()
       : 640;
   const screenH = isPixi
     ? engineOrContext.getDimensions().height
-    : typeof engineOrContext.height === "function"
-      ? engineOrContext.height()
+    : typeof legacyEngineContext?.height === "function"
+      ? legacyEngineContext.height()
       : 360;
 
   type Pool = NonNullable<ReturnType<typeof getParticlePool>>;
@@ -203,7 +222,7 @@ export function setupWeatherSystem(
   const goldenGlints: WeatherParticle[] = [];
 
   if (isPixi) {
-    const stageRoot = engineOrContext.getStageRoot();
+    const worldContainer = resolveWorldRenderContainer(engineOrContext);
 
     // 1. POOL DE NEVASCA POLAR
     for (let i = 0; i < snowflakeCount; i++) {
@@ -212,7 +231,7 @@ export function setupWeatherSystem(
       g.drawCircle(0, 0, size, { fill: { color: [240, 248, 255], alpha: 1 } });
       g.setOpacity(0);
       g.setZIndex(26);
-      stageRoot.addChild(g);
+      worldContainer.addChild(g);
 
       const proxy = new PixiWeatherParticleProxy(g, "weather_snow");
       snowflakes.push({
@@ -236,7 +255,7 @@ export function setupWeatherSystem(
       g.setRotation((-22 * Math.PI) / 180);
       g.setOpacity(0);
       g.setZIndex(26);
-      stageRoot.addChild(g);
+      worldContainer.addChild(g);
 
       const proxy = new PixiWeatherParticleProxy(g, "weather_rain");
       raindrops.push({
@@ -259,7 +278,7 @@ export function setupWeatherSystem(
       g.drawCircle(0, 0, size, { fill: { color: [255, 230, 110], alpha: 1 } });
       g.setOpacity(0);
       g.setZIndex(17);
-      stageRoot.addChild(g);
+      worldContainer.addChild(g);
 
       const proxy = new PixiWeatherParticleProxy(g, "weather_sun_glint");
       goldenGlints.push({
@@ -434,7 +453,7 @@ export function setupWeatherSystem(
     });
   } else {
     // Modo Legacy Kaboom Bridge
-    const legacyCtx = engineOrContext as any;
+    const legacyCtx = legacyEngineContext as LegacyWeatherEngineContext;
 
     const cam = legacyCtx.camPos();
 

@@ -119,4 +119,5 @@ export interface PlayerController<TGameObj = PlayerGameObject, TVector2 = Strict
   // Fase PixiJS v8 / Etapa 2.1
   getSpriteNode?: () => unknown;
   update?: () => void;
+  getTargetCameraHorizontalOffset?: () => number;
 }

@@ -175,8 +175,8 @@ export class SpriteSheetManager {
       assetPath: "/sprites/orca_bg.png",
       sliceCountX: 4,
       sliceCountY: 1,
-      nominalFrameWidth: 110,
-      nominalFrameHeight: 55,
+      nominalFrameWidth: 96,
+      nominalFrameHeight: 40,
       animations: {
         swim: { frameStart: 0, frameEnd: 3, from: 0, to: 3, loop: true, speed: 5 },
       },
@@ -187,8 +187,8 @@ export class SpriteSheetManager {
       assetPath: "/sprites/humpback_bg.png",
       sliceCountX: 4,
       sliceCountY: 1,
-      nominalFrameWidth: 128,
-      nominalFrameHeight: 64,
+      nominalFrameWidth: 144,
+      nominalFrameHeight: 56,
       animations: {
         swim: { frameStart: 0, frameEnd: 3, from: 0, to: 3, loop: true, speed: 3.2 },
       },
@@ -199,8 +199,8 @@ export class SpriteSheetManager {
       assetPath: "/sprites/cachalote_bg.png",
       sliceCountX: 4,
       sliceCountY: 1,
-      nominalFrameWidth: 130,
-      nominalFrameHeight: 65,
+      nominalFrameWidth: 192,
+      nominalFrameHeight: 64,
       animations: {
         swim: { frameStart: 0, frameEnd: 3, from: 0, to: 3, loop: true, speed: 2.4 },
       },

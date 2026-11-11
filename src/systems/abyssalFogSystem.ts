@@ -8,6 +8,7 @@
 import type { IRenderEngine, IGraphicsNode } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { resolveCameraX } from "./cameraSystem";
+import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
 
 export interface FogRenderObject {
   opacity: number;
@@ -65,24 +66,39 @@ class PixiFogNodeProxy implements FogRenderObject {
   }
 }
 
+interface LegacyAbyssalFogEngineContext {
+  height?(): number;
+  width?(): number;
+  rect(width: number, height: number): unknown;
+  pos(coordinateX: number, coordinateY: number): unknown;
+  color(red: number, green: number, blue: number): unknown;
+  opacity(alpha: number): unknown;
+  z(layerZIndex: number): unknown;
+  camPos?(): { readonly x: number; readonly y: number };
+  destroy(targetEntity: unknown): void;
+  add(componentsList: unknown[]): unknown;
+  onUpdate(updateCallback: () => void): () => void;
+}
+
 /**
  * Sistema de Névoa Abissal de Profundidade (Fase 29.3)
  * Projeta camadas de degradê atmosférico marinho na base inferior da tela,
  * dissolvendo o fundo oceânico nas trevas abissais e eliminando cortes geométricos secos.
  */
-export function setupAbyssalFogSystem(
-  engineOrContext: IRenderEngine | any
-): AbyssalFogSystem {
+export function setupAbyssalFogSystem(engineOrContext: IRenderEngine | unknown): AbyssalFogSystem {
   const isPixi = isRenderEngine(engineOrContext);
+  const legacyEngineContext = !isPixi
+    ? (engineOrContext as LegacyAbyssalFogEngineContext)
+    : undefined;
   const screenH = isPixi
     ? engineOrContext.getDimensions().height
-    : typeof engineOrContext.height === "function"
-      ? engineOrContext.height()
+    : typeof legacyEngineContext?.height === "function"
+      ? legacyEngineContext.height()
       : 360;
   const screenW = isPixi
     ? engineOrContext.getDimensions().width
-    : typeof engineOrContext.width === "function"
-      ? engineOrContext.width()
+    : typeof legacyEngineContext?.width === "function"
+      ? legacyEngineContext.width()
       : 640;
 
   const layerConfigs = [
@@ -93,7 +109,7 @@ export function setupAbyssalFogSystem(
   ];
 
   if (isPixi) {
-    const stageRoot = engineOrContext.getStageRoot();
+    const worldContainer = resolveWorldRenderContainer(engineOrContext);
     const layers: FogRenderObject[] = layerConfigs.map((cfg) => {
       const g = engineOrContext.createGraphics("abyssal_fog_layer");
       g.drawRect(0, 0, screenW * 2.2, cfg.h, {
@@ -103,7 +119,7 @@ export function setupAbyssalFogSystem(
       g.setPosition(-screenW / 2, initialY);
       g.setOpacity(cfg.opacity);
       g.setZIndex(4);
-      stageRoot.addChild(g);
+      worldContainer.addChild(g);
       return new PixiFogNodeProxy(g, initialY);
     });
 
@@ -126,17 +142,7 @@ export function setupAbyssalFogSystem(
     };
   }
 
-  const legacyCtx = engineOrContext as {
-    rect(w: number, h: number): unknown;
-    pos(x: number, y: number): unknown;
-    color(r: number, g: number, b: number): unknown;
-    opacity(o: number): unknown;
-    z(layer: number): unknown;
-    camPos?(): { x: number; y: number };
-    destroy(obj: unknown): void;
-    add(components: unknown[]): unknown;
-    onUpdate(callback: () => void): () => void;
-  };
+  const legacyCtx = legacyEngineContext as LegacyAbyssalFogEngineContext;
 
   const layers: FogRenderObject[] = layerConfigs.map((cfg) => {
     return legacyCtx.add([

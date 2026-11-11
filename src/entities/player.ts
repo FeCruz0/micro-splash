@@ -769,17 +769,6 @@ export function createPlayer(
       isFrozen: trapMgr.isFrozen(),
       slices: currentSliceTransforms,
     });
-
-    // 12. Câmera fluida sincronizada com mundo PixiJS e viewport
-    const targetCameraPositionX =
-      typeof k.lerp === "function" && typeof k.camPos === "function"
-        ? k.lerp(k.camPos().x, baleia.pos.x + controlsMgr.getTargetCamOffset(), 0.05)
-        : baleia.pos.x + controlsMgr.getTargetCamOffset();
-    const targetCameraPositionY = typeof k.camPos === "function" ? k.camPos().y : 300;
-
-    if (typeof k.camPos === "function") {
-      k.camPos(targetCameraPositionX, targetCameraPositionY);
-    }
   });
 
   // Resolução inicial determinística da pipeline de renderização
@@ -963,6 +952,7 @@ export function createPlayer(
 
     // Fase 18: Dinâmica Hidrodinâmica de Correntezas
     isFacingRight: () => controlsMgr.isFacingRight(),
+    getTargetCameraHorizontalOffset: () => controlsMgr.getTargetCamOffset(),
     setCurrentFlowModifier: (mod: number) => {
       oxygenMgr.setCurrentFlowModifier(mod);
     },

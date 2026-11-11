@@ -17,6 +17,7 @@ import type {
 } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { resolveCameraX } from "./cameraSystem";
+import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
 
 class FallbackRenderNodeAdapter implements IRenderNode {
   readonly id: string;
@@ -201,11 +202,24 @@ export function calculateBioluminescentColor(phase: number): [number, number, nu
   return [redChannel, greenChannel, blueChannel];
 }
 
+interface LegacyBioluminescenceEngineContext {
+  width(): number;
+  height(): number;
+  dt(): number;
+  add(components: unknown[]): unknown;
+  circle(radius: number): unknown;
+  pos(x: number, y: number): unknown;
+  color(r: number, g: number, b: number): unknown;
+  opacity(o: number): unknown;
+  z(layer: number): unknown;
+  onUpdate(callback: () => void): (() => void) | { cancel: () => void };
+}
+
 /**
  * Inicializa a esteira de bioluminescência procedural na Costa Urbana.
  */
 export function setupBioluminescenceSystem(
-  engineOrContext: IRenderEngine | any,
+  engineOrContext: IRenderEngine | unknown,
   playerController: PlayerController
 ): {
   destroy: () => void;
@@ -218,6 +232,9 @@ export function setupBioluminescenceSystem(
   let colorCyclePhase = 0;
 
   const isPixi = isRenderEngine(engineOrContext);
+  const legacyEngineContext = !isPixi
+    ? (engineOrContext as LegacyBioluminescenceEngineContext)
+    : undefined;
 
   // Pré-aloca o pool de partículas para manter 60 FPS sem alocação contínua
   for (let index = 0; index < particleCount; index++) {
@@ -231,20 +248,22 @@ export function setupBioluminescenceSystem(
       gfx.setPosition(-9999, -9999);
       gfx.setZIndex(14);
       gfx.setVisible(false);
-      engineOrContext.getStageRoot().addChild(gfx);
+      resolveWorldRenderContainer(engineOrContext).addChild(gfx);
       node = gfx;
-    } else {
-      const rawObj = engineOrContext.add([
-        engineOrContext.circle(size),
-        engineOrContext.pos(-9999, -9999),
-        engineOrContext.color(40, 240, 210),
-        engineOrContext.opacity(0),
-        engineOrContext.z(14),
+    } else if (legacyEngineContext) {
+      const rawObj = legacyEngineContext.add([
+        legacyEngineContext.circle(size),
+        legacyEngineContext.pos(-9999, -9999),
+        legacyEngineContext.color(40, 240, 210),
+        legacyEngineContext.opacity(0),
+        legacyEngineContext.z(14),
         "bioluminescence_particle",
       ]);
       legacyRaw = rawObj;
       node = new FallbackRenderNodeAdapter(rawObj, `biolum_particle_${index}`);
       node.setVisible(false);
+    } else {
+      continue;
     }
 
     particles.push({
@@ -268,7 +287,10 @@ export function setupBioluminescenceSystem(
 
   const screenDimensions = isPixi
     ? engineOrContext.getDimensions()
-    : { width: engineOrContext.width(), height: engineOrContext.height() };
+    : {
+        width: legacyEngineContext ? legacyEngineContext.width() : 640,
+        height: legacyEngineContext ? legacyEngineContext.height() : 360,
+      };
 
   const screenW = screenDimensions.width || 640;
   const screenH = screenDimensions.height || 360;
@@ -285,20 +307,22 @@ export function setupBioluminescenceSystem(
       gfx.setPosition(-9999, -9999);
       gfx.setZIndex(13);
       gfx.setVisible(false);
-      engineOrContext.getStageRoot().addChild(gfx);
+      resolveWorldRenderContainer(engineOrContext).addChild(gfx);
       node = gfx;
-    } else {
-      const rawObj = engineOrContext.add([
-        engineOrContext.circle(size),
-        engineOrContext.pos(-9999, -9999),
-        engineOrContext.color(60, 230, 215),
-        engineOrContext.opacity(0),
-        engineOrContext.z(13),
+    } else if (legacyEngineContext) {
+      const rawObj = legacyEngineContext.add([
+        legacyEngineContext.circle(size),
+        legacyEngineContext.pos(-9999, -9999),
+        legacyEngineContext.color(60, 230, 215),
+        legacyEngineContext.opacity(0),
+        legacyEngineContext.z(13),
         "ambient_plankton",
       ]);
       legacyRaw = rawObj;
       node = new FallbackRenderNodeAdapter(rawObj, `ambient_plankton_${index}`);
       node.setVisible(false);
+    } else {
+      continue;
     }
 
     ambientPlankton.push({
@@ -483,9 +507,9 @@ export function setupBioluminescenceSystem(
     unregisterTicker = engineOrContext.getTicker().add((deltaTime) => {
       stepUpdate(deltaTime);
     });
-  } else {
-    const handle = engineOrContext.onUpdate(() => {
-      stepUpdate(engineOrContext.dt());
+  } else if (legacyEngineContext) {
+    const handle = legacyEngineContext.onUpdate(() => {
+      stepUpdate(legacyEngineContext.dt());
     });
     unregisterTicker = () => {
       if (typeof handle === "function") {

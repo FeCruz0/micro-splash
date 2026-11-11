@@ -9,6 +9,7 @@ import { GAME_CONFIG } from "../config";
 import type { PlayerController } from "../entities/player";
 import type { IRenderEngine, IRenderNode, Vector2D } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveScreenRenderContainer } from "../engine/adapters/RenderEngineAdapter";
 
 class FallbackRenderNodeAdapter implements IRenderNode {
   readonly id: string;
@@ -170,7 +171,7 @@ export function setupDepthDarknessSystem(
     });
     overlay.setOpacity(0);
     overlay.setZIndex(8);
-    engineOrContext.getStageRoot().addChild(overlay);
+    resolveScreenRenderContainer(engineOrContext).addChild(overlay);
 
     const unregister = engineOrContext.getTicker().add((dt: number) => {
       const playerObj = playerController.gameObj;

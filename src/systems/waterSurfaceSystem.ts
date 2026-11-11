@@ -9,6 +9,7 @@ import { GAME_CONFIG, TAGS } from "../config";
 import type { IRenderEngine, IGraphicsNode } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { resolveCameraX } from "./cameraSystem";
+import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
 
 export type SurfaceColor =
   { r: number; g: number; b: number } | readonly [number, number, number] | number | string;
@@ -144,25 +145,43 @@ class PixiSurfaceSegmentProxy implements SurfaceRenderObject {
   }
 }
 
+interface LegacyWaterSurfaceEngineContext {
+  width?(): number;
+  dt(): number;
+  camPos?(): { readonly x: number; readonly y: number };
+  add(components: unknown[]): unknown;
+  rect(width: number, height: number, options?: unknown): unknown;
+  pos(x: number, y: number): unknown;
+  area?(): unknown;
+  color(r: number, g: number, b: number): unknown;
+  opacity(alpha: number): unknown;
+  z(layer: number): unknown;
+  onUpdate(callback: () => void): (() => void) | { cancel: () => void };
+  destroy(targetEntity: unknown): void;
+}
+
 /**
  * Sistema de Linha d'Água Ondulada e Orgânica (Fase 29.1)
  * Substitui o retângulo monolítico rígido por uma malha de segmentos verticais
  * acoplados a ondas senoidais harmônicas e crista de espuma dinâmica translúcida.
  */
 export function createWaterSurfaceSystem(
-  engineOrContext: IRenderEngine | any
+  engineOrContext: IRenderEngine | unknown
 ): WaterSurfaceSystem {
   const segmentCount = 14;
   const isPixi = isRenderEngine(engineOrContext);
+  const legacyEngineContext = !isPixi
+    ? (engineOrContext as LegacyWaterSurfaceEngineContext)
+    : undefined;
   const viewWidth = isPixi
     ? engineOrContext.getDimensions().width
-    : typeof engineOrContext.width === "function"
-      ? engineOrContext.width()
+    : typeof legacyEngineContext?.width === "function"
+      ? legacyEngineContext.width()
       : 640;
   const segmentWidth = Math.ceil((viewWidth * 1.4) / segmentCount);
 
   if (isPixi) {
-    const stageRoot = engineOrContext.getStageRoot();
+    const worldContainer = resolveWorldRenderContainer(engineOrContext);
 
     // 1. Colisor físico estável
     const colliderG = engineOrContext.createGraphics("water_surface_collider");
@@ -172,7 +191,7 @@ export function createWaterSurfaceSystem(
     colliderG.setPosition(-viewWidth / 2, GAME_CONFIG.SEA_LEVEL);
     colliderG.setOpacity(0);
     colliderG.setZIndex(1);
-    stageRoot.addChild(colliderG);
+    worldContainer.addChild(colliderG);
 
     const collider = new PixiSurfaceSegmentProxy(
       colliderG,
@@ -197,7 +216,7 @@ export function createWaterSurfaceSystem(
       segG.setPosition(0, GAME_CONFIG.SEA_LEVEL);
       segG.setOpacity(0.92);
       segG.setZIndex(1);
-      stageRoot.addChild(segG);
+      worldContainer.addChild(segG);
 
       const segProxy = new PixiSurfaceSegmentProxy(
         segG,
@@ -218,7 +237,7 @@ export function createWaterSurfaceSystem(
       foamG.setPosition(0, GAME_CONFIG.SEA_LEVEL - 1);
       foamG.setOpacity(0.38);
       foamG.setZIndex(2);
-      stageRoot.addChild(foamG);
+      worldContainer.addChild(foamG);
 
       const foamProxy = new PixiSurfaceSegmentProxy(
         foamG,
@@ -295,7 +314,7 @@ export function createWaterSurfaceSystem(
   }
 
   // Modo Legacy Kaboom Bridge
-  const legacyCtx = engineOrContext as any;
+  const legacyCtx = legacyEngineContext as LegacyWaterSurfaceEngineContext;
 
   const collider = legacyCtx.add([
     legacyCtx.rect(viewWidth * 2.2, 16),

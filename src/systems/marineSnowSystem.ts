@@ -10,6 +10,7 @@ import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 import type { IRenderEngine, IRenderNode, Vector2D } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { resolveCameraX } from "./cameraSystem";
+import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
 
 class FallbackRenderNodeAdapter implements IRenderNode {
   readonly id: string;
@@ -165,18 +166,36 @@ export function updateSnowParticlePosition(
   return reusableSnowResult;
 }
 
+interface LegacyMarineSnowEngineContext {
+  width(): number;
+  height(): number;
+  dt(): number;
+  add(components: unknown[]): unknown;
+  circle(radius: number): unknown;
+  pos(x: number, y: number): unknown;
+  color(r: number, g: number, b: number): unknown;
+  opacity(alpha: number): unknown;
+  z(layer: number): unknown;
+  onUpdate(callback: () => void): (() => void) | { cancel: () => void };
+}
+
 /**
  * Sistema de Neve Marinha Abissal (Fase 30.3, 53 & Migração PixiJS v8):
  * Gera micro-sedimentos orgânicos que precipitam lentamente pelas profundezas da Travessia Pelágica.
  */
-export function setupMarineSnowSystem(
-  engineOrContext: IRenderEngine | any
-): () => void {
+export function setupMarineSnowSystem(engineOrContext: IRenderEngine | unknown): () => void {
   const particles: MarineSnowFlake[] = [];
+  const isPixi = isRenderEngine(engineOrContext);
+  const legacyEngineContext = !isPixi
+    ? (engineOrContext as LegacyMarineSnowEngineContext)
+    : undefined;
 
-  const screenDimensions = isRenderEngine(engineOrContext)
+  const screenDimensions = isPixi
     ? engineOrContext.getDimensions()
-    : { width: engineOrContext.width(), height: engineOrContext.height() };
+    : {
+        width: legacyEngineContext ? legacyEngineContext.width() : 640,
+        height: legacyEngineContext ? legacyEngineContext.height() : 360,
+      };
 
   const screenWidth = screenDimensions.width;
   const screenHeight = screenDimensions.height;
@@ -202,22 +221,24 @@ export function setupMarineSnowSystem(
       });
       graphicsNode.setPosition(0, initialY);
       graphicsNode.setZIndex(-1);
-      engineOrContext.getStageRoot().addChild(graphicsNode);
+      resolveWorldRenderContainer(engineOrContext).addChild(graphicsNode);
       node = graphicsNode;
-    } else {
-      const legacyObject = engineOrContext.add([
-        engineOrContext.circle(radius),
-        engineOrContext.pos(0, initialY),
-        engineOrContext.color(
+    } else if (legacyEngineContext) {
+      const legacyObject = legacyEngineContext.add([
+        legacyEngineContext.circle(radius),
+        legacyEngineContext.pos(0, initialY),
+        legacyEngineContext.color(
           MARINE_SNOW_CONFIG.BASE_COLOR[0],
           MARINE_SNOW_CONFIG.BASE_COLOR[1],
           MARINE_SNOW_CONFIG.BASE_COLOR[2]
         ),
-        engineOrContext.opacity(baseOpacity),
-        engineOrContext.z(-1),
+        legacyEngineContext.opacity(baseOpacity),
+        legacyEngineContext.z(-1),
         "marine_snow_particle",
       ]);
       node = new FallbackRenderNodeAdapter(legacyObject, `marine_snow_legacy_${index}`);
+    } else {
+      continue;
     }
 
     particles.push({
@@ -309,9 +330,9 @@ export function setupMarineSnowSystem(
     unregisterTicker = engineOrContext.getTicker().add((deltaTime) => {
       stepUpdate(deltaTime);
     });
-  } else {
-    const handle = engineOrContext.onUpdate(() => {
-      stepUpdate(engineOrContext.dt());
+  } else if (legacyEngineContext) {
+    const handle = legacyEngineContext.onUpdate(() => {
+      stepUpdate(legacyEngineContext.dt());
     });
     unregisterTicker = () => {
       if (typeof handle === "function") {

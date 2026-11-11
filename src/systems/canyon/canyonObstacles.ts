@@ -11,7 +11,10 @@ import type {
   ISpriteNode,
 } from "../../engine/contracts/INTERFACE_CONTRACTS";
 import { isRenderEngine } from "../../engine/contracts/INTERFACE_CONTRACTS";
-import { getActiveRenderEngine } from "../../engine/adapters/RenderEngineAdapter";
+import {
+  getActiveRenderEngine,
+  resolveWorldRenderContainer,
+} from "../../engine/adapters/RenderEngineAdapter";
 
 /* v8 ignore start */
 /**
@@ -358,7 +361,7 @@ export function setupCanyonObstacles<
   const realEngine = resolveEngine(k);
   let bakedTurtleTex: unknown = null;
   let bakedFishTex: unknown = null;
-  let stageRoot: { addChild: (child: unknown) => void } | null = null;
+  let worldContainer: { addChild: (child: unknown) => void } | null = null;
 
   if (
     realEngine &&
@@ -390,8 +393,13 @@ export function setupCanyonObstacles<
         (fishGfx as unknown as { destroy: () => void }).destroy();
       }
 
-      if (typeof realEngine.getStageRoot === "function") {
-        stageRoot = realEngine.getStageRoot() as { addChild: (child: unknown) => void };
+      if (
+        typeof realEngine.getWorldContainer === "function" ||
+        typeof realEngine.getStageRoot === "function"
+      ) {
+        worldContainer = resolveWorldRenderContainer(realEngine) as {
+          addChild: (child: unknown) => void;
+        };
       }
     } catch {
       bakedTurtleTex = null;
@@ -424,8 +432,8 @@ export function setupCanyonObstacles<
         }
         sprite.setPosition(tp.x, tp.y);
         sprite.setZIndex(4);
-        if (stageRoot && typeof stageRoot.addChild === "function") {
-          stageRoot.addChild(sprite);
+        if (worldContainer && typeof worldContainer.addChild === "function") {
+          worldContainer.addChild(sprite);
         }
         turtleSpriteNode = sprite;
       } catch {
@@ -476,8 +484,8 @@ export function setupCanyonObstacles<
         }
         sprite.setPosition(fx, fy);
         sprite.setZIndex(3);
-        if (stageRoot && typeof stageRoot.addChild === "function") {
-          stageRoot.addChild(sprite);
+        if (worldContainer && typeof worldContainer.addChild === "function") {
+          worldContainer.addChild(sprite);
         }
         fishSpriteNode = sprite;
       } catch {

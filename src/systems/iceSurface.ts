@@ -17,6 +17,7 @@ import type { IRenderEngine, IRenderNode, Vector2D } from "../engine/contracts/I
 import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { create16BitIceTextures } from "./ice/ice16BitTextures";
 import { getSpatialGrid } from "./spatialHashGrid";
+import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
 
 /**
  * Representa uma fenda de respiração (polínia natural) na camada de gelo polar.
@@ -75,6 +76,25 @@ export function getNearestIceGap(x: number): IceGap | null {
   return nearestGap;
 }
 
+interface LegacyIceSurfaceEngineContext {
+  height(): number;
+  add(components: unknown[]): unknown;
+  rect(width: number, height: number, options?: unknown): unknown;
+  pos(x: number, y: number): unknown;
+  area(options?: unknown): unknown;
+  Rect?: new (pos: unknown, width: number, height: number) => unknown;
+  vec2(x: number, y: number): unknown;
+  color(r: number, g: number, b: number): unknown;
+  rgb(r: number, g: number, b: number): unknown;
+  opacity(alpha: number): unknown;
+  z(layer: number): unknown;
+  rotate(degrees: number): unknown;
+  rand(min: number, max: number): number;
+  destroy(targetEntity: unknown): void;
+  polygon(points: unknown[]): unknown;
+  outline(width: number, color: unknown): unknown;
+}
+
 /**
  * Cria e orquestra a banquisa polar, paredões de icebergs e fendas de respiração na Antártica (0m a 5.000m).
  */
@@ -105,7 +125,7 @@ export function setupIceSurfaceSystem(
 
   if (isRenderEngine(engineOrContext)) {
     const engine = engineOrContext;
-    const stageRoot = engine.getStageRoot();
+    const worldContainer = resolveWorldRenderContainer(engine);
     const screenH = engine.getDimensions().height;
 
     const { iceBlockTexture, icebergWallTexture } = create16BitIceTextures(engine);
@@ -156,8 +176,8 @@ export function setupIceSurfaceSystem(
 
       segment.setPosition(x, icePosY);
       segment.setZIndex(10);
-      stageRoot.addChild(segment);
-      cullingManager?.registerEntity(segment as unknown as CullingTarget, () => x);
+      worldContainer.addChild(segment);
+      cullingManager?.registerEntity(segment as unknown as CullingTarget, () => x, width);
 
       const iceBlockIdentifier = `ice_block_${Math.round(x)}_${Math.round(icePosY)}`;
       const spatialHashGrid = getSpatialGrid();
@@ -302,15 +322,15 @@ export function setupIceSurfaceSystem(
       wallSprite.setSize(wallWidth, screenH);
       wallSprite.setPosition(wallStartX, 0);
       wallSprite.setZIndex(10);
-      stageRoot.addChild(wallSprite);
+      worldContainer.addChild(wallSprite);
     } else {
       const wallG = engine.createGraphics("iceberg_wall");
       wallG.drawRect(0, 0, wallWidth, screenH, {
-        fill: { color: [150, 195, 235], alpha: 0.95 },
+        fill: { color: [150, 195, 235], alpha: 1 },
       });
       wallG.setPosition(wallStartX, 0);
       wallG.setZIndex(10);
-      stageRoot.addChild(wallG);
+      worldContainer.addChild(wallG);
 
       // Colunas de gelo verticais
       for (let x = wallStartX; x < 0; x += 75) {
@@ -328,7 +348,7 @@ export function setupIceSurfaceSystem(
           fill: { color: [180, 220, 255], alpha: 0.35 },
         });
         colG.setZIndex(11);
-        stageRoot.addChild(colG);
+        worldContainer.addChild(colG);
 
         const ridgeG = engine.createGraphics();
         const ridgePts: readonly Vector2D[] = [
@@ -340,7 +360,7 @@ export function setupIceSurfaceSystem(
           fill: { color: [230, 248, 255], alpha: 0.55 },
         });
         ridgeG.setZIndex(12);
-        stageRoot.addChild(ridgeG);
+        worldContainer.addChild(ridgeG);
       }
 
       // Crista pontiaguda na borda frontal
@@ -363,7 +383,7 @@ export function setupIceSurfaceSystem(
         stroke: { color: [120, 180, 230], width: 3 },
       });
       cliffG.setZIndex(14);
-      stageRoot.addChild(cliffG);
+      worldContainer.addChild(cliffG);
     }
 
     const polarIceSpatialGrid = getSpatialGrid();
@@ -401,7 +421,7 @@ export function setupIceSurfaceSystem(
     }
   } else {
     // Modo Legacy Kaboom Bridge
-    const legacyCtx = engineOrContext as any;
+    const legacyCtx = engineOrContext as LegacyIceSurfaceEngineContext;
 
     function spawnIceSegment(x: number, width: number) {
       let isBroken = false;
@@ -651,7 +671,7 @@ export function setupIceSurfaceSystem(
       legacyCtx.pos(wallStartX, 0),
       typeof legacyCtx.area === "function" ? legacyCtx.area() : null,
       legacyCtx.color(150, 195, 235),
-      legacyCtx.opacity(0.95),
+      legacyCtx.opacity(1),
       legacyCtx.z(10),
       "iceberg_wall",
       TAGS.OBSTACLE,
@@ -682,7 +702,8 @@ export function setupIceSurfaceSystem(
 
     cullingManager?.registerEntity(
       wallObj as unknown as CullingTarget,
-      () => wallStartX + wallWidth / 2
+      () => wallStartX + wallWidth / 2,
+      wallWidth
     );
 
     for (let x = wallStartX; x < 0; x += 75) {
@@ -700,7 +721,7 @@ export function setupIceSurfaceSystem(
         legacyCtx.opacity(0.35),
         legacyCtx.z(11),
       ]);
-      cullingManager?.registerEntity(colObj as unknown as CullingTarget, () => bumpX);
+      cullingManager?.registerEntity(colObj as unknown as CullingTarget, () => bumpX, colWidth);
 
       const ridgeObj = legacyCtx.add([
         legacyCtx.polygon([
@@ -712,7 +733,7 @@ export function setupIceSurfaceSystem(
         legacyCtx.opacity(0.55),
         legacyCtx.z(12),
       ]);
-      cullingManager?.registerEntity(ridgeObj as unknown as CullingTarget, () => bumpX);
+      cullingManager?.registerEntity(ridgeObj as unknown as CullingTarget, () => bumpX, colWidth);
     }
 
     const outlineCol =
@@ -739,7 +760,7 @@ export function setupIceSurfaceSystem(
       legacyCtx.opacity(0.98),
       legacyCtx.z(14),
     ]);
-    cullingManager?.registerEntity(cliffObj as unknown as CullingTarget, () => -50);
+    cullingManager?.registerEntity(cliffObj as unknown as CullingTarget, () => -50, 120);
 
     DEFAULT_ICE_GAPS.forEach((gap) => {
       if (gap.start > currentX) {

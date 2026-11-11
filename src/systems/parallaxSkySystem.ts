@@ -14,6 +14,7 @@ import type {
 } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { resolveCameraX } from "./cameraSystem";
+import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
 
 export interface SkyRenderObject {
   pos: { x: number; y: number };
@@ -261,8 +262,24 @@ function drawRetro16BitCloud(
   }
 }
 
+interface LegacyParallaxSkyEngineContext {
+  width?(): number;
+  height?(): number;
+  dt(): number;
+  camPos?(): { readonly x: number; readonly y: number };
+  add(components: unknown[]): unknown;
+  circle(radius: number): unknown;
+  rect(width: number, height: number, options?: unknown): unknown;
+  polygon(points: readonly { x: number; y: number }[]): unknown;
+  pos(x: number, y: number): unknown;
+  color(r: number, g: number, b: number): unknown;
+  opacity(alpha: number): unknown;
+  z(layer: number): unknown;
+  onUpdate(callback: () => void): (() => void) | { cancel: () => void };
+}
+
 function createCloudObject(
-  engineOrContext: IRenderEngine | any,
+  engineOrContext: IRenderEngine | unknown,
   options: {
     width: number;
     height: number;
@@ -332,7 +349,7 @@ function createCloudObject(
     renderNode.setPosition(0, baseY);
     renderNode.setZIndex(-8);
     renderNode.setOpacity(1);
-    engineOrContext.getStageRoot().addChild(renderNode);
+    resolveWorldRenderContainer(engineOrContext).addChild(renderNode);
 
     const comps: unknown[] = [
       "sky_cloud",
@@ -347,34 +364,36 @@ function createCloudObject(
     return new PixiSkyNodeProxy(renderNode, ["sky_cloud"], comps);
   }
 
+  const legacyEngineContext = engineOrContext as LegacyParallaxSkyEngineContext;
+
   // Legacy Kaboom engine: silhueta blocada em 2 camadas (base celeste + topo iluminado)
-  const rawCloud = engineOrContext.add([
-    engineOrContext.rect(options.width, options.height, { radius: options.height / 2 }),
-    engineOrContext.pos(0, options.baseY),
-    engineOrContext.color(
+  const rawCloud = legacyEngineContext.add([
+    legacyEngineContext.rect(options.width, options.height, { radius: options.height / 2 }),
+    legacyEngineContext.pos(0, options.baseY),
+    legacyEngineContext.color(
       CLOUD_PALETTE_BASE_RGB[0],
       CLOUD_PALETTE_BASE_RGB[1],
       CLOUD_PALETTE_BASE_RGB[2]
     ),
-    engineOrContext.opacity(1),
-    engineOrContext.z(-8),
+    legacyEngineContext.opacity(1),
+    legacyEngineContext.z(-8),
     "sky_cloud",
   ]) as SkyRenderObject;
 
   const cloudObj = rawCloud as unknown as { add?: (components: unknown[]) => void };
   if (typeof cloudObj.add === "function") {
     cloudObj.add([
-      engineOrContext.rect(options.width - 6, options.height * 0.55, {
+      legacyEngineContext.rect(options.width - 6, options.height * 0.55, {
         radius: (options.height * 0.55) / 2,
       }),
-      engineOrContext.pos(3, 0),
-      engineOrContext.color(
+      legacyEngineContext.pos(3, 0),
+      legacyEngineContext.color(
         CLOUD_PALETTE_TOP_RGB[0],
         CLOUD_PALETTE_TOP_RGB[1],
         CLOUD_PALETTE_TOP_RGB[2]
       ),
-      engineOrContext.opacity(1),
-      engineOrContext.z(-7.9),
+      legacyEngineContext.opacity(1),
+      legacyEngineContext.z(-7.9),
     ]);
   }
 
@@ -382,7 +401,7 @@ function createCloudObject(
 }
 
 function createSkyObject(
-  engineOrContext: IRenderEngine | any,
+  engineOrContext: IRenderEngine | unknown,
   options: {
     tag: string;
     type: "rect" | "circle" | "polygon";
@@ -433,7 +452,7 @@ function createSkyObject(
         nativeSprite.eventMode = "none";
       }
 
-      engineOrContext.getStageRoot().addChild(sprite);
+      resolveWorldRenderContainer(engineOrContext).addChild(sprite);
 
       const comps: unknown[] = [
         options.tag,
@@ -535,7 +554,7 @@ function createSkyObject(
     renderNode.setPosition(options.x, options.y);
     renderNode.setZIndex(options.zIndex);
     renderNode.setOpacity(options.opacity);
-    engineOrContext.getStageRoot().addChild(renderNode);
+    resolveWorldRenderContainer(engineOrContext).addChild(renderNode);
 
     const comps: unknown[] = [
       options.tag,
@@ -564,10 +583,11 @@ function createSkyObject(
   }
 
   // Legacy Kaboom engine
+  const legacyEngineContext = engineOrContext as LegacyParallaxSkyEngineContext;
   const comps: unknown[] = [
-    options.type === "circle" ? engineOrContext.circle(options.radius ?? 1) : null,
+    options.type === "circle" ? legacyEngineContext.circle(options.radius ?? 1) : null,
     options.type === "rect"
-      ? engineOrContext.rect(
+      ? legacyEngineContext.rect(
           options.width ?? 10,
           options.height ?? 10,
           options.radius !== undefined
@@ -575,15 +595,17 @@ function createSkyObject(
             : undefined
         )
       : null,
-    options.type === "polygon" && options.points ? engineOrContext.polygon(options.points) : null,
-    engineOrContext.pos(options.x, options.y),
-    engineOrContext.color(options.color[0], options.color[1], options.color[2]),
-    engineOrContext.opacity(options.opacity),
-    engineOrContext.z(options.zIndex),
+    options.type === "polygon" && options.points
+      ? legacyEngineContext.polygon(options.points)
+      : null,
+    legacyEngineContext.pos(options.x, options.y),
+    legacyEngineContext.color(options.color[0], options.color[1], options.color[2]),
+    legacyEngineContext.opacity(options.opacity),
+    legacyEngineContext.z(options.zIndex),
     options.tag,
   ].filter(Boolean);
 
-  const rawObj = engineOrContext.add(comps) as SkyRenderObject;
+  const rawObj = legacyEngineContext.add(comps) as SkyRenderObject;
   return rawObj;
 }
 
@@ -595,13 +617,16 @@ function createSkyObject(
  * - Aves marinhas autênticas por bioma: Albatroz, Fragata e Garça (29.8)
  */
 export function setupParallaxSkySystem(
-  engineOrContext: IRenderEngine | any
+  engineOrContext: IRenderEngine | unknown
 ): ParallaxSkySystem {
   const isPixi = isRenderEngine(engineOrContext);
+  const legacyEngineContext = !isPixi
+    ? (engineOrContext as LegacyParallaxSkyEngineContext)
+    : undefined;
   const screenW = isPixi
     ? engineOrContext.getDimensions().width
-    : typeof engineOrContext.width === "function"
-      ? engineOrContext.width()
+    : typeof legacyEngineContext?.width === "function"
+      ? legacyEngineContext.width()
       : 640;
 
   const bakedTextureCache = new Map<string, unknown>();
@@ -971,9 +996,9 @@ export function setupParallaxSkySystem(
     unregisterTicker = engineOrContext.getTicker().add((deltaTime) => {
       stepUpdate(deltaTime);
     });
-  } else {
-    const handle = engineOrContext.onUpdate(() => {
-      stepUpdate(engineOrContext.dt());
+  } else if (legacyEngineContext) {
+    const handle = legacyEngineContext.onUpdate(() => {
+      stepUpdate(legacyEngineContext.dt());
     });
     unregisterTicker = () => {
       if (typeof handle === "function") {

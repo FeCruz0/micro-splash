@@ -8,6 +8,7 @@
 import type { IRenderEngine, IGraphicsNode } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { resolveCameraX } from "./cameraSystem";
+import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
 
 export interface AuroraRenderObject {
   opacity: number;
@@ -70,20 +71,36 @@ class PixiAuroraRibbonProxy implements AuroraRenderObject {
   }
 }
 
+interface LegacyAuroraEngineContext {
+  width(): number;
+  height(): number;
+  dt(): number;
+  add(components: unknown[]): unknown;
+  onUpdate(callback: () => void): () => void;
+  rgb?(r: number, g: number, b: number): unknown;
+  rect(w: number, h: number, opts?: unknown): unknown;
+  pos(x: number, y: number): unknown;
+  color(c: unknown): unknown;
+  color(r: number, g: number, b: number): unknown;
+  opacity(o: number): unknown;
+  z(layer: number): unknown;
+  camPos?(): { x: number; y: number };
+  destroy(obj: unknown): void;
+}
+
 /**
  * Sistema de Aurora Austral na Antártica (Fase 29.6 - Lights Australis)
  * Renderiza cortinas ondulantes de luz atmosférica em tons de verde-esmeralda e magenta
  * no céu polar antártico (0m a 5.000m).
  */
-export function setupAuroraSystem(
-  engineOrContext: IRenderEngine | any
-): AuroraSystem {
+export function setupAuroraSystem(engineOrContext: IRenderEngine | unknown): AuroraSystem {
   const isPixi = isRenderEngine(engineOrContext);
   const count = 6;
+  const legacyEngineContext = !isPixi ? (engineOrContext as LegacyAuroraEngineContext) : undefined;
   const screenW = isPixi
     ? engineOrContext.getDimensions().width
-    : typeof engineOrContext.width === "function"
-      ? engineOrContext.width()
+    : typeof legacyEngineContext?.width === "function"
+      ? legacyEngineContext.width()
       : 640;
 
   interface RibbonData {
@@ -109,7 +126,7 @@ export function setupAuroraSystem(
   ];
 
   if (isPixi) {
-    const stageRoot = engineOrContext.getStageRoot();
+    const worldContainer = resolveWorldRenderContainer(engineOrContext);
 
     for (let i = 0; i < count; i++) {
       const width = 22 + (i % 3) * 6;
@@ -124,7 +141,7 @@ export function setupAuroraSystem(
       g.setPosition(0, baseY);
       g.setOpacity(0);
       g.setZIndex(-9);
-      stageRoot.addChild(g);
+      worldContainer.addChild(g);
 
       const proxy = new PixiAuroraRibbonProxy(g);
 
@@ -170,22 +187,7 @@ export function setupAuroraSystem(
     };
   }
 
-  const legacyCtx = engineOrContext as {
-    width(): number;
-    height(): number;
-    dt(): number;
-    add(components: unknown[]): unknown;
-    onUpdate(callback: () => void): () => void;
-    rgb?(r: number, g: number, b: number): unknown;
-    rect(w: number, h: number, opts?: unknown): unknown;
-    pos(x: number, y: number): unknown;
-    color(c: unknown): unknown;
-    color(r: number, g: number, b: number): unknown;
-    opacity(o: number): unknown;
-    z(layer: number): unknown;
-    camPos?(): { x: number; y: number };
-    destroy(obj: unknown): void;
-  };
+  const legacyCtx = legacyEngineContext as LegacyAuroraEngineContext;
 
   const auroraColors = rawColors.map(([r, g, b]) =>
     typeof legacyCtx.rgb === "function" ? legacyCtx.rgb(r, g, b) : [r, g, b]

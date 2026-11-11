@@ -96,11 +96,12 @@
       /* Cursor Temático Oceânico (Fase 31.9): bolha turquesa padrão e âncora náutica interativa */
       html,
       body,
+      #app,
       canvas {
         margin: 0;
         padding: 0;
-        width: 100vw;
-        height: 100vh;
+        width: 100%;
+        height: 100%;
         background-color: #06122a;
         font-family:
           "Inter",
@@ -115,8 +116,13 @@
             11 11,
           auto;
       }
+      #app {
+        position: relative;
+      }
       canvas {
         display: block;
+        max-width: 100%;
+        max-height: 100%;
         outline: none;
         border: none;
         image-rendering: auto;

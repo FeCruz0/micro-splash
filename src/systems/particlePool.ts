@@ -13,6 +13,7 @@ import type {
   ISpriteNode,
 } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
 
 export interface ParticleVec2 {
   x: number;
@@ -300,11 +301,21 @@ class PixiPooledParticleProxy implements ParticleRenderObject {
   }
 }
 
+interface LegacyParticlePoolEngineContext {
+  add(components: unknown[]): unknown;
+  circle(radius: number): unknown;
+  rect(width: number, height: number): unknown;
+  pos(x: number, y: number): unknown;
+  color(r: number, g: number, b: number): unknown;
+  opacity(alpha: number): unknown;
+  z(layer: number): unknown;
+}
+
 /**
  * Gerenciador de Piscina de Partículas (Object Pooling) de alta performance.
  */
 export class ParticlePool {
-  private engineOrContext: IRenderEngine | any;
+  private engineOrContext: IRenderEngine | unknown;
   private circlePool: PooledCircle[] = [];
   private rectPool: PooledRect[] = [];
   private activeCircleIndices: number[] = [];
@@ -314,18 +325,14 @@ export class ParticlePool {
 
   private sharedCircleTexture: unknown = null;
 
-  constructor(
-    engineOrContext: IRenderEngine | any,
-    circleCount = 140,
-    rectCount = 30
-  ) {
+  constructor(engineOrContext: IRenderEngine | unknown, circleCount = 140, rectCount = 30) {
     this.engineOrContext = engineOrContext;
     this.initPools(circleCount, rectCount);
   }
 
   private initPools(circleCount: number, rectCount: number): void {
     if (isRenderEngine(this.engineOrContext)) {
-      const stageRoot = this.engineOrContext.getStageRoot();
+      const worldContainer = resolveWorldRenderContainer(this.engineOrContext);
 
       if (
         typeof this.engineOrContext.generateTexture === "function" &&
@@ -382,7 +389,7 @@ export class ParticlePool {
         node.setOpacity(0);
         node.setZIndex(15);
         node.setVisible(false);
-        stageRoot.addChild(node);
+        worldContainer.addChild(node);
 
         const proxy = new PixiPooledParticleProxy(node, true, isSprite);
         this.circlePool.push({
@@ -442,7 +449,7 @@ export class ParticlePool {
         node.setOpacity(0);
         node.setZIndex(12);
         node.setVisible(false);
-        stageRoot.addChild(node);
+        worldContainer.addChild(node);
 
         const proxy = new PixiPooledParticleProxy(node, false, isSprite);
         this.rectPool.push({
@@ -458,7 +465,7 @@ export class ParticlePool {
         });
       }
     } else {
-      const legacyCtx = this.engineOrContext as any;
+      const legacyCtx = this.engineOrContext as LegacyParticlePoolEngineContext;
 
       for (let i = 0; i < circleCount; i++) {
         const obj = legacyCtx.add([
@@ -788,7 +795,7 @@ export class ParticlePool {
 let activeParticlePool: ParticlePool | null = null;
 
 export function initParticlePool(
-  engineOrContext: IRenderEngine | any,
+  engineOrContext: IRenderEngine | unknown,
   circleCount = 140,
   rectCount = 30
 ): ParticlePool {

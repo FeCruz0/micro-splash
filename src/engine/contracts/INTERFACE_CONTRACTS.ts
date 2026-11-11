@@ -190,6 +190,7 @@ export interface IRenderEngine {
   getScreenContainer(): IRenderNode;
   getCameraPosition(): Vector2D;
   setCameraPosition(cameraPositionX: number, cameraPositionY: number): void;
+  setBackground?(color: ColorRepresentation): void;
   shake?(intensity: number): void;
   getShakeOffset?(): Vector2D;
   getTicker(): IRenderTicker;

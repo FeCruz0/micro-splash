@@ -77,7 +77,11 @@ async function loadGameAssetsWithTimeout(): Promise<void> {
       );
     }
   } catch (assetLoadingError) {
-    reportWarning("[Boot] Falha ao carregar assets; seguindo com o boot.", undefined, assetLoadingError);
+    reportWarning(
+      "[Boot] Falha ao carregar assets; seguindo com o boot.",
+      undefined,
+      assetLoadingError
+    );
   } finally {
     if (timeoutHandle !== undefined) {
       clearTimeout(timeoutHandle);
@@ -118,6 +122,10 @@ async function bootstrapRenderEngine(): Promise<void> {
     const canvasElement = renderEngine.getCanvas();
     if (canvasElement) {
       canvasElement.style.objectFit = isLetterbox ? "contain" : "fill";
+      canvasElement.style.width = "100%";
+      canvasElement.style.height = "100%";
+      canvasElement.style.maxWidth = "100%";
+      canvasElement.style.maxHeight = "100%";
     }
 
     currentBootStage = "barras de letterbox";

@@ -166,6 +166,9 @@ export class PixiContainerNode implements IRenderNode {
     if (!this.childrenList.includes(child)) {
       this.childrenList.push(child);
     }
+    if (this.container.children.length > 1 && typeof this.container.sortChildren === "function") {
+      this.container.sortChildren();
+    }
   }
 
   removeChild(child: IRenderNode): void {

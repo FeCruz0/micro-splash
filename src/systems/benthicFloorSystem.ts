@@ -11,7 +11,10 @@ import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 import type { IRenderEngine, IRenderNode } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { isRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { resolveCameraX } from "./cameraSystem";
-import { getActiveRenderEngine } from "../engine/adapters/RenderEngineAdapter";
+import {
+  getActiveRenderEngine,
+  resolveWorldRenderContainer,
+} from "../engine/adapters/RenderEngineAdapter";
 import {
   create16BitSanctuaryTextures,
   draw16BitBrainCoral,
@@ -25,6 +28,15 @@ import {
 export interface MutableVec2 {
   x: number;
   y: number;
+}
+
+function setBenthicNodesVisibility(nodes: readonly BenthicRenderNode[], isVisible: boolean): void {
+  const shouldHide = !isVisible;
+  for (let index = 0; index < nodes.length; index++) {
+    if (nodes[index].hidden !== shouldHide) {
+      nodes[index].hidden = shouldHide;
+    }
+  }
 }
 
 export interface BenthicRenderNode {
@@ -120,7 +132,7 @@ function createBenthicNodeProxy(
       const targetAngle = val ?? 0;
       if (Math.abs(currentAngle - targetAngle) > 0.05) {
         currentAngle = targetAngle;
-        node.setRotation(targetAngle);
+        node.setRotation((targetAngle * Math.PI) / 180);
       }
     },
     get scale() {
@@ -149,7 +161,7 @@ export function calculateKelpSegmentColor(
   realEngine:
     | { rgb?: (r: number, g: number, b: number) => { r: number; g: number; b: number } }
     | IRenderEngine
-    | any,
+    | unknown,
   segmentIndex: number,
   totalSegments: number
 ): { r: number; g: number; b: number } {
@@ -157,12 +169,17 @@ export function calculateKelpSegmentColor(
   const redChannel = Math.round(55 + (110 - 55) * progressRatio);
   const greenChannel = Math.round(35 + (130 - 35) * progressRatio);
   const blueChannel = Math.round(15 + (40 - 15) * progressRatio);
-  if ("rgb" in realEngine && typeof realEngine.rgb === "function") {
-    return realEngine.rgb(redChannel, greenChannel, blueChannel) as {
-      r: number;
-      g: number;
-      b: number;
-    };
+  if (
+    realEngine &&
+    typeof realEngine === "object" &&
+    "rgb" in realEngine &&
+    typeof (realEngine as { rgb?: unknown }).rgb === "function"
+  ) {
+    return (
+      realEngine as {
+        rgb: (r: number, g: number, b: number) => { r: number; g: number; b: number };
+      }
+    ).rgb(redChannel, greenChannel, blueChannel);
   }
   return { r: redChannel, g: greenChannel, b: blueChannel };
 }
@@ -183,11 +200,36 @@ export const LITHOTHAMNION_SPAWN_X = [
   19400, 19900, 20700, 21500, 22300, 23100, 24000, 24900, 27400, 28300, 29200, 29800,
 ];
 
+interface LegacyBenthicEngineContext {
+  width(): number;
+  height?(): number;
+  dt(): number;
+  time(): number;
+  add(components: unknown[]): unknown;
+  onUpdate(callback: () => void): () => void;
+  rgb(r: number, g: number, b: number): unknown;
+  rect(w: number, h: number, opts?: unknown): unknown;
+  circle(radius: number): unknown;
+  polygon(pts: unknown[]): unknown;
+  pos(x: number, y: number): unknown;
+  color(c: unknown): unknown;
+  color(r: number, g: number, b: number): unknown;
+  opacity(o: number): unknown;
+  anchor(a: string): unknown;
+  rotate(deg: number): unknown;
+  scale(x: number, y?: number): unknown;
+  vec2(x: number, y: number): MutableVec2;
+  outline(width: number, color?: unknown): unknown;
+  z(layer: number): unknown;
+  camPos(): { readonly x: number; readonly y: number };
+  rand(min: number, max: number): number;
+}
+
 /**
  * Sistema do Fundo Marinho Bentônico: Florestas de Kelp (Antártica) e Jardins de Corais (Arraial do Cabo)
  * Enriquece o leito oceânico com ecossistemas autênticos e física suave de ondulação subaquática.
  */
-export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | any): void {
+export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | unknown): void {
   const engineCandidate = engineOrContext as { renderEngine?: unknown };
   const candidateEngine: unknown = isRenderEngine(engineOrContext)
     ? engineOrContext
@@ -218,8 +260,11 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | any): v
 
   const screenH = realEngine
     ? realEngine.getDimensions().height
-    : "height" in engineOrContext && typeof engineOrContext.height === "function"
-      ? (engineOrContext.height as () => number)()
+    : engineOrContext &&
+        typeof engineOrContext === "object" &&
+        "height" in engineOrContext &&
+        typeof (engineOrContext as { height?: unknown }).height === "function"
+      ? (engineOrContext as { height: () => number }).height()
       : 360;
 
   const floorY = screenH - 40;
@@ -248,7 +293,7 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | any): v
   ];
 
   if (isPixi && realEngine) {
-    const stageRoot = realEngine.getStageRoot();
+    const worldContainer = resolveWorldRenderContainer(realEngine);
     const sanctuary16Bit = create16BitSanctuaryTextures(realEngine);
 
     // 1. Kelp
@@ -269,8 +314,8 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | any): v
           fill: { color: colorTuple, alpha: 0.85 * (0.4 + 0.6 * transitionFactor) },
         });
         stem.setPosition(xPos, floorY - (s + 1) * segHeight);
-        stem.setZIndex(s % 2 === 0 ? -3 : 2);
-        stageRoot.addChild(stem);
+        stem.setZIndex(-3);
+        worldContainer.addChild(stem);
         cullingManager?.registerEntity(stem as unknown as CullingTarget, () => xPos);
 
         const leafSide = s % 2 === 0 ? 1 : -1;
@@ -281,9 +326,9 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | any): v
           fill: { color: colorTuple, alpha: 0.75 * (0.4 + 0.6 * transitionFactor) },
         });
         leaf.setPosition(xPos + leafSide * (segWidth + 4), floorY - (s + 0.5) * segHeight);
-        leaf.setRotation(leafSide * 25);
+        leaf.setRotation((leafSide * 25 * Math.PI) / 180);
         leaf.setZIndex(-3);
-        stageRoot.addChild(leaf);
+        worldContainer.addChild(leaf);
         cullingManager?.registerEntity(leaf as unknown as CullingTarget, () => xPos);
 
         const stemProxy = createBenthicNodeProxy(stem, xPos, floorY - (s + 1) * segHeight);
@@ -322,9 +367,9 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | any): v
         });
         const bladeX = xPos + (b - bladeCount / 2) * 4;
         bladeG.setPosition(bladeX, floorY);
-        bladeG.setRotation((b - bladeCount / 2) * 8);
+        bladeG.setRotation(((b - bladeCount / 2) * 8 * Math.PI) / 180);
         bladeG.setZIndex(-3);
-        stageRoot.addChild(bladeG);
+        worldContainer.addChild(bladeG);
 
         blades.push(createBenthicNodeProxy(bladeG, bladeX, floorY));
       }
@@ -352,9 +397,9 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | any): v
         });
         const bladeX = xPos + (b - bladeCount / 2) * 4.5;
         bladeG.setPosition(bladeX, floorY);
-        bladeG.setRotation((b - bladeCount / 2) * 6);
+        bladeG.setRotation(((b - bladeCount / 2) * 6 * Math.PI) / 180);
         bladeG.setZIndex(-3);
-        stageRoot.addChild(bladeG);
+        worldContainer.addChild(bladeG);
 
         blades.push(createBenthicNodeProxy(bladeG, bladeX, floorY));
       }
@@ -373,9 +418,9 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | any): v
         fill: { color: trashColor, alpha: 0.88 * (0.4 + 0.6 * transitionFactor) },
       });
       wasteG.setPosition(xPos + 3, floorY - 8 - (sIdx % 3) * 6);
-      wasteG.setRotation((sIdx * 35) % 90);
+      wasteG.setRotation((((sIdx * 35) % 90) * Math.PI) / 180);
       wasteG.setZIndex(-2);
-      stageRoot.addChild(wasteG);
+      worldContainer.addChild(wasteG);
 
       urbanSeagrassPlants.push({
         blades,
@@ -402,7 +447,7 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | any): v
       });
       crustG.setPosition(xPos, floorY - 2 + (lIdx % 3) * 1.2);
       crustG.setZIndex(-3);
-      stageRoot.addChild(crustG);
+      worldContainer.addChild(crustG);
 
       if (lIdx % 2 === 0) {
         const noduleG = realEngine.createGraphics();
@@ -411,7 +456,7 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | any): v
         });
         noduleG.setPosition(xPos + crustW * 0.7, floorY - 3);
         noduleG.setZIndex(-3);
-        stageRoot.addChild(noduleG);
+        worldContainer.addChild(noduleG);
       }
     });
 
@@ -427,7 +472,7 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | any): v
           brainSprite.setAnchor(0.5, 1.0);
           brainSprite.setPosition(xPos, floorY);
           brainSprite.setZIndex(-3);
-          stageRoot.addChild(brainSprite);
+          worldContainer.addChild(brainSprite);
           corals.push({
             obj: createBenthicNodeProxy(brainSprite, xPos, floorY),
             type: "brain",
@@ -440,7 +485,7 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | any): v
           fanSprite.setAnchor(0.5, 1.0);
           fanSprite.setPosition(xPos, floorY);
           fanSprite.setZIndex(-3);
-          stageRoot.addChild(fanSprite);
+          worldContainer.addChild(fanSprite);
           corals.push({
             obj: createBenthicNodeProxy(fanSprite, xPos, floorY),
             type: "fan",
@@ -457,7 +502,7 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | any): v
           anemoneSprite.setAnchor(0.5, 1.0);
           anemoneSprite.setPosition(xPos, floorY);
           anemoneSprite.setZIndex(-3);
-          stageRoot.addChild(anemoneSprite);
+          worldContainer.addChild(anemoneSprite);
 
           const tentacles: BenthicRenderNode[] = [];
           if (sanctuary16Bit.anemoneTentacles && sanctuary16Bit.anemoneTentacles.length > 0) {
@@ -469,9 +514,9 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | any): v
               const tentX = xPos + t * 4;
               const tentY = floorY - 18;
               tentSprite.setPosition(tentX, tentY);
-              tentSprite.setRotation(t * 7);
+              tentSprite.setRotation((t * 7 * Math.PI) / 180);
               tentSprite.setZIndex(-3);
-              stageRoot.addChild(tentSprite);
+              worldContainer.addChild(tentSprite);
               tentacles.push(createBenthicNodeProxy(tentSprite, tentX, tentY));
             }
           }
@@ -504,7 +549,7 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | any): v
           );
           brainG.setPosition(xPos - 32, floorY - 40);
           brainG.setZIndex(-3);
-          stageRoot.addChild(brainG);
+          worldContainer.addChild(brainG);
 
           corals.push({
             obj: createBenthicNodeProxy(brainG, xPos, floorY),
@@ -531,7 +576,7 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | any): v
           );
           fanG.setPosition(xPos - 30, floorY - 64);
           fanG.setZIndex(-3);
-          stageRoot.addChild(fanG);
+          worldContainer.addChild(fanG);
 
           corals.push({
             obj: createBenthicNodeProxy(fanG, xPos, floorY),
@@ -552,7 +597,7 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | any): v
           );
           anemoneG.setPosition(xPos - 28, floorY - 44);
           anemoneG.setZIndex(-3);
-          stageRoot.addChild(anemoneG);
+          worldContainer.addChild(anemoneG);
 
           const tentacles: BenthicRenderNode[] = [];
           for (let t = -3; t <= 3; t++) {
@@ -567,9 +612,9 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | any): v
             const tentacleX = xPos + t * 4;
             const tentacleY = floorY - 18;
             tentacleG.setPosition(tentacleX - 4, tentacleY - 22);
-            tentacleG.setRotation(t * 7);
+            tentacleG.setRotation((t * 7 * Math.PI) / 180);
             tentacleG.setZIndex(-3);
-            stageRoot.addChild(tentacleG);
+            worldContainer.addChild(tentacleG);
             tentacles.push(createBenthicNodeProxy(tentacleG, tentacleX, tentacleY));
           }
 
@@ -593,7 +638,7 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | any): v
           fishSprite.setAnchor(0.5, 0.5);
           fishSprite.setPosition(fishBasePos.x, fishBasePos.y);
           fishSprite.setZIndex(-3);
-          stageRoot.addChild(fishSprite);
+          worldContainer.addChild(fishSprite);
           fishNode = createBenthicNodeProxy(fishSprite, fishBasePos.x, fishBasePos.y);
         } else {
           const reefFishG = realEngine.createGraphics();
@@ -610,7 +655,7 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | any): v
           );
           reefFishG.setPosition(fishBasePos.x - 12, fishBasePos.y - 6);
           reefFishG.setZIndex(-3);
-          stageRoot.addChild(reefFishG);
+          worldContainer.addChild(reefFishG);
           fishNode = createBenthicNodeProxy(reefFishG, fishBasePos.x, fishBasePos.y);
         }
 
@@ -665,19 +710,24 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | any): v
           const isVisible =
             plant.baseX + plantWidth >= minActiveX && plant.baseX - plantWidth <= maxActiveX;
           if (!isVisible) {
-            if (plant.segments[0]) plant.segments[0].hidden = true;
+            setBenthicNodesVisibility(plant.segments, false);
             continue;
           }
-          if (plant.segments[0]) plant.segments[0].hidden = false;
+          setBenthicNodesVisibility(plant.segments, true);
 
           const baseSway = Math.sin(time * plant.swaySpeed + plant.swayPhase);
           const totalSegs = plant.segments.length;
           for (let s = 0; s < totalSegs; s++) {
             const seg = plant.segments[s];
-            const segProgress = (s + 1) / totalSegs;
+            const segmentPairIndex = Math.floor(s / 2);
+            const segProgress = (segmentPairIndex + 1) / (totalSegs / 2);
             const currentSway = baseSway * segProgress * 16;
-            seg.pos.x = plant.baseX + currentSway;
-            seg.angle = baseSway * segProgress * 9;
+            const isLeafNode = s % 2 === 1;
+            const leafSide = segmentPairIndex % 2 === 0 ? 1 : -1;
+            const segmentWidth = 14 - segmentPairIndex * 1.4;
+            const horizontalLeafOffset = isLeafNode ? leafSide * (segmentWidth + 4) : 0;
+            seg.pos.x = plant.baseX + horizontalLeafOffset + currentSway;
+            seg.angle = baseSway * segProgress * 9 + (isLeafNode ? leafSide * 25 : 0);
           }
         }
 
@@ -688,10 +738,10 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | any): v
           const isVisible =
             algae.baseX + algaeWidth >= minActiveX && algae.baseX - algaeWidth <= maxActiveX;
           if (!isVisible) {
-            if (algae.blades[0]) algae.blades[0].hidden = true;
+            setBenthicNodesVisibility(algae.blades, false);
             continue;
           }
-          if (algae.blades[0]) algae.blades[0].hidden = false;
+          setBenthicNodesVisibility(algae.blades, true);
 
           const sway = Math.sin(time * algae.swaySpeed + algae.swayPhase);
           const totalBlades = algae.blades.length;
@@ -710,10 +760,10 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | any): v
           const isVisible =
             grass.baseX + grassWidth >= minActiveX && grass.baseX - grassWidth <= maxActiveX;
           if (!isVisible) {
-            if (grass.blades[0]) grass.blades[0].hidden = true;
+            setBenthicNodesVisibility(grass.blades, false);
             continue;
           }
-          if (grass.blades[0]) grass.blades[0].hidden = false;
+          setBenthicNodesVisibility(grass.blades, true);
 
           const sway = Math.sin(time * grass.swaySpeed + grass.swayPhase);
           const totalBlades = grass.blades.length;
@@ -734,9 +784,15 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | any): v
             coral.obj.pos.x - coralWidth <= maxActiveX;
           if (!isVisible) {
             coral.obj.hidden = true;
+            if (coral.tentacles) {
+              setBenthicNodesVisibility(coral.tentacles, false);
+            }
             continue;
           }
           coral.obj.hidden = false;
+          if (coral.tentacles) {
+            setBenthicNodesVisibility(coral.tentacles, true);
+          }
 
           if (coral.type === "fan") {
             coral.obj.angle = Math.sin(time * 1.4 + coral.animPhase) * 4;
@@ -769,7 +825,7 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | any): v
     });
   } else {
     // Modo Legacy Kaboom Bridge
-    const legacyCtx = engineOrContext as any;
+    const legacyCtx = engineOrContext as LegacyBenthicEngineContext;
 
     // 1. Kelp
     KELP_SPAWN_X.forEach((xPos, plantIdx) => {

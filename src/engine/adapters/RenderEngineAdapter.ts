@@ -7,6 +7,7 @@
 
 import { Application, Assets, Container, Sprite, Texture } from "pixi.js";
 import type {
+  ColorRepresentation,
   IRenderEngine,
   IRenderNode,
   ISpriteNode,
@@ -376,6 +377,16 @@ export class RenderEngineAdapter implements IRenderEngine {
     return this.application?.renderer ?? null;
   }
 
+  /**
+   * Atualiza a cor de fundo do renderer do PixiJS v8 dinamicamente.
+   */
+  setBackground(color: ColorRepresentation): void {
+    const renderer = this.application?.renderer;
+    if (renderer && "background" in renderer && renderer.background) {
+      renderer.background.color = parseColor(color);
+    }
+  }
+
   getStageEventMode(): string {
     return "none";
   }
@@ -522,4 +533,35 @@ export class RenderEngineAdapter implements IRenderEngine {
       activeRenderEngineInstance = null;
     }
   }
+}
+
+function resolveContainerWithStageFallback(
+  engine: IRenderEngine,
+  containerSelector: () => IRenderNode
+): IRenderNode {
+  try {
+    return containerSelector();
+  } catch {
+    return engine.getStageRoot();
+  }
+}
+
+/**
+ * Resolves the world-space render container, falling back to stageRoot for partial mocks.
+ */
+export function resolveWorldRenderContainer(engine: IRenderEngine): IRenderNode {
+  if (typeof engine.getWorldContainer === "function") {
+    return resolveContainerWithStageFallback(engine, () => engine.getWorldContainer());
+  }
+  return engine.getStageRoot();
+}
+
+/**
+ * Resolves the screen-space (HUD/fixed) render container, falling back to stageRoot for partial mocks.
+ */
+export function resolveScreenRenderContainer(engine: IRenderEngine): IRenderNode {
+  if (typeof engine.getScreenContainer === "function") {
+    return resolveContainerWithStageFallback(engine, () => engine.getScreenContainer());
+  }
+  return engine.getStageRoot();
 }
