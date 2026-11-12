@@ -21,6 +21,7 @@ export type CompanionAutonomyMode = "guided" | "autonomous";
 export interface CompanionVector2D {
   x: number;
   y: number;
+  dist?: (other: CompanionVector2D) => number;
   scale?: (factor: number) => CompanionVector2D;
   add?: (other: CompanionVector2D) => CompanionVector2D;
   unit?: () => CompanionVector2D;

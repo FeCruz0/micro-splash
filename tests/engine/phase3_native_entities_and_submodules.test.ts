@@ -47,6 +47,7 @@ import {
 } from "../../src/entities/player/playerSonar";
 import { createCompanionSenses } from "../../src/entities/companion/companionSenses";
 import { createCompanionStates } from "../../src/entities/companion/companionStates";
+import { createCompanionWhale, getActiveCompanionWhaleObjects } from "../../src/entities/companion";
 import type { CompanionGameObject } from "../../src/entities/companion/types";
 import type { CompanionEngineContext } from "../../src/entities/companion/states/types";
 import { setParticlePool } from "../../src/systems/particlePool";
@@ -425,5 +426,41 @@ describe("Fase 3 — Migração Nativa PixiJS v8 de Entidades e Submódulos", ()
     expect(harness.createdGraphicsNodes.some((node) => node.id === "companion_sonar_ring_0")).toBe(
       true
     );
+  });
+
+  it("executa createCompanionWhale, playerSonar e playerParticles diretamente com IRenderEngine puro sem adaptador legado", () => {
+    const harness = createNativeEngineHarness();
+
+    const companionController = createCompanionWhale(harness.renderEngine, null, {
+      initialX: 400,
+      initialY: 180,
+      isCoMigration: true,
+    });
+
+    expect(getActiveCompanionWhaleObjects().length).toBe(1);
+    expect(harness.worldContainer.getChildren().some((node) => node.id === "companion_whale")).toBe(
+      true
+    );
+
+    companionController.triggerSonar();
+    expect(harness.createdGraphicsNodes.some((node) => node.id === "companion_sonar_ring_0")).toBe(
+      true
+    );
+
+    const directSonar = new PlayerSonarManager(harness.renderEngine);
+    directSonar.updateCooldown(10);
+    directSonar.triggerSonar({ x: 400, y: 180 }, true);
+    expect(
+      harness.createdGraphicsNodes.some((node) => node.id === "player_sonar_primary_pulse")
+    ).toBe(true);
+
+    spawnBlowholeSpout(harness.renderEngine, { x: 400, y: 120 }, true, 110);
+    expect(
+      harness.createdGraphicsNodes.some((node) => node.id === "player_blowhole_sun_halo")
+    ).toBe(true);
+
+    harness.advanceFrame(0.05);
+    companionController.destroy();
+    expect(getActiveCompanionWhaleObjects().length).toBe(0);
   });
 });

@@ -11,9 +11,13 @@ import type {
 } from "./types";
 import { CompanionStateMachine } from "./companionStateMachine";
 import type { CompanionEngineContext, CompanionStateContext } from "./states/types";
-import { resolveInitializedRenderEngine } from "../../engine/contracts/INTERFACE_CONTRACTS";
+import {
+  resolveInitializedRenderEngine,
+  type IRenderEngine,
+} from "../../engine/contracts/INTERFACE_CONTRACTS";
 import { resolveWorldRenderContainer } from "../../engine/adapters/RenderEngineAdapter";
 import { createNativeCircleNode } from "../../engine/adapters/NativeRenderNodeFactory";
+import { createCompanionVector2D, resolveCompanionColorValue } from "./companionMathHelpers";
 
 export * from "./states/types";
 export * from "./states/concreteStates";
@@ -27,13 +31,13 @@ export interface CompanionStates<TGameObj = CompanionGameObject> {
   restoreOxygen: (amount: number) => void;
   drainOxygen: (amount: number) => void;
   getKrillsEaten: () => number;
-  consumeKrill: (krillObj: TGameObj) => void;
+  consumeKrill: (krillObject: TGameObj) => void;
   isDeparted: () => boolean;
   isFainted: () => boolean;
   shouldStopUpdate: () => boolean;
   destroy: () => void;
   update: (
-    deltaTime: number,
+    deltaTimeInSeconds: number,
     playerX?: number,
     targetKrill?: TGameObj | null,
     targetHazard?: TGameObj | null,
@@ -47,16 +51,17 @@ export interface CompanionStatesOptions<
   TVec extends { x: number; y: number } = CompanionVector2D,
   TGameObj = CompanionGameObject,
 > {
-  k: CompanionEngineContext<TDestroyable, TColor, TVec>;
+  k: IRenderEngine | CompanionEngineContext<TDestroyable, TColor, TVec>;
   companion: CompanionGameObject;
   options: CompanionOptions<TGameObj>;
   prng: RandomNumberGenerator;
+  onDestroy?: () => void;
 }
 
 export interface SteamParticleObject {
   pos: { x: number; y: number };
   opacity: number;
-  onUpdate: (cb: () => void) => void;
+  onUpdate: (callback: () => void) => void;
 }
 
 /**
@@ -72,7 +77,8 @@ export function createCompanionStates<
 >(
   statesOptions: CompanionStatesOptions<TDestroyable, TColor, TVec, TGameObj>
 ): CompanionStates<TGameObj> {
-  const { k, companion, options, prng } = statesOptions;
+  const { k, companion, options, prng, onDestroy } = statesOptions;
+  const legacyContext = k as CompanionEngineContext<TDestroyable, TColor, TVec>;
 
   const stateMachine = new CompanionStateMachine("INTRO", options.onStateChange);
 
@@ -90,32 +96,35 @@ export function createCompanionStates<
     : null;
 
   const emitDoubleBlowholeSpout = (sourceX: number, sourceY: number): void => {
-    const pool = getParticlePool();
+    const particlePool = getParticlePool();
     const particlesPerPlume = Math.floor(COMPANION_CONFIG.STEAM_PARTICLES_COUNT / 2);
 
     for (let plumeIndex = 0; plumeIndex < 2; plumeIndex++) {
       const plumeOffsetX = plumeIndex === 0 ? -10 : 6;
       for (let particleIndex = 0; particleIndex < particlesPerPlume; particleIndex++) {
-        if (pool) {
-          pool.spawnCircle({
-            pos: k.vec2(sourceX + plumeOffsetX, sourceY - 14),
-            radius: 2.2 + prng() * 2.2,
-            color: k.rgb(220, 245, 255),
+        const particleRadius = 2.2 + prng() * 2.2;
+        const horizontalDriftVelocity = (prng() - 0.5) * 20;
+
+        if (particlePool) {
+          particlePool.spawnCircle({
+            pos: createCompanionVector2D(k, sourceX + plumeOffsetX, sourceY - 14),
+            radius: particleRadius,
+            color: resolveCompanionColorValue(k, 220, 245, 255),
             opacity: 0.9,
-            vel: k.vec2((prng() - 0.5) * 20, -(140 + prng() * 90)),
+            vel: createCompanionVector2D(k, horizontalDriftVelocity, -(140 + prng() * 90)),
             fadeRate: 1.2,
             maxLife: 1.0,
             growthRate: 1.4,
             z: 22,
           });
         } else if (resolvedNativeRenderEngine && worldRenderContainer) {
-          const steamParticle = createNativeCircleNode(
+          const steamParticleNode = createNativeCircleNode(
             k,
             resolvedNativeRenderEngine,
             worldRenderContainer,
             {
               identifier: "companion_steam_particle",
-              radius: 2.2 + prng() * 2.2,
+              radius: particleRadius,
               positionX: sourceX + plumeOffsetX,
               positionY: sourceY - 14,
               fillColor: [220, 245, 255],
@@ -123,30 +132,15 @@ export function createCompanionStates<
               zIndex: 22,
             }
           );
-          let lifeTime = 0.85;
-          steamParticle.onUpdate((deltaTimeInSeconds: number) => {
-            steamParticle.pos.y -= deltaTimeInSeconds * 150;
-            steamParticle.pos.x += (prng() - 0.5) * deltaTimeInSeconds * 20;
-            lifeTime -= deltaTimeInSeconds;
-            steamParticle.opacity = Math.max(0, lifeTime);
-            if (lifeTime <= 0) steamParticle.destroy();
-          });
-        } else {
-          const steamParticle = k.add([
-            k.circle(2.2 + prng() * 2.2),
-            k.pos(sourceX + plumeOffsetX, sourceY - 14),
-            k.color(220, 245, 255),
-            k.opacity(0.85),
-            k.z(22),
-          ]) as SteamParticleObject;
-          let lifeTime = 0.85;
-          steamParticle.onUpdate(() => {
-            const dt = k.dt();
-            steamParticle.pos.y -= dt * 150;
-            steamParticle.pos.x += (prng() - 0.5) * dt * 20;
-            lifeTime -= dt;
-            steamParticle.opacity = lifeTime;
-            if (lifeTime <= 0) k.destroy(steamParticle as unknown as TDestroyable);
+          let remainingLifeSeconds = 0.85;
+          steamParticleNode.onUpdate((deltaTimeInSeconds: number) => {
+            steamParticleNode.pos.y -= deltaTimeInSeconds * 150;
+            steamParticleNode.pos.x += (prng() - 0.5) * deltaTimeInSeconds * 20;
+            remainingLifeSeconds -= deltaTimeInSeconds;
+            steamParticleNode.opacity = Math.max(0, remainingLifeSeconds);
+            if (remainingLifeSeconds <= 0) {
+              steamParticleNode.destroy();
+            }
           });
         }
       }
@@ -160,7 +154,7 @@ export function createCompanionStates<
   };
 
   const getContext = (onResetVerticalSpeed?: () => void): CompanionStateContext => ({
-    k: k as unknown as CompanionEngineContext,
+    k: k as unknown as IRenderEngine | CompanionEngineContext,
     companion,
     options: options as CompanionOptions,
     prng,
@@ -179,10 +173,14 @@ export function createCompanionStates<
     stateTimer,
   });
 
-  const consumeKrill = (krillObj: TGameObj): void => {
-    const krill = krillObj as unknown as CompanionGameObject;
+  const consumeKrill = (krillObject: TGameObj): void => {
+    const krill = krillObject as unknown as CompanionGameObject & { destroy?: () => void };
     if (krill && (!krill.exists || krill.exists())) {
-      k.destroy(krillObj as unknown as TDestroyable);
+      if (typeof krill.destroy === "function") {
+        krill.destroy();
+      } else if (typeof legacyContext.destroy === "function") {
+        legacyContext.destroy(krillObject as unknown as TDestroyable);
+      }
     }
     krillsEatenCount++;
     currentOxygen = Math.min(maxOxygen, currentOxygen + GAME_CONFIG.KRILL_OXYGEN_RESTORE);
@@ -192,13 +190,13 @@ export function createCompanionStates<
   };
 
   const update = (
-    deltaTime: number,
+    deltaTimeInSeconds: number,
     playerX?: number,
     targetKrill: TGameObj | null = null,
     targetHazard: TGameObj | null = null,
     onResetVerticalSpeed?: () => void
   ): number => {
-    stateTimer += deltaTime;
+    stateTimer += deltaTimeInSeconds;
 
     const hasInfiniteOxygen = options.infiniteOxygen ?? COMPANION_CONFIG.INFINITE_OXYGEN;
 
@@ -206,7 +204,7 @@ export function createCompanionStates<
     if (!hasInfiniteOxygen && stateMachine.getState() !== "SURFACE_BREATHE") {
       currentOxygen = Math.max(
         0,
-        currentOxygen - deltaTime * (GAME_CONFIG.OXYGEN_DRAIN_RATE * 0.75)
+        currentOxygen - deltaTimeInSeconds * (GAME_CONFIG.OXYGEN_DRAIN_RATE * 0.75)
       );
     } else if (hasInfiniteOxygen) {
       currentOxygen = maxOxygen;
@@ -227,7 +225,7 @@ export function createCompanionStates<
       audioSystem.playWhaleSong(0.6, 0.8);
       return stateMachine.update(
         context,
-        deltaTime,
+        deltaTimeInSeconds,
         playerX,
         targetKrill as unknown as CompanionGameObject,
         targetHazard as unknown as CompanionGameObject
@@ -236,7 +234,7 @@ export function createCompanionStates<
 
     // 3. Animação de alimentação
     if (feedActionTimer > 0) {
-      feedActionTimer -= deltaTime;
+      feedActionTimer -= deltaTimeInSeconds;
       if (
         feedActionTimer <= 0 &&
         stateMachine.getState() !== "FAREWELL_BREACH" &&
@@ -290,7 +288,7 @@ export function createCompanionStates<
     // 6. Atualização da FSM Formal com perigos detectados
     return stateMachine.update(
       context,
-      deltaTime,
+      deltaTimeInSeconds,
       playerX,
       targetKrill as unknown as CompanionGameObject,
       targetHazard as unknown as CompanionGameObject
@@ -315,20 +313,26 @@ export function createCompanionStates<
     getKrillsEaten: () => krillsEatenCount,
     consumeKrill,
     isDeparted: () => {
-      const s = stateMachine.getState();
-      return s === "RESTING" || s === "DEPARTED" || isDepartedFlag;
+      const currentState = stateMachine.getState();
+      return currentState === "RESTING" || currentState === "DEPARTED" || isDepartedFlag;
     },
     isFainted: () => {
       return stateMachine.getState() === "FAINTED";
     },
     shouldStopUpdate: () => {
-      const s = stateMachine.getState();
-      return isDepartedFlag || s === "DEPARTED";
+      const currentState = stateMachine.getState();
+      return isDepartedFlag || currentState === "DEPARTED";
     },
     destroy: () => {
       isDepartedFlag = true;
-      if (companion && (!companion.exists || companion.exists())) {
-        k.destroy(companion as unknown as TDestroyable);
+      onDestroy?.();
+      const destroyableCompanion = companion as CompanionGameObject & { destroy?: () => void };
+      if (destroyableCompanion && (!destroyableCompanion.exists || destroyableCompanion.exists())) {
+        if (typeof destroyableCompanion.destroy === "function") {
+          destroyableCompanion.destroy();
+        } else if (typeof legacyContext.destroy === "function") {
+          legacyContext.destroy(companion as unknown as TDestroyable);
+        }
       }
     },
     update,

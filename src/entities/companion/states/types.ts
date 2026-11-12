@@ -5,6 +5,7 @@ import type {
   CompanionVector2D,
 } from "../types";
 import type { RandomNumberGenerator } from "../../../utils/random";
+import type { IRenderEngine } from "../../../engine/contracts/INTERFACE_CONTRACTS";
 
 export interface CompanionEngineContext<
   TDestroyable = unknown,
@@ -14,34 +15,36 @@ export interface CompanionEngineContext<
   add: (components: unknown[]) => unknown;
   destroy: (obj: TDestroyable) => void;
   dt: () => number;
-  circle: (r: number) => unknown;
-  pos: (x: number, y: number) => unknown;
-  color: (r: number | TColor, g?: number, b?: number) => unknown;
-  opacity: (o: number) => unknown;
-  outline?: (w: number, col: TColor) => unknown;
-  z: (v: number) => unknown;
-  rgb: (r: number, g: number, b: number) => TColor;
-  vec2: (x: number, y: number) => TVec;
-  clamp: (val: number, min: number, max: number) => number;
-  rad2deg: (rad: number) => number;
-  deg2rad: (deg: number) => number;
-  lerp: (a: number, b: number, t: number) => number;
+  circle: (radius: number) => unknown;
+  pos: (coordinateX: number, coordinateY: number) => unknown;
+  color: (redChannel: number | TColor, greenChannel?: number, blueChannel?: number) => unknown;
+  opacity: (alpha: number) => unknown;
+  outline?: (width: number, colorValue: TColor) => unknown;
+  z: (layerIndex: number) => unknown;
+  rgb: (redChannel: number, greenChannel: number, blueChannel: number) => TColor;
+  vec2: (coordinateX: number, coordinateY: number) => TVec;
+  clamp: (value: number, minimum: number, maximum: number) => number;
+  rad2deg: (radians: number) => number;
+  deg2rad: (degrees: number) => number;
+  lerp: (startValue: number, endValue: number, interpolationFactor: number) => number;
   height?: () => number;
-  get?: (tag: string) => unknown[];
-  sprite?: (name: string, opt?: { anim?: string }) => unknown;
-  rotate?: (a: number) => unknown;
-  anchor?: (a: "center") => unknown;
-  scale?: (x: number, y: number) => unknown;
-  area?: (opt?: unknown) => unknown;
-  Rect?: new (pos: TVec, w: number, h: number) => unknown;
+  get?: (tagIdentifier: string) => unknown[];
+  sprite?: (name: string, options?: { anim?: string }) => unknown;
+  rotate?: (angleInDegrees: number) => unknown;
+  anchor?: (anchorAlignment: "center") => unknown;
+  scale?: (scaleX: number, scaleY: number) => unknown;
+  area?: (options?: unknown) => unknown;
+  Rect?: new (position: TVec, width: number, height: number) => unknown;
 }
+
+export type NativeCompanionEngineContext = IRenderEngine | CompanionEngineContext;
 
 export interface CompanionStateContext<
   TDestroyable = unknown,
   TColor = unknown,
   TVec extends { x: number; y: number } = CompanionVector2D,
 > {
-  k: CompanionEngineContext<TDestroyable, TColor, TVec>;
+  k: IRenderEngine | CompanionEngineContext<TDestroyable, TColor, TVec>;
   companion: CompanionGameObject;
   options: CompanionOptions;
   prng: RandomNumberGenerator;
@@ -51,7 +54,7 @@ export interface CompanionStateContext<
   getMaxOxygen: () => number;
   getKrillsEaten: () => number;
   incrementKrillsEaten: () => void;
-  emitDoubleBlowholeSpout: (x: number, y: number) => void;
+  emitDoubleBlowholeSpout: (coordinateX: number, coordinateY: number) => void;
   onResetVerticalSpeed: () => void;
   stateTimer: number;
 }

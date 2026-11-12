@@ -6,6 +6,7 @@ import type { PlayerController } from "../entities/player";
 import type { GameState } from "./state";
 import { getSereneInsightsManager } from "./sereneMigrationInsights";
 import { isCompanionCollidable } from "../entities/companion/types";
+import { getActiveCompanionWhaleObjects } from "../entities/companion";
 import { getSpatialGrid, type SpatialAABB } from "./spatialHashGrid";
 import type { SystemRunner } from "./systemRunner";
 
@@ -104,7 +105,9 @@ export function setupCollisions<TDestroyable = unknown>(
       const totalCandidates = nearbyCollisionEntities.length;
 
       for (let candidateIndex = 0; candidateIndex < totalCandidates; candidateIndex++) {
-        const candidateEntity = nearbyCollisionEntities[candidateIndex] as CollisionGameObject | null;
+        const candidateEntity = nearbyCollisionEntities[
+          candidateIndex
+        ] as CollisionGameObject | null;
         if (!candidateEntity) continue;
 
         // 1. LIXO PLÁSTICO (TAGS.TRASH = "lixo_plastico")
@@ -290,7 +293,9 @@ export function setupCollisions<TDestroyable = unknown>(
 
         if (isObstacleOrShipEntity) {
           const currentTime =
-            typeof engineContext.time === "function" ? engineContext.time() : performance.now() / 1000;
+            typeof engineContext.time === "function"
+              ? engineContext.time()
+              : performance.now() / 1000;
           if (currentTime - lastObstacleBumpTime > 0.35) {
             lastObstacleBumpTime = currentTime;
             audioSystem.playTrashThud();
@@ -307,8 +312,12 @@ export function setupCollisions<TDestroyable = unknown>(
     // =========================================================================
     // COLISÕES DA BALEIA-GUIA NPC (Fase 56 & 60 via SpatialHashGrid)
     // =========================================================================
-    const companionEntities =
+    const contextCompanionEntities =
       typeof engineContext.get === "function" ? engineContext.get("companion_whale") : [];
+    const activeNativeCompanions = getActiveCompanionWhaleObjects();
+    const companionEntities = Array.from(
+      new Set<unknown>([...activeNativeCompanions, ...contextCompanionEntities])
+    );
 
     for (let cIndex = 0; cIndex < companionEntities.length; cIndex++) {
       const companionObject = companionEntities[cIndex] as CompanionCollisionGameObject;

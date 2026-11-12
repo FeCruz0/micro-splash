@@ -1,9 +1,16 @@
 import { COMPANION_CONFIG } from "../../config";
 import { createDeterministicRandomGenerator } from "../../utils/random";
+import {
+  resolveInitializedRenderEngine,
+  type IRenderEngine,
+} from "../../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveWorldRenderContainer } from "../../engine/adapters/RenderEngineAdapter";
+import { createNativeSpriteNode } from "../../engine/adapters/NativeRenderNodeFactory";
 import type { PlayerController } from "../player/types";
 import { createCompanionLocomotion } from "./companionLocomotion";
 import { createCompanionSenses } from "./companionSenses";
 import { createCompanionStates } from "./companionStates";
+import { createCompanionVector2D } from "./companionMathHelpers";
 import type {
   CompanionCollidable,
   CompanionOptions,
@@ -15,11 +22,30 @@ import type { CompanionEngineContext } from "./states/types";
 
 export * from "./types";
 
+const activeCompanionWhaleObjects = new Set<CompanionGameObject>();
+
+export function getActiveCompanionWhaleObjects(): CompanionGameObject[] {
+  const activeCompanions: CompanionGameObject[] = [];
+  for (const companionObject of activeCompanionWhaleObjects) {
+    if (!companionObject.exists || companionObject.exists()) {
+      activeCompanions.push(companionObject);
+    } else {
+      activeCompanionWhaleObjects.delete(companionObject);
+    }
+  }
+  return activeCompanions;
+}
+
 /**
  * Cria a Baleia-Guia autônoma e ecológica (Mãe-Guia Antártica).
  * Arquitetura modular dividida em Sentidos/Radar, Locomoção Hidrodinâmica e Estados FSM.
  * Suporta semente determinística para corridas reproduzíveis e testes de regressão.
  */
+export function createCompanionWhale(
+  renderEngine: IRenderEngine,
+  playerController?: PlayerController | null,
+  options?: CompanionOptions<CompanionGameObject>
+): CompanionWhaleController<CompanionGameObject, CompanionVector2D>;
 export function createCompanionWhale<
   TDestroyable = unknown,
   TColor = unknown,
@@ -27,6 +53,16 @@ export function createCompanionWhale<
   TGameObj = CompanionGameObject,
 >(
   k: CompanionEngineContext<TDestroyable, TColor, TVec>,
+  playerController?: PlayerController | null,
+  options?: CompanionOptions<TGameObj>
+): CompanionWhaleController<TGameObj, TVec>;
+export function createCompanionWhale<
+  TDestroyable = unknown,
+  TColor = unknown,
+  TVec extends { x: number; y: number } = CompanionVector2D,
+  TGameObj = CompanionGameObject,
+>(
+  k: IRenderEngine | CompanionEngineContext<TDestroyable, TColor, TVec>,
   playerController?: PlayerController | null,
   options: CompanionOptions<TGameObj> = {}
 ): CompanionWhaleController<TGameObj, TVec> {
@@ -42,35 +78,81 @@ export function createCompanionWhale<
       ? createDeterministicRandomGenerator(options.seed)
       : createDeterministicRandomGenerator(42));
 
-  // Dimensões do colisor proporcionais à escala
   const colliderWidth = COMPANION_CONFIG.COLLIDER_WIDTH;
   const colliderHeight = COMPANION_CONFIG.COLLIDER_HEIGHT;
 
-  const companion = k.add([
-    typeof k.sprite === "function" ? k.sprite("baleia", { anim: "idle_swim" }) : "baleia",
-    k.pos(startX, startY),
-    typeof k.rotate === "function" ? k.rotate(0) : 0,
-    k.color(140, 165, 195), // Tom azul-ardósia escurecido para diferenciação visual nítida
-    typeof k.anchor === "function" ? k.anchor("center") : "center",
-    k.z(19),
-    "companion_whale",
-    ...(typeof k.scale === "function"
-      ? [k.scale(COMPANION_CONFIG.SCALE, COMPANION_CONFIG.SCALE)]
-      : []),
-    ...(typeof k.area === "function"
-      ? [
-          typeof k.Rect === "function"
-            ? k.area({
-                shape: new k.Rect(
-                  k.vec2(-colliderWidth / 2, -colliderHeight / 2),
-                  colliderWidth,
-                  colliderHeight
-                ),
-              })
-            : k.area(),
-        ]
-      : []),
-  ]) as unknown as CompanionGameObject;
+  const resolvedNativeRenderEngine = resolveInitializedRenderEngine(k);
+  const legacyContext = k as CompanionEngineContext<TDestroyable, TColor, TVec>;
+  let companion: CompanionGameObject;
+  let registerNativeUpdate: ((callback: (deltaTimeInSeconds: number) => void) => void) | null =
+    null;
+
+  if (resolvedNativeRenderEngine) {
+    const worldRenderContainer = resolveWorldRenderContainer(resolvedNativeRenderEngine);
+    const nativeCompanionAdapter = createNativeSpriteNode(
+      k,
+      resolvedNativeRenderEngine,
+      worldRenderContainer,
+      {
+        identifier: "companion_whale",
+        assetAlias: "baleia",
+        animationName: "idle_swim",
+        positionX: startX,
+        positionY: startY,
+        tintColor: [140, 165, 195],
+        anchor: "center",
+        scaleX: COMPANION_CONFIG.SCALE,
+        scaleY: COMPANION_CONFIG.SCALE,
+        zIndex: 19,
+        tags: ["companion_whale"],
+      }
+    );
+    companion = nativeCompanionAdapter as unknown as CompanionGameObject;
+    registerNativeUpdate = (callback) => nativeCompanionAdapter.onUpdate(callback);
+  } else if (typeof legacyContext.add === "function") {
+    companion = legacyContext.add([
+      typeof legacyContext.sprite === "function"
+        ? legacyContext.sprite("baleia", { anim: "idle_swim" })
+        : "baleia",
+      typeof legacyContext.pos === "function"
+        ? legacyContext.pos(startX, startY)
+        : { x: startX, y: startY },
+      typeof legacyContext.rotate === "function" ? legacyContext.rotate(0) : 0,
+      typeof legacyContext.color === "function"
+        ? legacyContext.color(140, 165, 195)
+        : [140, 165, 195],
+      typeof legacyContext.anchor === "function" ? legacyContext.anchor("center") : "center",
+      typeof legacyContext.z === "function" ? legacyContext.z(19) : 19,
+      "companion_whale",
+      ...(typeof legacyContext.scale === "function"
+        ? [legacyContext.scale(COMPANION_CONFIG.SCALE, COMPANION_CONFIG.SCALE)]
+        : []),
+      ...(typeof legacyContext.area === "function"
+        ? [
+            typeof legacyContext.Rect === "function"
+              ? legacyContext.area({
+                  shape: new legacyContext.Rect(
+                    createCompanionVector2D<TVec>(k, -colliderWidth / 2, -colliderHeight / 2),
+                    colliderWidth,
+                    colliderHeight
+                  ),
+                })
+              : legacyContext.area(),
+          ]
+        : []),
+    ]) as unknown as CompanionGameObject;
+  } else {
+    companion = {
+      pos: createCompanionVector2D(k, startX, startY),
+      angle: 0,
+      comps: [],
+      _triggerUpdate: () => {},
+      exists: () => true,
+      is: (tag: string) => tag === "companion_whale",
+    };
+  }
+
+  activeCompanionWhaleObjects.add(companion);
 
   // Submódulos da arquitetura modular
   const companionSenses = createCompanionSenses<TDestroyable, TColor, TVec, TGameObj>({
@@ -93,10 +175,13 @@ export function createCompanionWhale<
     companion,
     options,
     prng,
+    onDestroy: () => {
+      activeCompanionWhaleObjects.delete(companion);
+    },
   });
 
-  const handleConsumeKrill = (krillObj: TGameObj): void => {
-    companionStates.consumeKrill(krillObj);
+  const handleConsumeKrill = (krillObject: TGameObj): void => {
+    companionStates.consumeKrill(krillObject);
     companionSenses.clearTargetKrill();
   };
 
@@ -114,51 +199,54 @@ export function createCompanionWhale<
     companionStates.forceState("TRAPPED");
   };
 
-  // Loop de atualização contínua
-  if (typeof companion.onUpdate === "function") {
+  const stepCompanionFrame = (deltaTimeInSeconds: number): void => {
+    if (companionStates.shouldStopUpdate()) return;
+
+    const playerObject = playerController?.gameObj;
+    const hasActivePlayer =
+      playerObject && (typeof playerObject.exists !== "function" || playerObject.exists());
+
+    const playerX = hasActivePlayer && playerObject.pos ? playerObject.pos.x : undefined;
+    const playerSpeed =
+      hasActivePlayer && playerController?.getSpeed ? playerController.getSpeed().x : undefined;
+
+    companionSenses.update(
+      deltaTimeInSeconds,
+      playerX,
+      companionStates.getOxygen(),
+      companionStates.getState()
+    );
+
+    const targetKrill = companionSenses.getTargetKrill();
+    const targetHazard = companionSenses.getTargetHazard();
+    const targetAngle = companionStates.update(
+      deltaTimeInSeconds,
+      playerX,
+      targetKrill,
+      targetHazard,
+      () => {
+        const currentSpeed = companionLocomotion.getSpeed();
+        currentSpeed.y = 0;
+        companionLocomotion.setSpeed(currentSpeed);
+      }
+    );
+
+    companionLocomotion.update(
+      deltaTimeInSeconds,
+      targetAngle,
+      playerX,
+      playerSpeed,
+      companionStates.getState()
+    );
+  };
+
+  if (registerNativeUpdate) {
+    registerNativeUpdate(stepCompanionFrame);
+  } else if (typeof companion.onUpdate === "function") {
     companion.onUpdate(() => {
-      if (companionStates.shouldStopUpdate()) return;
-
-      const deltaTime = k.dt();
-      const playerObj = playerController?.gameObj;
-      const hasActivePlayer =
-        playerObj && (typeof playerObj.exists !== "function" || playerObj.exists());
-
-      const playerX = hasActivePlayer && playerObj.pos ? playerObj.pos.x : undefined;
-      const playerSpeed =
-        hasActivePlayer && playerController?.getSpeed ? playerController.getSpeed().x : undefined;
-
-      // 1. Atualização Sensorial e Radar
-      companionSenses.update(
-        deltaTime,
-        playerX,
-        companionStates.getOxygen(),
-        companionStates.getState()
-      );
-
-      // 2. Atualização de FSM e cálculo de mira angular
-      const targetKrill = companionSenses.getTargetKrill();
-      const targetHazard = companionSenses.getTargetHazard();
-      const targetAngle = companionStates.update(
-        deltaTime,
-        playerX,
-        targetKrill,
-        targetHazard,
-        () => {
-          const speed = companionLocomotion.getSpeed();
-          speed.y = 0;
-          companionLocomotion.setSpeed(speed);
-        }
-      );
-
-      // 3. Cinemática hidrodinâmica e giro vertical
-      companionLocomotion.update(
-        deltaTime,
-        targetAngle,
-        playerX,
-        playerSpeed,
-        companionStates.getState()
-      );
+      const deltaTimeInSeconds =
+        typeof legacyContext.dt === "function" ? legacyContext.dt() : 0.016;
+      stepCompanionFrame(deltaTimeInSeconds);
     });
   }
 

@@ -294,10 +294,7 @@ export function createPlayer(
       playerSpriteNode.destroy();
       pectoralFinsSystem.destroy();
       netOverlaySystem.destroy();
-      if (typeof k.destroy === "function") {
-        k.destroy(causticsSystem.whaleCaustics);
-        k.destroy(causticsSystem.whaleVentralFlash);
-      }
+      causticsSystem.destroy();
       if (activePlayerObject === baleia) {
         activePlayerObject = null;
       }

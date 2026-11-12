@@ -1,8 +1,18 @@
 import { COMPANION_CONFIG, GAME_CONFIG } from "../../config";
 import { audioSystem } from "../../systems/audioSystem";
+import {
+  resolveInitializedRenderEngine,
+  type IRenderEngine,
+} from "../../engine/contracts/INTERFACE_CONTRACTS";
 import type { RandomNumberGenerator } from "../../utils/random";
 import type { CompanionGameObject, CompanionState, CompanionVector2D } from "./types";
 import type { CompanionEngineContext } from "./states/types";
+import {
+  clampCompanionValue,
+  convertCompanionDegreesToRadians,
+  createCompanionVector2D,
+  linearInterpolateCompanionValue,
+} from "./companionMathHelpers";
 
 export interface CompanionLocomotion<TVec extends { x: number; y: number } = CompanionVector2D> {
   getSpeed: () => TVec;
@@ -24,45 +34,59 @@ export interface CompanionLocomotionOptions<
   TColor = unknown,
   TVec extends { x: number; y: number } = CompanionVector2D,
 > {
-  k: CompanionEngineContext<TDestroyable, TColor, TVec>;
+  k: IRenderEngine | CompanionEngineContext<TDestroyable, TColor, TVec>;
   companion: CompanionGameObject;
   prng: RandomNumberGenerator;
   autonomyMode?: "guided" | "autonomous";
   isCoMigration?: boolean;
 }
 
-function vecScale<TVec extends { x: number; y: number }>(
-  k: { vec2: (x: number, y: number) => TVec },
-  v: TVec,
-  factor: number
+function scaleVector<TVec extends { x: number; y: number }>(
+  engineContext: unknown,
+  vector: TVec,
+  scaleFactor: number
 ): TVec {
-  if (typeof (v as unknown as { scale: (f: number) => TVec }).scale === "function") {
-    return (v as unknown as { scale: (f: number) => TVec }).scale(factor);
+  if (typeof (vector as unknown as { scale?: (factor: number) => TVec }).scale === "function") {
+    return (vector as unknown as { scale: (factor: number) => TVec }).scale(scaleFactor);
   }
-  return k.vec2(v.x * factor, v.y * factor);
+  return createCompanionVector2D<TVec>(
+    engineContext,
+    vector.x * scaleFactor,
+    vector.y * scaleFactor
+  );
 }
 
-function vecAdd<TVec extends { x: number; y: number }>(
-  k: { vec2: (x: number, y: number) => TVec },
-  a: TVec,
-  b: TVec
+function addVectors<TVec extends { x: number; y: number }>(
+  engineContext: unknown,
+  firstVector: TVec,
+  secondVector: TVec
 ): TVec {
-  if (typeof (a as unknown as { add: (other: TVec) => TVec }).add === "function") {
-    return (a as unknown as { add: (other: TVec) => TVec }).add(b);
+  if (typeof (firstVector as unknown as { add?: (other: TVec) => TVec }).add === "function") {
+    return (firstVector as unknown as { add: (other: TVec) => TVec }).add(secondVector);
   }
-  return k.vec2(a.x + b.x, a.y + b.y);
+  return createCompanionVector2D<TVec>(
+    engineContext,
+    firstVector.x + secondVector.x,
+    firstVector.y + secondVector.y
+  );
 }
 
-function vecLen(v: { x: number; y: number }): number {
-  return Math.hypot(v.x, v.y);
+function getVectorLength(vector: { x: number; y: number }): number {
+  return Math.hypot(vector.x, vector.y);
 }
 
-function vecUnit<TVec extends { x: number; y: number }>(
-  k: { vec2: (x: number, y: number) => TVec },
-  v: TVec
+function getUnitVector<TVec extends { x: number; y: number }>(
+  engineContext: unknown,
+  vector: TVec
 ): TVec {
-  const len = Math.hypot(v.x, v.y);
-  return len === 0 ? k.vec2(0, 0) : k.vec2(v.x / len, v.y / len);
+  const vectorLength = Math.hypot(vector.x, vector.y);
+  return vectorLength === 0
+    ? createCompanionVector2D<TVec>(engineContext, 0, 0)
+    : createCompanionVector2D<TVec>(
+        engineContext,
+        vector.x / vectorLength,
+        vector.y / vectorLength
+      );
 }
 
 /**
@@ -76,8 +100,10 @@ export function createCompanionLocomotion<
   TVec extends { x: number; y: number } = CompanionVector2D,
 >(options: CompanionLocomotionOptions<TDestroyable, TColor, TVec>): CompanionLocomotion<TVec> {
   const { k, companion, prng } = options;
+  const legacyContext = k as CompanionEngineContext<TDestroyable, TColor, TVec>;
+  const resolvedNativeRenderEngine = resolveInitializedRenderEngine(k);
 
-  let currentSpeed = k.vec2(COMPANION_CONFIG.BASE_SPEED, 0);
+  let currentSpeed = createCompanionVector2D<TVec>(k, COMPANION_CONFIG.BASE_SPEED, 0);
   let strokeCycleTimer = 0;
   let strokePhase: "down" | "up" | "glide" = "glide";
   let glideDurationTarget = COMPANION_CONFIG.BASE_GLIDE_DURATION;
@@ -99,11 +125,11 @@ export function createCompanionLocomotion<
   };
 
   const handleNetCollision = (_net?: CompanionGameObject): void => {
-    currentSpeed = vecScale(k, currentSpeed, 0.3);
+    currentSpeed = scaleVector(k, currentSpeed, 0.3);
   };
 
   const update = (
-    deltaTime: number,
+    deltaTimeInSeconds: number,
     targetAngle: number,
     playerX?: number,
     playerSpeed?: number,
@@ -115,7 +141,11 @@ export function createCompanionLocomotion<
     const angleDifference = targetAngle - currentAngle;
     companion.angle =
       currentAngle +
-      k.clamp(angleDifference, -rotationSpeed * deltaTime, rotationSpeed * deltaTime);
+      clampCompanionValue(
+        angleDifference,
+        -rotationSpeed * deltaTimeInSeconds,
+        rotationSpeed * deltaTimeInSeconds
+      );
 
     // 2. Propulsão direcional no ângulo virado
     const currentCompanionState = currentState ?? "CRUISE";
@@ -135,10 +165,8 @@ export function createCompanionLocomotion<
         currentCompanionState === "VICTORY_BREACH";
 
       if (isAutonomous) {
-        // Modo Autônomo / Co-Migração: velocidade e cadência constante de cruzeiro independente
         strokePacingBoost = COMPANION_CONFIG.AUTONOMOUS_STROKE_PACING;
       } else if (playerX !== undefined) {
-        // Modo Guiado (Tutorial didático): ajuste de cadência por proximidade pedagógica
         const distanceAhead = companion.pos.x - playerX;
         if (distanceAhead > COMPANION_CONFIG.LEAD_DISTANCE_MAX) {
           strokePacingBoost = 0.35;
@@ -152,17 +180,20 @@ export function createCompanionLocomotion<
       }
 
       if (currentCompanionState === "SEEK_BREATH") {
-        // Urgência biológica: intensifica remadas para alcançar a superfície com rapidez
         strokePacingBoost = Math.max(1.3, strokePacingBoost);
       }
 
-      strokeCycleTimer += deltaTime;
+      strokeCycleTimer += deltaTimeInSeconds;
       const strokeDownDuration = 0.42;
       const strokeUpDuration = 0.38;
       const totalStrokeDuration = strokeDownDuration + strokeUpDuration;
 
-      const angleRad = k.deg2rad(companion.angle ?? 0);
-      const thrustDirection = k.vec2(Math.cos(angleRad), Math.sin(angleRad));
+      const angleInRadians = convertCompanionDegreesToRadians(companion.angle ?? 0);
+      const thrustDirection = createCompanionVector2D<TVec>(
+        k,
+        Math.cos(angleInRadians),
+        Math.sin(angleInRadians)
+      );
 
       if (strokeCycleTimer < strokeDownDuration) {
         if (strokePhase !== "down") {
@@ -175,10 +206,10 @@ export function createCompanionLocomotion<
           (GAME_CONFIG.BASE_THRUST +
             Math.sin(progress * Math.PI) * GAME_CONFIG.PEAK_THRUST * 0.65) *
           strokePacingBoost;
-        currentSpeed = vecAdd(
+        currentSpeed = addVectors(
           k,
           currentSpeed,
-          vecScale(k, thrustDirection, thrustPower * deltaTime)
+          scaleVector(k, thrustDirection, thrustPower * deltaTimeInSeconds)
         );
       } else if (strokeCycleTimer < totalStrokeDuration) {
         if (strokePhase !== "up") {
@@ -186,10 +217,10 @@ export function createCompanionLocomotion<
           if (typeof companion.play === "function") companion.play("stroke_up");
         }
         const thrustPower = GAME_CONFIG.BASE_THRUST * 0.45 * strokePacingBoost;
-        currentSpeed = vecAdd(
+        currentSpeed = addVectors(
           k,
           currentSpeed,
-          vecScale(k, thrustDirection, thrustPower * deltaTime)
+          scaleVector(k, thrustDirection, thrustPower * deltaTimeInSeconds)
         );
       } else if (strokeCycleTimer < totalStrokeDuration + glideDurationTarget) {
         if (strokePhase !== "glide") {
@@ -204,22 +235,27 @@ export function createCompanionLocomotion<
 
     // 3. Cinemática e Arrasto Hidrodinâmico
     if (currentState === "FAINTED") {
-      // Afundamento suave por anóxia/desmaio sereno até o leito
-      currentSpeed = vecScale(k, currentSpeed, Math.max(0, 1 - deltaTime * 2.5));
+      currentSpeed = scaleVector(k, currentSpeed, Math.max(0, 1 - deltaTimeInSeconds * 2.5));
       const sinkSpeed = COMPANION_CONFIG.FAINT_SINK_RATE;
       if (typeof companion.move === "function") {
         companion.move(currentSpeed.x, sinkSpeed);
       } else {
-        companion.pos.x += currentSpeed.x * deltaTime;
-        companion.pos.y += sinkSpeed * deltaTime;
+        companion.pos.x += currentSpeed.x * deltaTimeInSeconds;
+        companion.pos.y += sinkSpeed * deltaTimeInSeconds;
       }
-      const neutralDecayFactor = 1 - Math.pow(1 - 0.05, deltaTime * 60);
-      companion.angle = k.lerp(companion.angle ?? 0, 5, neutralDecayFactor);
+      const neutralDecayFactor = 1 - Math.pow(1 - 0.05, deltaTimeInSeconds * 60);
+      companion.angle = linearInterpolateCompanionValue(
+        companion.angle ?? 0,
+        5,
+        neutralDecayFactor
+      );
     } else if (currentState === "TRAPPED") {
-      // Aprisionamento em rede fantasma: frenagem drástica
-      currentSpeed = vecScale(k, currentSpeed, Math.max(0, 1 - deltaTime * 3.5));
-      if (typeof companion.move === "function" && vecLen(currentSpeed) > 1) {
+      currentSpeed = scaleVector(k, currentSpeed, Math.max(0, 1 - deltaTimeInSeconds * 3.5));
+      if (typeof companion.move === "function" && getVectorLength(currentSpeed) > 1) {
         companion.move(currentSpeed.x, currentSpeed.y + GAME_CONFIG.SINK_RATE * 0.5);
+      } else if (getVectorLength(currentSpeed) > 1) {
+        companion.pos.x += currentSpeed.x * deltaTimeInSeconds;
+        companion.pos.y += (currentSpeed.y + GAME_CONFIG.SINK_RATE * 0.5) * deltaTimeInSeconds;
       }
     } else if (currentState !== "RESTING") {
       const effectiveSink =
@@ -227,32 +263,42 @@ export function createCompanionLocomotion<
           ? 0
           : GAME_CONFIG.SINK_RATE;
 
-      if (vecLen(currentSpeed) > COMPANION_CONFIG.MAX_SPEED) {
-        currentSpeed = vecScale(k, vecUnit(k, currentSpeed), COMPANION_CONFIG.MAX_SPEED);
+      if (getVectorLength(currentSpeed) > COMPANION_CONFIG.MAX_SPEED) {
+        currentSpeed = scaleVector(k, getUnitVector(k, currentSpeed), COMPANION_CONFIG.MAX_SPEED);
       }
 
       if (typeof companion.move === "function") {
         companion.move(currentSpeed.x, currentSpeed.y + effectiveSink);
       } else {
-        companion.pos.x += currentSpeed.x * deltaTime;
-        companion.pos.y += (currentSpeed.y + effectiveSink) * deltaTime;
+        companion.pos.x += currentSpeed.x * deltaTimeInSeconds;
+        companion.pos.y += (currentSpeed.y + effectiveSink) * deltaTimeInSeconds;
       }
 
-      const waterDragFactor = Math.pow(GAME_CONFIG.WATER_DRAG, deltaTime * 60);
-      currentSpeed = vecScale(k, currentSpeed, waterDragFactor);
+      const waterDragFactor = Math.pow(GAME_CONFIG.WATER_DRAG, deltaTimeInSeconds * 60);
+      currentSpeed = scaleVector(k, currentSpeed, waterDragFactor);
     } else {
-      // Estado de repouso: desacelera e estabiliza no local
-      currentSpeed = vecScale(k, currentSpeed, Math.max(0, 1 - deltaTime * 4.0));
-      if (typeof companion.move === "function" && vecLen(currentSpeed) > 1) {
+      currentSpeed = scaleVector(k, currentSpeed, Math.max(0, 1 - deltaTimeInSeconds * 4.0));
+      if (typeof companion.move === "function" && getVectorLength(currentSpeed) > 1) {
         companion.move(currentSpeed.x, currentSpeed.y);
+      } else if (getVectorLength(currentSpeed) > 1) {
+        companion.pos.x += currentSpeed.x * deltaTimeInSeconds;
+        companion.pos.y += currentSpeed.y * deltaTimeInSeconds;
       }
-      const neutralDecayFactor = 1 - Math.pow(1 - 0.05, deltaTime * 60);
-      companion.angle = k.lerp(companion.angle ?? 0, 0, neutralDecayFactor);
+      const neutralDecayFactor = 1 - Math.pow(1 - 0.05, deltaTimeInSeconds * 60);
+      companion.angle = linearInterpolateCompanionValue(
+        companion.angle ?? 0,
+        0,
+        neutralDecayFactor
+      );
     }
 
     // Failsafe do leito marinho
-    const seabedLimit =
-      typeof k.height === "function" ? k.height() - COMPANION_CONFIG.SEABED_OFFSET : 500;
+    const viewportHeight = resolvedNativeRenderEngine
+      ? resolvedNativeRenderEngine.getDimensions().height
+      : typeof legacyContext.height === "function"
+        ? legacyContext.height()
+        : 540;
+    const seabedLimit = viewportHeight - COMPANION_CONFIG.SEABED_OFFSET;
     if (companion.pos.y > seabedLimit) {
       companion.pos.y = seabedLimit;
       if (currentSpeed.y > 0) currentSpeed.y = 0;

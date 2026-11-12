@@ -1,5 +1,6 @@
 import { COMPANION_CONFIG, GAME_CONFIG } from "../../../config";
 import { getNearestIceGap, isPositionInIceGap } from "../../../systems/iceSurface";
+import { clampCompanionValue, convertCompanionRadiansToDegrees } from "../companionMathHelpers";
 import type { CompanionGameObject } from "../types";
 import type {
   CompanionStateContext,
@@ -48,14 +49,18 @@ export class CruiseState implements CompanionStateNode {
     _playerX?: number,
     targetKrill?: unknown | null
   ): CompanionStateUpdateResult {
-    const { k, companion, stateTimer } = ctx;
+    const { companion, stateTimer } = ctx;
     const krill = targetKrill as CompanionGameObject | null | undefined;
 
     if (krill && (!krill.exists || krill.exists())) {
       const deltaY = krill.pos.y - companion.pos.y;
       const deltaX = Math.max(40, krill.pos.x - companion.pos.x);
       return {
-        targetAngle: k.clamp(k.rad2deg(Math.atan2(deltaY, deltaX)), -30, 30),
+        targetAngle: clampCompanionValue(
+          convertCompanionRadiansToDegrees(Math.atan2(deltaY, deltaX)),
+          -30,
+          30
+        ),
       };
     }
 
@@ -63,7 +68,7 @@ export class CruiseState implements CompanionStateNode {
     const targetCruiseY = 195 + oceanSway;
     const deltaY = targetCruiseY - companion.pos.y;
     return {
-      targetAngle: k.clamp(deltaY * 0.25, -22, 22),
+      targetAngle: clampCompanionValue(deltaY * 0.25, -22, 22),
     };
   }
 }
@@ -72,7 +77,7 @@ export class SeekBreathState implements CompanionStateNode {
   public readonly name = "SEEK_BREATH";
 
   public onUpdate(ctx: CompanionStateContext): CompanionStateUpdateResult {
-    const { k, companion } = ctx;
+    const { companion } = ctx;
     // isPositionInIceGap checa fendas polares (0 a 5.000m) e retorna true para x > 5000 (mar aberto)
     const canBreatheHere = isPositionInIceGap(companion.pos.x);
     const surfaceThreshold = GAME_CONFIG.SEA_LEVEL + COMPANION_CONFIG.SURFACE_DETECTION_TOLERANCE;
@@ -93,7 +98,7 @@ export class SeekBreathState implements CompanionStateNode {
     const deltaY = safeDepthY - companion.pos.y;
     const targetGapX = nearestGap ? (nearestGap.start + nearestGap.end) / 2 : companion.pos.x + 200;
     const isApproachingGap = targetGapX > companion.pos.x && targetGapX - companion.pos.x < 120;
-    const travelAngle = isApproachingGap ? -15 : k.clamp(deltaY * 0.25, -15, 15);
+    const travelAngle = isApproachingGap ? -15 : clampCompanionValue(deltaY * 0.25, -15, 15);
 
     return {
       targetAngle: travelAngle,
@@ -178,7 +183,7 @@ export class IndependentCruiseState implements CompanionStateNode {
     targetKrill?: unknown | null,
     targetHazard?: unknown | null
   ): CompanionStateUpdateResult {
-    const { k, companion, stateTimer } = ctx;
+    const { companion, stateTimer } = ctx;
     const hazard = targetHazard as CompanionGameObject | null | undefined;
     const krill = targetKrill as CompanionGameObject | null | undefined;
 
@@ -203,7 +208,11 @@ export class IndependentCruiseState implements CompanionStateNode {
       const deltaY = krill.pos.y - companion.pos.y;
       const deltaX = Math.max(40, krill.pos.x - companion.pos.x);
       return {
-        targetAngle: k.clamp(k.rad2deg(Math.atan2(deltaY, deltaX)), -28, 28),
+        targetAngle: clampCompanionValue(
+          convertCompanionRadiansToDegrees(Math.atan2(deltaY, deltaX)),
+          -28,
+          28
+        ),
       };
     }
 
@@ -212,7 +221,7 @@ export class IndependentCruiseState implements CompanionStateNode {
     const targetCruiseY = 185 + oceanSway;
     const deltaY = targetCruiseY - companion.pos.y;
     return {
-      targetAngle: k.clamp(deltaY * 0.22, -20, 20),
+      targetAngle: clampCompanionValue(deltaY * 0.22, -20, 20),
     };
   }
 }

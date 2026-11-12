@@ -17,7 +17,10 @@
 
 import type { PlayerGameObject } from "./types";
 import type { IRenderEngine, IGraphicsNode } from "../../engine/contracts/INTERFACE_CONTRACTS";
-import { isRenderEngine } from "../../engine/contracts/INTERFACE_CONTRACTS";
+import {
+  isRenderEngine,
+  resolveInitializedRenderEngine,
+} from "../../engine/contracts/INTERFACE_CONTRACTS";
 import { getActiveRenderEngine } from "../../engine/adapters/RenderEngineAdapter";
 
 export interface NetOverlayEngineContext {
@@ -592,48 +595,33 @@ export function drawRetro16BitNetMesh(gfx: IGraphicsNode | NetGraphicsContext): 
  * Resolve deterministicamente a instância real de IRenderEngine a partir do contexto ou adaptador ativo.
  */
 export function resolveRenderEngine(engineContext?: unknown): IRenderEngine | null {
-  if (isRenderEngine(engineContext)) {
-    return engineContext;
+  const initializedEngine = resolveInitializedRenderEngine(engineContext);
+  if (initializedEngine) {
+    return initializedEngine;
   }
   if (engineContext && typeof engineContext === "object") {
     const ctx = engineContext as {
-      renderEngine?: unknown;
       getRenderEngine?: () => unknown;
       createGraphics?: unknown;
       createSprite?: unknown;
     };
-    if ("renderEngine" in ctx && isRenderEngine(ctx.renderEngine)) {
-      return ctx.renderEngine;
-    }
     if ("getRenderEngine" in ctx && typeof ctx.getRenderEngine === "function") {
-      const e = ctx.getRenderEngine();
-      if (isRenderEngine(e)) return e;
+      const resolvedFromGetter = resolveInitializedRenderEngine(ctx.getRenderEngine());
+      if (resolvedFromGetter) return resolvedFromGetter;
     }
-    // Se o próprio engineContext tiver createGraphics e createSprite, ele é o motor do teste/contexto!
     if ("createGraphics" in ctx && "createSprite" in ctx) {
       return engineContext as unknown as IRenderEngine;
     }
   }
-  const active = getActiveRenderEngine();
-  if (
-    active &&
-    isRenderEngine(active) &&
-    (active as unknown as { isInitialized?: boolean }).isInitialized
-  ) {
-    return active;
+  const activeEngine = getActiveRenderEngine();
+  if (activeEngine && isRenderEngine(activeEngine)) {
+    return resolveInitializedRenderEngine(activeEngine);
   }
-  const globalEngine = (
+  const globalEngine =
     typeof globalThis !== "undefined"
       ? (globalThis as unknown as Record<string, unknown>).__MICRO_SPLASH_RENDER_ENGINE
-      : null
-  ) as IRenderEngine | null;
-  if (
-    isRenderEngine(globalEngine) &&
-    (globalEngine as unknown as { isInitialized?: boolean }).isInitialized
-  ) {
-    return globalEngine;
-  }
-  return null;
+      : null;
+  return resolveInitializedRenderEngine(globalEngine);
 }
 
 /**
