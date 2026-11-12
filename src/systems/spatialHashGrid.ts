@@ -187,6 +187,14 @@ export class SpatialHashGrid<T> {
   }
 
   /**
+   * Obtém os limites delimitadores (AABB) de um item pelo identificador.
+   */
+  public getBounds(id: string): SpatialAABB | undefined {
+    const entry = this.entries.get(id);
+    return entry ? { ...entry.bounds } : undefined;
+  }
+
+  /**
    * Verifica se um item existe na grade.
    */
   public has(id: string): boolean {

@@ -17,6 +17,7 @@ import type {
   Vector2D,
 } from "../../engine/contracts/INTERFACE_CONTRACTS";
 import { resolveInitializedRenderEngine } from "../../engine/contracts/INTERFACE_CONTRACTS";
+import { registerEngineScreenHitTarget } from "../../engine/screenLayerGeometryChecker";
 
 export type CardButtonVariant = "primary" | "secondary" | "danger" | "ghost";
 
@@ -162,8 +163,33 @@ export function createCardButton<
       "card_button_text"
     );
     txtNode.setPosition(options.pos.x, options.pos.y);
+    txtNode.setAnchor?.(0.5, 0.5);
     txtNode.setZIndex(zBase + 1);
     screenContainer.addChild(txtNode);
+
+    const handlePointerEnter = () => {
+      if (!canInteract()) return;
+      drawButton(true);
+      btnNode.setScale(1.025, 1.025);
+    };
+    const handlePointerLeave = () => {
+      drawButton(false);
+      btnNode.setScale(1.0, 1.0);
+    };
+
+    const cancelHitTarget = registerEngineScreenHitTarget(resolvedRenderEngine, {
+      id: `card_button_${Math.random().toString(36).slice(2, 9)}`,
+      bounds: {
+        x: options.pos.x - options.width / 2,
+        y: options.pos.y - options.height / 2,
+        width: options.width,
+        height: options.height,
+      },
+      zIndex: zBase,
+      onClick: trigger,
+      onPointerEnter: handlePointerEnter,
+      onPointerLeave: handlePointerLeave,
+    });
 
     const nativeBtn = btnNode.getNativeNode<{
       interactive?: boolean;
@@ -174,15 +200,8 @@ export function createCardButton<
     if (nativeBtn && typeof nativeBtn.on === "function") {
       nativeBtn.interactive = true;
       nativeBtn.cursor = "pointer";
-      nativeBtn.on("pointerover", () => {
-        if (!canInteract()) return;
-        drawButton(true);
-        btnNode.setScale(1.025, 1.025);
-      });
-      nativeBtn.on("pointerout", () => {
-        drawButton(false);
-        btnNode.setScale(1.0, 1.0);
-      });
+      nativeBtn.on("pointerover", handlePointerEnter);
+      nativeBtn.on("pointerout", handlePointerLeave);
       nativeBtn.on("pointertap", trigger);
     }
 
@@ -194,6 +213,9 @@ export function createCardButton<
       elements: elements as unknown as TObj[],
       focusItem,
       destroy: () => {
+        try {
+          cancelHitTarget();
+        } catch {}
         elements.forEach((node) => {
           try {
             screenContainer.removeChild(node);

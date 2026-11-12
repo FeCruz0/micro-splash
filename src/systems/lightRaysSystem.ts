@@ -190,12 +190,18 @@ export function setupLightRaysSystem(engineOrContext: IRenderEngine | unknown): 
         }
       }
 
+      const wrapSpan = screenWidth + 140;
+      const parallaxDrift = (cameraXPosition * 0.35) % wrapSpan;
+
       for (let index = 0; index < godRays.length; index++) {
         const { node, data } = godRays[index];
         const sway = Math.sin(time * data.pulseSpeed + data.pulsePhase);
         const angleSwayInDegrees = Math.cos(time * 0.6 + data.pulsePhase) * 4;
 
-        node.setPosition(screenLeft + data.baseXOffset + sway * 25, GAME_CONFIG.SEA_LEVEL);
+        const rawOffset = (data.baseXOffset - parallaxDrift + wrapSpan) % wrapSpan;
+        const currentRayX = screenLeft - 70 + rawOffset + sway * 20;
+
+        node.setPosition(currentRayX, GAME_CONFIG.SEA_LEVEL);
         node.setRotation(((data.angleOffsetDeg + angleSwayInDegrees) * Math.PI) / 180);
 
         const pulseOpacity = (0.75 + sway * 0.25) * atmospheric.lightFactor;
@@ -205,11 +211,12 @@ export function setupLightRaysSystem(engineOrContext: IRenderEngine | unknown): 
       for (let index = 0; index < caustics.length; index++) {
         const { node, data } = caustics[index];
         const offsetC = data.index * (screenWidth / causticSegments);
-        const yPos = GAME_CONFIG.SEA_LEVEL + 4 + Math.sin(time * 2.5 + data.index * 1.2) * 5;
+        const wave = Math.sin(time * 2.4 + data.index * 0.7) * 2.5;
+        const yPos = GAME_CONFIG.SEA_LEVEL + wave + 2;
         node.setPosition(screenLeft + offsetC, yPos);
         const opacity =
-          (0.1 + Math.sin(time * 3.0 + data.index * 0.8) * 0.06) * (atmospheric.lightFactor * 4.0);
-        node.setOpacity(opacity);
+          (0.08 + Math.sin(time * 2.8 + data.index * 0.9) * 0.04) * (atmospheric.lightFactor * 3.5);
+        node.setOpacity(Math.max(0.01, Math.min(0.08, opacity)));
       }
     });
   } else {
@@ -330,11 +337,15 @@ export function setupLightRaysSystem(engineOrContext: IRenderEngine | unknown): 
         }
       }
 
+      const wrapSpan = screenWidth + 140;
+      const parallaxDrift = (cameraXPosition * 0.35) % wrapSpan;
+
       for (let index = 0; index < godRays.length; index++) {
         const ray = godRays[index];
         const sway = Math.sin(time * ray.pulseSpeed + ray.pulsePhase);
         const angleSway = Math.cos(time * 0.6 + ray.pulsePhase) * 4;
-        const currentX = screenLeft + ray.baseXOffset + sway * 25;
+        const rawOffset = (ray.baseXOffset - parallaxDrift + wrapSpan) % wrapSpan;
+        const currentX = screenLeft - 70 + rawOffset + sway * 20;
         const currentAngle = ray.angleOffsetDeg + angleSway;
         const pulseOpacity = (0.75 + sway * 0.25) * atmospheric.lightFactor;
         const baseOpacity = Math.max(0.015, Math.min(0.06, pulseOpacity));
@@ -352,10 +363,11 @@ export function setupLightRaysSystem(engineOrContext: IRenderEngine | unknown): 
       for (let index = 0; index < caustics.length; index++) {
         const c = caustics[index];
         const offsetC = c.index * (screenWidth / causticSegments);
+        const wave = Math.sin(time * 2.4 + c.index * 0.7) * 2.5;
         c.pos.x = screenLeft + offsetC;
-        c.pos.y = GAME_CONFIG.SEA_LEVEL + 4 + Math.sin(time * 2.5 + c.index * 1.2) * 5;
+        c.pos.y = GAME_CONFIG.SEA_LEVEL + wave + 2;
         c.opacity =
-          (0.1 + Math.sin(time * 3.0 + c.index * 0.8) * 0.06) * (atmospheric.lightFactor * 4.0);
+          (0.08 + Math.sin(time * 2.8 + c.index * 0.9) * 0.04) * (atmospheric.lightFactor * 3.5);
       }
     });
   }

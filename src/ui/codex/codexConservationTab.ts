@@ -123,12 +123,12 @@ export function renderConservationTab(context: CodexTabContext): void {
     contentElements.push(
       k.add([
         k.text(c.desc, {
-          size: accessibilitySystem.scaleFont(14),
+          size: accessibilitySystem.scaleFont(13.5),
           font: "Inter",
-          width: boxW - 78,
-          lineSpacing: 4,
+          width: boxW - 80,
+          lineSpacing: 3.5,
         }),
-        k.pos(textStartX, posY - boxH / 2 + 42),
+        k.pos(textStartX, posY - boxH / 2 + 44),
         k.color(225, 240, 255),
         k.anchor("topleft"),
         k.fixed(),

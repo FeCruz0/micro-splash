@@ -27,9 +27,7 @@ export interface ScreenLayerBoundingCircle {
 
 export interface ScreenLayerHitTarget {
   readonly id: string;
-  readonly bounds:
-    | ScreenLayerBoundingRectangle
-    | (() => ScreenLayerBoundingRectangle);
+  readonly bounds: ScreenLayerBoundingRectangle | (() => ScreenLayerBoundingRectangle);
   readonly circularBounds?: ScreenLayerBoundingCircle | (() => ScreenLayerBoundingCircle);
   readonly zIndex?: number;
   readonly enabled?: boolean;
@@ -118,12 +116,8 @@ export class ScreenLayerGeometryChecker {
     return Array.from(this.registeredTargetsMap.values());
   }
 
-  public resolveTargetBounds(
-    hitTarget: ScreenLayerHitTarget
-  ): ScreenLayerBoundingRectangle {
-    return typeof hitTarget.bounds === "function"
-      ? hitTarget.bounds()
-      : hitTarget.bounds;
+  public resolveTargetBounds(hitTarget: ScreenLayerHitTarget): ScreenLayerBoundingRectangle {
+    return typeof hitTarget.bounds === "function" ? hitTarget.bounds() : hitTarget.bounds;
   }
 
   public resolveTargetCircularBounds(
@@ -137,10 +131,7 @@ export class ScreenLayerGeometryChecker {
       : hitTarget.circularBounds;
   }
 
-  public testTargetHit(
-    hitTarget: ScreenLayerHitTarget,
-    pointCoordinates: Vector2D
-  ): boolean {
+  public testTargetHit(hitTarget: ScreenLayerHitTarget, pointCoordinates: Vector2D): boolean {
     if (hitTarget.enabled === false) {
       return false;
     }
@@ -172,10 +163,7 @@ export class ScreenLayerGeometryChecker {
       .sort((targetAlpha, targetBeta) => (targetBeta.zIndex ?? 0) - (targetAlpha.zIndex ?? 0));
   }
 
-  public convertWindowCoordinatesToScreenCoordinates(
-    clientX: number,
-    clientY: number
-  ): Vector2D {
+  public convertWindowCoordinatesToScreenCoordinates(clientX: number, clientY: number): Vector2D {
     if (!this.canvasElement) {
       return { x: clientX, y: clientY };
     }
@@ -344,6 +332,20 @@ export function resetScreenLayerGeometryChecker(): void {
     activeScreenLayerGeometryChecker.destroy();
     activeScreenLayerGeometryChecker = null;
   }
+}
+
+export function registerEngineScreenHitTarget(
+  renderEngine: { getScreenLayerGeometryChecker?: () => unknown },
+  hitTarget: ScreenLayerHitTarget
+): () => void {
+  const checker =
+    typeof renderEngine.getScreenLayerGeometryChecker === "function"
+      ? (renderEngine.getScreenLayerGeometryChecker() as ScreenLayerGeometryChecker)
+      : getScreenLayerGeometryChecker();
+  if (checker && typeof checker.registerHitTarget === "function") {
+    return checker.registerHitTarget(hitTarget);
+  }
+  return () => {};
 }
 
 export const screenLayerGeometryChecker = {

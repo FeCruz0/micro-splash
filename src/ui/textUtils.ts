@@ -59,6 +59,59 @@ export interface LegacyShadowedTextContext {
   destroy?(target: unknown): void;
 }
 
+function resolveTextAnchorCoordinates(anchor: TextAnchor): { anchorX: number; anchorY: number } {
+  switch (anchor) {
+    case "center":
+      return { anchorX: 0.5, anchorY: 0.5 };
+    case "left":
+      return { anchorX: 0, anchorY: 0.5 };
+    case "right":
+      return { anchorX: 1, anchorY: 0.5 };
+    case "top":
+      return { anchorX: 0.5, anchorY: 0 };
+    case "topright":
+      return { anchorX: 1, anchorY: 0 };
+    case "botleft":
+      return { anchorX: 0, anchorY: 1 };
+    case "bot":
+      return { anchorX: 0.5, anchorY: 1 };
+    case "botright":
+      return { anchorX: 1, anchorY: 1 };
+    case "topleft":
+    default:
+      return { anchorX: 0, anchorY: 0 };
+  }
+}
+
+function resolveTextColorRepresentation(
+  colorValue: unknown,
+  fallbackColor: readonly [number, number, number]
+): ColorRepresentation {
+  if (typeof colorValue === "number" || typeof colorValue === "string") {
+    return colorValue;
+  }
+  if (
+    Array.isArray(colorValue) &&
+    colorValue.length >= 3 &&
+    typeof colorValue[0] === "number" &&
+    typeof colorValue[1] === "number" &&
+    typeof colorValue[2] === "number"
+  ) {
+    return [colorValue[0], colorValue[1], colorValue[2]];
+  }
+  if (colorValue && typeof colorValue === "object") {
+    const rgbRecord = colorValue as { r?: unknown; g?: unknown; b?: unknown };
+    if (
+      typeof rgbRecord.r === "number" &&
+      typeof rgbRecord.g === "number" &&
+      typeof rgbRecord.b === "number"
+    ) {
+      return [rgbRecord.r, rgbRecord.g, rgbRecord.b];
+    }
+  }
+  return fallbackColor;
+}
+
 class PixiTextNodeProxy {
   private readonly textNode: ITextNode;
 
@@ -108,19 +161,27 @@ export function addShadowedText<
         ? resolvedRenderEngine.getScreenContainer()
         : resolvedRenderEngine.getStageRoot();
 
+    const anchorCoordinates = resolveTextAnchorCoordinates(anchor);
+    const resolvedMainColor = resolveTextColorRepresentation(opts.color, [255, 255, 255]);
+    const resolvedShadowColor = resolveTextColorRepresentation(opts.shadowColor, [6, 16, 36]);
+    const resolvedAlign =
+      opts.align ??
+      (anchor === "center" || anchor === "top" || anchor === "bot" ? "center" : "left");
+
     const shadowNode = resolvedRenderEngine.createText(
       content,
       {
         fontFamily: fontName,
         fontSize: opts.size,
-        color: [6, 16, 36],
-        align: opts.align,
+        color: resolvedShadowColor,
+        align: resolvedAlign,
         wordWrapWidth: opts.width,
         lineSpacing: opts.lineSpacing,
       },
       "shadowed_text_shadow"
     );
     shadowNode.setPosition(opts.pos.x + offset.x, opts.pos.y + offset.y);
+    shadowNode.setAnchor?.(anchorCoordinates.anchorX, anchorCoordinates.anchorY);
     shadowNode.setOpacity(opts.shadowOpacity ?? 0.75);
     shadowNode.setZIndex(shadowZ);
     screenContainer.addChild(shadowNode);
@@ -130,14 +191,15 @@ export function addShadowedText<
       {
         fontFamily: fontName,
         fontSize: opts.size,
-        color: [255, 255, 255],
-        align: opts.align,
+        color: resolvedMainColor,
+        align: resolvedAlign,
         wordWrapWidth: opts.width,
         lineSpacing: opts.lineSpacing,
       },
       "shadowed_text_main"
     );
     mainNode.setPosition(opts.pos.x, opts.pos.y);
+    mainNode.setAnchor?.(anchorCoordinates.anchorX, anchorCoordinates.anchorY);
     if (opts.opacity !== undefined) {
       mainNode.setOpacity(opts.opacity);
     }

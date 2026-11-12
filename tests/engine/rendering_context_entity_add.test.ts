@@ -1,8 +1,12 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { RenderEngineAdapter } from "../../src/engine/adapters/RenderEngineAdapter";
 import { createRenderingContext } from "../../src/engine/adapters/RenderingContextAdapter";
 import { SceneManager } from "../../src/engine/SceneManager";
 import { initInputStateManager, resetInputStateManager } from "../../src/systems/inputState";
+import {
+  getScreenLayerGeometryChecker,
+  resetScreenLayerGeometryChecker,
+} from "../../src/engine/screenLayerGeometryChecker";
 import type { IRenderNode } from "../../src/engine/contracts/INTERFACE_CONTRACTS";
 
 describe("RenderingContextEntity .add() encadeado e hierarquia de nós PixiJS v8", () => {
@@ -579,5 +583,127 @@ describe("RenderingContextEntity .add() encadeado e hierarquia de nós PixiJS v8
 
     renderingContextInstance.lifecycle.flushSceneResources();
     resetInputStateManager();
+  });
+
+  it("preserva o vínculo 'this' em destroy(targetEntity), remove hit targets ao destruir e repassa wordWrapWidth/lineSpacing", () => {
+    resetScreenLayerGeometryChecker();
+    const checker = getScreenLayerGeometryChecker();
+    const createTextOptionsList: unknown[] = [];
+
+    const mockInitializedEngine = {
+      isInitialized: true,
+      getDimensions: () => ({ width: 1280, height: 720 }),
+      getStageRoot: () => ({ addChild: vi.fn(), removeChild: vi.fn(), getChildren: () => [] }),
+      getWorldContainer: () => ({ addChild: vi.fn(), removeChild: vi.fn(), getChildren: () => [] }),
+      getScreenContainer: () => ({
+        addChild: vi.fn(),
+        removeChild: vi.fn(),
+        getChildren: () => [],
+      }),
+      getScreenLayerGeometryChecker: () => checker,
+      getTicker: () => ({
+        add: vi.fn(() => () => {}),
+        start: vi.fn(),
+        stop: vi.fn(),
+        getFPS: () => 60,
+        getDeltaTime: () => 0.016,
+      }),
+      createContainer: () => ({
+        addChild: vi.fn(),
+        removeChild: vi.fn(),
+        getChildren: () => [],
+        setPosition: vi.fn(),
+        setZIndex: vi.fn(),
+        setOpacity: vi.fn(),
+        setScale: vi.fn(),
+        setRotation: vi.fn(),
+        setVisible: vi.fn(),
+        destroy: vi.fn(),
+      }),
+      createGraphics: () => ({
+        drawRect: vi.fn(),
+        drawRoundedRect: vi.fn(),
+        drawCircle: vi.fn(),
+        drawPolygon: vi.fn(),
+        clear: vi.fn(),
+        setPosition: vi.fn(),
+        setZIndex: vi.fn(),
+        setOpacity: vi.fn(),
+        setScale: vi.fn(),
+        setRotation: vi.fn(),
+        setVisible: vi.fn(),
+        destroy: vi.fn(),
+      }),
+      createText: (_content: string, options?: unknown) => {
+        createTextOptionsList.push(options);
+        return {
+          setPosition: vi.fn(),
+          setZIndex: vi.fn(),
+          setOpacity: vi.fn(),
+          setScale: vi.fn(),
+          setRotation: vi.fn(),
+          setAnchor: vi.fn(),
+          setVisible: vi.fn(),
+          setText: vi.fn(),
+          setColor: vi.fn(),
+          destroy: vi.fn(),
+        };
+      },
+    };
+
+    const sceneManagerInstance = new SceneManager();
+    const renderingContextInstance = createRenderingContext(
+      mockInitializedEngine as unknown as RenderEngineAdapter,
+      sceneManagerInstance
+    );
+
+    class BoundTarget {
+      public wasDestroyedWithValidThis = false;
+      destroy() {
+        this.wasDestroyedWithValidThis = this instanceof BoundTarget;
+      }
+    }
+
+    const boundInstance = new BoundTarget();
+    renderingContextInstance.destroy(boundInstance);
+    expect(boundInstance.wasDestroyedWithValidThis).toBe(true);
+
+    const clickSpy = vi.fn();
+    const hoverSpy = vi.fn();
+    const buttonEntity = renderingContextInstance.add([
+      renderingContextInstance.rect(200, 48),
+      renderingContextInstance.pos(640, 360),
+      renderingContextInstance.anchor("center"),
+      renderingContextInstance.fixed(),
+      renderingContextInstance.z(304),
+    ]);
+    buttonEntity.onClick?.(clickSpy);
+    buttonEntity.onHoverUpdate?.(hoverSpy);
+
+    expect(checker.getRegisteredTargets().length).toBe(1);
+    checker.dispatchClick({ x: 640, y: 360 });
+    expect(clickSpy).toHaveBeenCalledTimes(1);
+
+    renderingContextInstance.destroy(buttonEntity);
+    expect(checker.getRegisteredTargets().length).toBe(0);
+
+    renderingContextInstance.add([
+      renderingContextInstance.text("Texto com quebra automática", {
+        size: 14,
+        font: "Inter",
+        width: 320,
+        lineSpacing: 3.5,
+      }),
+      renderingContextInstance.pos(100, 100),
+      renderingContextInstance.fixed(),
+    ]);
+
+    expect(createTextOptionsList.length).toBe(1);
+    expect(createTextOptionsList[0]).toMatchObject({
+      wordWrapWidth: 320,
+      lineSpacing: 3.5,
+    });
+
+    resetScreenLayerGeometryChecker();
   });
 });

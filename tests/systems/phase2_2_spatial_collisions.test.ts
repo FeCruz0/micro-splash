@@ -53,7 +53,12 @@ describe("Fase 2.2 — Resolução de Colisões via SpatialHashGrid e queryAABB"
   });
 
   it("não deve registrar callbacks legados de k.onCollide ao configurar colisões", () => {
-    setupCollisions(mockEngineContext, mockPlayerController as unknown as PlayerController, mockGameState as unknown as GameState, systemRunner);
+    setupCollisions(
+      mockEngineContext,
+      mockPlayerController as unknown as PlayerController,
+      mockGameState as unknown as GameState,
+      systemRunner
+    );
 
     expect(mockEngineContext.onCollide).not.toHaveBeenCalled();
   });
@@ -74,7 +79,12 @@ describe("Fase 2.2 — Resolução de Colisões via SpatialHashGrid e queryAABB"
       true
     );
 
-    setupCollisions(mockEngineContext, mockPlayerController as unknown as PlayerController, mockGameState as unknown as GameState, systemRunner);
+    setupCollisions(
+      mockEngineContext,
+      mockPlayerController as unknown as PlayerController,
+      mockGameState as unknown as GameState,
+      systemRunner
+    );
 
     systemRunner.run(0.016);
 
@@ -100,7 +110,12 @@ describe("Fase 2.2 — Resolução de Colisões via SpatialHashGrid e queryAABB"
       true
     );
 
-    setupCollisions(mockEngineContext, mockPlayerController as unknown as PlayerController, mockGameState as unknown as GameState, systemRunner);
+    setupCollisions(
+      mockEngineContext,
+      mockPlayerController as unknown as PlayerController,
+      mockGameState as unknown as GameState,
+      systemRunner
+    );
 
     systemRunner.run(0.016);
 
@@ -124,7 +139,12 @@ describe("Fase 2.2 — Resolução de Colisões via SpatialHashGrid e queryAABB"
       false
     );
 
-    setupCollisions(mockEngineContext, mockPlayerController as unknown as PlayerController, mockGameState as unknown as GameState, systemRunner);
+    setupCollisions(
+      mockEngineContext,
+      mockPlayerController as unknown as PlayerController,
+      mockGameState as unknown as GameState,
+      systemRunner
+    );
 
     systemRunner.run(0.016);
 
@@ -150,7 +170,12 @@ describe("Fase 2.2 — Resolução de Colisões via SpatialHashGrid e queryAABB"
       true
     );
 
-    setupCollisions(mockEngineContext, mockPlayerController as unknown as PlayerController, mockGameState as unknown as GameState, systemRunner);
+    setupCollisions(
+      mockEngineContext,
+      mockPlayerController as unknown as PlayerController,
+      mockGameState as unknown as GameState,
+      systemRunner
+    );
 
     systemRunner.run(0.016);
 
@@ -179,7 +204,12 @@ describe("Fase 2.2 — Resolução de Colisões via SpatialHashGrid e queryAABB"
     mockPlayerController.gameObj.pos.y = 105;
     mockPlayerController.getSpeed.mockReturnValue({ x: 100, y: 20 });
 
-    setupCollisions(mockEngineContext, mockPlayerController as unknown as PlayerController, mockGameState as unknown as GameState, systemRunner);
+    setupCollisions(
+      mockEngineContext,
+      mockPlayerController as unknown as PlayerController,
+      mockGameState as unknown as GameState,
+      systemRunner
+    );
 
     systemRunner.run(0.016);
 
@@ -211,5 +241,71 @@ describe("Fase 2.2 — Resolução de Colisões via SpatialHashGrid e queryAABB"
     expect(updateResult).toBe(false);
     expect(spatialGrid.queryAABB({ minX: 90, minY: 90, maxX: 160, maxY: 160 }).length).toBe(1);
     expect(spatialGrid.queryAABB({ minX: 190, minY: 190, maxX: 260, maxY: 260 }).length).toBe(0);
+  });
+
+  it("deve tratar bloco de gelo intacto como barreira física sólida quando a baleia colide por baixo", () => {
+    const spatialGrid = getSpatialGrid()!;
+    const breakIceSpy = vi.fn();
+    const iceBlockEntity = {
+      id: "ice_block_solid_1",
+      tag: "ice_block",
+      pos: { x: 500, y: 100 },
+      breakIce: breakIceSpy,
+    };
+
+    spatialGrid.insert(
+      "ice_block_solid_1",
+      iceBlockEntity,
+      { minX: 450, minY: 90, maxX: 550, maxY: 114 },
+      true
+    );
+
+    mockPlayerController.gameObj.pos = { x: 500, y: 120 };
+    mockPlayerController.getSpeed.mockReturnValue({ x: 100, y: -60, scale: vi.fn() });
+
+    setupCollisions(
+      mockEngineContext,
+      mockPlayerController as unknown as PlayerController,
+      mockGameState as unknown as GameState,
+      systemRunner
+    );
+
+    systemRunner.run(0.016);
+
+    expect(breakIceSpy).not.toHaveBeenCalled();
+    expect(spatialGrid.has("ice_block_solid_1")).toBe(true);
+    expect(mockPlayerController.gameObj.pos.y).toBeGreaterThan(120);
+    expect(mockPlayerController.setSpeed).toHaveBeenCalled();
+  });
+
+  it("deve repelir o jogador ao colidir contra obstáculo sólido ou navio", () => {
+    const spatialGrid = getSpatialGrid()!;
+    const obstacleEntity = {
+      id: "ship_obstacle_1",
+      tag: TAGS.OBSTACLE,
+      pos: { x: 520, y: 90 },
+    };
+
+    spatialGrid.insert(
+      "ship_obstacle_1",
+      obstacleEntity,
+      { minX: 520, minY: 70, maxX: 600, maxY: 130 },
+      true
+    );
+
+    mockPlayerController.gameObj.pos = { x: 500, y: 100 };
+    mockPlayerController.getSpeed.mockReturnValue({ x: 150, y: 0, scale: vi.fn() });
+
+    setupCollisions(
+      mockEngineContext,
+      mockPlayerController as unknown as PlayerController,
+      mockGameState as unknown as GameState,
+      systemRunner
+    );
+
+    systemRunner.run(0.016);
+
+    expect(mockPlayerController.gameObj.pos.x).toBeLessThan(500);
+    expect(mockPlayerController.setSpeed).toHaveBeenCalledWith(expect.objectContaining({ x: 0 }));
   });
 });

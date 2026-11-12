@@ -116,9 +116,9 @@ export function renderRouteTab(
   });
 
   const factBoxW = cardW - 64;
-  const factBoxH = 78;
-  const factGap = 10;
-  const factStartY = contentBoxTop + 64 + factBoxH / 2;
+  const factBoxH = 82;
+  const factGap = 8;
+  const factStartY = contentBoxTop + 62 + factBoxH / 2;
 
   currentFacts.forEach((fact, i) => {
     const isUnlocked = unlockedFactIds.includes(fact.id);
@@ -202,13 +202,13 @@ export function renderRouteTab(
             ? fact.description
             : "Navegue pela rota migratória na expedição para desbloquear esta descoberta ecológica!",
           {
-            size: accessibilitySystem.scaleFont(14),
+            size: accessibilitySystem.scaleFont(13.5),
             font: "Inter",
             width: factBoxW - 84,
-            lineSpacing: 3.5,
+            lineSpacing: 2.5,
           }
         ),
-        k.pos(textStartX, itemY - factBoxH / 2 + 36),
+        k.pos(textStartX, itemY - factBoxH / 2 + 34),
         k.color(isUnlocked ? k.rgb(225, 240, 255) : k.rgb(145, 165, 190)),
         k.anchor("topleft"),
         k.fixed(),

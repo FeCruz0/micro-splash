@@ -248,7 +248,7 @@ export function showModeSelectScreen(
   // ==========================================
   // CARD 1: MIGRAÇÃO SERENA (1ª OPÇÃO)
   // ==========================================
-  const card1H = 86;
+  const card1H = 90;
   const card1Y = startCardsY + card1H / 2;
 
   const card1 = engine.add([
@@ -314,7 +314,7 @@ export function showModeSelectScreen(
         size: accessibilitySystem.scaleFont(17.5),
         font: "Outfit",
       }),
-      engine.pos(textStartX, card1Y - 16),
+      engine.pos(textStartX, card1Y - 20),
       engine.color(140, 255, 200),
       engine.anchor("left"),
       engine.fixed(),
@@ -327,13 +327,13 @@ export function showModeSelectScreen(
       engine.text(
         "Oxigênio infinito (∞) e zero risco de desmaio. Experiência contemplativa com HUD completo, fatos ambientais e identificação dos biomas.",
         {
-          size: accessibilitySystem.scaleFont(14.5),
+          size: accessibilitySystem.scaleFont(14),
           font: "Inter",
-          width: contentBoxW - 90,
-          lineSpacing: 3.5,
+          width: contentBoxW - 96,
+          lineSpacing: 3,
         }
       ),
-      engine.pos(textStartX, card1Y + 12),
+      engine.pos(textStartX, card1Y + 14),
       engine.color(215, 245, 235),
       engine.anchor("left"),
       engine.fixed(),
@@ -370,7 +370,7 @@ export function showModeSelectScreen(
   // ==========================================
   // CARD 2: MIGRAÇÃO DIFÍCIL (2ª OPÇÃO)
   // ==========================================
-  const card2H = 86;
+  const card2H = 90;
   const card2Y = card1Y + card1H / 2 + 12 + card2H / 2;
 
   const card2 = engine.add([
@@ -434,7 +434,7 @@ export function showModeSelectScreen(
         size: accessibilitySystem.scaleFont(17.5),
         font: "Outfit",
       }),
-      engine.pos(textStartX, card2Y - 16),
+      engine.pos(textStartX, card2Y - 20),
       engine.color(255, 120, 140),
       engine.anchor("left"),
       engine.fixed(),
@@ -447,13 +447,13 @@ export function showModeSelectScreen(
       engine.text(
         "Travessia autêntica sem HUD, sem auxílios visuais e sem avisos em texto. Gerencie o fôlego da jubarte guiando-se apenas pelos seus sentidos marinhos.",
         {
-          size: accessibilitySystem.scaleFont(14.5),
+          size: accessibilitySystem.scaleFont(14),
           font: "Inter",
-          width: contentBoxW - 90,
-          lineSpacing: 3.5,
+          width: contentBoxW - 96,
+          lineSpacing: 3,
         }
       ),
-      engine.pos(textStartX, card2Y + 12),
+      engine.pos(textStartX, card2Y + 14),
       engine.color(255, 220, 225),
       engine.anchor("left"),
       engine.fixed(),

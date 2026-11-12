@@ -14,11 +14,16 @@ export function renderIcebergWall(engine: IRenderEngine, icebergWallTexture: unk
   const wallStartX = -1100;
 
   if (icebergWallTexture) {
-    const wallSprite = engine.createSprite(icebergWallTexture, "iceberg_wall");
-    wallSprite.setSize(wallWidth, screenHeight);
-    wallSprite.setPosition(wallStartX, 0);
-    wallSprite.setZIndex(10);
-    worldContainer.addChild(wallSprite);
+    // Renderização modular em ladrilhos para evitar distorção horizontal na pixel art
+    const tileSize = 368;
+    for (let tileX = wallStartX; tileX < 0; tileX += tileSize) {
+      const tileWidth = Math.min(tileSize, 0 - tileX);
+      const wallSprite = engine.createSprite(icebergWallTexture, `iceberg_wall_${tileX}`);
+      wallSprite.setSize(tileWidth, screenHeight);
+      wallSprite.setPosition(tileX, 0);
+      wallSprite.setZIndex(10);
+      worldContainer.addChild(wallSprite);
+    }
   } else {
     const wallG = engine.createGraphics("iceberg_wall");
     wallG.drawRect(0, 0, wallWidth, screenHeight, {
@@ -58,29 +63,45 @@ export function renderIcebergWall(engine: IRenderEngine, icebergWallTexture: unk
       ridgeG.setZIndex(12);
       worldContainer.addChild(ridgeG);
     }
-
-    // Crista pontiaguda na borda frontal
-    const cliffG = engine.createGraphics();
-    const cliffPts: readonly Vector2D[] = [
-      { x: -50, y: 0 },
-      { x: 0, y: 35 },
-      { x: -20, y: 95 },
-      { x: 8, y: 165 },
-      { x: -25, y: 235 },
-      { x: 5, y: 315 },
-      { x: -30, y: 385 },
-      { x: 0, y: 455 },
-      { x: -35, y: screenHeight },
-      { x: -120, y: screenHeight },
-      { x: -120, y: 0 },
-    ];
-    cliffG.drawPolygon(cliffPts, {
-      fill: { color: [210, 240, 255], alpha: 0.98 },
-      stroke: { color: [120, 180, 230], width: 3 },
-    });
-    cliffG.setZIndex(14);
-    worldContainer.addChild(cliffG);
   }
+
+  // Crista pontiaguda e falésia escarpada sempre renderizada na borda frontal (x = 0)
+  const cliffG = engine.createGraphics("iceberg_cliff_front");
+  const cliffPts: readonly Vector2D[] = [
+    { x: -50, y: 0 },
+    { x: 0, y: 35 },
+    { x: -20, y: 95 },
+    { x: 8, y: 165 },
+    { x: -25, y: 235 },
+    { x: 5, y: 315 },
+    { x: -30, y: 385 },
+    { x: 0, y: 455 },
+    { x: -35, y: screenHeight },
+    { x: -120, y: screenHeight },
+    { x: -120, y: 0 },
+  ];
+  cliffG.drawPolygon(cliffPts, {
+    fill: { color: [210, 240, 255], alpha: 0.98 },
+    stroke: { color: [120, 180, 230], width: 3 },
+  });
+  cliffG.setZIndex(14);
+  worldContainer.addChild(cliffG);
+
+  // Manto superior de neve pura na crista acima da linha d'água (SEA_LEVEL)
+  const cliffSnowG = engine.createGraphics("iceberg_cliff_snow");
+  const snowPts: readonly Vector2D[] = [
+    { x: -120, y: 0 },
+    { x: 0, y: 0 },
+    { x: 2, y: 32 },
+    { x: -18, y: 80 },
+    { x: -120, y: 80 },
+  ];
+  cliffSnowG.drawPolygon(snowPts, {
+    fill: { color: [255, 255, 255], alpha: 1.0 },
+    stroke: { color: [224, 242, 241], width: 2 },
+  });
+  cliffSnowG.setZIndex(15);
+  worldContainer.addChild(cliffSnowG);
 
   const polarIceSpatialGrid = getSpatialGrid();
   if (polarIceSpatialGrid) {
@@ -88,7 +109,7 @@ export function renderIcebergWall(engine: IRenderEngine, icebergWallTexture: unk
       id: "iceberg_wall_static",
       tag: TAGS.OBSTACLE,
       pos: { x: wallStartX, y: 0 },
-      width: wallWidth,
+      width: wallWidth + 8,
       height: screenHeight,
       isStatic: true,
     };
@@ -98,7 +119,7 @@ export function renderIcebergWall(engine: IRenderEngine, icebergWallTexture: unk
       {
         minX: wallStartX,
         minY: 0,
-        maxX: wallStartX + wallWidth,
+        maxX: 8,
         maxY: screenHeight,
       },
       true

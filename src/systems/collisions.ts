@@ -55,6 +55,81 @@ export interface CollisionSystemController {
   destroy: () => void;
 }
 
+type PlayerSpeedParameter = PlayerController extends { setSpeed: (s: infer S) => void }
+  ? S
+  : unknown;
+const createPlayerSpeed = (x: number, y: number): PlayerSpeedParameter =>
+  ({ x, y }) as unknown as PlayerSpeedParameter;
+
+export interface SolidPenetrationResult {
+  readonly hasCollision: boolean;
+  readonly translationX: number;
+  readonly translationY: number;
+}
+
+/**
+ * Pure function that resolves 2D AABB penetration using the Minimum Translation Vector (MTV).
+ * Computes the least invasive push-out vector to prevent the entity from clipping into solid obstacles.
+ */
+export function resolveSolidObstaclePenetration(
+  entityBounds: SpatialAABB,
+  obstacleBounds: SpatialAABB
+): SolidPenetrationResult {
+  const overlapHorizontalRight = obstacleBounds.maxX - entityBounds.minX;
+  const overlapHorizontalLeft = entityBounds.maxX - obstacleBounds.minX;
+  const overlapVerticalBottom = obstacleBounds.maxY - entityBounds.minY;
+  const overlapVerticalTop = entityBounds.maxY - obstacleBounds.minY;
+
+  if (
+    overlapHorizontalRight <= 0 ||
+    overlapHorizontalLeft <= 0 ||
+    overlapVerticalBottom <= 0 ||
+    overlapVerticalTop <= 0
+  ) {
+    return { hasCollision: false, translationX: 0, translationY: 0 };
+  }
+
+  const minimumOverlapX = Math.min(overlapHorizontalRight, overlapHorizontalLeft);
+  const minimumOverlapY = Math.min(overlapVerticalBottom, overlapVerticalTop);
+
+  if (minimumOverlapX < minimumOverlapY) {
+    const translationX =
+      overlapHorizontalLeft < overlapHorizontalRight
+        ? -overlapHorizontalLeft
+        : overlapHorizontalRight;
+    return { hasCollision: true, translationX, translationY: 0 };
+  } else {
+    const translationY =
+      overlapVerticalTop < overlapVerticalBottom ? -overlapVerticalTop : overlapVerticalBottom;
+    return { hasCollision: true, translationX: 0, translationY };
+  }
+}
+
+function resolveEntityBounds(
+  entity: CollisionGameObject,
+  spatialGrid: { getBounds: (id: string) => SpatialAABB | undefined }
+): SpatialAABB | null {
+  if (entity.id) {
+    const gridBounds = spatialGrid.getBounds(entity.id);
+    if (gridBounds) return gridBounds;
+  }
+  const entityWithBounds = entity as unknown as { bounds?: SpatialAABB };
+  if (entityWithBounds.bounds) {
+    return entityWithBounds.bounds;
+  }
+  if (entity.pos && typeof entity.pos.x === "number" && typeof entity.pos.y === "number") {
+    const width = (entity as { width?: number }).width ?? 40;
+    const height = (entity as { height?: number }).height ?? 40;
+    return {
+      minX: entity.pos.x,
+      minY: entity.pos.y,
+      maxX: entity.pos.x + width,
+      maxY: entity.pos.y + height,
+    };
+  }
+  return null;
+}
+
 /**
  * Sistema Unificado de Resolução de Colisões via SpatialHashGrid (Fase 59 / Etapa 2.2).
  *
@@ -267,8 +342,14 @@ export function setupCollisions<TDestroyable = unknown>(
         if (isIceBlockEntity) {
           const iceBlock = candidateEntity as IceBlockEntity;
           const currentVelocity = playerController.getSpeed();
-          const iceBlockTopY = iceBlock.pos ? iceBlock.pos.y : GAME_CONFIG.SEA_LEVEL;
-          const isBreachingFromAbove = playerCenterY <= iceBlockTopY + 8 && currentVelocity.y >= 0;
+          const iceBlockBounds = resolveEntityBounds(candidateEntity, spatialGrid);
+          const iceBlockReferenceY = iceBlock.pos
+            ? iceBlock.pos.y
+            : iceBlockBounds
+              ? iceBlockBounds.minY
+              : GAME_CONFIG.SEA_LEVEL;
+          const isBreachingFromAbove =
+            playerCenterY <= iceBlockReferenceY + 8 && currentVelocity.y >= 0;
 
           if (isBreachingFromAbove && typeof iceBlock.breakIce === "function") {
             hapticsSystem.triggerIceBreach();
@@ -276,11 +357,58 @@ export function setupCollisions<TDestroyable = unknown>(
             if (candidateEntity.id) {
               spatialGrid.remove(candidateEntity.id);
             }
+            continue;
+          }
+
+          // Bloco de gelo intacto atua como barreira física sólida contra a baleia
+          if (iceBlockBounds) {
+            const penetration = resolveSolidObstaclePenetration(queryBoundingBox, iceBlockBounds);
+            if (penetration.hasCollision) {
+              playerGameObject.pos.x += penetration.translationX;
+              playerGameObject.pos.y += penetration.translationY;
+
+              queryBoundingBox.minX += penetration.translationX;
+              queryBoundingBox.maxX += penetration.translationX;
+              queryBoundingBox.minY += penetration.translationY;
+              queryBoundingBox.maxY += penetration.translationY;
+
+              let nextVelocityX = currentVelocity.x;
+              let nextVelocityY = currentVelocity.y;
+
+              if (penetration.translationY !== 0) {
+                // Ao colidir por baixo tentando subir, reflete a velocidade para baixo
+                nextVelocityY =
+                  penetration.translationY > 0
+                    ? Math.max(25, Math.abs(currentVelocity.y) * 0.35)
+                    : 0;
+                nextVelocityX *= 0.9;
+              }
+              if (penetration.translationX !== 0) {
+                nextVelocityX = 0;
+              }
+
+              if (typeof playerController.setSpeed === "function") {
+                playerController.setSpeed(createPlayerSpeed(nextVelocityX, nextVelocityY));
+              }
+
+              const currentTime =
+                typeof engineContext.time === "function"
+                  ? engineContext.time()
+                  : performance.now() / 1000;
+              if (currentTime - lastObstacleBumpTime > 0.35) {
+                lastObstacleBumpTime = currentTime;
+                audioSystem.playTrashThud();
+                accessibilitySystem.triggerShake(
+                  engineContext as Parameters<typeof accessibilitySystem.triggerShake>[0],
+                  2.0
+                );
+              }
+            }
           }
           continue;
         }
 
-        // 6. FORMAÇÕES ROCHOSAS E NAVIOS (TAGS.OBSTACLE = "obstaculo")
+        // 6. FORMAÇÕES ROCHOSAS, GELEIRA INICIAL E NAVIOS (TAGS.OBSTACLE = "obstaculo")
         const isObstacleOrShipEntity =
           (typeof candidateEntity.is === "function" &&
             (candidateEntity.is(TAGS.OBSTACLE) ||
@@ -292,6 +420,38 @@ export function setupCollisions<TDestroyable = unknown>(
           candidateEntity.tag === "fishing_trawler";
 
         if (isObstacleOrShipEntity) {
+          const obstacleBounds = resolveEntityBounds(candidateEntity, spatialGrid);
+          if (obstacleBounds) {
+            const penetration = resolveSolidObstaclePenetration(queryBoundingBox, obstacleBounds);
+            if (penetration.hasCollision) {
+              playerGameObject.pos.x += penetration.translationX;
+              playerGameObject.pos.y += penetration.translationY;
+
+              queryBoundingBox.minX += penetration.translationX;
+              queryBoundingBox.maxX += penetration.translationX;
+              queryBoundingBox.minY += penetration.translationY;
+              queryBoundingBox.maxY += penetration.translationY;
+
+              const currentVelocity = playerController.getSpeed();
+              let nextVelocityX = currentVelocity.x;
+              let nextVelocityY = currentVelocity.y;
+
+              if (penetration.translationX !== 0) {
+                nextVelocityX = 0;
+              }
+              if (penetration.translationY !== 0) {
+                nextVelocityY =
+                  penetration.translationY > 0
+                    ? Math.max(15, Math.abs(currentVelocity.y) * 0.2)
+                    : 0;
+              }
+
+              if (typeof playerController.setSpeed === "function") {
+                playerController.setSpeed(createPlayerSpeed(nextVelocityX, nextVelocityY));
+              }
+            }
+          }
+
           const currentTime =
             typeof engineContext.time === "function"
               ? engineContext.time()

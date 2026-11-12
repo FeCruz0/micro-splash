@@ -6,6 +6,11 @@ import { showQuizModal } from "../../src/ui/quizModal";
 import { showInitialsInputModal } from "../../src/ui/initialsInputModal";
 import { showStatsModal } from "../../src/ui/statsModal";
 import { showPwaInstallModal } from "../../src/ui/pwaInstallModal";
+import { addShadowedText } from "../../src/ui/textUtils";
+import {
+  getScreenLayerGeometryChecker,
+  resetScreenLayerGeometryChecker,
+} from "../../src/engine/screenLayerGeometryChecker";
 import {
   PixiContainerNode,
   PixiGraphicsNode,
@@ -187,12 +192,7 @@ describe("Etapa 4.2: Migração de Modais e Telas para screenContainer e Foco Ge
       getQuizScore: () => 0,
     } as unknown as Parameters<typeof showQuizModal>[1];
 
-    showQuizModal(
-      mockEngine,
-      mockGameState,
-      onComplete,
-      onCancel
-    );
+    showQuizModal(mockEngine, mockGameState, onComplete, onCancel);
 
     const screenChildren = screenContainer.getChildren();
     expect(screenChildren.length).toBeGreaterThan(3); // backdrop, card, title, btnClose, etc.
@@ -224,5 +224,67 @@ describe("Etapa 4.2: Migração de Modais e Telas para screenContainer e Foco Ge
     const screenChildren = screenContainer.getChildren();
     expect(screenChildren.length).toBeGreaterThan(3);
     expect(worldContainer.getChildren().length).toBe(0);
+  });
+
+  it("addShadowedText aplica anchor center e cor personalizada no pipeline nativo Pixi", () => {
+    const handle = addShadowedText(mockEngine, "TÍTULO CENTRALIZADO", {
+      pos: { x: 640, y: 120 },
+      size: 26,
+      color: [255, 225, 100],
+      anchor: "center",
+      z: 303,
+    });
+
+    const mainNode = (handle.main as unknown as { getNode: () => ITextNode }).getNode();
+    const shadowNode = (handle.shadow as unknown as { getNode: () => ITextNode }).getNode();
+
+    expect(mainNode.getAnchor?.()).toEqual({ x: 0.5, y: 0.5 });
+    expect(shadowNode.getAnchor?.()).toEqual({ x: 0.5, y: 0.5 });
+    expect(mainNode.getColor()).toEqual([255, 225, 100]);
+
+    handle.destroy();
+    expect(screenContainer.getChildren().length).toBe(0);
+  });
+
+  it("tabBar e cardButton centralizam âncora de texto e limpam hit targets ao destruir", () => {
+    resetScreenLayerGeometryChecker();
+    const checker = getScreenLayerGeometryChecker();
+    const onTabChange = vi.fn();
+    const onButtonClick = vi.fn();
+
+    const tabBarHandle = createTabBar(mockEngine, {
+      tabs: [
+        { id: "global", label: "Global Online" },
+        { id: "local", label: "Local / Totem" },
+      ],
+      activeTab: "global",
+      posY: 140,
+      containerWidth: 800,
+      centerX: 640,
+      onTabChange,
+    });
+
+    const buttonHandle = createCardButton(mockEngine, {
+      label: "Fechar (ESC) ✕",
+      pos: { x: 640, y: 500 },
+      width: 280,
+      height: 46,
+      onClick: onButtonClick,
+    });
+
+    const textNodes = createdNodes.filter((node): node is ITextNode => "getAnchor" in node);
+    expect(textNodes.length).toBe(3);
+    textNodes.forEach((textNode) => {
+      expect(textNode.getAnchor?.()).toEqual({ x: 0.5, y: 0.5 });
+    });
+
+    expect(checker.getRegisteredTargets().length).toBe(3);
+    checker.dispatchClick({ x: 640, y: 500 });
+    expect(onButtonClick).toHaveBeenCalledTimes(1);
+
+    tabBarHandle.destroy();
+    buttonHandle.destroy();
+    expect(checker.getRegisteredTargets().length).toBe(0);
+    resetScreenLayerGeometryChecker();
   });
 });

@@ -1069,6 +1069,10 @@ export function createRenderingContext(
         let isEntityDestroyed = false;
         const entityDestroyCallbacksList: Array<() => void> = [];
         const entityActiveUpdateListenersList: Array<() => void> = [];
+        const entityClickCallbacksList: Array<() => void> = [];
+        const entityHoverUpdateCallbacksList: Array<() => void> = [];
+        const entityHoverEndCallbacksList: Array<() => void> = [];
+        let isScreenHitTargetRegistered = false;
         const entityCollisionListenersList: Array<{
           readonly targetTag?: string;
           readonly collisionHandler: (collidedEntity: unknown) => void;
@@ -1177,6 +1181,64 @@ export function createRenderingContext(
           }
         );
         entityActiveUpdateListenersList.push(velocityPhysicsUpdateHandler.cancel);
+
+        const ensureScreenHitTargetRegistered = (): boolean => {
+          if (!isFixedElement || rectangleWidthValue === null || rectangleHeightValue === null) {
+            return false;
+          }
+          if (isScreenHitTargetRegistered) {
+            return true;
+          }
+          isScreenHitTargetRegistered = true;
+          const activeScreenChecker =
+            renderEngineInstance.isInitialized &&
+            typeof renderEngineInstance.getScreenLayerGeometryChecker === "function"
+              ? (renderEngineInstance.getScreenLayerGeometryChecker() as ReturnType<
+                  typeof getScreenLayerGeometryChecker
+                >)
+              : getScreenLayerGeometryChecker();
+
+          const cancelHitTargetRegistration = activeScreenChecker.registerHitTarget({
+            id: `screen_button_${Math.random().toString(36).slice(2, 9)}`,
+            bounds: () => {
+              const currentWidth = rectangleWidthValue ?? 0;
+              const currentHeight = rectangleHeightValue ?? 0;
+              const originOffsets = calculateOriginOffset(
+                anchorAlignment,
+                currentWidth,
+                currentHeight
+              );
+              return {
+                x: positionCoordinateX + originOffsets.originX,
+                y: positionCoordinateY + originOffsets.originY,
+                width: currentWidth,
+                height: currentHeight,
+              };
+            },
+            zIndex: entityZIndex,
+            onClick: () => {
+              if (isEntityDestroyed || isEntityHidden) return;
+              for (let index = 0; index < entityClickCallbacksList.length; index++) {
+                entityClickCallbacksList[index]();
+              }
+            },
+            onPointerEnter: () => {
+              if (isEntityDestroyed || isEntityHidden) return;
+              for (let index = 0; index < entityHoverUpdateCallbacksList.length; index++) {
+                entityHoverUpdateCallbacksList[index]();
+              }
+            },
+            onPointerLeave: () => {
+              if (isEntityDestroyed || isEntityHidden) return;
+              for (let index = 0; index < entityHoverEndCallbacksList.length; index++) {
+                entityHoverEndCallbacksList[index]();
+              }
+            },
+          });
+          entityDestroyCallbacksList.push(cancelHitTargetRegistration);
+          sceneCleanupCallbacksList.push(cancelHitTargetRegistration);
+          return true;
+        };
 
         const entityInstance: RenderingContextEntity = {
           pos: entityPositionBindingInstance,
@@ -1482,40 +1544,47 @@ export function createRenderingContext(
           ) => renderingContext.onKeyRelease(keyOrExecutionCallback, maybeKeyCallback),
           mousePos: (): { readonly x: number; readonly y: number } => renderingContext.mousePos(),
           onClick: (clickCallback: () => void) => {
-            if (isFixedElement && rectangleWidthValue !== null && rectangleHeightValue !== null) {
-              const activeScreenChecker =
-                renderEngineInstance.isInitialized &&
-                typeof renderEngineInstance.getScreenLayerGeometryChecker === "function"
-                  ? (renderEngineInstance.getScreenLayerGeometryChecker() as ReturnType<
-                      typeof getScreenLayerGeometryChecker
-                    >)
-                  : getScreenLayerGeometryChecker();
-
-              const buttonTargetWidth = rectangleWidthValue;
-              const buttonTargetHeight = rectangleHeightValue;
-              const originOffsets = calculateOriginOffset(
-                anchorAlignment,
-                buttonTargetWidth,
-                buttonTargetHeight
-              );
-              const cancelHitTargetRegistration = activeScreenChecker.registerHitTarget({
-                id: `screen_button_${Math.random().toString(36).slice(2, 9)}`,
-                bounds: () => ({
-                  x: positionCoordinateX + originOffsets.originX,
-                  y: positionCoordinateY + originOffsets.originY,
-                  width: buttonTargetWidth,
-                  height: buttonTargetHeight,
-                }),
-                zIndex: entityZIndex,
-                onClick: () => clickCallback(),
-              });
-              sceneCleanupCallbacksList.push(cancelHitTargetRegistration);
-              return { cancel: cancelHitTargetRegistration };
+            if (ensureScreenHitTargetRegistered()) {
+              entityClickCallbacksList.push(clickCallback);
+              return {
+                cancel: () => {
+                  const callbackIndex = entityClickCallbacksList.indexOf(clickCallback);
+                  if (callbackIndex !== -1) {
+                    entityClickCallbacksList.splice(callbackIndex, 1);
+                  }
+                },
+              };
             }
             return renderingContext.onMousePress(clickCallback);
           },
-          onHoverUpdate: () => ({ cancel: () => {} }),
-          onHoverEnd: () => ({ cancel: () => {} }),
+          onHoverUpdate: (hoverCallback: () => void) => {
+            if (ensureScreenHitTargetRegistered()) {
+              entityHoverUpdateCallbacksList.push(hoverCallback);
+              return {
+                cancel: () => {
+                  const callbackIndex = entityHoverUpdateCallbacksList.indexOf(hoverCallback);
+                  if (callbackIndex !== -1) {
+                    entityHoverUpdateCallbacksList.splice(callbackIndex, 1);
+                  }
+                },
+              };
+            }
+            return { cancel: () => {} };
+          },
+          onHoverEnd: (hoverEndCallback: () => void) => {
+            if (ensureScreenHitTargetRegistered()) {
+              entityHoverEndCallbacksList.push(hoverEndCallback);
+              return {
+                cancel: () => {
+                  const callbackIndex = entityHoverEndCallbacksList.indexOf(hoverEndCallback);
+                  if (callbackIndex !== -1) {
+                    entityHoverEndCallbacksList.splice(callbackIndex, 1);
+                  }
+                },
+              };
+            }
+            return { cancel: () => {} };
+          },
           play: (animationName?: string) => {
             if (animationName && spriteAnimationControllerInstance) {
               spriteAnimationControllerInstance.play(animationName);
@@ -1852,13 +1921,35 @@ export function createRenderingContext(
               typeof textStyleOptionsRecord?.font === "string"
                 ? textStyleOptionsRecord.font
                 : "Outfit";
+            const calculatedWordWrapWidth =
+              typeof textStyleOptionsRecord?.width === "number"
+                ? textStyleOptionsRecord.width
+                : undefined;
+            const calculatedLineSpacing =
+              typeof textStyleOptionsRecord?.lineSpacing === "number"
+                ? textStyleOptionsRecord.lineSpacing
+                : undefined;
+            const calculatedAlign =
+              textStyleOptionsRecord?.align === "center" ||
+              textStyleOptionsRecord?.align === "right" ||
+              textStyleOptionsRecord?.align === "left"
+                ? textStyleOptionsRecord.align
+                : anchorAlignment === "center"
+                  ? "center"
+                  : "left";
             const textShapeNode = renderEngineInstance.createText(
               entityTextContent,
               {
                 fontSize: calculatedFontSize,
                 fontFamily: calculatedFontFamily,
                 color: entityRgbColor,
-                ...(anchorAlignment === "center" ? { align: "center" } : {}),
+                align: calculatedAlign,
+                ...(calculatedWordWrapWidth !== undefined
+                  ? { wordWrapWidth: calculatedWordWrapWidth }
+                  : {}),
+                ...(calculatedLineSpacing !== undefined
+                  ? { lineSpacing: calculatedLineSpacing }
+                  : {}),
               },
               `rendered_text_${Math.random().toString(36).slice(2, 9)}`
             );
@@ -2170,6 +2261,30 @@ export function createRenderingContext(
           enumerable: true,
         });
 
+        Object.defineProperty(entityInstance, "outline", {
+          get: () => ({
+            width: outlineWidthValue ?? 0,
+            color: outlineColorValue,
+          }),
+          set: (updatedOutlineValue: unknown) => {
+            if (updatedOutlineValue && typeof updatedOutlineValue === "object") {
+              const outlineRecord = updatedOutlineValue as { width?: unknown; color?: unknown };
+              if (typeof outlineRecord.width === "number") {
+                outlineWidthValue = outlineRecord.width;
+              }
+              const parsedOutlineColor = normalizeRgbColorTuple(outlineRecord.color);
+              if (parsedOutlineColor) {
+                outlineColorValue = parsedOutlineColor;
+              }
+              if (entityVisualNode && isGraphicsRenderNode(entityVisualNode)) {
+                redrawEntityGraphicsShape(entityVisualNode, true);
+              }
+            }
+          },
+          configurable: true,
+          enumerable: true,
+        });
+
         let universalTaggedBucket = taggedEntitiesMap.get("*");
         if (!universalTaggedBucket) {
           universalTaggedBucket = new Set<unknown>();
@@ -2196,7 +2311,7 @@ export function createRenderingContext(
       if (targetEntity && typeof targetEntity === "object" && "destroy" in targetEntity) {
         const destroyAction = (targetEntity as { destroy?: () => void }).destroy;
         if (typeof destroyAction === "function") {
-          destroyAction();
+          destroyAction.call(targetEntity);
         }
       }
       for (const taggedSet of taggedEntitiesMap.values()) {

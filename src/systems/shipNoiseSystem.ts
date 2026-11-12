@@ -195,6 +195,9 @@ export function setupShipNoiseSystem<
       k.opacity(0.88),
       k.anchor("center"),
       k.z(-2),
+      TAGS.OBSTACLE,
+      "ship",
+      "cargo_ship",
     ];
     if (k.outline) {
       shipComponents.push(k.outline(2.5, k.rgb(180, 50, 50)));

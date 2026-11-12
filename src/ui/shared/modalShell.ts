@@ -31,6 +31,7 @@ import type {
   ITextNode,
 } from "../../engine/contracts/INTERFACE_CONTRACTS";
 import { resolveInitializedRenderEngine } from "../../engine/contracts/INTERFACE_CONTRACTS";
+import { registerEngineScreenHitTarget } from "../../engine/screenLayerGeometryChecker";
 
 export interface ModalShellOptions {
   title: string;
@@ -125,6 +126,7 @@ export function createModalShell<
     };
 
     const elements: Array<IGraphicsNode | ITextNode> = [];
+    const hitTargetCleanups: Array<() => void> = [];
 
     // 1. Backdrop
     const backdropNode = resolvedRenderEngine.createGraphics("modal_backdrop");
@@ -183,6 +185,7 @@ export function createModalShell<
         "modal_subtitle"
       );
       subtitleNode.setPosition(cX, dimensions.top + 58);
+      subtitleNode.setAnchor?.(0.5, 0.5);
       subtitleNode.setZIndex(zBase + 2);
       screenContainer.addChild(subtitleNode);
       elements.push(subtitleNode);
@@ -191,6 +194,12 @@ export function createModalShell<
     let keyHandler: ((event: KeyboardEvent) => void) | null = null;
 
     const destroyElements = () => {
+      hitTargetCleanups.forEach((cleanup) => {
+        try {
+          cleanup();
+        } catch {}
+      });
+      hitTargetCleanups.length = 0;
       if (focusGroup) {
         focusGroup.destroy();
         focusGroup = null;
@@ -242,9 +251,27 @@ export function createModalShell<
         "modal_close_label"
       );
       closeLabel.setPosition(btnXPos, btnYPos);
+      closeLabel.setAnchor?.(0.5, 0.5);
       closeLabel.setZIndex(zBase + 6);
       screenContainer.addChild(closeLabel);
       elements.push(closeLabel);
+
+      hitTargetCleanups.push(
+        registerEngineScreenHitTarget(resolvedRenderEngine, {
+          id: `modal_close_${Math.random().toString(36).slice(2, 9)}`,
+          bounds: {
+            x: btnXPos - 19,
+            y: btnYPos - 19,
+            width: 38,
+            height: 38,
+          },
+          zIndex: zBase + 5,
+          onClick: () => {
+            if (!canInteract()) return;
+            close();
+          },
+        })
+      );
 
       const nativeClose = closeBtnNode.getNativeNode<{
         interactive?: boolean;

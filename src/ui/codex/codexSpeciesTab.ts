@@ -141,12 +141,12 @@ export function renderSpeciesTab(context: CodexTabContext): void {
     contentElements.push(
       k.add([
         k.text(sp.desc, {
-          size: accessibilitySystem.scaleFont(13.5),
+          size: accessibilitySystem.scaleFont(13),
           font: "Inter",
-          width: boxW - 76,
-          lineSpacing: 3.5,
+          width: boxW - 80,
+          lineSpacing: 3,
         }),
-        k.pos(textStartX, posY - boxH / 2 + 53),
+        k.pos(textStartX, posY - boxH / 2 + 52),
         k.color(225, 240, 255),
         k.anchor("topleft"),
         k.fixed(),

@@ -15,6 +15,7 @@ import type {
   ITextNode,
 } from "../../engine/contracts/INTERFACE_CONTRACTS";
 import { resolveInitializedRenderEngine } from "../../engine/contracts/INTERFACE_CONTRACTS";
+import { registerEngineScreenHitTarget } from "../../engine/screenLayerGeometryChecker";
 
 export interface TabItem<T extends string> {
   id: T;
@@ -92,6 +93,7 @@ export function createTabBar<T extends string, TObj = never>(
         ? resolvedRenderEngine.getScreenContainer()
         : resolvedRenderEngine.getStageRoot();
     const elements: Array<IGraphicsNode | ITextNode> = [];
+    const hitTargetCleanups: Array<() => void> = [];
 
     const tabEntities: Array<{
       id: T;
@@ -162,9 +164,35 @@ export function createTabBar<T extends string, TObj = never>(
       elements.push(btnNode);
 
       txtNode.setPosition(tabX, tabY);
+      txtNode.setAnchor?.(0.5, 0.5);
       txtNode.setZIndex(zBase + 1);
       screenContainer.addChild(txtNode);
       elements.push(txtNode);
+
+      const handlePointerEnter = () => {
+        if (!canInteract() || currentTab === tab.id) return;
+        drawTab(false, true);
+        btnNode.setScale(1.02, 1.02);
+      };
+      const handlePointerLeave = () => {
+        btnNode.setScale(1, 1);
+        drawTab(currentTab === tab.id, false);
+      };
+
+      const cancelHitTarget = registerEngineScreenHitTarget(resolvedRenderEngine, {
+        id: `tab_bar_${String(tab.id)}_${Math.random().toString(36).slice(2, 7)}`,
+        bounds: {
+          x: tabX - tabWidth / 2,
+          y: tabY - tabHeight / 2,
+          width: tabWidth,
+          height: tabHeight,
+        },
+        zIndex: zBase,
+        onClick: () => selectTab(tab.id),
+        onPointerEnter: handlePointerEnter,
+        onPointerLeave: handlePointerLeave,
+      });
+      hitTargetCleanups.push(cancelHitTarget);
 
       const nativeNode = btnNode.getNativeNode<{
         interactive?: boolean;
@@ -174,15 +202,8 @@ export function createTabBar<T extends string, TObj = never>(
       if (nativeNode && typeof nativeNode.on === "function") {
         nativeNode.interactive = true;
         nativeNode.cursor = "pointer";
-        nativeNode.on("pointerover", () => {
-          if (!canInteract() || currentTab === tab.id) return;
-          drawTab(false, true);
-          btnNode.setScale(1.02, 1.02);
-        });
-        nativeNode.on("pointerout", () => {
-          btnNode.setScale(1, 1);
-          drawTab(currentTab === tab.id, false);
-        });
+        nativeNode.on("pointerover", handlePointerEnter);
+        nativeNode.on("pointerout", handlePointerLeave);
         nativeNode.on("pointertap", () => selectTab(tab.id));
       }
 
@@ -210,6 +231,12 @@ export function createTabBar<T extends string, TObj = never>(
       },
       getActiveTab: () => currentTab,
       destroy: () => {
+        hitTargetCleanups.forEach((cleanup) => {
+          try {
+            cleanup();
+          } catch {}
+        });
+        hitTargetCleanups.length = 0;
         elements.forEach((node) => {
           try {
             screenContainer.removeChild(node);

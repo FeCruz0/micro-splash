@@ -8,6 +8,8 @@
  * Pre-bake com resolution: 0.5 e scaleMode: 'nearest', destruindo Graphics temporários.
  */
 
+import { GAME_CONFIG } from "../../config";
+
 export const ICE_16BIT_PALETTE = {
   SUBMERGED_BASE: 0x4a86e8, // Base submersa azul-profundo
   SUBMERGED_SHADOW: 0x2d5bb9, // Sombra profunda subaquática
@@ -178,9 +180,11 @@ export function draw16BitIcebergWall(
   width: number,
   height: number
 ): void {
-  const submergedY = Math.round(height * 0.45);
+  // Proporção hidrostática exata alinhada a GAME_CONFIG.SEA_LEVEL (80px em viewport de 720px = 11.1%)
+  const seaLevelRatio = GAME_CONFIG.SEA_LEVEL / 720;
+  const submergedY = Math.max(16, Math.round(height * seaLevelRatio));
 
-  // 1. Base submersa azul-profundo (0x4A86E8)
+  // 1. Base submersa azul-profundo (0x4A86E8) do nível do mar até o leito abissal
   if (typeof gfx.drawRect === "function") {
     gfx.drawRect(0, submergedY, width, height - submergedY, {
       fill: { color: ICE_16BIT_PALETTE.SUBMERGED_BASE, alpha: 0.96 },
@@ -190,8 +194,8 @@ export function draw16BitIcebergWall(
     });
   }
 
-  // 2. Corpo glacial ciano-claro (0xA2D9CE / 0xD0ECE7)
-  const snowH = 14;
+  // 2. Corpo glacial ciano-claro (0xA2D9CE / 0xD0ECE7) na faixa emersa acima do nível do mar
+  const snowH = Math.max(6, Math.round(submergedY * 0.4));
   if (typeof gfx.drawRect === "function") {
     gfx.drawRect(0, snowH, width, submergedY - snowH, {
       fill: { color: ICE_16BIT_PALETTE.GLACIAL_BODY_MAIN, alpha: 0.98 },
@@ -200,10 +204,10 @@ export function draw16BitIcebergWall(
     // Colunas de relevo glacial verticais
     const colStep = 45;
     for (let cx = 0; cx < width; cx += colStep) {
-      gfx.drawRect(cx + 6, snowH + 4, colStep * 0.45, submergedY - snowH - 8, {
+      gfx.drawRect(cx + 6, snowH + 2, colStep * 0.45, submergedY - snowH - 4, {
         fill: { color: ICE_16BIT_PALETTE.GLACIAL_BODY_LIGHT, alpha: 0.7 },
       });
-      gfx.drawRect(cx + colStep * 0.5, snowH + 8, 2, submergedY - snowH - 12, {
+      gfx.drawRect(cx + colStep * 0.5, snowH + 4, 2, submergedY - snowH - 6, {
         fill: { color: ICE_16BIT_PALETTE.GLACIAL_CLEAVAGE, alpha: 0.8 },
       });
     }
@@ -211,14 +215,14 @@ export function draw16BitIcebergWall(
 
   // 3. Topo nevado branco puro (0xFFFFFF) com arestas pixeladas
   if (typeof gfx.drawRect === "function") {
-    gfx.drawRect(0, 4, width, snowH - 4, {
+    gfx.drawRect(0, 2, width, snowH - 2, {
       fill: { color: ICE_16BIT_PALETTE.SNOW_CREST, alpha: 1.0 },
     });
 
     const stepW = 8;
     for (let sx = 0; sx < width; sx += stepW) {
       const stepOffset = ((sx / stepW) % 3) * 2;
-      gfx.drawRect(sx, 4 - stepOffset, stepW, stepOffset + 2, {
+      gfx.drawRect(sx, 2 - stepOffset, stepW, stepOffset + 2, {
         fill: { color: ICE_16BIT_PALETTE.SNOW_CREST, alpha: 1.0 },
       });
     }

@@ -22,6 +22,7 @@ import type {
   Vector2D,
 } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { registerEngineScreenHitTarget } from "../engine/screenLayerGeometryChecker";
 
 export interface LegacyStatsModalContext {
   width(): number;
@@ -127,6 +128,7 @@ export function showStatsModal(
     const cardH = Math.min(660, screenH - 20);
 
     const createdNodes: Array<IGraphicsNode | ITextNode> = [];
+    const hitTargetCleanups: Array<() => void> = [];
     let focusGroup: FocusGroup | null = null;
     let keyHandler: ((e: KeyboardEvent) => void) | null = null;
 
@@ -138,6 +140,12 @@ export function showStatsModal(
       if (isClosed) return;
       isClosed = true;
       audioSystem.playUiClick();
+      hitTargetCleanups.forEach((cleanup) => {
+        try {
+          cleanup();
+        } catch {}
+      });
+      hitTargetCleanups.length = 0;
       if (focusGroup) {
         focusGroup.destroy();
         focusGroup = null;
@@ -221,6 +229,23 @@ export function showStatsModal(
         if (canInteract) close();
       });
     }
+    hitTargetCleanups.push(
+      registerEngineScreenHitTarget(resolvedRenderEngine, {
+        id: "stats_modal_close_x",
+        bounds: {
+          x: btnXPos.x - 19,
+          y: btnXPos.y - 19,
+          width: 38,
+          height: 38,
+        },
+        zIndex: 293,
+        onPointerEnter: () => drawBtnX(true),
+        onPointerLeave: () => drawBtnX(false),
+        onClick: () => {
+          if (canInteract) close();
+        },
+      })
+    );
 
     // Título Principal
     const title = resolvedRenderEngine.createText(
@@ -452,6 +477,23 @@ export function showStatsModal(
         if (canInteract) close();
       });
     }
+    hitTargetCleanups.push(
+      registerEngineScreenHitTarget(resolvedRenderEngine, {
+        id: "stats_modal_back_btn",
+        bounds: {
+          x: btnClosePos.x - 150,
+          y: btnClosePos.y - 25,
+          width: 300,
+          height: 50,
+        },
+        zIndex: 294,
+        onPointerEnter: () => drawBackBtn(true),
+        onPointerLeave: () => drawBackBtn(false),
+        onClick: () => {
+          if (canInteract) close();
+        },
+      })
+    );
 
     const focusItems: FocusableItem[] = [
       {

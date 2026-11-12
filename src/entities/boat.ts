@@ -1,4 +1,4 @@
-import { GAME_CONFIG } from "../config";
+import { GAME_CONFIG, TAGS } from "../config";
 import { getRandomFloat } from "../utils/random";
 import { getParticlePool } from "../systems/particlePool";
 import { getEntityFamilyTicker } from "../systems/entityFamilyTicker";
@@ -382,7 +382,7 @@ function createNativeFishingTrawlerVisuals<TColor = unknown>(
     outlineWidth: 2,
     anchor: "botleft",
     zIndex: -2,
-    tags: ["fishing_trawler"],
+    tags: ["fishing_trawler", TAGS.OBSTACLE, "ship"],
   });
   const trawlerRenderNode = trawler.getRenderNode();
 
@@ -517,6 +517,8 @@ export function createFishingTrawler<TColor = unknown>(
       k.anchor("botleft"),
       k.z(-2),
       "fishing_trawler",
+      TAGS.OBSTACLE,
+      "ship",
     ]) as BoatGameObject;
 
     trawler.add([k.rect(60, 6), k.pos(0, -6), k.color(180, 50, 40)]);

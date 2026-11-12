@@ -112,11 +112,15 @@ export function createKrill<TDestroyable = unknown, TColor = unknown>(
       : ({ r: red, g: green, b: blue } as unknown as TColor);
 
   const setClusterVisible = (visible: boolean) => {
+    krillCluster.hidden = !visible;
     for (let i = 0; i < boids.length; i++) {
       boids[i].obj.hidden = !visible;
+      boids[i].nativeAdapter?.setVisible(visible);
     }
     if (haloCircle) haloCircle.hidden = !visible;
     if (haloInner) haloInner.hidden = !visible;
+    if (nativeHaloCircle) nativeHaloCircle.setVisible(visible);
+    if (nativeHaloInner) nativeHaloInner.setVisible(visible);
   };
 
   let krillCluster: KrillClusterObject;
@@ -371,8 +375,17 @@ export function createKrill<TDestroyable = unknown, TColor = unknown>(
   const baseY = position.y;
 
   const updateKrillSwarm = (dt: number) => {
+    if (krillCluster.hidden) {
+      for (let i = 0; i < boids.length; i++) {
+        boids[i].obj.hidden = true;
+        boids[i].nativeAdapter?.setVisible(false);
+      }
+      return;
+    }
+
     for (let i = 0; i < boids.length; i++) {
       boids[i].obj.hidden = false;
+      boids[i].nativeAdapter?.setVisible(true);
     }
 
     time += dt;

@@ -5,6 +5,8 @@ import {
   draw16BitIcebergWall,
   create16BitIceTextures,
 } from "../../src/systems/ice/ice16BitTextures";
+import { renderIcebergWall } from "../../src/systems/ice/icebergWallRenderer";
+import { initSpatialGrid, getSpatialGrid } from "../../src/systems/spatialHashGrid";
 import {
   ARRAIAL_16BIT_PALETTE,
   draw16BitBrainCoral,
@@ -101,6 +103,51 @@ describe("Fase 68 / Etapa 3: Estética 16-Bits do Gelo e Santuário de Arraial d
         expect(call.options.scaleMode).toBe("nearest");
       }
       expect(destroyedGraphics.length).toBe(2);
+    });
+
+    it("deve renderizar paredão de iceberg modularmente em ladrilhos com cristas escarpadas e barreira física", () => {
+      initSpatialGrid({ cellSize: 100 });
+      const addedChildren: any[] = [];
+      const mockContainer = {
+        addChild: vi.fn((child: any) => addedChildren.push(child)),
+      };
+
+      const mockEngine = {
+        getDimensions: vi.fn(() => ({ width: 1280, height: 720 })),
+        getWorldContainer: vi.fn(() => mockContainer),
+        getStageRoot: vi.fn(() => mockContainer),
+        createSprite: vi.fn((_texture: any, id: string) => ({
+          type: "sprite",
+          id,
+          setSize: vi.fn(),
+          setPosition: vi.fn(),
+          setZIndex: vi.fn(),
+        })),
+        createGraphics: vi.fn((id?: string) => ({
+          type: "graphics",
+          id: id ?? "graphics_node",
+          drawPolygon: vi.fn(),
+          drawRect: vi.fn(),
+          setPosition: vi.fn(),
+          setZIndex: vi.fn(),
+        })),
+      };
+
+      renderIcebergWall(mockEngine as any, { source: {} });
+
+      const spriteTiles = addedChildren.filter((node) => node.type === "sprite");
+      expect(spriteTiles.length).toBeGreaterThanOrEqual(3);
+
+      const cliffGraphic = addedChildren.find((node) => node.id === "iceberg_cliff_front");
+      const snowGraphic = addedChildren.find((node) => node.id === "iceberg_cliff_snow");
+      expect(cliffGraphic).toBeDefined();
+      expect(snowGraphic).toBeDefined();
+
+      const spatialGrid = getSpatialGrid();
+      expect(spatialGrid).not.toBeNull();
+      const wallObstacle = spatialGrid?.queryAABB({ minX: -10, minY: 0, maxX: 10, maxY: 100 });
+      expect(wallObstacle?.length).toBe(1);
+      expect((wallObstacle?.[0] as any)?.id).toBe("iceberg_wall_static");
     });
   });
 

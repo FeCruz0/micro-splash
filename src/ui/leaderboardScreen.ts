@@ -133,6 +133,8 @@ export function showLeaderboardScreen(k: ShowLeaderboardEngineContext, onClose: 
     if (typeof window !== "undefined" && keyHandler) {
       window.removeEventListener("keydown", keyHandler);
     }
+    tabBar?.destroy();
+    btnClose?.destroy();
     elements.forEach((el) => {
       try {
         engine.destroy(el);

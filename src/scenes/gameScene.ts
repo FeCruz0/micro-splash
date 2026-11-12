@@ -65,6 +65,7 @@ import { initSpatialGrid } from "../systems/spatialHashGrid";
 import { FrameBudgetMonitor } from "../systems/frameBudgetMonitor";
 import { FrameRateMonitor } from "../utils/frameRateMonitor";
 import { initEntityFamilyTicker } from "../systems/entityFamilyTicker";
+import { resolveCameraX } from "../systems/cameraSystem";
 import {
   initInputStateManager,
   singleFrameInputStateUpdater,
@@ -831,8 +832,9 @@ export function createGameScene(
         (dt) => {
           if (isGameFinished || playerController.isFainting()) return;
           const playerXPosition = playerController.gameObj.pos.x;
+          const cameraXPosition = resolveCameraX(k);
           gameState.update(dt, playerXPosition);
-          entityFamilyTicker.update(dt, playerXPosition);
+          entityFamilyTicker.update(dt, cameraXPosition);
 
           if (options.mode === "serene") {
             sereneInsights?.update(dt);
