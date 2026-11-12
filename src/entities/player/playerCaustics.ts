@@ -8,6 +8,12 @@
 
 import { GAME_CONFIG } from "../../config";
 import type { WhaleSliceData } from "./playerSliceRenderer";
+import { resolveInitializedRenderEngine } from "../../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveWorldRenderContainer } from "../../engine/adapters/RenderEngineAdapter";
+import {
+  createNativeRectNode,
+  type NativeVisualObjectAdapter,
+} from "../../engine/adapters/NativeRenderNodeFactory";
 
 export interface CausticVisualObject {
   pos?: {
@@ -36,7 +42,9 @@ export interface PlayerCausticsContext<TObj = CausticVisualObject> {
   deg2rad?(degrees: number): number;
   vec2?(x: number, y: number): unknown;
   time?(): number;
+  dt?(): number;
   rgb?(red: number, green: number, blue: number): unknown;
+  onSceneLeave?(cb: () => void): unknown;
 }
 
 export interface PlayerCausticsTargetWhale {
@@ -101,59 +109,113 @@ export function setupPlayerCaustics<TObj = CausticVisualObject>(
       ? engineContext.deg2rad
       : (degrees: number): number => (degrees * Math.PI) / 180;
 
-  const rectComp =
-    typeof engineContext.rect === "function" ? engineContext.rect(48, 10, { radius: 5 }) : {};
-  const posComp =
-    typeof engineContext.pos === "function"
-      ? engineContext.pos(initialX, initialY)
-      : { x: initialX, y: initialY };
-  const rotateComp =
-    typeof engineContext.rotate === "function" ? engineContext.rotate(0) : { angle: 0 };
-  const colorComp =
-    typeof engineContext.color === "function"
-      ? engineContext.color(180, 240, 255)
-      : { r: 180, g: 240, b: 255 };
-  const opacityComp =
-    typeof engineContext.opacity === "function" ? engineContext.opacity(0) : { opacity: 0 };
-  const anchorComp =
-    typeof engineContext.anchor === "function"
-      ? engineContext.anchor("center")
-      : { anchor: "center" };
-  const zComp = typeof engineContext.z === "function" ? engineContext.z(1) : { z: 1 };
-  const scaleComp =
-    typeof engineContext.scale === "function" ? engineContext.scale(1, 1) : { x: 1, y: 1 };
+  const resolvedNativeRenderEngine = resolveInitializedRenderEngine(engineContext);
+  let whaleCaustics: unknown;
+  let whaleVentralFlash: unknown;
+  let nativeCausticsAdapter: NativeVisualObjectAdapter | null = null;
+  let nativeVentralAdapter: NativeVisualObjectAdapter | null = null;
 
-  const whaleCaustics = engineContext.add([
-    rectComp,
-    posComp,
-    rotateComp,
-    colorComp,
-    opacityComp,
-    anchorComp,
-    zComp,
-    scaleComp,
-  ]);
+  if (resolvedNativeRenderEngine) {
+    const worldRenderContainer = resolveWorldRenderContainer(resolvedNativeRenderEngine);
+    nativeCausticsAdapter = createNativeRectNode(
+      engineContext,
+      resolvedNativeRenderEngine,
+      worldRenderContainer,
+      {
+        identifier: "player_dorsal_caustics",
+        width: 48,
+        height: 10,
+        cornerRadius: 5,
+        positionX: initialX,
+        positionY: initialY,
+        fillColor: [180, 240, 255],
+        opacity: 0,
+        anchor: "center",
+        zIndex: 1,
+      }
+    );
+    nativeVentralAdapter = createNativeRectNode(
+      engineContext,
+      resolvedNativeRenderEngine,
+      worldRenderContainer,
+      {
+        identifier: "player_ventral_flash",
+        width: 44,
+        height: 7,
+        cornerRadius: 3.5,
+        positionX: initialX,
+        positionY: initialY,
+        fillColor: [240, 248, 255],
+        opacity: 0,
+        anchor: "center",
+        zIndex: 1,
+      }
+    );
+    whaleCaustics = nativeCausticsAdapter;
+    whaleVentralFlash = nativeVentralAdapter;
 
-  const ventralRectComp =
-    typeof engineContext.rect === "function" ? engineContext.rect(44, 7, { radius: 3.5 }) : {};
-  const ventralColorComp =
-    typeof engineContext.color === "function"
-      ? engineContext.color(240, 248, 255)
-      : { r: 240, g: 248, b: 255 };
+    if (typeof engineContext.onSceneLeave === "function") {
+      engineContext.onSceneLeave(() => {
+        nativeCausticsAdapter?.destroy();
+        nativeVentralAdapter?.destroy();
+      });
+    }
+  } else {
+    const rectComp =
+      typeof engineContext.rect === "function" ? engineContext.rect(48, 10, { radius: 5 }) : {};
+    const posComp =
+      typeof engineContext.pos === "function"
+        ? engineContext.pos(initialX, initialY)
+        : { x: initialX, y: initialY };
+    const rotateComp =
+      typeof engineContext.rotate === "function" ? engineContext.rotate(0) : { angle: 0 };
+    const colorComp =
+      typeof engineContext.color === "function"
+        ? engineContext.color(180, 240, 255)
+        : { r: 180, g: 240, b: 255 };
+    const opacityComp =
+      typeof engineContext.opacity === "function" ? engineContext.opacity(0) : { opacity: 0 };
+    const anchorComp =
+      typeof engineContext.anchor === "function"
+        ? engineContext.anchor("center")
+        : { anchor: "center" };
+    const zComp = typeof engineContext.z === "function" ? engineContext.z(1) : { z: 1 };
+    const scaleComp =
+      typeof engineContext.scale === "function" ? engineContext.scale(1, 1) : { x: 1, y: 1 };
 
-  const whaleVentralFlash = engineContext.add([
-    ventralRectComp,
-    posComp,
-    rotateComp,
-    ventralColorComp,
-    opacityComp,
-    anchorComp,
-    zComp,
-    scaleComp,
-  ]);
+    whaleCaustics = engineContext.add([
+      rectComp,
+      posComp,
+      rotateComp,
+      colorComp,
+      opacityComp,
+      anchorComp,
+      zComp,
+      scaleComp,
+    ]);
+
+    const ventralRectComp =
+      typeof engineContext.rect === "function" ? engineContext.rect(44, 7, { radius: 3.5 }) : {};
+    const ventralColorComp =
+      typeof engineContext.color === "function"
+        ? engineContext.color(240, 248, 255)
+        : { r: 240, g: 248, b: 255 };
+
+    whaleVentralFlash = engineContext.add([
+      ventralRectComp,
+      posComp,
+      rotateComp,
+      ventralColorComp,
+      opacityComp,
+      anchorComp,
+      zComp,
+      scaleComp,
+    ]);
+  }
 
   const causticsProxy = whaleCaustics as unknown as CausticVisualObject;
   const ventralProxy = whaleVentralFlash as unknown as CausticVisualObject;
+  let elapsedCausticsTime = 0;
 
   const update = ({
     baleia,
@@ -163,6 +225,9 @@ export function setupPlayerCaustics<TObj = CausticVisualObject>(
     isFrozen,
     slices,
   }: PlayerCausticsUpdateOptions): void => {
+    const stepDeltaTime = typeof engineContext.dt === "function" ? engineContext.dt() : 0.016;
+    elapsedCausticsTime += stepDeltaTime;
+
     const inAirNow = baleia.pos.y < GAME_CONFIG.SEA_LEVEL;
     const angleInRadians = deg2rad(baleia.angle);
     const upNormal: InternalVector2D = createVec2(
@@ -179,15 +244,18 @@ export function setupPlayerCaustics<TObj = CausticVisualObject>(
       const depthBelowSurface = baleia.pos.y - GAME_CONFIG.SEA_LEVEL;
       if (depthBelowSurface < 100) {
         const depthFactor = Math.max(0, 1 - depthBelowSurface / 100);
-        const timeNow = typeof engineContext.time === "function" ? engineContext.time() : 0;
+        const timeNow =
+          typeof engineContext.time === "function" ? engineContext.time() : elapsedCausticsTime;
         const shimmer =
           (Math.sin(timeNow * 4.5 + baleia.pos.x * 0.03) * 0.5 +
             Math.cos(timeNow * 3.2 + baleia.pos.x * 0.05) * 0.5 +
             1) *
           0.5;
         causticsProxy.opacity = depthFactor * (0.1 + shimmer * 0.25);
-        if (typeof engineContext.rgb === "function") {
-          const sunGlint = Math.sin(timeNow * 2.5) * 20;
+        const sunGlint = Math.sin(timeNow * 2.5) * 20;
+        if (nativeCausticsAdapter) {
+          causticsProxy.color = [180 + sunGlint, 240, 255];
+        } else if (typeof engineContext.rgb === "function") {
           causticsProxy.color = engineContext.rgb(180 + sunGlint, 240, 255);
         }
       } else {

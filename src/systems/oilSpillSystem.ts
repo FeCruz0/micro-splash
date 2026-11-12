@@ -3,6 +3,16 @@ import type { PlayerController } from "../entities/player";
 import { getParticlePool } from "./particlePool";
 import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 import { getRandomFloat } from "../utils/random";
+import {
+  resolveInitializedRenderEngine,
+  type IRenderEngine,
+} from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
+import {
+  createNativeCircleNode,
+  createNativeRectNode,
+  registerNativeSceneUpdate,
+} from "../engine/adapters/NativeRenderNodeFactory";
 
 export interface OilSpillVector2D {
   x: number;
@@ -16,6 +26,7 @@ export interface OilSpillGameObject<TColor = unknown> {
   opacity?: number;
   add: (components: unknown[]) => OilSpillGameObject<TColor>;
   onUpdate: (cb: () => void) => void;
+  destroy?: () => void;
 }
 
 export interface OilSpillEngineContext<
@@ -37,6 +48,7 @@ export interface OilSpillEngineContext<
   z: (v: number) => unknown;
   rgb: (r: number, g: number, b: number) => TColor;
   vec2: (x: number, y: number) => TVec;
+  onSceneLeave?: (callback: () => void) => unknown;
 }
 
 /**
@@ -77,34 +89,108 @@ export function setupOilSpillSystem<
   TDestroyable = unknown,
   TColor = unknown,
   TVec extends { x: number; y: number } = OilSpillVector2D,
->(k: OilSpillEngineContext<TDestroyable, TColor, TVec>, playerController: PlayerController) {
+>(
+  k: IRenderEngine | OilSpillEngineContext<TDestroyable, TColor, TVec>,
+  playerController: PlayerController
+) {
+  const resolvedNativeRenderEngine = resolveInitializedRenderEngine(k);
+  const nativeWorldContainer = resolvedNativeRenderEngine
+    ? resolveWorldRenderContainer(resolvedNativeRenderEngine)
+    : null;
+  const legacyContext = k as OilSpillEngineContext<TDestroyable, TColor, TVec>;
+  const createdNativeNodes: Array<{ destroy(): void }> = [];
+
+  const getDeltaTime = (): number => {
+    if (typeof legacyContext.dt === "function") {
+      return legacyContext.dt();
+    }
+    return resolvedNativeRenderEngine
+      ? resolvedNativeRenderEngine.getTicker().getDeltaTime()
+      : 0.016;
+  };
+
+  const resolveRgbColor = (red: number, green: number, blue: number): TColor => {
+    if (typeof legacyContext.rgb === "function") {
+      return legacyContext.rgb(red, green, blue);
+    }
+    return [red, green, blue] as unknown as TColor;
+  };
+
+  const createVector = (x: number, y: number): TVec => {
+    if (typeof legacyContext.vec2 === "function") {
+      return legacyContext.vec2(x, y);
+    }
+    return { x, y } as TVec;
+  };
+
   let isSystemActive = true;
   const SPILL_START = 17400;
   const SPILL_END = 18900;
   const PATCH_WIDTH = 180;
 
-  // Boia de alerta ecológico no início do derramamento
-  const buoyComponents: unknown[] = [
-    k.rect(24, 30, { radius: 3 }),
-    k.pos(SPILL_START + 20, GAME_CONFIG.SEA_LEVEL - 5),
-    k.color(255, 140, 0), // Laranja de segurança
-    k.anchor("bot"),
-    k.z(25),
-  ];
-  if (k.outline) {
-    buoyComponents.push(k.outline(2, k.rgb(30, 30, 30)));
-  }
-  const buoy = k.add(buoyComponents) as OilSpillGameObject<TColor>;
+  let buoy: OilSpillGameObject<TColor>;
+  let buoyLight: OilSpillGameObject<TColor>;
 
-  // Luz piscante de perigo na boia
-  const buoyLight = buoy.add([k.circle(4), k.pos(0, -32), k.color(255, 40, 40)]);
+  if (resolvedNativeRenderEngine && nativeWorldContainer) {
+    const buoyNode = createNativeRectNode(k, resolvedNativeRenderEngine, nativeWorldContainer, {
+      identifier: "oil_spill_buoy",
+      width: 24,
+      height: 30,
+      cornerRadius: 3,
+      positionX: SPILL_START + 20,
+      positionY: GAME_CONFIG.SEA_LEVEL - 5,
+      fillColor: [255, 140, 0],
+      outlineColor: [30, 30, 30],
+      outlineWidth: 2,
+      anchor: "bot",
+      zIndex: 25,
+    });
+    const buoyLightNode = createNativeCircleNode(
+      k,
+      resolvedNativeRenderEngine,
+      buoyNode.renderNode,
+      {
+        identifier: "oil_spill_buoy_light",
+        radius: 4,
+        positionX: 0,
+        positionY: -32,
+        fillColor: [255, 40, 40],
+      }
+    );
+    createdNativeNodes.push(buoyNode);
+    buoy = buoyNode as unknown as OilSpillGameObject<TColor>;
+    buoyLight = buoyLightNode as unknown as OilSpillGameObject<TColor>;
+  } else {
+    // Boia de alerta ecológico no início do derramamento
+    const buoyComponents: unknown[] = [
+      legacyContext.rect(24, 30, { radius: 3 }),
+      legacyContext.pos(SPILL_START + 20, GAME_CONFIG.SEA_LEVEL - 5),
+      legacyContext.color(255, 140, 0), // Laranja de segurança
+      legacyContext.anchor("bot"),
+      legacyContext.z(25),
+    ];
+    if (legacyContext.outline) {
+      buoyComponents.push(legacyContext.outline(2, legacyContext.rgb(30, 30, 30)));
+    }
+    buoy = legacyContext.add(buoyComponents) as OilSpillGameObject<TColor>;
+
+    // Luz piscante de perigo na boia
+    buoyLight = buoy.add([
+      legacyContext.circle(4),
+      legacyContext.pos(0, -32),
+      legacyContext.color(255, 40, 40),
+    ]);
+  }
 
   let buoyTime = 0;
   buoy.onUpdate(() => {
     if (!isSystemActive) return;
 
-    buoyTime += k.dt();
-    buoyLight.color = Math.floor(buoyTime * 4) % 2 === 0 ? k.rgb(255, 30, 30) : k.rgb(60, 10, 10);
+    buoyTime += getDeltaTime();
+    buoyLight.color =
+      Math.floor(buoyTime * 4) % 2 === 0
+        ? resolveRgbColor(255, 30, 30)
+        : resolveRgbColor(60, 10, 10);
     buoy.pos.y = GAME_CONFIG.SEA_LEVEL - 5 + Math.sin(buoyTime * 2.5) * 2;
   });
 
@@ -116,47 +202,90 @@ export function setupOilSpillSystem<
     baseX: number;
   }> = [];
   for (let x = SPILL_START; x < SPILL_END; x += PATCH_WIDTH - 20) {
-    // Camada 1: Base densa de petróleo bruto na linha d'água
-    const slick = k.add([
-      k.rect(PATCH_WIDTH, 14, { radius: 4 }),
-      k.pos(x, GAME_CONFIG.SEA_LEVEL - 2),
-      k.color(8, 5, 5), // petróleo bruto ultra-escuro (8, 5, 5)
-      k.opacity(0.9),
-      k.z(18),
-      "oil_spill",
-    ]) as OilSpillGameObject<TColor>;
+    if (resolvedNativeRenderEngine && nativeWorldContainer) {
+      const slickNode = createNativeRectNode(k, resolvedNativeRenderEngine, nativeWorldContainer, {
+        identifier: "oil_spill_slick",
+        width: PATCH_WIDTH,
+        height: 14,
+        cornerRadius: 4,
+        positionX: x,
+        positionY: GAME_CONFIG.SEA_LEVEL - 2,
+        fillColor: [8, 5, 5],
+        opacity: 0.9,
+        zIndex: 18,
+        tags: ["oil_spill"],
+      });
+      const filmNode = createNativeRectNode(k, resolvedNativeRenderEngine, slickNode.renderNode, {
+        identifier: "oil_spill_film",
+        width: PATCH_WIDTH - 12,
+        height: 3,
+        positionX: 6,
+        positionY: 2,
+        fillColor: [160, 60, 200],
+        opacity: 0.8,
+      });
+      const foamPositions = [4, 12, PATCH_WIDTH - 16, PATCH_WIDTH - 8];
+      const foamDrops = foamPositions.map(
+        (relX, fIdx) =>
+          createNativeCircleNode(k, resolvedNativeRenderEngine, slickNode.renderNode, {
+            identifier: "oil_spill_foam",
+            radius: fIdx % 2 === 0 ? 2.5 : 2,
+            positionX: relX,
+            positionY: 2 + (fIdx % 2) * 2,
+            fillColor: [245, 245, 235],
+            opacity: 0.3,
+          }) as unknown as OilSpillGameObject<TColor>
+      );
+      createdNativeNodes.push(slickNode);
+      patches.push({
+        slick: slickNode as unknown as OilSpillGameObject<TColor>,
+        film: filmNode as unknown as OilSpillGameObject<TColor>,
+        foamDrops,
+        baseX: x,
+      });
+    } else {
+      // Camada 1: Base densa de petróleo bruto na linha d'água
+      const slick = legacyContext.add([
+        legacyContext.rect(PATCH_WIDTH, 14, { radius: 4 }),
+        legacyContext.pos(x, GAME_CONFIG.SEA_LEVEL - 2),
+        legacyContext.color(8, 5, 5), // petróleo bruto ultra-escuro (8, 5, 5)
+        legacyContext.opacity(0.9),
+        legacyContext.z(18),
+        "oil_spill",
+      ]) as OilSpillGameObject<TColor>;
 
-    // Camada 2: Película iridescente central (furta-cor com shimmer)
-    const film = slick.add([
-      k.rect(PATCH_WIDTH - 12, 3),
-      k.pos(6, 2),
-      k.color(160, 60, 200),
-      k.opacity(0.8),
-    ]);
-
-    // Camada 3: Gotas de espuma emulsionada de contaminação nas bordas
-    const foamPositions = [4, 12, PATCH_WIDTH - 16, PATCH_WIDTH - 8];
-    const foamDrops = foamPositions.map((relX, fIdx) => {
-      return slick.add([
-        k.circle(fIdx % 2 === 0 ? 2.5 : 2),
-        k.pos(relX, 2 + (fIdx % 2) * 2),
-        k.color(245, 245, 235), // espuma branca/amarelada
-        k.opacity(0.3),
+      // Camada 2: Película iridescente central (furta-cor com shimmer)
+      const film = slick.add([
+        legacyContext.rect(PATCH_WIDTH - 12, 3),
+        legacyContext.pos(6, 2),
+        legacyContext.color(160, 60, 200),
+        legacyContext.opacity(0.8),
       ]);
-    });
 
-    patches.push({ slick, film, foamDrops, baseX: x });
+      // Camada 3: Gotas de espuma emulsionada de contaminação nas bordas
+      const foamPositions = [4, 12, PATCH_WIDTH - 16, PATCH_WIDTH - 8];
+      const foamDrops = foamPositions.map((relX, fIdx) => {
+        return slick.add([
+          legacyContext.circle(fIdx % 2 === 0 ? 2.5 : 2),
+          legacyContext.pos(relX, 2 + (fIdx % 2) * 2),
+          legacyContext.color(245, 245, 235), // espuma branca/amarelada
+          legacyContext.opacity(0.3),
+        ]);
+      });
+
+      patches.push({ slick, film, foamDrops, baseX: x });
+    }
   }
 
   let shimmerTime = 0;
 
-  k.onUpdate(() => {
+  const updateOilSpill = (deltaTime: number) => {
     if (!isSystemActive) return;
 
     const player = playerController.gameObj;
     if (!player) return;
 
-    shimmerTime += k.dt();
+    shimmerTime += deltaTime;
 
     // Atualiza reflexos iridescentes (onda de cores químicas de hidrocarbonetos)
     patches.forEach((p, idx) => {
@@ -168,7 +297,7 @@ export function setupOilSpillSystem<
 
         // Variação química de cor da película iridescente
         const [r, g, b] = calculateIridescentOilColor(shimmerTime, idx);
-        p.film.color = k.rgb(r, g, b);
+        p.film.color = resolveRgbColor(r, g, b);
       } else {
         p.slick.hidden = true;
       }
@@ -182,7 +311,7 @@ export function setupOilSpillSystem<
 
         // Respingo de gotículas de óleo negro em contato
         if (getRandomFloat(0, 1) < 0.4) {
-          const dropPos = k.vec2(
+          const dropPos = createVector(
             player.pos.x + getRandomFloat(-15, 15),
             GAME_CONFIG.SEA_LEVEL + getRandomFloat(0, 4)
           );
@@ -192,33 +321,66 @@ export function setupOilSpillSystem<
             pool.spawnCircle({
               pos: dropPos,
               radius: dropRadius,
-              color: k.rgb(24, 16, 12),
+              color: resolveRgbColor(24, 16, 12),
               opacity: 0.85,
               z: 20,
-              vel: k.vec2(0, 40),
+              vel: createVector(0, 40),
               fadeRate: 2.0,
               maxLife: 0.45,
             });
+          } else if (resolvedNativeRenderEngine && nativeWorldContainer) {
+            const drop = createNativeCircleNode(
+              k,
+              resolvedNativeRenderEngine,
+              nativeWorldContainer,
+              {
+                identifier: "oil_spill_droplet",
+                radius: dropRadius,
+                positionX: dropPos.x,
+                positionY: dropPos.y,
+                fillColor: [24, 16, 12],
+                opacity: 0.85,
+                zIndex: 20,
+              }
+            );
+            drop.onUpdate((stepDelta) => {
+              drop.pos.y += stepDelta * 40;
+              drop.opacity -= stepDelta * 2.0;
+              if (drop.opacity <= 0) drop.destroy();
+            });
           } else {
-            const drop = k.add([
-              k.circle(dropRadius),
-              k.pos(dropPos),
-              k.color(24, 16, 12),
-              k.opacity(0.85),
-              k.z(20),
+            const drop = legacyContext.add([
+              legacyContext.circle(dropRadius),
+              legacyContext.pos(dropPos),
+              legacyContext.color(24, 16, 12),
+              legacyContext.opacity(0.85),
+              legacyContext.z(20),
             ]) as OilSpillGameObject<TColor>;
             drop.onUpdate(() => {
-              drop.pos.y += k.dt() * 40;
+              drop.pos.y += getDeltaTime() * 40;
               if (drop.opacity !== undefined) {
-                drop.opacity -= k.dt() * 2.0;
-                if (drop.opacity <= 0) k.destroy(drop as unknown as TDestroyable);
+                drop.opacity -= getDeltaTime() * 2.0;
+                if (drop.opacity <= 0) legacyContext.destroy(drop as unknown as TDestroyable);
               }
             });
           }
         }
       }
     }
-  });
+  };
+
+  let unregisterSystemUpdate: (() => void) | null = null;
+  if (resolvedNativeRenderEngine) {
+    unregisterSystemUpdate = registerNativeSceneUpdate(
+      k,
+      resolvedNativeRenderEngine,
+      updateOilSpill
+    );
+  } else {
+    legacyContext.onUpdate(() => {
+      updateOilSpill(getDeltaTime());
+    });
+  }
 
   const activate = () => {
     isSystemActive = true;
@@ -232,6 +394,19 @@ export function setupOilSpillSystem<
       p.slick.hidden = true;
     });
   };
+
+  const destroy = () => {
+    unregisterSystemUpdate?.();
+    unregisterSystemUpdate = null;
+    for (let index = 0; index < createdNativeNodes.length; index++) {
+      createdNativeNodes[index].destroy();
+    }
+    createdNativeNodes.length = 0;
+  };
+
+  if (resolvedNativeRenderEngine && typeof legacyContext.onSceneLeave === "function") {
+    legacyContext.onSceneLeave(destroy);
+  }
 
   const biomeMgr = getBiomeLifecycleManager();
   if (biomeMgr) {
@@ -249,6 +424,7 @@ export function setupOilSpillSystem<
   return {
     activate,
     deactivate,
+    destroy,
     isActive: () => isSystemActive,
   };
 }

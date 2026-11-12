@@ -1,6 +1,16 @@
 import { GAME_CONFIG } from "../config";
 import type { PlayerController } from "../entities/player";
 import { audioSystem } from "./audioSystem";
+import {
+  resolveInitializedRenderEngine,
+  type IRenderEngine,
+} from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveScreenRenderContainer } from "../engine/adapters/RenderEngineAdapter";
+import {
+  createNativeContainerNode,
+  createNativeRectNode,
+  createNativeTextNode,
+} from "../engine/adapters/NativeRenderNodeFactory";
 
 export interface PresentationPoint {
   biomeIndex: number;
@@ -124,7 +134,7 @@ export function getConceptByDistance(x: number): PresentationPoint {
 }
 
 export class PresentationModeManager {
-  private k: PresentationEngineContext;
+  private k: IRenderEngine | PresentationEngineContext;
   private playerController: PlayerController;
   private isPresentationOpen = false;
   private isPaused = false;
@@ -135,7 +145,7 @@ export class PresentationModeManager {
   private pauseBtnText: PresentationUiObject | null = null;
   private keydownListener: ((e: KeyboardEvent) => void) | null = null;
 
-  constructor(k: PresentationEngineContext, playerController: PlayerController) {
+  constructor(k: IRenderEngine | PresentationEngineContext, playerController: PlayerController) {
     this.k = k;
     this.playerController = playerController;
     this.setupGlobalShortcut();
@@ -210,12 +220,11 @@ export class PresentationModeManager {
   public togglePause(): void {
     this.isPaused = !this.isPaused;
     if (this.k) {
-      if (
-        typeof (this.k as { setPaused?: (pausedState: boolean) => void }).setPaused === "function"
-      ) {
-        (this.k as { setPaused: (pausedState: boolean) => void }).setPaused(this.isPaused);
-      } else if (this.k.debug) {
-        this.k.debug.paused = this.isPaused;
+      const legacyContext = this.k as Partial<PresentationEngineContext>;
+      if (typeof legacyContext.setPaused === "function") {
+        legacyContext.setPaused(this.isPaused);
+      } else if (legacyContext.debug) {
+        legacyContext.debug.paused = this.isPaused;
       }
     }
     if (this.pauseBtnText) {
@@ -233,11 +242,29 @@ export class PresentationModeManager {
 
     audioSystem.playUiClick();
     const playerObj = this.playerController.gameObj;
+    const legacyContext = this.k as Partial<PresentationEngineContext>;
+    const resolvedNativeRenderEngine = resolveInitializedRenderEngine(this.k);
     if (playerObj) {
       playerObj.pos.x = point.x;
       playerObj.pos.y = point.y;
-      this.playerController.setSpeed(this.k.vec2(100, 0));
-      this.k.camPos(point.x + 160, this.k.camPos().y);
+      const nextVelocity =
+        typeof legacyContext.vec2 === "function"
+          ? legacyContext.vec2(100, 0)
+          : ({
+              x: 100,
+              y: 0,
+              len: () => 100,
+              scale: (f: number) => ({ x: 100 * f, y: 0 }),
+            } as Parameters<PlayerController["setSpeed"]>[0]);
+      this.playerController.setSpeed(nextVelocity);
+      if (typeof legacyContext.camPos === "function") {
+        legacyContext.camPos(point.x + 160, legacyContext.camPos().y);
+      } else if (resolvedNativeRenderEngine) {
+        resolvedNativeRenderEngine.setCameraPosition(
+          point.x + 160,
+          resolvedNativeRenderEngine.getCameraPosition().y
+        );
+      }
       audioSystem.updateBiomeTrack(point.x);
       audioSystem.updateDepthAcoustics(point.y);
     }
@@ -278,40 +305,278 @@ export class PresentationModeManager {
   }
 
   private buildUI(): void {
-    const w = this.k.width();
-    const h = this.k.height();
+    const resolvedNativeRenderEngine = resolveInitializedRenderEngine(this.k);
+    if (resolvedNativeRenderEngine) {
+      const nativeScreenContainer = resolveScreenRenderContainer(resolvedNativeRenderEngine);
+      const viewportDimensions = resolvedNativeRenderEngine.getDimensions();
+      const viewportWidth = viewportDimensions.width;
+      const viewportHeight = viewportDimensions.height;
+
+      const rootContainerNode = createNativeContainerNode(
+        this.k,
+        resolvedNativeRenderEngine,
+        nativeScreenContainer,
+        {
+          identifier: "presentation_mode_root",
+          positionX: 0,
+          positionY: 0,
+          zIndex: 350,
+          visible: this.isPresentationOpen,
+        }
+      );
+      this.container = rootContainerNode as unknown as PresentationUiObject;
+
+      const topBarNode = createNativeRectNode(
+        this.k,
+        resolvedNativeRenderEngine,
+        rootContainerNode.renderNode,
+        {
+          identifier: "presentation_top_bar",
+          width: viewportWidth,
+          height: 54,
+          positionX: 0,
+          positionY: 0,
+          fillColor: [6, 16, 32],
+          outlineColor: [0, 230, 255],
+          outlineWidth: 2,
+          opacity: 0.96,
+        }
+      );
+
+      createNativeTextNode(this.k, resolvedNativeRenderEngine, topBarNode.renderNode, {
+        identifier: "presentation_header_title",
+        content: "🎙️ MODO APRESENTAÇÃO GUIADA (JURADOS/PROFESSORES)",
+        fontSize: 13,
+        fontFamily: "Outfit",
+        positionX: 12,
+        positionY: 8,
+        color: [255, 220, 90],
+      });
+
+      createNativeTextNode(this.k, resolvedNativeRenderEngine, topBarNode.renderNode, {
+        identifier: "presentation_header_subtitle",
+        content: "Saltar Biomas [Teclas 1 a 5] | Fechar [Ctrl+P / ESC]",
+        fontSize: 10.5,
+        fontFamily: "Inter",
+        positionX: 12,
+        positionY: 28,
+        color: [140, 195, 240],
+      });
+
+      const buttonStartX = Math.max(340, viewportWidth - 440);
+      PRESENTATION_POINTS.forEach((point, index) => {
+        const buttonPositionX = buttonStartX + index * 62;
+        const biomeButton = createNativeRectNode(
+          this.k,
+          resolvedNativeRenderEngine,
+          topBarNode.renderNode,
+          {
+            identifier: `presentation_biome_btn_${point.biomeIndex}`,
+            width: 58,
+            height: 34,
+            cornerRadius: 6,
+            positionX: buttonPositionX,
+            positionY: 9,
+            fillColor: [18, 55, 95],
+            outlineColor: [0, 210, 255],
+            outlineWidth: 1.5,
+          }
+        );
+
+        createNativeTextNode(this.k, resolvedNativeRenderEngine, biomeButton.renderNode, {
+          identifier: `presentation_biome_btn_index_${point.biomeIndex}`,
+          content: `[${point.biomeIndex}]`,
+          fontSize: 10.5,
+          fontFamily: "Outfit",
+          positionX: 29,
+          positionY: 9,
+          color: [255, 230, 120],
+          anchor: "center",
+        });
+
+        createNativeTextNode(this.k, resolvedNativeRenderEngine, biomeButton.renderNode, {
+          identifier: `presentation_biome_btn_name_${point.biomeIndex}`,
+          content: point.name.slice(0, 7),
+          fontSize: 8.5,
+          fontFamily: "Inter",
+          positionX: 29,
+          positionY: 23,
+          color: [200, 240, 255],
+          anchor: "center",
+        });
+
+        const nativeButtonNode = biomeButton.renderNode.getNativeNode<{
+          eventMode?: string;
+          cursor?: string;
+          on?(event: string, listener: () => void): void;
+        }>();
+        if (nativeButtonNode && typeof nativeButtonNode.on === "function") {
+          nativeButtonNode.eventMode = "static";
+          nativeButtonNode.cursor = "pointer";
+          nativeButtonNode.on("pointerdown", () => this.jumpToBiome(point.biomeIndex));
+          nativeButtonNode.on("pointerover", () => {
+            biomeButton.color = [30, 90, 160];
+          });
+          nativeButtonNode.on("pointerout", () => {
+            biomeButton.color = [18, 55, 95];
+          });
+        }
+      });
+
+      const pauseButtonNode = createNativeRectNode(
+        this.k,
+        resolvedNativeRenderEngine,
+        topBarNode.renderNode,
+        {
+          identifier: "presentation_pause_btn",
+          width: 98,
+          height: 34,
+          cornerRadius: 6,
+          positionX: viewportWidth - 110,
+          positionY: 9,
+          fillColor: [28, 70, 45],
+          outlineColor: [80, 240, 150],
+          outlineWidth: 1.5,
+        }
+      );
+
+      this.pauseBtnText = createNativeTextNode(
+        this.k,
+        resolvedNativeRenderEngine,
+        pauseButtonNode.renderNode,
+        {
+          identifier: "presentation_pause_btn_label",
+          content: "⏸️ PAUSA",
+          fontSize: 11,
+          fontFamily: "Outfit",
+          positionX: 49,
+          positionY: 17,
+          color: [230, 255, 235],
+          anchor: "center",
+        }
+      ) as unknown as PresentationUiObject;
+
+      const nativePauseButton = pauseButtonNode.renderNode.getNativeNode<{
+        eventMode?: string;
+        cursor?: string;
+        on?(event: string, listener: () => void): void;
+      }>();
+      if (nativePauseButton && typeof nativePauseButton.on === "function") {
+        nativePauseButton.eventMode = "static";
+        nativePauseButton.cursor = "pointer";
+        nativePauseButton.on("pointerdown", () => this.togglePause());
+      }
+
+      const panelHeight = 104;
+      const bottomPanelNode = createNativeRectNode(
+        this.k,
+        resolvedNativeRenderEngine,
+        rootContainerNode.renderNode,
+        {
+          identifier: "presentation_bottom_panel",
+          width: viewportWidth,
+          height: panelHeight,
+          positionX: 0,
+          positionY: viewportHeight - panelHeight,
+          fillColor: [8, 18, 38],
+          outlineColor: [0, 210, 255],
+          outlineWidth: 2,
+          opacity: 0.95,
+        }
+      );
+
+      this.biomeLabel = createNativeTextNode(
+        this.k,
+        resolvedNativeRenderEngine,
+        bottomPanelNode.renderNode,
+        {
+          identifier: "presentation_biome_label",
+          content: "SETOR: ANTÁRTICA (0m)",
+          fontSize: 12.5,
+          fontFamily: "Outfit",
+          positionX: 15,
+          positionY: 6,
+          color: [255, 220, 80],
+        }
+      ) as unknown as PresentationUiObject;
+
+      const columnWidth = (viewportWidth - 30) / 2;
+      this.ecoText = createNativeTextNode(
+        this.k,
+        resolvedNativeRenderEngine,
+        bottomPanelNode.renderNode,
+        {
+          identifier: "presentation_eco_text",
+          content: "",
+          fontSize: 10.5,
+          fontFamily: "Inter",
+          wordWrapWidth: columnWidth - 10,
+          lineSpacing: 3.5,
+          positionX: 15,
+          positionY: 26,
+          color: [140, 250, 210],
+        }
+      ) as unknown as PresentationUiObject;
+
+      this.techText = createNativeTextNode(
+        this.k,
+        resolvedNativeRenderEngine,
+        bottomPanelNode.renderNode,
+        {
+          identifier: "presentation_tech_text",
+          content: "",
+          fontSize: 10.5,
+          fontFamily: "Inter",
+          wordWrapWidth: columnWidth - 10,
+          lineSpacing: 3.5,
+          positionX: 15 + columnWidth,
+          positionY: 26,
+          color: [255, 215, 130],
+        }
+      ) as unknown as PresentationUiObject;
+
+      return;
+    }
+
+    const legacyContext = this.k as PresentationEngineContext;
+    const w = legacyContext.width();
+    const h = legacyContext.height();
 
     // Container raiz fixo na tela com alta prioridade visual
-    this.container = this.k.add([this.k.pos(0, 0), this.k.fixed(), this.k.z(350)]);
+    this.container = legacyContext.add([
+      legacyContext.pos(0, 0),
+      legacyContext.fixed(),
+      legacyContext.z(350),
+    ]);
 
     // 1. BARRA SUPERIOR DE TELETRANSPORTE & CONTROLE
     const topBar = this.container.add?.([
-      this.k.rect(w, 54),
-      this.k.pos(0, 0),
-      this.k.color(6, 16, 32),
-      this.k.outline(2, this.k.rgb(0, 230, 255)),
-      this.k.opacity(0.96),
-      this.k.area(),
-      this.k.fixed(),
+      legacyContext.rect(w, 54),
+      legacyContext.pos(0, 0),
+      legacyContext.color(6, 16, 32),
+      legacyContext.outline(2, legacyContext.rgb(0, 230, 255)),
+      legacyContext.opacity(0.96),
+      legacyContext.area(),
+      legacyContext.fixed(),
     ]);
 
     if (topBar) {
       topBar.add?.([
-        this.k.text("🎙️ MODO APRESENTAÇÃO GUIADA (JURADOS/PROFESSORES)", {
+        legacyContext.text("🎙️ MODO APRESENTAÇÃO GUIADA (JURADOS/PROFESSORES)", {
           size: 13,
           font: "Outfit",
         }),
-        this.k.pos(12, 8),
-        this.k.color(255, 220, 90),
+        legacyContext.pos(12, 8),
+        legacyContext.color(255, 220, 90),
       ]);
 
       topBar.add?.([
-        this.k.text("Saltar Biomas [Teclas 1 a 5] | Fechar [Ctrl+P / ESC]", {
+        legacyContext.text("Saltar Biomas [Teclas 1 a 5] | Fechar [Ctrl+P / ESC]", {
           size: 10.5,
           font: "Inter",
         }),
-        this.k.pos(12, 28),
-        this.k.color(140, 195, 240),
+        legacyContext.pos(12, 28),
+        legacyContext.color(140, 195, 240),
       ]);
 
       // Botões de Teletransporte dos 5 Biomas
@@ -319,26 +584,26 @@ export class PresentationModeManager {
       PRESENTATION_POINTS.forEach((pt, i) => {
         const bX = btnStartX + i * 62;
         const b = topBar.add?.([
-          this.k.rect(58, 34, { radius: 6 }),
-          this.k.pos(bX, 9),
-          this.k.color(18, 55, 95),
-          this.k.outline(1.5, this.k.rgb(0, 210, 255)),
-          this.k.area(),
+          legacyContext.rect(58, 34, { radius: 6 }),
+          legacyContext.pos(bX, 9),
+          legacyContext.color(18, 55, 95),
+          legacyContext.outline(1.5, legacyContext.rgb(0, 210, 255)),
+          legacyContext.area(),
         ]);
 
         if (b) {
           b.add?.([
-            this.k.text(`[${pt.biomeIndex}]`, { size: 10.5, font: "Outfit" }),
-            this.k.pos(29, 9),
-            this.k.color(255, 230, 120),
-            this.k.anchor("center"),
+            legacyContext.text(`[${pt.biomeIndex}]`, { size: 10.5, font: "Outfit" }),
+            legacyContext.pos(29, 9),
+            legacyContext.color(255, 230, 120),
+            legacyContext.anchor("center"),
           ]);
 
           b.add?.([
-            this.k.text(pt.name.slice(0, 7), { size: 8.5, font: "Inter" }),
-            this.k.pos(29, 23),
-            this.k.color(200, 240, 255),
-            this.k.anchor("center"),
+            legacyContext.text(pt.name.slice(0, 7), { size: 8.5, font: "Inter" }),
+            legacyContext.pos(29, 23),
+            legacyContext.color(200, 240, 255),
+            legacyContext.anchor("center"),
           ]);
 
           if (typeof b.onClick === "function") {
@@ -348,12 +613,12 @@ export class PresentationModeManager {
           }
           if (typeof b.onHoverUpdate === "function") {
             b.onHoverUpdate(() => {
-              b.color = this.k.rgb(30, 90, 160);
+              b.color = legacyContext.rgb(30, 90, 160);
             });
           }
           if (typeof b.onHoverEnd === "function") {
             b.onHoverEnd(() => {
-              b.color = this.k.rgb(18, 55, 95);
+              b.color = legacyContext.rgb(18, 55, 95);
             });
           }
         }
@@ -361,20 +626,20 @@ export class PresentationModeManager {
 
       // Botão de Pausa Didática
       const pauseBtn = topBar.add?.([
-        this.k.rect(98, 34, { radius: 6 }),
-        this.k.pos(w - 110, 9),
-        this.k.color(28, 70, 45),
-        this.k.outline(1.5, this.k.rgb(80, 240, 150)),
-        this.k.area(),
+        legacyContext.rect(98, 34, { radius: 6 }),
+        legacyContext.pos(w - 110, 9),
+        legacyContext.color(28, 70, 45),
+        legacyContext.outline(1.5, legacyContext.rgb(80, 240, 150)),
+        legacyContext.area(),
       ]);
 
       if (pauseBtn) {
         this.pauseBtnText =
           pauseBtn.add?.([
-            this.k.text("⏸️ PAUSA", { size: 11, font: "Outfit" }),
-            this.k.pos(49, 17),
-            this.k.color(230, 255, 235),
-            this.k.anchor("center"),
+            legacyContext.text("⏸️ PAUSA", { size: 11, font: "Outfit" }),
+            legacyContext.pos(49, 17),
+            legacyContext.color(230, 255, 235),
+            legacyContext.anchor("center"),
           ]) ?? null;
 
         if (typeof pauseBtn.onClick === "function") {
@@ -388,47 +653,47 @@ export class PresentationModeManager {
     // 2. PAINEL DIDÁTICO INFERIOR (CONCEITO ECOLÓGICO vs CONCEITO COMPUTACIONAL)
     const panelH = 104;
     const bottomPanel = this.container.add?.([
-      this.k.rect(w, panelH),
-      this.k.pos(0, h - panelH),
-      this.k.color(8, 18, 38),
-      this.k.outline(2, this.k.rgb(0, 210, 255)),
-      this.k.opacity(0.95),
-      this.k.fixed(),
+      legacyContext.rect(w, panelH),
+      legacyContext.pos(0, h - panelH),
+      legacyContext.color(8, 18, 38),
+      legacyContext.outline(2, legacyContext.rgb(0, 210, 255)),
+      legacyContext.opacity(0.95),
+      legacyContext.fixed(),
     ]);
 
     if (bottomPanel) {
       this.biomeLabel =
         bottomPanel.add?.([
-          this.k.text("SETOR: ANTÁRTICA (0m)", { size: 12.5, font: "Outfit" }),
-          this.k.pos(15, 6),
-          this.k.color(255, 220, 80),
+          legacyContext.text("SETOR: ANTÁRTICA (0m)", { size: 12.5, font: "Outfit" }),
+          legacyContext.pos(15, 6),
+          legacyContext.color(255, 220, 80),
         ]) ?? null;
 
       // Coluna 1: Conceito Ecológico
       const colW = (w - 30) / 2;
       this.ecoText =
         bottomPanel.add?.([
-          this.k.text("", {
+          legacyContext.text("", {
             size: 10.5,
             font: "Inter",
             width: colW - 10,
             lineSpacing: 3.5,
           }),
-          this.k.pos(15, 26),
-          this.k.color(140, 250, 210),
+          legacyContext.pos(15, 26),
+          legacyContext.color(140, 250, 210),
         ]) ?? null;
 
       // Coluna 2: Engenharia de Software
       this.techText =
         bottomPanel.add?.([
-          this.k.text("", {
+          legacyContext.text("", {
             size: 10.5,
             font: "Inter",
             width: colW - 10,
             lineSpacing: 3.5,
           }),
-          this.k.pos(15 + colW, 26),
-          this.k.color(255, 215, 130),
+          legacyContext.pos(15 + colW, 26),
+          legacyContext.color(255, 215, 130),
         ]) ?? null;
     }
   }
@@ -440,7 +705,14 @@ export class PresentationModeManager {
     }
     if (this.container) {
       try {
-        this.k.destroy(this.container);
+        if (
+          resolveInitializedRenderEngine(this.k) &&
+          typeof this.container.destroy === "function"
+        ) {
+          this.container.destroy();
+        } else {
+          (this.k as PresentationEngineContext).destroy(this.container);
+        }
       } catch {}
       this.container = null;
     }
@@ -450,7 +722,7 @@ export class PresentationModeManager {
 let activePresentationManager: PresentationModeManager | null = null;
 
 export function initPresentationMode(
-  k: PresentationEngineContext,
+  k: IRenderEngine | PresentationEngineContext,
   playerController: PlayerController
 ): PresentationModeManager {
   if (activePresentationManager) {

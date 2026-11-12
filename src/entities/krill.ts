@@ -4,6 +4,18 @@ import { getRandomFloat, getRandomInteger } from "../utils/random";
 import { getActivePlayerObject } from "./player";
 import { getParticlePool } from "../systems/particlePool";
 import { getEntityFamilyTicker } from "../systems/entityFamilyTicker";
+import {
+  registerSonarTarget,
+  unregisterSonarTarget,
+  type RevealableTarget,
+} from "./player/playerSonar";
+import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
+import {
+  createNativeCircleNode,
+  createNativeRectNode,
+  type NativeVisualObjectAdapter,
+} from "../engine/adapters/NativeRenderNodeFactory";
 
 export interface KrillVector2D {
   x: number;
@@ -63,6 +75,7 @@ export interface KrillEngineContext<TDestroyable = unknown, TColor = unknown> {
 
 interface BoidMember<TColor = unknown> {
   obj: KrillGameObject;
+  nativeAdapter?: NativeVisualObjectAdapter;
   relX: number;
   relY: number;
   phase: number;
@@ -83,36 +96,80 @@ export function createKrill<TDestroyable = unknown, TColor = unknown>(
   let revealTimer = 0;
   let haloCircle: KrillGameObject | null = null;
   let haloInner: KrillGameObject | null = null;
+  let nativeHaloCircle: NativeVisualObjectAdapter | null = null;
+  let nativeHaloInner: NativeVisualObjectAdapter | null = null;
 
   const boidCount = 9;
   const boids: BoidMember<TColor>[] = [];
+  const resolvedNativeRenderEngine = resolveInitializedRenderEngine(k);
+  const worldRenderContainer = resolvedNativeRenderEngine
+    ? resolveWorldRenderContainer(resolvedNativeRenderEngine)
+    : null;
 
-  // Entidade central com colisor para TAGS.KRILL
-  const krillCluster = k.add([
-    k.rect(26, 26),
-    k.pos(position),
-    k.opacity(0), // Invisível, o colisor central representa o núcleo do cardume
-    k.area(),
-    k.anchor("center"),
-    TAGS.KRILL,
-    "krill_swarm",
-    {
-      reveal() {
-        revealTimer = GAME_CONFIG.SONAR_REVEAL_DURATION;
-        spawnSonarAura();
+  const createColorSafe = (red: number, green: number, blue: number): TColor =>
+    typeof k.rgb === "function"
+      ? k.rgb(red, green, blue)
+      : ({ r: red, g: green, b: blue } as unknown as TColor);
+
+  const setClusterVisible = (visible: boolean) => {
+    for (let i = 0; i < boids.length; i++) {
+      boids[i].obj.hidden = !visible;
+    }
+    if (haloCircle) haloCircle.hidden = !visible;
+    if (haloInner) haloInner.hidden = !visible;
+  };
+
+  let krillCluster: KrillClusterObject;
+  let nativeClusterAdapter: NativeVisualObjectAdapter | null = null;
+
+  if (resolvedNativeRenderEngine && worldRenderContainer) {
+    nativeClusterAdapter = createNativeRectNode(
+      k,
+      resolvedNativeRenderEngine,
+      worldRenderContainer,
+      {
+        identifier: "krill_swarm_core",
+        width: 26,
+        height: 26,
+        positionX: position.x,
+        positionY: position.y,
+        opacity: 0,
+        anchor: "center",
+        tags: [TAGS.KRILL, "krill_swarm"],
+        onReveal: () => {
+          revealTimer = GAME_CONFIG.SONAR_REVEAL_DURATION;
+          spawnSonarAura();
+        },
+      }
+    );
+    krillCluster = nativeClusterAdapter as unknown as KrillClusterObject;
+    krillCluster.isRevealed = () => revealTimer > 0;
+    krillCluster.setVisible = setClusterVisible;
+    registerSonarTarget(krillCluster as unknown as RevealableTarget);
+  } else {
+    // Entidade central com colisor para TAGS.KRILL (legado)
+    krillCluster = k.add([
+      k.rect(26, 26),
+      k.pos(position),
+      k.opacity(0), // Invisível, o colisor central representa o núcleo do cardume
+      k.area(),
+      k.anchor("center"),
+      TAGS.KRILL,
+      "krill_swarm",
+      {
+        reveal() {
+          revealTimer = GAME_CONFIG.SONAR_REVEAL_DURATION;
+          spawnSonarAura();
+        },
+        isRevealed() {
+          return revealTimer > 0;
+        },
+        setVisible(visible: boolean) {
+          setClusterVisible(visible);
+        },
       },
-      isRevealed() {
-        return revealTimer > 0;
-      },
-      setVisible(visible: boolean) {
-        for (let i = 0; i < boids.length; i++) {
-          boids[i].obj.hidden = !visible;
-        }
-        if (haloCircle) haloCircle.hidden = !visible;
-        if (haloInner) haloInner.hidden = !visible;
-      },
-    },
-  ]) as KrillClusterObject;
+    ]) as KrillClusterObject;
+  }
 
   for (let i = 0; i < boidCount; i++) {
     const angle = (i / boidCount) * Math.PI * 2 + getRandomFloat(-0.2, 0.2);
@@ -121,26 +178,57 @@ export function createKrill<TDestroyable = unknown, TColor = unknown>(
     const relY = Math.sin(angle) * radius;
 
     const isHighContrast = accessibilitySystem.isHighContrast();
-    const baseColor = isHighContrast
-      ? k.rgb(255, 230, 50)
-      : k.rgb(255, getRandomInteger(150, 194), getRandomInteger(60, 99));
+    const baseRgb: [number, number, number] = isHighContrast
+      ? [255, 230, 50]
+      : [255, getRandomInteger(150, 194), getRandomInteger(60, 99)];
+    const baseColor = createColorSafe(baseRgb[0], baseRgb[1], baseRgb[2]);
 
-    const boidObj = k.add(
-      [
-        k.rect(isHighContrast ? 4.8 : 4.2, isHighContrast ? 2.8 : 2.4, { radius: 1 }),
-        k.pos(position.x + relX, position.y + relY),
-        k.rotate(0),
-        k.color(baseColor),
-        isHighContrast ? k.outline(1, k.rgb(0, 0, 0)) : null,
-        k.opacity(isHighContrast ? 1.0 : 0.85),
-        k.anchor("center"),
-        k.scale(1),
-        k.z(11),
-      ].filter(Boolean)
-    ) as KrillGameObject;
+    let boidObj: KrillGameObject;
+    let nativeBoidAdapter: NativeVisualObjectAdapter | undefined;
+
+    if (resolvedNativeRenderEngine && worldRenderContainer) {
+      nativeBoidAdapter = createNativeRectNode(
+        k,
+        resolvedNativeRenderEngine,
+        worldRenderContainer,
+        {
+          identifier: `krill_boid_${i}`,
+          width: isHighContrast ? 4.8 : 4.2,
+          height: isHighContrast ? 2.8 : 2.4,
+          cornerRadius: 1,
+          positionX: position.x + relX,
+          positionY: position.y + relY,
+          rotationDegrees: 0,
+          fillColor: baseColor,
+          outlineColor: isHighContrast ? [0, 0, 0] : undefined,
+          outlineWidth: isHighContrast ? 1 : 0,
+          opacity: isHighContrast ? 1.0 : 0.85,
+          anchor: "center",
+          scaleX: 1,
+          scaleY: 1,
+          zIndex: 11,
+        }
+      );
+      boidObj = nativeBoidAdapter as unknown as KrillGameObject;
+    } else {
+      boidObj = k.add(
+        [
+          k.rect(isHighContrast ? 4.8 : 4.2, isHighContrast ? 2.8 : 2.4, { radius: 1 }),
+          k.pos(position.x + relX, position.y + relY),
+          k.rotate(0),
+          k.color(baseColor),
+          isHighContrast ? k.outline(1, k.rgb(0, 0, 0)) : null,
+          k.opacity(isHighContrast ? 1.0 : 0.85),
+          k.anchor("center"),
+          k.scale(1),
+          k.z(11),
+        ].filter(Boolean)
+      ) as KrillGameObject;
+    }
 
     boids.push({
       obj: boidObj,
+      nativeAdapter: nativeBoidAdapter,
       relX,
       relY,
       phase: getRandomFloat(0, Math.PI * 2),
@@ -150,29 +238,70 @@ export function createKrill<TDestroyable = unknown, TColor = unknown>(
   }
 
   const spawnSonarAura = () => {
-    // 1. Halo externo bioluminescente
-    if (!haloCircle) {
-      haloCircle = k.add([
-        k.circle(30),
-        k.pos(krillCluster.pos),
-        k.color(255, 215, 80),
-        k.outline(2.5, k.rgb(100, 255, 220)),
-        k.opacity(0.4),
-        k.anchor("center"),
-        k.z(9),
-      ]) as KrillGameObject;
-    }
+    if (resolvedNativeRenderEngine && worldRenderContainer) {
+      if (!nativeHaloCircle) {
+        nativeHaloCircle = createNativeCircleNode(
+          k,
+          resolvedNativeRenderEngine,
+          worldRenderContainer,
+          {
+            identifier: "krill_sonar_halo_outer",
+            radius: 30,
+            positionX: krillCluster.pos.x,
+            positionY: krillCluster.pos.y,
+            fillColor: [255, 215, 80],
+            outlineColor: [100, 255, 220],
+            outlineWidth: 2.5,
+            opacity: 0.4,
+            anchor: "center",
+            zIndex: 9,
+          }
+        );
+        haloCircle = nativeHaloCircle as unknown as KrillGameObject;
+      }
+      if (!nativeHaloInner) {
+        nativeHaloInner = createNativeCircleNode(
+          k,
+          resolvedNativeRenderEngine,
+          worldRenderContainer,
+          {
+            identifier: "krill_sonar_halo_inner",
+            radius: 18,
+            positionX: krillCluster.pos.x,
+            positionY: krillCluster.pos.y,
+            fillColor: [255, 235, 120],
+            opacity: 0.3,
+            anchor: "center",
+            zIndex: 10,
+          }
+        );
+        haloInner = nativeHaloInner as unknown as KrillGameObject;
+      }
+    } else {
+      // 1. Halo externo bioluminescente
+      if (!haloCircle) {
+        haloCircle = k.add([
+          k.circle(30),
+          k.pos(krillCluster.pos),
+          k.color(255, 215, 80),
+          k.outline(2.5, k.rgb(100, 255, 220)),
+          k.opacity(0.4),
+          k.anchor("center"),
+          k.z(9),
+        ]) as KrillGameObject;
+      }
 
-    // 2. Halo pulsante interno
-    if (!haloInner) {
-      haloInner = k.add([
-        k.circle(18),
-        k.pos(krillCluster.pos),
-        k.color(255, 235, 120),
-        k.opacity(0.3),
-        k.anchor("center"),
-        k.z(10),
-      ]) as KrillGameObject;
+      // 2. Halo pulsante interno
+      if (!haloInner) {
+        haloInner = k.add([
+          k.circle(18),
+          k.pos(krillCluster.pos),
+          k.color(255, 235, 120),
+          k.opacity(0.3),
+          k.anchor("center"),
+          k.z(10),
+        ]) as KrillGameObject;
+      }
     }
 
     // Partículas de explosão de bioluminescência via ParticlePool
@@ -191,6 +320,31 @@ export function createKrill<TDestroyable = unknown, TColor = unknown>(
           vel: { x: getRandomFloat(-35, 35), y: getRandomFloat(-35, 35) },
           fadeRate: 2.2,
           maxLife: 0.5,
+        });
+      }
+    } else if (resolvedNativeRenderEngine && worldRenderContainer) {
+      for (let i = 0; i < 6; i++) {
+        const sparkNode = createNativeCircleNode(
+          k,
+          resolvedNativeRenderEngine,
+          worldRenderContainer,
+          {
+            identifier: "krill_sonar_spark",
+            radius: getRandomFloat(1.5, 2.5),
+            positionX: krillCluster.pos.x + getRandomFloat(-14, 14),
+            positionY: krillCluster.pos.y + getRandomFloat(-14, 14),
+            fillColor: i % 2 === 0 ? [255, 235, 120] : [100, 255, 220],
+            opacity: 0.9,
+            zIndex: 13,
+          }
+        );
+        const dirX = getRandomFloat(-35, 35);
+        const dirY = getRandomFloat(-35, 35);
+        sparkNode.onUpdate((sparkDeltaTime: number) => {
+          sparkNode.pos.x += dirX * sparkDeltaTime;
+          sparkNode.pos.y += dirY * sparkDeltaTime;
+          sparkNode.opacity -= sparkDeltaTime * 2.2;
+          if (sparkNode.opacity <= 0) sparkNode.destroy();
         });
       }
     } else {
@@ -303,12 +457,12 @@ export function createKrill<TDestroyable = unknown, TColor = unknown>(
       if (revealTimer > 0) {
         // Iluminação de alta intensidade, dourado-esmeralda com brilho cintilante
         const revealFactor = Math.min(1, revealTimer / 1.2);
-        const targetColor = k.rgb(255, 240, 130);
+        const targetColor = createColorSafe(255, 240, 130);
         const baseCol = b.baseColor as unknown as KrillColor;
         const targetCol = targetColor as unknown as KrillColor;
         b.obj.color = baseCol.lerp
           ? baseCol.lerp(targetCol, revealFactor)
-          : k.rgb(
+          : createColorSafe(
               baseCol.r + (targetCol.r - baseCol.r) * revealFactor,
               baseCol.g + (targetCol.g - baseCol.g) * revealFactor,
               baseCol.b + (targetCol.b - baseCol.b) * revealFactor
@@ -339,7 +493,12 @@ export function createKrill<TDestroyable = unknown, TColor = unknown>(
         }
       } else {
         b.obj.color = b.baseColor;
-        b.obj.scale = k.vec2(1, 1);
+        if (typeof b.obj.scale === "object" && b.obj.scale !== null && "x" in b.obj.scale) {
+          (b.obj.scale as { x: number; y: number }).x = 1;
+          (b.obj.scale as { x: number; y: number }).y = 1;
+        } else {
+          b.obj.scale = k.vec2(1, 1);
+        }
         // Glimmer bioluminescente orgânico suave no escuro
         b.obj.opacity = 0.72 + Math.sin(time * 4.5 + b.phase) * 0.22;
       }
@@ -357,6 +516,16 @@ export function createKrill<TDestroyable = unknown, TColor = unknown>(
       isDestroyed: () => (krillCluster.exists ? !krillCluster.exists() : false),
       update: updateKrillSwarm,
     });
+  } else if (nativeClusterAdapter) {
+    nativeClusterAdapter.onUpdate((deltaTimeInSeconds: number) => {
+      if (nativeClusterAdapter.hidden) {
+        for (let i = 0; i < boids.length; i++) {
+          boids[i].obj.hidden = true;
+        }
+        return;
+      }
+      updateKrillSwarm(deltaTimeInSeconds);
+    });
   } else {
     krillCluster.onUpdate(() => {
       if (krillCluster.hidden) {
@@ -370,12 +539,20 @@ export function createKrill<TDestroyable = unknown, TColor = unknown>(
   }
 
   krillCluster.onDestroy(() => {
-    if (haloCircle) {
+    if (resolvedNativeRenderEngine) {
+      unregisterSonarTarget(krillCluster as unknown as RevealableTarget);
+    }
+
+    if (nativeHaloCircle) {
+      nativeHaloCircle.destroy();
+    } else if (haloCircle) {
       try {
         k.destroy(haloCircle as unknown as TDestroyable);
       } catch {}
     }
-    if (haloInner) {
+    if (nativeHaloInner) {
+      nativeHaloInner.destroy();
+    } else if (haloInner) {
       try {
         k.destroy(haloInner as unknown as TDestroyable);
       } catch {}
@@ -383,7 +560,9 @@ export function createKrill<TDestroyable = unknown, TColor = unknown>(
 
     // Destrói todos os boids filhos
     for (const b of boids) {
-      if (b.obj.exists()) {
+      if (b.nativeAdapter) {
+        b.nativeAdapter.destroy();
+      } else if (b.obj.exists()) {
         k.destroy(b.obj as unknown as TDestroyable);
       }
     }
@@ -404,6 +583,31 @@ export function createKrill<TDestroyable = unknown, TColor = unknown>(
           vel: { x: getRandomFloat(-35, 35), y: getRandomFloat(-35, 35) },
           fadeRate: 3.2,
           maxLife: 0.4,
+        });
+      }
+    } else if (resolvedNativeRenderEngine && worldRenderContainer) {
+      for (let i = 0; i < 6; i++) {
+        const gulpParticle = createNativeCircleNode(
+          k,
+          resolvedNativeRenderEngine,
+          worldRenderContainer,
+          {
+            identifier: "krill_gulp_particle",
+            radius: 1.8,
+            positionX: krillCluster.pos.x + getRandomFloat(-7, 7),
+            positionY: krillCluster.pos.y + getRandomFloat(-7, 7),
+            fillColor: [255, 215, 120],
+            opacity: 0.85,
+            zIndex: 12,
+          }
+        );
+        const velX = getRandomFloat(-35, 35);
+        const velY = getRandomFloat(-35, 35);
+        gulpParticle.onUpdate((particleDeltaTime: number) => {
+          gulpParticle.pos.x += velX * particleDeltaTime;
+          gulpParticle.pos.y += velY * particleDeltaTime;
+          gulpParticle.opacity -= particleDeltaTime * 3.2;
+          if (gulpParticle.opacity <= 0) gulpParticle.destroy();
         });
       }
     } else {

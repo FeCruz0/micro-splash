@@ -7,6 +7,22 @@ import { getParticlePool } from "./particlePool";
 import type { PlayerController } from "../entities/player";
 import type { GameState } from "./state";
 import { createTween, Easings } from "../engine/utils/Tween";
+import {
+  resolveInitializedRenderEngine,
+  type IRenderEngine,
+} from "../engine/contracts/INTERFACE_CONTRACTS";
+import {
+  resolveScreenRenderContainer,
+  resolveWorldRenderContainer,
+} from "../engine/adapters/RenderEngineAdapter";
+import {
+  createNativeCircleNode,
+  createNativeRectNode,
+  createNativeTextNode,
+  NativeVisualObjectAdapter,
+  registerNativeSceneUpdate,
+  scheduleNativeSceneDelay,
+} from "../engine/adapters/NativeRenderNodeFactory";
 
 export interface BreachVector2D {
   x: number;
@@ -21,6 +37,7 @@ export interface BreachGameObject<TColor = unknown> {
   text?: string;
   color?: TColor;
   onUpdate: (cb: () => void) => void;
+  destroy?: () => void;
 }
 
 export interface BreachTweenResult {
@@ -49,6 +66,7 @@ export interface BreachSplashEngineContext<
   deg2rad: (deg: number) => number;
   vec2: (x: number, y: number) => TVec;
   shake?: (amount: number) => void;
+  onSceneLeave?: (callback: () => void) => unknown;
 }
 
 export interface BreachEngineContext<
@@ -89,7 +107,7 @@ export interface BreachSystemConfig<
   TVec extends { x: number; y: number } = BreachVector2D,
 > {
   /** Instância do contexto agnóstico do motor */
-  k: BreachEngineContext<TDestroyable, TColor, TVec>;
+  k: IRenderEngine | BreachEngineContext<TDestroyable, TColor, TVec>;
   /** Controlador físico da baleia do jogador */
   playerController: PlayerController;
   /** Estado reativo do jogo (distância, pontuação, etc.) */
@@ -98,6 +116,55 @@ export interface BreachSystemConfig<
   onBreachComplete: () => void;
   /** Se deve exibir banner/prompt de texto na tela (desativado na Migração Difícil) */
   showPrompt?: boolean;
+}
+
+function resolveDeltaTime(
+  engineOrContext: unknown,
+  resolvedNativeRenderEngine: IRenderEngine | null
+): number {
+  const ctx = engineOrContext as { dt?: () => number } | null;
+  if (ctx && typeof ctx.dt === "function") {
+    return ctx.dt();
+  }
+  return resolvedNativeRenderEngine ? resolvedNativeRenderEngine.getTicker().getDeltaTime() : 0.016;
+}
+
+function resolveRandomRange(engineOrContext: unknown, min: number, max: number): number {
+  const ctx = engineOrContext as { rand?: (a: number, b: number) => number } | null;
+  if (ctx && typeof ctx.rand === "function") {
+    return ctx.rand(min, max);
+  }
+  return getRandomFloat(min, max);
+}
+
+function resolveColorTuple<TColor>(
+  engineOrContext: unknown,
+  red: number,
+  green: number,
+  blue: number
+): TColor {
+  const ctx = engineOrContext as { rgb?: (r: number, g: number, b: number) => TColor } | null;
+  if (ctx && typeof ctx.rgb === "function") {
+    return ctx.rgb(red, green, blue);
+  }
+  return [red, green, blue] as unknown as TColor;
+}
+
+function resolveVector2<TVec extends { x: number; y: number }>(
+  engineOrContext: unknown,
+  x: number,
+  y: number
+): TVec {
+  const ctx = engineOrContext as { vec2?: (vx: number, vy: number) => TVec } | null;
+  if (ctx && typeof ctx.vec2 === "function") {
+    return ctx.vec2(x, y);
+  }
+  return {
+    x,
+    y,
+    len: () => Math.hypot(x, y),
+    scale: (factor: number) => resolveVector2(engineOrContext, x * factor, y * factor),
+  } as unknown as TVec;
 }
 
 /**
@@ -117,6 +184,14 @@ export function setupBreachSystem<
   TVec extends { x: number; y: number } = BreachVector2D,
 >(config: BreachSystemConfig<TDestroyable, TColor, TVec>) {
   const { k, playerController, gameState, onBreachComplete, showPrompt = true } = config;
+  const resolvedNativeRenderEngine = resolveInitializedRenderEngine(k);
+  const nativeWorldContainer = resolvedNativeRenderEngine
+    ? resolveWorldRenderContainer(resolvedNativeRenderEngine)
+    : null;
+  const nativeScreenContainer = resolvedNativeRenderEngine
+    ? resolveScreenRenderContainer(resolvedNativeRenderEngine)
+    : null;
+  const legacyContext = k as BreachEngineContext<TDestroyable, TColor, TVec>;
 
   let promptBanner: BreachGameObject<TColor> | null = null;
   let isBreachTriggered = false;
@@ -127,7 +202,17 @@ export function setupBreachSystem<
 
   const triggerDistance = GAME_CONFIG.ROUTE_TOTAL_DISTANCE - 300; // 26.700m
 
-  k.onUpdate(() => {
+  const destroyBanner = () => {
+    if (!promptBanner) return;
+    if (resolvedNativeRenderEngine && typeof promptBanner.destroy === "function") {
+      promptBanner.destroy();
+    } else {
+      legacyContext.destroy(promptBanner as unknown as TDestroyable);
+    }
+    promptBanner = null;
+  };
+
+  const updateBreachFrame = (deltaTime: number) => {
     if (isBreachFinished) return;
 
     const playerPos = playerController.gameObj.pos;
@@ -136,36 +221,62 @@ export function setupBreachSystem<
     if (playerPos.x >= triggerDistance && !isBreachTriggered) {
       if (showPrompt) {
         if (!promptBanner) {
-          promptBanner = k.add([
-            k.text(
-              "ÁGUAS CALMAS DE ARRAIAL! 🐋\nPRESSIONE [ESPAÇO] OU TOQUE PARA O SALTO MAJESTOSO!",
+          const viewportWidth = resolvedNativeRenderEngine
+            ? resolvedNativeRenderEngine.getDimensions().width
+            : legacyContext.width();
+          if (resolvedNativeRenderEngine && nativeScreenContainer) {
+            promptBanner = createNativeTextNode(
+              k,
+              resolvedNativeRenderEngine,
+              nativeScreenContainer,
               {
-                size: 16,
-                font: "Outfit",
+                identifier: "breach_prompt_banner",
+                content:
+                  "ÁGUAS CALMAS DE ARRAIAL! 🐋\nPRESSIONE [ESPAÇO] OU TOQUE PARA O SALTO MAJESTOSO!",
+                fontSize: 16,
+                fontFamily: "Outfit",
                 align: "center",
                 lineSpacing: 6,
+                positionX: viewportWidth / 2,
+                positionY: 60,
+                color: [255, 220, 100],
+                anchor: "center",
+                zIndex: 150,
+                opacity: 1,
               }
-            ),
-            k.pos(k.width() / 2, 60),
-            k.color(255, 220, 100),
-            k.outline(3, k.rgb(10, 30, 60)),
-            k.anchor("center"),
-            k.fixed(),
-            k.z(150),
-            k.opacity(1),
-          ]) as BreachGameObject<TColor>;
+            ) as unknown as BreachGameObject<TColor>;
+          } else {
+            promptBanner = legacyContext.add([
+              legacyContext.text(
+                "ÁGUAS CALMAS DE ARRAIAL! 🐋\nPRESSIONE [ESPAÇO] OU TOQUE PARA O SALTO MAJESTOSO!",
+                {
+                  size: 16,
+                  font: "Outfit",
+                  align: "center",
+                  lineSpacing: 6,
+                }
+              ),
+              legacyContext.pos(viewportWidth / 2, 60),
+              legacyContext.color(255, 220, 100),
+              legacyContext.outline(3, legacyContext.rgb(10, 30, 60)),
+              legacyContext.anchor("center"),
+              legacyContext.fixed(),
+              legacyContext.z(150),
+              legacyContext.opacity(1),
+            ]) as BreachGameObject<TColor>;
+          }
         }
 
-        bannerAnimTime += k.dt() * 4;
+        bannerAnimTime += deltaTime * 4;
         promptBanner.opacity = 0.7 + Math.sin(bannerAnimTime) * 0.3;
       }
 
       // Dispara o salto se o jogador pressionar Espaço, Enter, Toque/Clique OU se cruzar a linha de 27.000m
       const isInputTriggered =
-        k.isKeyPressed("space") ||
-        k.isKeyPressed("enter") ||
-        k.isMousePressed() ||
-        (Boolean(k.isTouchStarted) && Boolean(k.isTouchStarted && k.isTouchStarted()));
+        (typeof legacyContext.isKeyPressed === "function" &&
+          (legacyContext.isKeyPressed("space") || legacyContext.isKeyPressed("enter"))) ||
+        (typeof legacyContext.isMousePressed === "function" && legacyContext.isMousePressed()) ||
+        (typeof legacyContext.isTouchStarted === "function" && legacyContext.isTouchStarted());
 
       if (isInputTriggered || playerPos.x >= GAME_CONFIG.ROUTE_TOTAL_DISTANCE) {
         startBreachSequence();
@@ -174,7 +285,7 @@ export function setupBreachSystem<
 
     // 2. Monitoramento da Trajetória Aérea durante o Salto
     if (isBreachTriggered && !isBreachFinished) {
-      breachTimer += k.dt();
+      breachTimer += deltaTime;
 
       // Verifica se a baleia rompeu a superfície para o céu
       if (playerPos.y < GAME_CONFIG.SEA_LEVEL) {
@@ -183,32 +294,56 @@ export function setupBreachSystem<
         // Partículas douradas e de vapor reluzente na trilha aérea da baleia
         if (getRandomFloat(0, 1) < 0.6) {
           const pool = getParticlePool();
-          const pPos = k.vec2(playerPos.x - k.rand(10, 25), playerPos.y + k.rand(-10, 10));
-          const pRadius = k.rand(2, 4);
+          const pPos = resolveVector2<TVec>(
+            k,
+            playerPos.x - resolveRandomRange(k, 10, 25),
+            playerPos.y + resolveRandomRange(k, -10, 10)
+          );
+          const pRadius = resolveRandomRange(k, 2, 4);
           if (pool) {
             pool.spawnCircle({
               pos: pPos,
               radius: pRadius,
-              color: k.rgb(255, 235, 140),
+              color: resolveColorTuple<TColor>(k, 255, 235, 140),
               opacity: 0.85,
               z: 15,
-              vel: k.vec2(0, 15),
+              vel: resolveVector2<TVec>(k, 0, 15),
               fadeRate: 1.8,
               maxLife: 0.55,
             });
+          } else if (resolvedNativeRenderEngine && nativeWorldContainer) {
+            const sparkle = createNativeCircleNode(
+              k,
+              resolvedNativeRenderEngine,
+              nativeWorldContainer,
+              {
+                identifier: "breach_air_sparkle",
+                radius: pRadius,
+                positionX: pPos.x,
+                positionY: pPos.y,
+                fillColor: [255, 235, 140],
+                opacity: 0.85,
+                zIndex: 15,
+              }
+            );
+            sparkle.onUpdate((stepDelta) => {
+              sparkle.opacity -= stepDelta * 1.8;
+              sparkle.pos.y += stepDelta * 15;
+              if (sparkle.opacity <= 0) sparkle.destroy();
+            });
           } else {
-            const sparkle = k.add([
-              k.circle(pRadius),
-              k.pos(pPos.x, pPos.y),
-              k.color(255, 235, 140),
-              k.opacity(0.85),
-              k.z(15),
+            const sparkle = legacyContext.add([
+              legacyContext.circle(pRadius),
+              legacyContext.pos(pPos.x, pPos.y),
+              legacyContext.color(255, 235, 140),
+              legacyContext.opacity(0.85),
+              legacyContext.z(15),
             ]) as BreachGameObject<TColor>;
             sparkle.onUpdate(() => {
               if (sparkle.opacity !== undefined) {
-                sparkle.opacity -= k.dt() * 1.8;
-                sparkle.pos.y += k.dt() * 15;
-                if (sparkle.opacity <= 0) k.destroy(sparkle as unknown as TDestroyable);
+                sparkle.opacity -= resolveDeltaTime(k, null) * 1.8;
+                sparkle.pos.y += resolveDeltaTime(k, null) * 15;
+                if (sparkle.opacity <= 0) legacyContext.destroy(sparkle as unknown as TDestroyable);
               }
             });
           }
@@ -225,24 +360,39 @@ export function setupBreachSystem<
 
         // Grande estrondo de água e tremor
         audioSystem.playWaterSplash();
-        safeShake(k, 8);
+        safeShake(legacyContext, 8);
 
         // Explosão majestosa de reentrada (Splashdown) em arco simétrico (Fase 31.1)
-        createBreachReentrySplash(k, k.vec2(playerPos.x, GAME_CONFIG.SEA_LEVEL), 24);
+        createBreachReentrySplash(
+          k,
+          resolveVector2<TVec>(k, playerPos.x, GAME_CONFIG.SEA_LEVEL),
+          24
+        );
 
-        // Remove banner se ainda existir
-        if (promptBanner) {
-          k.destroy(promptBanner as unknown as TDestroyable);
-          promptBanner = null;
-        }
+        destroyBanner();
 
         // Aguarda a água acalmar e chama a tela de vitória
-        k.wait(0.6, () => {
-          onBreachComplete();
-        });
+        if (resolvedNativeRenderEngine) {
+          scheduleNativeSceneDelay(k, resolvedNativeRenderEngine, 0.6, onBreachComplete);
+        } else {
+          legacyContext.wait(0.6, () => {
+            onBreachComplete();
+          });
+        }
       }
     }
-  });
+  };
+
+  if (resolvedNativeRenderEngine) {
+    registerNativeSceneUpdate(k, resolvedNativeRenderEngine, updateBreachFrame);
+    if (typeof legacyContext.onSceneLeave === "function") {
+      legacyContext.onSceneLeave(destroyBanner);
+    }
+  } else {
+    legacyContext.onUpdate(() => {
+      updateBreachFrame(resolveDeltaTime(k, null));
+    });
+  }
 
   function startBreachSequence() {
     if (isBreachTriggered) return;
@@ -260,16 +410,16 @@ export function setupBreachSystem<
 
     // Impulso acrobático para cima e para a frente
     playerController.setSpeed(
-      k.vec2(280, -480) as unknown as Parameters<PlayerController["setSpeed"]>[0]
+      resolveVector2<TVec>(k, 280, -480) as unknown as Parameters<PlayerController["setSpeed"]>[0]
     );
 
     // Primeiro splash ao romper a água
     const playerPos = playerController.gameObj.pos;
-    createWaterSplash(k, k.vec2(playerPos.x, GAME_CONFIG.SEA_LEVEL), 20);
+    createWaterSplash(k, resolveVector2<TVec>(k, playerPos.x, GAME_CONFIG.SEA_LEVEL), 20);
 
     if (promptBanner) {
       promptBanner.text = "SALTO MAJESTOSO EXECUTADO! ✨ +500 PTS";
-      promptBanner.color = k.rgb(100, 255, 200);
+      promptBanner.color = resolveColorTuple<TColor>(k, 100, 255, 200);
       const bannerTweenHandle = createTween(
         1,
         0,
@@ -280,10 +430,7 @@ export function setupBreachSystem<
         Easings.easeOutQuad
       );
       bannerTweenHandle.promise.then(() => {
-        if (promptBanner) {
-          k.destroy(promptBanner as unknown as TDestroyable);
-          promptBanner = null;
-        }
+        destroyBanner();
       });
     }
   }
@@ -306,99 +453,187 @@ export function createWaterSplash<
   TColor = unknown,
   TVec extends { x: number; y: number } = BreachVector2D,
 >(
-  k: BreachSplashEngineContext<TDestroyable, TColor, TVec>,
+  k: IRenderEngine | BreachSplashEngineContext<TDestroyable, TColor, TVec>,
   pos: TVec | { x: number; y: number },
   particleCount: number = 26
 ) {
+  const resolvedNativeRenderEngine = resolveInitializedRenderEngine(k);
+  const nativeWorldContainer = resolvedNativeRenderEngine
+    ? resolveWorldRenderContainer(resolvedNativeRenderEngine)
+    : null;
+  const legacyContext = k as BreachSplashEngineContext<TDestroyable, TColor, TVec>;
+
   // 1. Gotículas de spray em pixel art 16-bits (quadrados angulares com paleta aquática retrô)
+  const dropTuples: [number, number, number][] = [
+    [255, 255, 255],
+    [190, 240, 255],
+    [120, 215, 255],
+  ];
+
   for (let i = 0; i < particleCount; i++) {
-    const angle = k.rand(-155, -25);
-    const angleInRadians = k.deg2rad(angle);
-    const speed = k.rand(140, 360);
+    const angle = resolveRandomRange(k, -155, -25);
+    const angleInRadians =
+      typeof legacyContext.deg2rad === "function"
+        ? legacyContext.deg2rad(angle)
+        : (angle * Math.PI) / 180;
+    const speed = resolveRandomRange(k, 140, 360);
     const velX = Math.cos(angleInRadians) * speed;
     const velY = Math.sin(angleInRadians) * speed;
-    const size = k.rand(3, 6);
-
-    const colors = [k.rgb(255, 255, 255), k.rgb(190, 240, 255), k.rgb(120, 215, 255)];
-    const dropColor = getRandomChoice(colors) ?? colors[0];
-
-    const drop = k.add([
-      k.rect(size, size),
-      k.pos(pos.x + k.rand(-18, 18), pos.y - 2),
-      k.color(dropColor),
-      k.outline(1, k.rgb(60, 140, 210)),
-      k.opacity(0.95),
-      k.z(20),
-    ]) as BreachGameObject<TColor>;
+    const size = resolveRandomRange(k, 3, 6);
 
     let dropVelY = velY;
-    drop.onUpdate(() => {
-      drop.pos.x += velX * k.dt();
-      drop.pos.y += dropVelY * k.dt();
-      dropVelY += 560 * k.dt(); // Gravidade sobre a gota
-      if (drop.opacity !== undefined) {
-        drop.opacity -= k.dt() * 1.5;
+    if (resolvedNativeRenderEngine && nativeWorldContainer) {
+      const chosenTuple = getRandomChoice(dropTuples) ?? dropTuples[0];
+      const drop = createNativeRectNode(k, resolvedNativeRenderEngine, nativeWorldContainer, {
+        identifier: "breach_splash_drop",
+        width: size,
+        height: size,
+        positionX: pos.x + resolveRandomRange(k, -18, 18),
+        positionY: pos.y - 2,
+        fillColor: chosenTuple,
+        outlineColor: [60, 140, 210],
+        outlineWidth: 1,
+        opacity: 0.95,
+        zIndex: 20,
+      });
+      drop.onUpdate((deltaTime) => {
+        drop.pos.x += velX * deltaTime;
+        drop.pos.y += dropVelY * deltaTime;
+        dropVelY += 560 * deltaTime;
+        drop.opacity -= deltaTime * 1.5;
         if (drop.opacity <= 0 || drop.pos.y > pos.y + 40) {
-          k.destroy(drop as unknown as TDestroyable);
+          drop.destroy();
         }
-      }
-    });
+      });
+    } else {
+      const colors = [
+        legacyContext.rgb(255, 255, 255),
+        legacyContext.rgb(190, 240, 255),
+        legacyContext.rgb(120, 215, 255),
+      ];
+      const dropColor = getRandomChoice(colors) ?? colors[0];
+      const drop = legacyContext.add([
+        legacyContext.rect(size, size),
+        legacyContext.pos(pos.x + legacyContext.rand(-18, 18), pos.y - 2),
+        legacyContext.color(dropColor),
+        legacyContext.outline(1, legacyContext.rgb(60, 140, 210)),
+        legacyContext.opacity(0.95),
+        legacyContext.z(20),
+      ]) as BreachGameObject<TColor>;
+
+      drop.onUpdate(() => {
+        const dt = legacyContext.dt();
+        drop.pos.x += velX * dt;
+        drop.pos.y += dropVelY * dt;
+        dropVelY += 560 * dt; // Gravidade sobre a gota
+        if (drop.opacity !== undefined) {
+          drop.opacity -= dt * 1.5;
+          if (drop.opacity <= 0 || drop.pos.y > pos.y + 40) {
+            legacyContext.destroy(drop as unknown as TDestroyable);
+          }
+        }
+      });
+    }
   }
 
   // 2. Ondas de espuma 16-bits expandindo na superfície para esquerda e direita
   [-1, 1].forEach((dir) => {
-    const foam = k.add([
-      k.rect(12, 4),
-      k.pos(pos.x + dir * 8, pos.y - 1),
-      k.color(240, 252, 255),
-      k.outline(1, k.rgb(100, 180, 240)),
-      k.opacity(0.9),
-      k.z(19),
-    ]) as BreachGameObject<TColor>;
-
     let foamWidth = 12;
-    foam.onUpdate(() => {
-      foam.pos.x += dir * 140 * k.dt();
-      foamWidth += 45 * k.dt();
-      foam.width = foamWidth;
-      if (foam.opacity !== undefined) {
-        foam.opacity -= k.dt() * 2.2;
-        if (foam.opacity <= 0) k.destroy(foam as unknown as TDestroyable);
-      }
-    });
+    if (resolvedNativeRenderEngine && nativeWorldContainer) {
+      const foam = createNativeRectNode(k, resolvedNativeRenderEngine, nativeWorldContainer, {
+        identifier: "breach_splash_foam",
+        width: 12,
+        height: 4,
+        positionX: pos.x + dir * 8,
+        positionY: pos.y - 1,
+        fillColor: [240, 252, 255],
+        outlineColor: [100, 180, 240],
+        outlineWidth: 1,
+        opacity: 0.9,
+        zIndex: 19,
+      });
+      foam.onUpdate((deltaTime) => {
+        foam.pos.x += dir * 140 * deltaTime;
+        foamWidth += 45 * deltaTime;
+        foam.width = foamWidth;
+        foam.opacity -= deltaTime * 2.2;
+        if (foam.opacity <= 0) foam.destroy();
+      });
+    } else {
+      const foam = legacyContext.add([
+        legacyContext.rect(12, 4),
+        legacyContext.pos(pos.x + dir * 8, pos.y - 1),
+        legacyContext.color(240, 252, 255),
+        legacyContext.outline(1, legacyContext.rgb(100, 180, 240)),
+        legacyContext.opacity(0.9),
+        legacyContext.z(19),
+      ]) as BreachGameObject<TColor>;
+
+      foam.onUpdate(() => {
+        const dt = legacyContext.dt();
+        foam.pos.x += dir * 140 * dt;
+        foamWidth += 45 * dt;
+        foam.width = foamWidth;
+        if (foam.opacity !== undefined) {
+          foam.opacity -= dt * 2.2;
+          if (foam.opacity <= 0) legacyContext.destroy(foam as unknown as TDestroyable);
+        }
+      });
+    }
   });
 
   // 3. Coluna de micro-bolhas submersas afundando e emergindo
   const pool = getParticlePool();
   for (let b = 0; b < 8; b++) {
-    const bPos = k.vec2(pos.x + k.rand(-16, 16), pos.y + k.rand(4, 22));
-    const bVelY = k.rand(20, 60) - 25;
+    const bPos = resolveVector2<TVec>(
+      k,
+      pos.x + resolveRandomRange(k, -16, 16),
+      pos.y + resolveRandomRange(k, 4, 22)
+    );
+    const bVelY = resolveRandomRange(k, 20, 60) - 25;
     if (pool) {
       pool.spawnRect({
         pos: bPos,
         width: 2,
         height: 2,
-        color: k.rgb(210, 245, 255),
+        color: resolveColorTuple<TColor>(k, 210, 245, 255),
         opacity: 0.85,
         z: 18,
-        vel: k.vec2(0, bVelY),
+        vel: resolveVector2<TVec>(k, 0, bVelY),
         fadeRate: 1.8,
         maxLife: 0.5,
       });
+    } else if (resolvedNativeRenderEngine && nativeWorldContainer) {
+      const bubble = createNativeRectNode(k, resolvedNativeRenderEngine, nativeWorldContainer, {
+        identifier: "breach_submerged_bubble",
+        width: 2,
+        height: 2,
+        positionX: bPos.x,
+        positionY: bPos.y,
+        fillColor: [210, 245, 255],
+        opacity: 0.85,
+        zIndex: 18,
+      });
+      bubble.onUpdate((deltaTime) => {
+        bubble.pos.y += bVelY * deltaTime;
+        bubble.opacity -= deltaTime * 1.8;
+        if (bubble.opacity <= 0) bubble.destroy();
+      });
     } else {
-      const bubble = k.add([
-        k.rect(2, 2),
-        k.pos(bPos.x, bPos.y),
-        k.color(210, 245, 255),
-        k.opacity(0.85),
-        k.z(18),
+      const bubble = legacyContext.add([
+        legacyContext.rect(2, 2),
+        legacyContext.pos(bPos.x, bPos.y),
+        legacyContext.color(210, 245, 255),
+        legacyContext.opacity(0.85),
+        legacyContext.z(18),
       ]) as BreachGameObject<TColor>;
 
       bubble.onUpdate(() => {
-        bubble.pos.y += bVelY * k.dt();
+        const dt = legacyContext.dt();
+        bubble.pos.y += bVelY * dt;
         if (bubble.opacity !== undefined) {
-          bubble.opacity -= k.dt() * 1.8;
-          if (bubble.opacity <= 0) k.destroy(bubble as unknown as TDestroyable);
+          bubble.opacity -= dt * 1.8;
+          if (bubble.opacity <= 0) legacyContext.destroy(bubble as unknown as TDestroyable);
         }
       });
     }
@@ -456,111 +691,200 @@ export function createBreachReentrySplash<
   TColor = unknown,
   TVec extends { x: number; y: number } = BreachVector2D,
 >(
-  k: BreachSplashEngineContext<TDestroyable, TColor, TVec>,
+  k: IRenderEngine | BreachSplashEngineContext<TDestroyable, TColor, TVec>,
   pos: TVec | { x: number; y: number },
   particleCount: number = 24
 ) {
+  const resolvedNativeRenderEngine = resolveInitializedRenderEngine(k);
+  const nativeWorldContainer = resolvedNativeRenderEngine
+    ? resolveWorldRenderContainer(resolvedNativeRenderEngine)
+    : null;
+  const legacyContext = k as BreachSplashEngineContext<TDestroyable, TColor, TVec>;
+
   // 1. Partículas retangulares brancas de respingo em arco balístico simétrico (Fase 31.1)
   for (let i = 0; i < particleCount; i++) {
     const data = calculateBreachReentryParticleData(i, particleCount);
     const curVelX = data.velX;
     let curVelY = data.velY;
 
-    const splashShard = k.add([
-      k.rect(data.width, data.height, { radius: 1 }),
-      k.pos(pos.x + k.rand(-12, 12), pos.y - 2),
-      k.color(255, 255, 255),
-      k.outline(1, k.rgb(180, 240, 255)),
-      k.opacity(0.95),
-      k.rotate(Math.atan2(curVelY, curVelX) * (180 / Math.PI) + 90),
-      k.anchor("center"),
-      k.z(21),
-      "breach_reentry_splash",
-    ]) as BreachGameObject<TColor>;
-
-    splashShard.onUpdate(() => {
-      const dt = k.dt();
-      curVelY += data.gravityY * dt;
-      splashShard.pos.x += curVelX * dt;
-      splashShard.pos.y += curVelY * dt;
-      splashShard.angle = Math.atan2(curVelY, curVelX) * (180 / Math.PI) + 90;
-      if (splashShard.opacity !== undefined) {
-        splashShard.opacity -= dt * 1.4;
-        if (splashShard.opacity <= 0 || splashShard.pos.y > pos.y + 35) {
-          k.destroy(splashShard as unknown as TDestroyable);
+    if (resolvedNativeRenderEngine && nativeWorldContainer) {
+      const splashShard = createNativeRectNode(
+        k,
+        resolvedNativeRenderEngine,
+        nativeWorldContainer,
+        {
+          identifier: "breach_reentry_splash",
+          width: data.width,
+          height: data.height,
+          cornerRadius: 1,
+          positionX: pos.x + resolveRandomRange(k, -12, 12),
+          positionY: pos.y - 2,
+          fillColor: [255, 255, 255],
+          outlineColor: [180, 240, 255],
+          outlineWidth: 1,
+          opacity: 0.95,
+          rotationDegrees: Math.atan2(curVelY, curVelX) * (180 / Math.PI) + 90,
+          anchor: "center",
+          zIndex: 21,
+          tags: ["breach_reentry_splash"],
         }
-      }
-    });
+      );
+      splashShard.onUpdate((deltaTime) => {
+        curVelY += data.gravityY * deltaTime;
+        splashShard.pos.x += curVelX * deltaTime;
+        splashShard.pos.y += curVelY * deltaTime;
+        splashShard.angle = Math.atan2(curVelY, curVelX) * (180 / Math.PI) + 90;
+        splashShard.opacity -= deltaTime * 1.4;
+        if (splashShard.opacity <= 0 || splashShard.pos.y > pos.y + 35) {
+          splashShard.destroy();
+        }
+      });
+    } else {
+      const splashShard = legacyContext.add([
+        legacyContext.rect(data.width, data.height, { radius: 1 }),
+        legacyContext.pos(pos.x + legacyContext.rand(-12, 12), pos.y - 2),
+        legacyContext.color(255, 255, 255),
+        legacyContext.outline(1, legacyContext.rgb(180, 240, 255)),
+        legacyContext.opacity(0.95),
+        legacyContext.rotate(Math.atan2(curVelY, curVelX) * (180 / Math.PI) + 90),
+        legacyContext.anchor("center"),
+        legacyContext.z(21),
+        "breach_reentry_splash",
+      ]) as BreachGameObject<TColor>;
+
+      splashShard.onUpdate(() => {
+        const dt = legacyContext.dt();
+        curVelY += data.gravityY * dt;
+        splashShard.pos.x += curVelX * dt;
+        splashShard.pos.y += curVelY * dt;
+        splashShard.angle = Math.atan2(curVelY, curVelX) * (180 / Math.PI) + 90;
+        if (splashShard.opacity !== undefined) {
+          splashShard.opacity -= dt * 1.4;
+          if (splashShard.opacity <= 0 || splashShard.pos.y > pos.y + 35) {
+            legacyContext.destroy(splashShard as unknown as TDestroyable);
+          }
+        }
+      });
+    }
   }
 
   // 2. Ondas de crista de choque de alta velocidade expandindo para ambos os lados
   [-1, 1].forEach((dir) => {
-    const shockWave = k.add([
-      k.rect(16, 4.5, { radius: 2 }),
-      k.pos(pos.x + dir * 10, pos.y - 1),
-      k.color(240, 252, 255),
-      k.outline(1.5, k.rgb(120, 210, 255)),
-      k.opacity(0.92),
-      k.z(20),
-    ]) as BreachGameObject<TColor>;
-
     let waveWidth = 16;
-    shockWave.onUpdate(() => {
-      const dt = k.dt();
-      shockWave.pos.x += dir * 210 * dt;
-      waveWidth += 65 * dt;
-      shockWave.width = waveWidth;
-      if (shockWave.opacity !== undefined) {
-        shockWave.opacity -= dt * 2.0;
-        if (shockWave.opacity <= 0) k.destroy(shockWave as unknown as TDestroyable);
-      }
-    });
+    if (resolvedNativeRenderEngine && nativeWorldContainer) {
+      const shockWave = createNativeRectNode(k, resolvedNativeRenderEngine, nativeWorldContainer, {
+        identifier: "breach_shockwave",
+        width: 16,
+        height: 4.5,
+        cornerRadius: 2,
+        positionX: pos.x + dir * 10,
+        positionY: pos.y - 1,
+        fillColor: [240, 252, 255],
+        outlineColor: [120, 210, 255],
+        outlineWidth: 1.5,
+        opacity: 0.92,
+        zIndex: 20,
+      });
+      shockWave.onUpdate((deltaTime) => {
+        shockWave.pos.x += dir * 210 * deltaTime;
+        waveWidth += 65 * deltaTime;
+        shockWave.width = waveWidth;
+        shockWave.opacity -= deltaTime * 2.0;
+        if (shockWave.opacity <= 0) shockWave.destroy();
+      });
+    } else {
+      const shockWave = legacyContext.add([
+        legacyContext.rect(16, 4.5, { radius: 2 }),
+        legacyContext.pos(pos.x + dir * 10, pos.y - 1),
+        legacyContext.color(240, 252, 255),
+        legacyContext.outline(1.5, legacyContext.rgb(120, 210, 255)),
+        legacyContext.opacity(0.92),
+        legacyContext.z(20),
+      ]) as BreachGameObject<TColor>;
+
+      shockWave.onUpdate(() => {
+        const dt = legacyContext.dt();
+        shockWave.pos.x += dir * 210 * dt;
+        waveWidth += 65 * dt;
+        shockWave.width = waveWidth;
+        if (shockWave.opacity !== undefined) {
+          shockWave.opacity -= dt * 2.0;
+          if (shockWave.opacity <= 0) legacyContext.destroy(shockWave as unknown as TDestroyable);
+        }
+      });
+    }
   });
 
   // 3. Spray de micro-gotas circulares no epicentro do impacto
   const reentryPool = getParticlePool();
   for (let g = 0; g < 12; g++) {
-    const dPos = k.vec2(pos.x + k.rand(-25, 25), pos.y - k.rand(2, 10));
-    const dVelX = k.rand(-120, 120);
-    const dVelY = k.rand(-180, -90);
-    const dRadius = k.rand(2, 4.5);
+    const dPos = resolveVector2<TVec>(
+      k,
+      pos.x + resolveRandomRange(k, -25, 25),
+      pos.y - resolveRandomRange(k, 2, 10)
+    );
+    const dVelX = resolveRandomRange(k, -120, 120);
+    const dVelY = resolveRandomRange(k, -180, -90);
+    const dRadius = resolveRandomRange(k, 2, 4.5);
 
     if (reentryPool) {
       reentryPool.spawnCircle({
         pos: dPos,
         radius: dRadius,
-        color: k.rgb(220, 245, 255),
+        color: resolveColorTuple<TColor>(k, 220, 245, 255),
         opacity: 0.85,
         z: 20,
-        vel: k.vec2(dVelX, dVelY),
+        vel: resolveVector2<TVec>(k, dVelX, dVelY),
         gravityY: 520,
         fadeRate: 1.6,
         maxLife: 0.65,
         boundaryY: pos.y + 25,
         boundaryYMode: "greater",
       });
+    } else if (resolvedNativeRenderEngine && nativeWorldContainer) {
+      const drop = createNativeCircleNode(k, resolvedNativeRenderEngine, nativeWorldContainer, {
+        identifier: "breach_reentry_microdrop",
+        radius: dRadius,
+        positionX: dPos.x,
+        positionY: dPos.y,
+        fillColor: [220, 245, 255],
+        opacity: 0.85,
+        zIndex: 20,
+      });
+      let curDVelY = dVelY;
+      drop.onUpdate((deltaTime) => {
+        curDVelY += 520 * deltaTime;
+        drop.pos.x += dVelX * deltaTime;
+        drop.pos.y += curDVelY * deltaTime;
+        drop.opacity -= deltaTime * 1.6;
+        if (drop.opacity <= 0 || drop.pos.y > pos.y + 25) {
+          drop.destroy();
+        }
+      });
     } else {
-      const drop = k.add([
-        k.circle(dRadius),
-        k.pos(dPos.x, dPos.y),
-        k.color(220, 245, 255),
-        k.opacity(0.85),
-        k.z(20),
+      const drop = legacyContext.add([
+        legacyContext.circle(dRadius),
+        legacyContext.pos(dPos.x, dPos.y),
+        legacyContext.color(220, 245, 255),
+        legacyContext.opacity(0.85),
+        legacyContext.z(20),
       ]) as BreachGameObject<TColor>;
       let curDVelY = dVelY;
 
       drop.onUpdate(() => {
-        const dt = k.dt();
+        const dt = legacyContext.dt();
         curDVelY += 520 * dt;
         drop.pos.x += dVelX * dt;
         drop.pos.y += curDVelY * dt;
         if (drop.opacity !== undefined) {
           drop.opacity -= dt * 1.6;
           if (drop.opacity <= 0 || drop.pos.y > pos.y + 25) {
-            k.destroy(drop as unknown as TDestroyable);
+            legacyContext.destroy(drop as unknown as TDestroyable);
           }
         }
       });
     }
   }
 }
+
+export type BreachNativeNodeRef = NativeVisualObjectAdapter;

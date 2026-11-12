@@ -6,6 +6,18 @@ import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 import { getRandomFloat } from "../utils/random";
 import { getSpatialCullingManager, type CullableTargetObject } from "./spatialCullingSystem";
 import { getEntityFamilyTicker } from "./entityFamilyTicker";
+import {
+  resolveInitializedRenderEngine,
+  type IRenderEngine,
+} from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
+import {
+  createNativeCircleNode,
+  createNativeContainerNode,
+  createNativePolygonNode,
+  createNativeRectNode,
+  registerNativeSceneUpdate,
+} from "../engine/adapters/NativeRenderNodeFactory";
 
 export interface DolphinVector2D {
   x: number;
@@ -21,6 +33,7 @@ export interface DolphinGameObject {
   hidden?: boolean;
   add: (components: unknown[]) => DolphinGameObject;
   onUpdate?: (cb: () => void) => void;
+  destroy?: () => void;
 }
 
 export interface DolphinEngineContext<
@@ -44,6 +57,7 @@ export interface DolphinEngineContext<
   z: (v: number) => unknown;
   rgb?: (r: number, g: number, b: number) => TColor;
   vec2: (x: number, y: number) => TVec;
+  onSceneLeave?: (callback: () => void) => unknown;
 }
 
 /**
@@ -62,7 +76,39 @@ export function setupDolphinDraftingSystem<
   TDestroyable = unknown,
   TColor = unknown,
   TVec extends { x: number; y: number } = DolphinVector2D,
->(k: DolphinEngineContext<TDestroyable, TColor, TVec>, playerController: PlayerController) {
+>(
+  k: IRenderEngine | DolphinEngineContext<TDestroyable, TColor, TVec>,
+  playerController: PlayerController
+) {
+  const resolvedNativeRenderEngine = resolveInitializedRenderEngine(k);
+  const nativeWorldContainer = resolvedNativeRenderEngine
+    ? resolveWorldRenderContainer(resolvedNativeRenderEngine)
+    : null;
+  const legacyContext = k as DolphinEngineContext<TDestroyable, TColor, TVec>;
+  const cleanupHandles: Array<() => void> = [];
+
+  const getDeltaTime = (): number => {
+    if (typeof legacyContext.dt === "function") {
+      return legacyContext.dt();
+    }
+    return resolvedNativeRenderEngine
+      ? resolvedNativeRenderEngine.getTicker().getDeltaTime()
+      : 0.016;
+  };
+
+  const createVector = (x: number, y: number): TVec => {
+    if (typeof legacyContext.vec2 === "function") {
+      return legacyContext.vec2(x, y);
+    }
+    return { x, y } as TVec;
+  };
+
+  const resolveRgbColor = (red: number, green: number, blue: number): unknown => {
+    return typeof legacyContext.rgb === "function"
+      ? legacyContext.rgb(red, green, blue)
+      : { r: red, g: green, b: blue };
+  };
+
   let isSystemActive = true;
   const allDolphinBodies: DolphinGameObject[] = [];
 
@@ -113,55 +159,143 @@ export function setupDolphinDraftingSystem<
     ];
 
     offsets.forEach((off, i) => {
-      // Corpo fusiforme do golfinho (proporção biológica 28x9px em relação à jubarte de 108px)
-      const dolphin = k.add([
-        k.rect(28, 9, { radius: 4 }),
-        k.pos(route.initialX + off.x, GAME_CONFIG.SEA_LEVEL + route.depth + off.y),
-        k.color(68, 108, 148),
-        k.anchor("center"),
-        k.scale(k.vec2(route.initialDir, 1)),
-        k.z(11),
-        "dolphin",
-      ]) as DolphinGameObject;
+      let dolphin: DolphinGameObject;
+      let tail: DolphinGameObject;
 
-      allDolphinBodies.push(dolphin);
+      if (resolvedNativeRenderEngine && nativeWorldContainer) {
+        const dolphinContainer = createNativeContainerNode(
+          k,
+          resolvedNativeRenderEngine,
+          nativeWorldContainer,
+          {
+            identifier: "dolphin_body_container",
+            positionX: route.initialX + off.x,
+            positionY: GAME_CONFIG.SEA_LEVEL + route.depth + off.y,
+            scaleX: route.initialDir,
+            scaleY: 1,
+            zIndex: 11,
+            tags: ["dolphin"],
+          }
+        );
 
-      // Ventre claro
-      dolphin.add([
-        k.rect(20, 3.2, { radius: 1.5 }),
-        k.pos(-1, 2.5),
-        k.color(225, 238, 248),
-        k.anchor("center"),
-      ]);
+        createNativeRectNode(k, resolvedNativeRenderEngine, dolphinContainer.renderNode, {
+          identifier: "dolphin_fusiform_body",
+          width: 28,
+          height: 9,
+          cornerRadius: 4,
+          fillColor: [68, 108, 148],
+          anchor: "center",
+        });
+        createNativeRectNode(k, resolvedNativeRenderEngine, dolphinContainer.renderNode, {
+          identifier: "dolphin_belly",
+          width: 20,
+          height: 3.2,
+          cornerRadius: 1.5,
+          positionX: -1,
+          positionY: 2.5,
+          fillColor: [225, 238, 248],
+          anchor: "center",
+        });
+        createNativeRectNode(k, resolvedNativeRenderEngine, dolphinContainer.renderNode, {
+          identifier: "dolphin_rostrum",
+          width: 5.5,
+          height: 2.5,
+          cornerRadius: 1,
+          positionX: 15.5,
+          positionY: 0.8,
+          fillColor: [68, 108, 148],
+          anchor: "center",
+        });
+        createNativePolygonNode(k, resolvedNativeRenderEngine, dolphinContainer.renderNode, {
+          identifier: "dolphin_dorsal_fin",
+          points: [
+            { x: 0, y: 0 },
+            { x: -5, y: -6 },
+            { x: -9, y: 0 },
+          ],
+          positionX: 1,
+          positionY: -4.5,
+          fillColor: [52, 88, 124],
+        });
+        createNativePolygonNode(k, resolvedNativeRenderEngine, dolphinContainer.renderNode, {
+          identifier: "dolphin_pectoral_fin",
+          points: [
+            { x: 0, y: 0 },
+            { x: -4, y: 5 },
+            { x: -7, y: 1.5 },
+          ],
+          positionX: 5,
+          positionY: 3,
+          fillColor: [52, 88, 124],
+        });
+        const tailNode = createNativePolygonNode(
+          k,
+          resolvedNativeRenderEngine,
+          dolphinContainer.renderNode,
+          {
+            identifier: "dolphin_tail_flukes",
+            points: [
+              { x: 0, y: 0 },
+              { x: -5, y: -5 },
+              { x: -5, y: 5 },
+            ],
+            positionX: -14,
+            positionY: 0,
+            fillColor: [52, 88, 124],
+          }
+        );
 
-      // Bico / Rostro
-      dolphin.add([
-        k.rect(5.5, 2.5, { radius: 1 }),
-        k.pos(15.5, 0.8),
-        k.color(68, 108, 148),
-        k.anchor("center"),
-      ]);
+        dolphin = dolphinContainer as unknown as DolphinGameObject;
+        tail = tailNode as unknown as DolphinGameObject;
+      } else {
+        // Corpo fusiforme do golfinho (proporção biológica 28x9px em relação à jubarte de 108px)
+        dolphin = legacyContext.add([
+          legacyContext.rect(28, 9, { radius: 4 }),
+          legacyContext.pos(route.initialX + off.x, GAME_CONFIG.SEA_LEVEL + route.depth + off.y),
+          legacyContext.color(68, 108, 148),
+          legacyContext.anchor("center"),
+          legacyContext.scale(createVector(route.initialDir, 1)),
+          legacyContext.z(11),
+          "dolphin",
+        ]) as DolphinGameObject;
 
-      // Nadadeira dorsal curvada falcada
-      dolphin.add([
-        k.polygon([k.vec2(0, 0), k.vec2(-5, -6), k.vec2(-9, 0)]),
-        k.pos(1, -4.5),
-        k.color(52, 88, 124),
-      ]);
+        // Ventre claro
+        dolphin.add([
+          legacyContext.rect(20, 3.2, { radius: 1.5 }),
+          legacyContext.pos(-1, 2.5),
+          legacyContext.color(225, 238, 248),
+          legacyContext.anchor("center"),
+        ]);
 
-      // Nadadeira peitoral
-      dolphin.add([
-        k.polygon([k.vec2(0, 0), k.vec2(-4, 5), k.vec2(-7, 1.5)]),
-        k.pos(5, 3),
-        k.color(52, 88, 124),
-      ]);
+        // Bico / Rostro
+        dolphin.add([
+          legacyContext.rect(5.5, 2.5, { radius: 1 }),
+          legacyContext.pos(15.5, 0.8),
+          legacyContext.color(68, 108, 148),
+          legacyContext.anchor("center"),
+        ]);
 
-      // Cauda / Flukes
-      const tail = dolphin.add([
-        k.polygon([k.vec2(0, 0), k.vec2(-5, -5), k.vec2(-5, 5)]),
-        k.pos(-14, 0),
-        k.color(52, 88, 124),
-      ]) as DolphinGameObject;
+        // Nadadeira dorsal curvada falcada
+        dolphin.add([
+          legacyContext.polygon([createVector(0, 0), createVector(-5, -6), createVector(-9, 0)]),
+          legacyContext.pos(1, -4.5),
+          legacyContext.color(52, 88, 124),
+        ]);
+
+        // Nadadeira peitoral
+        dolphin.add([
+          legacyContext.polygon([createVector(0, 0), createVector(-4, 5), createVector(-7, 1.5)]),
+          legacyContext.pos(5, 3),
+          legacyContext.color(52, 88, 124),
+        ]);
+
+        // Cauda / Flukes
+        tail = dolphin.add([
+          legacyContext.polygon([createVector(0, 0), createVector(-5, -5), createVector(-5, 5)]),
+          legacyContext.pos(-14, 0),
+          legacyContext.color(52, 88, 124),
+        ]);
+      }
 
       allDolphinBodies.push(dolphin);
       const cullingManager = getSpatialCullingManager();
@@ -186,9 +320,11 @@ export function setupDolphinDraftingSystem<
     let leapTime = 0;
     const leapDuration = 1.35;
     let clickSoundTimer = 0;
+    let podElapsedTime = 0;
 
     const updateDolphinPod = (dt: number) => {
       if (!isSystemActive) return;
+      podElapsedTime += dt;
 
       const player = playerController.gameObj;
       const playerX = player ? player.pos.x : 0;
@@ -298,38 +434,59 @@ export function setupDolphinDraftingSystem<
           if (player && Math.abs(podX - player.pos.x) < 800) {
             if (leapProgress < 0.12 || leapProgress > 0.88) {
               if (getRandomFloat(0, 1) < 0.3) {
-                const splashPos = k.vec2(podX + getRandomFloat(-20, 20), GAME_CONFIG.SEA_LEVEL + 3);
+                const splashPos = createVector(
+                  podX + getRandomFloat(-20, 20),
+                  GAME_CONFIG.SEA_LEVEL + 3
+                );
                 const pool = getParticlePool();
                 if (pool) {
                   pool.spawnCircle({
                     pos: splashPos,
                     radius: 1.8,
-                    color:
-                      typeof k.rgb === "function"
-                        ? k.rgb(210, 240, 255)
-                        : { r: 210, g: 240, b: 255 },
+                    color: resolveRgbColor(210, 240, 255),
                     opacity: 0.85,
                     z: 14,
-                    vel: k.vec2(0, -25),
+                    vel: createVector(0, -25),
                     fadeRate: 3.5,
                     maxLife: 0.3,
                   });
+                } else if (resolvedNativeRenderEngine && nativeWorldContainer) {
+                  const splash = createNativeCircleNode(
+                    k,
+                    resolvedNativeRenderEngine,
+                    nativeWorldContainer,
+                    {
+                      identifier: "dolphin_splash_drop",
+                      radius: 1.8,
+                      positionX: splashPos.x,
+                      positionY: splashPos.y,
+                      fillColor: [210, 240, 255],
+                      opacity: 0.85,
+                      zIndex: 14,
+                    }
+                  );
+                  splash.onUpdate((stepDelta) => {
+                    splash.pos.y -= stepDelta * 25;
+                    splash.opacity -= stepDelta * 3.5;
+                    if (splash.opacity <= 0) splash.destroy();
+                  });
                 } else {
-                  const splash = k.add([
-                    k.circle(1.8),
-                    k.pos(splashPos.x, splashPos.y),
-                    k.color(210, 240, 255),
-                    k.opacity(0.85),
-                    k.z(14),
+                  const splash = legacyContext.add([
+                    legacyContext.circle(1.8),
+                    legacyContext.pos(splashPos.x, splashPos.y),
+                    legacyContext.color(210, 240, 255),
+                    legacyContext.opacity(0.85),
+                    legacyContext.z(14),
                   ]) as DolphinGameObject;
                   splash.onUpdate = (cb: () => void) => {
                     cb();
                   };
-                  k.onUpdate(() => {
+                  legacyContext.onUpdate(() => {
                     if (splash.opacity !== undefined) {
                       splash.pos.y -= dt * 25;
                       splash.opacity -= dt * 3.5;
-                      if (splash.opacity <= 0) k.destroy(splash as unknown as TDestroyable);
+                      if (splash.opacity <= 0)
+                        legacyContext.destroy(splash as unknown as TDestroyable);
                     }
                   });
                 }
@@ -343,7 +500,7 @@ export function setupDolphinDraftingSystem<
       }
 
       // 3. Atualização Contínua de Posição de Cada Golfinho
-      const time = k.time();
+      const time = typeof legacyContext.time === "function" ? legacyContext.time() : podElapsedTime;
 
       dolphins.forEach((d, i) => {
         const swimWave = Math.sin(time * 6 + i * 1.2) * 7;
@@ -410,9 +567,13 @@ export function setupDolphinDraftingSystem<
         width: (route.maxX - route.minX) / 2,
         update: updateDolphinPod,
       });
+    } else if (resolvedNativeRenderEngine) {
+      cleanupHandles.push(
+        registerNativeSceneUpdate(k, resolvedNativeRenderEngine, updateDolphinPod)
+      );
     } else {
-      k.onUpdate(() => {
-        updateDolphinPod(k.dt());
+      legacyContext.onUpdate(() => {
+        updateDolphinPod(getDeltaTime());
       });
     }
   });
@@ -432,6 +593,20 @@ export function setupDolphinDraftingSystem<
     });
   };
 
+  const destroy = () => {
+    for (let index = 0; index < cleanupHandles.length; index++) {
+      cleanupHandles[index]();
+    }
+    cleanupHandles.length = 0;
+    for (let index = 0; index < allDolphinBodies.length; index++) {
+      allDolphinBodies[index].destroy?.();
+    }
+  };
+
+  if (resolvedNativeRenderEngine && typeof legacyContext.onSceneLeave === "function") {
+    legacyContext.onSceneLeave(destroy);
+  }
+
   const biomeMgr = getBiomeLifecycleManager();
   if (biomeMgr) {
     biomeMgr.registerModule({
@@ -448,6 +623,7 @@ export function setupDolphinDraftingSystem<
   return {
     activate,
     deactivate,
+    destroy,
     isActive: () => isSystemActive,
   };
 }

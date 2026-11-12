@@ -3,6 +3,12 @@ import { audioSystem } from "../../systems/audioSystem";
 import { hapticsSystem } from "../../systems/hapticsSystem";
 import { getParticlePool } from "../../systems/particlePool";
 import type { PlayerVector2D, StrictPlayerVector2D } from "./types";
+import { resolveInitializedRenderEngine } from "../../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveWorldRenderContainer } from "../../engine/adapters/RenderEngineAdapter";
+import {
+  createNativeCircleNode,
+  scheduleNativeSceneDelay,
+} from "../../engine/adapters/NativeRenderNodeFactory";
 
 export interface RevealableTarget {
   pos?: StrictPlayerVector2D | PlayerVector2D;
@@ -71,16 +77,88 @@ export class PlayerSonarManager {
     audioSystem.playWhaleSong(1.0, 1.0);
     hapticsSystem.triggerSonar();
 
-    const headOffset = this.k.vec2(facingRight ? 42 : -42, -4);
-    const headPos =
+    const resolvedNativeRenderEngine = resolveInitializedRenderEngine(this.k);
+    const worldRenderContainer = resolvedNativeRenderEngine
+      ? resolveWorldRenderContainer(resolvedNativeRenderEngine)
+      : null;
+
+    const headOffsetX = facingRight ? 42 : -42;
+    const headOffsetY = -4;
+    const headPos: PlayerVector2D = {
+      x: pos.x + headOffsetX,
+      y: pos.y + headOffsetY,
+    };
+
+    if (resolvedNativeRenderEngine && worldRenderContainer) {
+      // 1. Onda acústica concêntrica primária (360°) no pipeline nativo PixiJS v8
+      const primaryPulse = createNativeCircleNode(
+        this.k,
+        resolvedNativeRenderEngine,
+        worldRenderContainer,
+        {
+          identifier: "player_sonar_primary_pulse",
+          radius: 15,
+          positionX: headPos.x,
+          positionY: headPos.y,
+          fillColor: [0, 230, 255],
+          outlineColor: [180, 255, 255],
+          outlineWidth: 3,
+          opacity: 0.8,
+          zIndex: 20,
+        }
+      );
+
+      primaryPulse.onUpdate((deltaTimeInSeconds: number) => {
+        primaryPulse.radius += deltaTimeInSeconds * 520;
+        primaryPulse.opacity -= deltaTimeInSeconds * 0.9;
+        if (primaryPulse.opacity <= 0 || primaryPulse.radius >= GAME_CONFIG.SONAR_RANGE) {
+          primaryPulse.destroy();
+        }
+      });
+
+      // 2. Onda secundária (eco sonoplástico concêntrico)
+      scheduleNativeSceneDelay(this.k, resolvedNativeRenderEngine, 0.08, () => {
+        const secondaryPulse = createNativeCircleNode(
+          this.k,
+          resolvedNativeRenderEngine,
+          worldRenderContainer,
+          {
+            identifier: "player_sonar_secondary_pulse",
+            radius: 10,
+            positionX: headPos.x,
+            positionY: headPos.y,
+            fillColor: [0, 160, 240],
+            outlineColor: [120, 220, 255],
+            outlineWidth: 2,
+            opacity: 0.6,
+            zIndex: 19,
+          }
+        );
+
+        secondaryPulse.onUpdate((deltaTimeInSeconds: number) => {
+          secondaryPulse.radius += deltaTimeInSeconds * 480;
+          secondaryPulse.opacity -= deltaTimeInSeconds * 0.85;
+          if (secondaryPulse.opacity <= 0 || secondaryPulse.radius >= GAME_CONFIG.SONAR_RANGE) {
+            secondaryPulse.destroy();
+          }
+        });
+      });
+
+      // 3. Varredura acústica com revelação de itens e ecos concêntricos
+      revealEntitiesInSonarRadius(this.k, headPos, GAME_CONFIG.SONAR_RANGE);
+      return;
+    }
+
+    const legacyHeadOffset = this.k.vec2(headOffsetX, headOffsetY);
+    const legacyHeadPos =
       typeof pos.add === "function"
-        ? (pos.add(headOffset) as StrictPlayerVector2D)
-        : this.k.vec2(pos.x + headOffset.x, pos.y + headOffset.y);
+        ? (pos.add(legacyHeadOffset) as StrictPlayerVector2D)
+        : this.k.vec2(pos.x + legacyHeadOffset.x, pos.y + legacyHeadOffset.y);
 
     // 1. Onda acústica concêntrica primária (360°)
     const primaryPulse = this.k.add([
       this.k.circle(15),
-      this.k.pos(headPos),
+      this.k.pos(legacyHeadPos),
       this.k.color(0, 230, 255),
       this.k.outline(3, this.k.rgb(180, 255, 255)),
       this.k.opacity(0.8),
@@ -100,7 +178,7 @@ export class PlayerSonarManager {
     this.k.wait(0.08, () => {
       const secondaryPulse = this.k.add([
         this.k.circle(10),
-        this.k.pos(headPos),
+        this.k.pos(legacyHeadPos),
         this.k.color(0, 160, 240),
         this.k.outline(2, this.k.rgb(120, 220, 255)),
         this.k.opacity(0.6),
@@ -118,7 +196,7 @@ export class PlayerSonarManager {
     });
 
     // 3. Varredura acústica com revelação de itens e ecos concêntricos
-    revealEntitiesInSonarRadius(this.k, headPos, GAME_CONFIG.SONAR_RANGE);
+    revealEntitiesInSonarRadius(this.k, legacyHeadPos, GAME_CONFIG.SONAR_RANGE);
   }
 }
 
@@ -131,16 +209,26 @@ export function revealEntitiesInSonarRadius(
   centerPosition: StrictPlayerVector2D | PlayerVector2D,
   scanRadius: number = GAME_CONFIG.SONAR_RANGE
 ): number {
+  const resolvedNativeRenderEngine = resolveInitializedRenderEngine(k);
+  const worldRenderContainer = resolvedNativeRenderEngine
+    ? resolveWorldRenderContainer(resolvedNativeRenderEngine)
+    : null;
+
   const targets: RevealableTarget[] = [];
+  const seenTargets = new Set<RevealableTarget>();
+
   if (activeSonarTargets.size > 0) {
     for (const target of activeSonarTargets) {
       if (!target.exists || target.exists()) {
         targets.push(target);
+        seenTargets.add(target);
       } else {
         activeSonarTargets.delete(target);
       }
     }
-  } else {
+  }
+
+  if (typeof k.get === "function") {
     const sonarTags = [
       TAGS.TRASH,
       TAGS.KRILL,
@@ -152,10 +240,22 @@ export function revealEntitiesInSonarRadius(
     for (let i = 0; i < sonarTags.length; i++) {
       const found = k.get(sonarTags[i]);
       for (let j = 0; j < found.length; j++) {
-        targets.push(found[j]);
+        const candidate = found[j];
+        if (!seenTargets.has(candidate)) {
+          seenTargets.add(candidate);
+          targets.push(candidate);
+        }
       }
     }
   }
+
+  const scheduleEchoDelay = (delaySeconds: number, callback: () => void) => {
+    if (resolvedNativeRenderEngine) {
+      scheduleNativeSceneDelay(k, resolvedNativeRenderEngine, delaySeconds, callback);
+    } else {
+      k.wait(delaySeconds, callback);
+    }
+  };
 
   let revealedCount = 0;
   let echoCount = 0;
@@ -171,19 +271,106 @@ export function revealEntitiesInSonarRadius(
     if (distanceToObject <= scanRadius) {
       revealedCount++;
       const travelTime = distanceToObject / 520;
-      k.wait(travelTime, () => {
+      scheduleEchoDelay(travelTime, () => {
         if (typeof targetEntity.reveal === "function") {
           targetEntity.reveal();
         }
 
         // Anel de reflexão acústica adaptado ao tipo de objeto
         const isKrill = targetEntity.is && targetEntity.is(TAGS.KRILL);
+        const targetPos = targetEntity.pos!;
 
-        if (isKrill) {
+        if (resolvedNativeRenderEngine && worldRenderContainer) {
+          if (isKrill) {
+            const echoPing = createNativeCircleNode(
+              k,
+              resolvedNativeRenderEngine,
+              worldRenderContainer,
+              {
+                identifier: "sonar_krill_echo_ping",
+                radius: 12,
+                positionX: targetPos.x,
+                positionY: targetPos.y,
+                fillColor: [255, 220, 80],
+                outlineColor: [100, 255, 210],
+                outlineWidth: 2.5,
+                opacity: 0.95,
+                zIndex: 22,
+              }
+            );
+            echoPing.onUpdate((deltaTimeInSeconds: number) => {
+              echoPing.radius += deltaTimeInSeconds * 65;
+              echoPing.opacity -= deltaTimeInSeconds * 2.2;
+              if (echoPing.opacity <= 0) echoPing.destroy();
+            });
+
+            const pool = getParticlePool();
+            for (let s = 0; s < 4; s++) {
+              const ang = (s / 4) * Math.PI * 2 + Math.PI / 4;
+              const dirX = Math.cos(ang) * 55;
+              const dirY = Math.sin(ang) * 55;
+              if (pool) {
+                pool.spawnCircle({
+                  pos: targetPos,
+                  radius: 2,
+                  color: typeof k.rgb === "function" ? k.rgb(255, 235, 120) : [255, 235, 120],
+                  opacity: 0.9,
+                  z: 23,
+                  vel: { x: dirX, y: dirY },
+                  fadeRate: 2.5,
+                  maxLife: 0.4,
+                });
+              } else {
+                const spark = createNativeCircleNode(
+                  k,
+                  resolvedNativeRenderEngine,
+                  worldRenderContainer,
+                  {
+                    identifier: "sonar_echo_spark",
+                    radius: 2,
+                    positionX: targetPos.x,
+                    positionY: targetPos.y,
+                    fillColor: [255, 235, 120],
+                    opacity: 0.9,
+                    zIndex: 23,
+                  }
+                );
+                spark.onUpdate((deltaTimeInSeconds: number) => {
+                  spark.pos.x += dirX * deltaTimeInSeconds;
+                  spark.pos.y += dirY * deltaTimeInSeconds;
+                  spark.opacity -= deltaTimeInSeconds * 2.5;
+                  if (spark.opacity <= 0) spark.destroy();
+                });
+              }
+            }
+          } else {
+            const echoPing = createNativeCircleNode(
+              k,
+              resolvedNativeRenderEngine,
+              worldRenderContainer,
+              {
+                identifier: "sonar_object_echo_ping",
+                radius: 8,
+                positionX: targetPos.x,
+                positionY: targetPos.y,
+                fillColor: [0, 240, 255],
+                outlineColor: [255, 255, 255],
+                outlineWidth: 2,
+                opacity: 0.9,
+                zIndex: 22,
+              }
+            );
+            echoPing.onUpdate((deltaTimeInSeconds: number) => {
+              echoPing.radius += deltaTimeInSeconds * 45;
+              echoPing.opacity -= deltaTimeInSeconds * 2.8;
+              if (echoPing.opacity <= 0) echoPing.destroy();
+            });
+          }
+        } else if (isKrill) {
           // Reflexão acústica especial para alimento: anel dourado com halo esmeralda e partículas radiantes
           const echoPing = k.add([
             k.circle(12),
-            k.pos(targetEntity.pos!),
+            k.pos(targetPos),
             k.color(255, 220, 80),
             k.outline(2.5, k.rgb(100, 255, 210)),
             k.opacity(0.95),
@@ -205,7 +392,7 @@ export function revealEntitiesInSonarRadius(
 
             if (pool) {
               pool.spawnCircle({
-                pos: targetEntity.pos!,
+                pos: targetPos,
                 radius: 2,
                 color: k.rgb(255, 235, 120),
                 opacity: 0.9,
@@ -217,7 +404,7 @@ export function revealEntitiesInSonarRadius(
             } else {
               const spark = k.add([
                 k.circle(2),
-                k.pos(targetEntity.pos!),
+                k.pos(targetPos),
                 k.color(255, 235, 120),
                 k.opacity(0.9),
                 k.z(23),
@@ -236,7 +423,7 @@ export function revealEntitiesInSonarRadius(
         } else {
           const echoPing = k.add([
             k.circle(8),
-            k.pos(targetEntity.pos!),
+            k.pos(targetPos),
             k.color(0, 240, 255),
             k.outline(2, k.rgb(255, 255, 255)),
             k.opacity(0.9),

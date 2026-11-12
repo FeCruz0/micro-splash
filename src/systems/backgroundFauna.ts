@@ -4,6 +4,17 @@ import { getParticlePool } from "./particlePool";
 import { getSpatialCullingManager } from "./spatialCullingSystem";
 import { getBiomeLifecycleManager } from "./biomeLifecycleManager";
 import { getRandomFloat } from "../utils/random";
+import {
+  resolveInitializedRenderEngine,
+  type IRenderEngine,
+} from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
+import {
+  createNativeCircleNode,
+  createNativeRectNode,
+  createNativeSpriteNode,
+  scheduleNativeSceneDelay,
+} from "../engine/adapters/NativeRenderNodeFactory";
 
 export interface BackgroundFaunaVector2D {
   x: number;
@@ -20,6 +31,7 @@ export interface BackgroundFaunaGameObject {
   height?: number;
   hidden?: boolean;
   onUpdate: (cb: () => void) => void;
+  destroy?: () => void;
 }
 
 export interface BackgroundFaunaEngineContext<
@@ -43,6 +55,7 @@ export interface BackgroundFaunaEngineContext<
   rgb?: (r: number, g: number, b: number) => TColor;
   vec2: (x: number, y: number) => TVec;
   wait: (time: number, cb: () => void) => void;
+  onSceneLeave?: (callback: () => void) => unknown;
 }
 
 /**
@@ -56,7 +69,169 @@ export function setupBackgroundFaunaSystem<
   TDestroyable = unknown,
   TColor = unknown,
   TVec extends { x: number; y: number } = BackgroundFaunaVector2D,
->(k: BackgroundFaunaEngineContext<TDestroyable, TColor, TVec>) {
+>(k: IRenderEngine | BackgroundFaunaEngineContext<TDestroyable, TColor, TVec>) {
+  const resolvedNativeRenderEngine = resolveInitializedRenderEngine(k);
+  const nativeWorldContainer = resolvedNativeRenderEngine
+    ? resolveWorldRenderContainer(resolvedNativeRenderEngine)
+    : null;
+  const legacyContext = k as BackgroundFaunaEngineContext<TDestroyable, TColor, TVec>;
+  const createdNativeNodes: Array<{ destroy(): void }> = [];
+
+  const getDeltaTime = (): number => {
+    if (typeof legacyContext.dt === "function") {
+      return legacyContext.dt();
+    }
+    return resolvedNativeRenderEngine
+      ? resolvedNativeRenderEngine.getTicker().getDeltaTime()
+      : 0.016;
+  };
+
+  const createVector = (x: number, y: number): { x: number; y: number } => {
+    return typeof legacyContext.vec2 === "function" ? legacyContext.vec2(x, y) : { x, y };
+  };
+
+  const resolveRgbColor = (red: number, green: number, blue: number): unknown => {
+    return typeof legacyContext.rgb === "function"
+      ? legacyContext.rgb(red, green, blue)
+      : { r: red, g: green, b: blue };
+  };
+
+  const spawnSpriteEntity = (params: {
+    assetAlias: string;
+    animationName: string;
+    positionX: number;
+    positionY: number;
+    scaleFactor?: number;
+    opacity: number;
+    zIndex: number;
+  }): BackgroundFaunaGameObject => {
+    if (resolvedNativeRenderEngine && nativeWorldContainer) {
+      const spriteAdapter = createNativeSpriteNode(
+        k,
+        resolvedNativeRenderEngine,
+        nativeWorldContainer,
+        {
+          identifier: `fauna_${params.assetAlias}`,
+          assetAlias: params.assetAlias,
+          animationName: params.animationName,
+          positionX: params.positionX,
+          positionY: params.positionY,
+          scaleX: params.scaleFactor ?? 1,
+          scaleY: params.scaleFactor ?? 1,
+          opacity: params.opacity,
+          zIndex: params.zIndex,
+          anchor: "center",
+        }
+      );
+      createdNativeNodes.push(spriteAdapter);
+      return spriteAdapter as unknown as BackgroundFaunaGameObject;
+    }
+
+    const components: unknown[] = [
+      legacyContext.sprite(params.assetAlias, { anim: params.animationName }),
+      legacyContext.pos(params.positionX, params.positionY),
+    ];
+    if (params.scaleFactor !== undefined) {
+      components.push(legacyContext.scale(params.scaleFactor));
+    }
+    components.push(
+      legacyContext.rotate(0),
+      legacyContext.opacity(params.opacity),
+      legacyContext.anchor("center"),
+      legacyContext.z(params.zIndex)
+    );
+    return legacyContext.add(components) as BackgroundFaunaGameObject;
+  };
+
+  const spawnCircleEntity = (params: {
+    radius: number;
+    positionX: number;
+    positionY: number;
+    colorTuple: [number, number, number];
+    opacity: number;
+    zIndex: number;
+  }): BackgroundFaunaGameObject => {
+    if (resolvedNativeRenderEngine && nativeWorldContainer) {
+      return createNativeCircleNode(k, resolvedNativeRenderEngine, nativeWorldContainer, {
+        identifier: "fauna_circle_effect",
+        radius: params.radius,
+        positionX: params.positionX,
+        positionY: params.positionY,
+        fillColor: params.colorTuple,
+        opacity: params.opacity,
+        zIndex: params.zIndex,
+        anchor: "center",
+      }) as unknown as BackgroundFaunaGameObject;
+    }
+    return legacyContext.add([
+      legacyContext.circle(params.radius),
+      legacyContext.pos(params.positionX, params.positionY),
+      legacyContext.color(params.colorTuple[0], params.colorTuple[1], params.colorTuple[2]),
+      legacyContext.opacity(params.opacity),
+      legacyContext.anchor("center"),
+      legacyContext.z(params.zIndex),
+    ]) as BackgroundFaunaGameObject;
+  };
+
+  const spawnRectEntity = (params: {
+    width: number;
+    height: number;
+    cornerRadius?: number;
+    positionX: number;
+    positionY: number;
+    colorTuple: [number, number, number];
+    opacity: number;
+    zIndex: number;
+  }): BackgroundFaunaGameObject => {
+    if (resolvedNativeRenderEngine && nativeWorldContainer) {
+      return createNativeRectNode(k, resolvedNativeRenderEngine, nativeWorldContainer, {
+        identifier: "fauna_rect_effect",
+        width: params.width,
+        height: params.height,
+        cornerRadius: params.cornerRadius,
+        positionX: params.positionX,
+        positionY: params.positionY,
+        fillColor: params.colorTuple,
+        opacity: params.opacity,
+        zIndex: params.zIndex,
+        anchor: "center",
+      }) as unknown as BackgroundFaunaGameObject;
+    }
+    return legacyContext.add([
+      legacyContext.rect(params.width, params.height, { radius: params.cornerRadius }),
+      legacyContext.pos(params.positionX, params.positionY),
+      legacyContext.color(params.colorTuple[0], params.colorTuple[1], params.colorTuple[2]),
+      legacyContext.opacity(params.opacity),
+      legacyContext.anchor("center"),
+      legacyContext.z(params.zIndex),
+    ]) as BackgroundFaunaGameObject;
+  };
+
+  const destroyEntity = (target: BackgroundFaunaGameObject): void => {
+    if (resolvedNativeRenderEngine && typeof target.destroy === "function") {
+      target.destroy();
+      return;
+    }
+    legacyContext.destroy(target as unknown as TDestroyable);
+  };
+
+  const scheduleDelayed = (delaySeconds: number, callback: () => void): void => {
+    if (resolvedNativeRenderEngine) {
+      scheduleNativeSceneDelay(k, resolvedNativeRenderEngine, delaySeconds, callback);
+      return;
+    }
+    legacyContext.wait(delaySeconds, callback);
+  };
+
+  if (resolvedNativeRenderEngine && typeof legacyContext.onSceneLeave === "function") {
+    legacyContext.onSceneLeave(() => {
+      for (let index = 0; index < createdNativeNodes.length; index++) {
+        createdNativeNodes[index].destroy();
+      }
+      createdNativeNodes.length = 0;
+    });
+  }
+
   // ===========================================================================
   // 1. PODS FAMILIARES DE ORCAS NA ANTÁRTIDA (0m - 5.000m)
   // Orcas vivem e caçam em formações matrilineares coordenadas
@@ -102,15 +277,15 @@ export function setupBackgroundFaunaSystem<
 
   orcaPods.forEach((pod) => {
     pod.members.forEach((m) => {
-      const orca = k.add([
-        k.sprite("orca_bg", { anim: "swim" }),
-        k.pos(pod.basePos.x + m.offsetX, pod.basePos.y + m.offsetY),
-        k.scale(m.scale),
-        k.rotate(0),
-        k.opacity(0.72),
-        k.anchor("center"),
-        k.z(-5),
-      ]) as BackgroundFaunaGameObject;
+      const orca = spawnSpriteEntity({
+        assetAlias: "orca_bg",
+        animationName: "swim",
+        positionX: pod.basePos.x + m.offsetX,
+        positionY: pod.basePos.y + m.offsetY,
+        scaleFactor: m.scale,
+        opacity: 0.72,
+        zIndex: -5,
+      });
       orcaObjects.push(orca);
       cullingManager?.registerEntity(orca, () => pod.basePos.x + m.offsetX, 120);
 
@@ -119,7 +294,7 @@ export function setupBackgroundFaunaSystem<
 
       orca.onUpdate(() => {
         if (orca.hidden) return;
-        const dt = k.dt();
+        const dt = getDeltaTime();
         timer += dt;
         bubbleTimer += dt;
 
@@ -133,16 +308,15 @@ export function setupBackgroundFaunaSystem<
         if (bubbleTimer >= 3.8) {
           bubbleTimer = 0;
           const pool = getParticlePool();
-          const bubblePos = k.vec2(orca.pos.x + 22 * m.scale, orca.pos.y - 8 * m.scale);
+          const bubblePos = createVector(orca.pos.x + 22 * m.scale, orca.pos.y - 8 * m.scale);
           if (pool) {
             pool.spawnCircle({
               pos: bubblePos,
               radius: 1.5 * m.scale,
-              color:
-                typeof k.rgb === "function" ? k.rgb(200, 235, 255) : { r: 200, g: 235, b: 255 },
+              color: resolveRgbColor(200, 235, 255),
               opacity: 0.45,
               z: -4,
-              vel: k.vec2(0, -24),
+              vel: createVector(0, -24),
               fadeRate: 0.35,
               maxLife: 1.4,
             });
@@ -165,14 +339,14 @@ export function setupBackgroundFaunaSystem<
   const passingWhaleObjects: BackgroundFaunaGameObject[] = [];
 
   passingWhalePositions.forEach((pos) => {
-    const whaleBg = k.add([
-      k.sprite("jubarte_bg", { anim: "swim" }),
-      k.pos(pos.x, pos.y),
-      k.rotate(0),
-      k.opacity(0.75),
-      k.anchor("center"),
-      k.z(-4),
-    ]) as BackgroundFaunaGameObject;
+    const whaleBg = spawnSpriteEntity({
+      assetAlias: "jubarte_bg",
+      animationName: "swim",
+      positionX: pos.x,
+      positionY: pos.y,
+      opacity: 0.75,
+      zIndex: -4,
+    });
     passingWhaleObjects.push(whaleBg);
     cullingManager?.registerEntity(whaleBg, () => pos.x, 180);
 
@@ -181,7 +355,7 @@ export function setupBackgroundFaunaSystem<
 
     whaleBg.onUpdate(() => {
       if (whaleBg.hidden) return;
-      const dt = k.dt();
+      const dt = getDeltaTime();
       pulseTimer += dt;
       swimTimer += dt;
 
@@ -195,23 +369,24 @@ export function setupBackgroundFaunaSystem<
         pulseTimer = 0;
 
         // 1. Anel de sonar expansivo
-        const ring = k.add([
-          k.circle(16),
-          k.pos(whaleBg.pos.x, whaleBg.pos.y),
-          k.color(0, 190, 255),
-          k.opacity(0.52),
-          k.anchor("center"),
-          k.z(-3),
-        ]) as BackgroundFaunaGameObject;
+        const ring = spawnCircleEntity({
+          radius: 16,
+          positionX: whaleBg.pos.x,
+          positionY: whaleBg.pos.y,
+          colorTuple: [0, 190, 255],
+          opacity: 0.52,
+          zIndex: -3,
+        });
 
         ring.onUpdate(() => {
+          const dtStep = getDeltaTime();
           if (ring.radius !== undefined) {
-            ring.radius += k.dt() * 145;
+            ring.radius += dtStep * 145;
           }
           if (ring.opacity !== undefined) {
-            ring.opacity -= k.dt() * 0.32;
+            ring.opacity -= dtStep * 0.32;
             if (ring.opacity <= 0) {
-              k.destroy(ring as unknown as TDestroyable);
+              destroyEntity(ring);
             }
           }
         });
@@ -219,25 +394,23 @@ export function setupBackgroundFaunaSystem<
         // 2. Rede de bolhas (Bubble Net spiral) típica das jubartes
         for (let b = 0; b < 5; b++) {
           const bubbleAngle = (b / 5) * Math.PI * 2;
-          const bubble = k.add([
-            k.circle(getRandomFloat(2.2, 3.7)),
-            k.pos(
-              whaleBg.pos.x + Math.cos(bubbleAngle) * 28,
-              whaleBg.pos.y + Math.sin(bubbleAngle) * 18
-            ),
-            k.color(180, 230, 255),
-            k.opacity(0.6),
-            k.anchor("center"),
-            k.z(-3),
-          ]) as BackgroundFaunaGameObject;
+          const bubble = spawnCircleEntity({
+            radius: getRandomFloat(2.2, 3.7),
+            positionX: whaleBg.pos.x + Math.cos(bubbleAngle) * 28,
+            positionY: whaleBg.pos.y + Math.sin(bubbleAngle) * 18,
+            colorTuple: [180, 230, 255],
+            opacity: 0.6,
+            zIndex: -3,
+          });
 
           const upwardSpeed = getRandomFloat(35, 60);
           bubble.onUpdate(() => {
-            bubble.pos.y -= k.dt() * upwardSpeed;
+            const dtStep = getDeltaTime();
+            bubble.pos.y -= dtStep * upwardSpeed;
             bubble.pos.x += Math.sin(bubble.pos.y * 0.08) * 0.6;
             if (bubble.opacity !== undefined) {
-              bubble.opacity -= k.dt() * 0.38;
-              if (bubble.opacity <= 0) k.destroy(bubble as unknown as TDestroyable);
+              bubble.opacity -= dtStep * 0.38;
+              if (bubble.opacity <= 0) destroyEntity(bubble);
             }
           });
         }
@@ -263,25 +436,25 @@ export function setupBackgroundFaunaSystem<
   // 3. BERÇÁRIO DE MÃE E FILHOTE NO SANTUÁRIO (25.000m - 27.000m)
   // Nado em escalão hidrodinâmico (Echelon swimming) e acolhimento afetuoso
   // ===========================================================================
-  const motherWhale = k.add([
-    k.sprite("jubarte_bg", { anim: "swim" }),
-    k.pos(25800, 260),
-    k.scale(0.66), // Escala biológica de fundo: ~95×32px (~13m, harmonizado com plano distante)
-    k.rotate(0),
-    k.opacity(0.85),
-    k.anchor("center"),
-    k.z(-4),
-  ]) as BackgroundFaunaGameObject;
+  const motherWhale = spawnSpriteEntity({
+    assetAlias: "jubarte_bg",
+    animationName: "swim",
+    positionX: 25800,
+    positionY: 260,
+    scaleFactor: 0.66, // Escala biológica de fundo: ~95×32px (~13m, harmonizado com plano distante)
+    opacity: 0.85,
+    zIndex: -4,
+  });
 
-  const calfWhale = k.add([
-    k.sprite("jubarte_bg", { anim: "swim" }),
-    k.pos(25848, 245),
-    k.scale(0.26), // Escala filhote: ~38×13px (~40% da mãe, filhote do ano autêntico)
-    k.rotate(0),
-    k.opacity(0.85),
-    k.anchor("center"),
-    k.z(-4),
-  ]) as BackgroundFaunaGameObject;
+  const calfWhale = spawnSpriteEntity({
+    assetAlias: "jubarte_bg",
+    animationName: "swim",
+    positionX: 25848,
+    positionY: 245,
+    scaleFactor: 0.26, // Escala filhote: ~38×13px (~40% da mãe, filhote do ano autêntico)
+    opacity: 0.85,
+    zIndex: -4,
+  });
 
   cullingManager?.registerEntity(motherWhale, () => 25800, 160);
   cullingManager?.registerEntity(calfWhale, () => 25848, 80);
@@ -291,7 +464,7 @@ export function setupBackgroundFaunaSystem<
 
   motherWhale.onUpdate(() => {
     if (motherWhale.hidden) return;
-    const dt = k.dt();
+    const dt = getDeltaTime();
     sanctuaryTimer += dt;
     motherPulseTimer += dt;
 
@@ -316,40 +489,42 @@ export function setupBackgroundFaunaSystem<
             : Math.hypot(dx, dy);
         if (dist < 1800) {
           // Anel de sonar ciano-dourado acolhedor
-          const ring = k.add([
-            k.circle(20),
-            k.pos(motherWhale.pos.x, motherWhale.pos.y),
-            k.color(100, 240, 255),
-            k.opacity(0.6),
-            k.anchor("center"),
-            k.z(-3),
-          ]) as BackgroundFaunaGameObject;
+          const ring = spawnCircleEntity({
+            radius: 20,
+            positionX: motherWhale.pos.x,
+            positionY: motherWhale.pos.y,
+            colorTuple: [100, 240, 255],
+            opacity: 0.6,
+            zIndex: -3,
+          });
 
           ring.onUpdate(() => {
+            const dtStep = getDeltaTime();
             if (ring.radius !== undefined) {
-              ring.radius += k.dt() * 125;
+              ring.radius += dtStep * 125;
             }
             if (ring.opacity !== undefined) {
-              ring.opacity -= k.dt() * 0.28;
-              if (ring.opacity <= 0) k.destroy(ring as unknown as TDestroyable);
+              ring.opacity -= dtStep * 0.28;
+              if (ring.opacity <= 0) destroyEntity(ring);
             }
           });
 
           // Bolhinhas lúdicas do filhote
           for (let cb = 0; cb < 4; cb++) {
-            const cBubble = k.add([
-              k.circle(1.4),
-              k.pos(calfWhale.pos.x + (cb - 2) * 3, calfWhale.pos.y - 4),
-              k.color(210, 248, 255),
-              k.opacity(0.65),
-              k.anchor("center"),
-              k.z(-3),
-            ]) as BackgroundFaunaGameObject;
+            const cBubble = spawnCircleEntity({
+              radius: 1.4,
+              positionX: calfWhale.pos.x + (cb - 2) * 3,
+              positionY: calfWhale.pos.y - 4,
+              colorTuple: [210, 248, 255],
+              opacity: 0.65,
+              zIndex: -3,
+            });
             cBubble.onUpdate(() => {
-              cBubble.pos.y -= k.dt() * 32;
+              const dtStep = getDeltaTime();
+              cBubble.pos.y -= dtStep * 32;
               if (cBubble.opacity !== undefined) {
-                cBubble.opacity -= k.dt() * 0.4;
-                if (cBubble.opacity <= 0) k.destroy(cBubble as unknown as TDestroyable);
+                cBubble.opacity -= dtStep * 0.4;
+                if (cBubble.opacity <= 0) destroyEntity(cBubble);
               }
             });
           }
@@ -364,15 +539,15 @@ export function setupBackgroundFaunaSystem<
   // 4. CACHALOTE ABISSAL NAS PROFUNDEZAS (8.000m - 10.800m - FASE 9.4)
   // Sprite autêntico de Physeter macrocephalus com cliques do órgão do espermacete
   // ===========================================================================
-  const leviathan = k.add([
-    k.sprite("cachalote_bg", { anim: "swim" }),
-    k.pos(8800, 425),
-    k.scale(0.95), // Escala biológica autêntica: 182×59px (~19m / 50t, claramente maior e mais maciço que a jubarte de 14m/120px)
-    k.rotate(0),
-    k.opacity(0.65),
-    k.anchor("center"),
-    k.z(-7), // Plano mais distante de fundo abissal
-  ]) as BackgroundFaunaGameObject;
+  const leviathan = spawnSpriteEntity({
+    assetAlias: "cachalote_bg",
+    animationName: "swim",
+    positionX: 8800,
+    positionY: 425,
+    scaleFactor: 0.95, // Escala biológica autêntica: 182×59px (~19m / 50t, claramente maior e mais maciço que a jubarte de 14m/120px)
+    opacity: 0.65,
+    zIndex: -7, // Plano mais distante de fundo abissal
+  });
 
   cullingManager?.registerEntity(leviathan, () => leviathan.pos.x, 220);
 
@@ -380,7 +555,7 @@ export function setupBackgroundFaunaSystem<
   let levCallTimer = 0;
 
   leviathan.onUpdate(() => {
-    const dt = k.dt();
+    const dt = getDeltaTime();
     levTimer += dt;
     levCallTimer += dt;
 
@@ -410,43 +585,47 @@ export function setupBackgroundFaunaSystem<
           audioSystem.playAbyssalWhaleCall();
 
           // 1. Onda esférica de baixa frequência
-          const pulse = k.add([
-            k.circle(30),
-            k.pos(leviathan.pos.x, leviathan.pos.y),
-            k.color(65, 185, 245),
-            k.opacity(0.48),
-            k.anchor("center"),
-            k.z(-6),
-          ]) as BackgroundFaunaGameObject;
+          const pulse = spawnCircleEntity({
+            radius: 30,
+            positionX: leviathan.pos.x,
+            positionY: leviathan.pos.y,
+            colorTuple: [65, 185, 245],
+            opacity: 0.48,
+            zIndex: -6,
+          });
           pulse.onUpdate(() => {
+            const dtStep = getDeltaTime();
             if (pulse.radius !== undefined) {
-              pulse.radius += k.dt() * 105;
+              pulse.radius += dtStep * 105;
             }
             if (pulse.opacity !== undefined) {
-              pulse.opacity -= k.dt() * 0.16;
-              if (pulse.opacity <= 0) k.destroy(pulse as unknown as TDestroyable);
+              pulse.opacity -= dtStep * 0.16;
+              if (pulse.opacity <= 0) destroyEntity(pulse);
             }
           });
 
           // 2. Feixe de cliques direcionais do espermacete (projetados para a frente da cabeça quadrada)
           for (let c = 0; c < 3; c++) {
-            k.wait(c * 0.12, () => {
-              const clickRing = k.add([
-                k.rect(5, 26, { radius: 2 }),
-                k.pos(leviathan.pos.x + 84, leviathan.pos.y - 2),
-                k.color(100, 220, 255),
-                k.opacity(0.65),
-                k.anchor("center"),
-                k.z(-6),
-              ]) as BackgroundFaunaGameObject;
+            scheduleDelayed(c * 0.12, () => {
+              const clickRing = spawnRectEntity({
+                width: 5,
+                height: 26,
+                cornerRadius: 2,
+                positionX: leviathan.pos.x + 84,
+                positionY: leviathan.pos.y - 2,
+                colorTuple: [100, 220, 255],
+                opacity: 0.65,
+                zIndex: -6,
+              });
               clickRing.onUpdate(() => {
-                clickRing.pos.x += k.dt() * 180;
+                const dtStep = getDeltaTime();
+                clickRing.pos.x += dtStep * 180;
                 if (clickRing.height !== undefined) {
-                  clickRing.height += k.dt() * 60;
+                  clickRing.height += dtStep * 60;
                 }
                 if (clickRing.opacity !== undefined) {
-                  clickRing.opacity -= k.dt() * 0.7;
-                  if (clickRing.opacity <= 0) k.destroy(clickRing as unknown as TDestroyable);
+                  clickRing.opacity -= dtStep * 0.7;
+                  if (clickRing.opacity <= 0) destroyEntity(clickRing);
                 }
               });
             });

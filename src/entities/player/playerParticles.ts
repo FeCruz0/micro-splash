@@ -3,6 +3,138 @@ import { getRandomFloat, getRandomInteger } from "../../utils/random";
 import { audioSystem } from "../../systems/audioSystem";
 import { getParticlePool } from "../../systems/particlePool";
 import type { PlayerVector2D, StrictPlayerVector2D } from "./types";
+import { resolveInitializedRenderEngine } from "../../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveWorldRenderContainer } from "../../engine/adapters/RenderEngineAdapter";
+import {
+  createNativeCircleNode,
+  createNativeRectNode,
+  type NativeVisualObjectAdapter,
+} from "../../engine/adapters/NativeRenderNodeFactory";
+
+function createParticleColorValue(
+  k: PlayerParticlesEngineContext,
+  red: number,
+  green: number,
+  blue: number
+): unknown {
+  return typeof k.rgb === "function" ? k.rgb(red, green, blue) : [red, green, blue];
+}
+
+function createSafeVec2(
+  k: PlayerParticlesEngineContext,
+  x: number,
+  y: number
+): StrictPlayerVector2D {
+  if (typeof k.vec2 === "function") {
+    return k.vec2(x, y);
+  }
+  return {
+    x,
+    y,
+    add: (other: PlayerVector2D) => createSafeVec2(k, x + other.x, y + other.y),
+    sub: (other: PlayerVector2D) => createSafeVec2(k, x - other.x, y - other.y),
+    scale: (factor: number) => createSafeVec2(k, x * factor, y * factor),
+    unit: () => {
+      const length = Math.hypot(x, y) || 1;
+      return createSafeVec2(k, x / length, y / length);
+    },
+    dist: (other: PlayerVector2D) => Math.hypot(x - other.x, y - other.y),
+    len: () => Math.hypot(x, y),
+  };
+}
+
+interface ManagedParticleOptions {
+  identifier: string;
+  shape: "circle" | "rect";
+  radius?: number;
+  width?: number;
+  height?: number;
+  position: PlayerVector2D;
+  rgb: readonly [number, number, number];
+  opacity: number;
+  zIndex: number;
+  scaleX?: number;
+  scaleY?: number;
+  anchorCenter?: boolean;
+  tags?: readonly string[];
+  onFrame: (
+    particle: PlayerParticleGameObject,
+    deltaTimeInSeconds: number,
+    destroySelf: () => void
+  ) => void;
+}
+
+function spawnManagedParticleNode(
+  k: PlayerParticlesEngineContext,
+  options: ManagedParticleOptions
+): void {
+  const resolvedNativeRenderEngine = resolveInitializedRenderEngine(k);
+  if (resolvedNativeRenderEngine) {
+    const worldRenderContainer = resolveWorldRenderContainer(resolvedNativeRenderEngine);
+    const nativeAdapter: NativeVisualObjectAdapter =
+      options.shape === "rect"
+        ? createNativeRectNode(k, resolvedNativeRenderEngine, worldRenderContainer, {
+            identifier: options.identifier,
+            width: options.width ?? 8,
+            height: options.height ?? 2,
+            positionX: options.position.x,
+            positionY: options.position.y,
+            fillColor: options.rgb,
+            opacity: options.opacity,
+            scaleX: options.scaleX,
+            scaleY: options.scaleY,
+            anchor: options.anchorCenter ? "center" : "topleft",
+            zIndex: options.zIndex,
+            tags: options.tags,
+          })
+        : createNativeCircleNode(k, resolvedNativeRenderEngine, worldRenderContainer, {
+            identifier: options.identifier,
+            radius: options.radius ?? 2,
+            positionX: options.position.x,
+            positionY: options.position.y,
+            fillColor: options.rgb,
+            opacity: options.opacity,
+            scaleX: options.scaleX,
+            scaleY: options.scaleY,
+            anchor: options.anchorCenter ? "center" : "topleft",
+            zIndex: options.zIndex,
+            tags: options.tags,
+          });
+    const adapterAsParticle = nativeAdapter as unknown as PlayerParticleGameObject;
+    nativeAdapter.onUpdate((deltaTimeInSeconds: number) => {
+      options.onFrame(adapterAsParticle, deltaTimeInSeconds, () => nativeAdapter.destroy());
+    });
+    return;
+  }
+
+  const shapeComp =
+    options.shape === "rect"
+      ? k.rect(options.width ?? 8, options.height ?? 2)
+      : k.circle(options.radius ?? 2);
+  const componentList: unknown[] = [
+    shapeComp,
+    k.pos(options.position.x, options.position.y),
+    k.color(options.rgb[0], options.rgb[1], options.rgb[2]),
+    k.opacity(options.opacity),
+    k.z(options.zIndex),
+  ];
+  if (options.scaleX !== undefined && options.scaleY !== undefined) {
+    componentList.push(k.scale(options.scaleX, options.scaleY));
+  }
+  if (options.anchorCenter) {
+    componentList.push(k.anchor("center"));
+  }
+  if (options.tags) {
+    for (let index = 0; index < options.tags.length; index++) {
+      componentList.push(options.tags[index]);
+    }
+  }
+
+  const legacyParticle = k.add(componentList) as PlayerParticleGameObject;
+  legacyParticle.onUpdate(() => {
+    options.onFrame(legacyParticle, k.dt(), () => k.destroy(legacyParticle));
+  });
+}
 
 export interface PlayerParticleGameObject {
   pos: StrictPlayerVector2D | PlayerVector2D;
@@ -37,7 +169,7 @@ function addVec(
 ): StrictPlayerVector2D {
   return typeof a.add === "function"
     ? (a.add(b as PlayerVector2D) as StrictPlayerVector2D)
-    : k.vec2(a.x + b.x, a.y + b.y);
+    : createSafeVec2(k, a.x + b.x, a.y + b.y);
 }
 
 export function spawnOilSpout(
@@ -47,16 +179,16 @@ export function spawnOilSpout(
   hSpeed: number
 ) {
   audioSystem.playOilChoke();
-  const spoutOrigin = addVec(k, pos, k.vec2(isFacingRight ? 22 : -22, -13));
+  const spoutOrigin = addVec(k, pos, createSafeVec2(k, isFacingRight ? 22 : -22, -13));
   const pool = getParticlePool();
 
   for (let i = 0; i < 24; i++) {
     const spread = getRandomFloat(-0.175, 0.175);
     const speed = getRandomFloat(110, 200);
-    const dir = k.vec2(Math.cos(-Math.PI / 2 + spread), Math.sin(-Math.PI / 2 + spread));
+    const dir = createSafeVec2(k, Math.cos(-Math.PI / 2 + spread), Math.sin(-Math.PI / 2 + spread));
     const vel = dir.scale(speed);
     vel.x += hSpeed * 0.2;
-    const pPos = k.vec2(spoutOrigin.x + getRandomFloat(-3, 3), spoutOrigin.y);
+    const pPos = createSafeVec2(k, spoutOrigin.x + getRandomFloat(-3, 3), spoutOrigin.y);
     const radius = getRandomFloat(1.8, 4.0);
     let life = getRandomFloat(0.55, 0.9);
 
@@ -64,7 +196,7 @@ export function spawnOilSpout(
       pool.spawnCircle({
         pos: pPos,
         radius,
-        color: k.rgb(30, 22, 16),
+        color: createParticleColorValue(k, 30, 22, 16),
         opacity: 0.9,
         z: 15,
         vel,
@@ -72,23 +204,23 @@ export function spawnOilSpout(
         maxLife: life,
       });
     } else {
-      const p = k.add([
-        k.circle(radius),
-        k.pos(pPos),
-        k.color(30, 22, 16), // lodo negro oleoso
-        k.opacity(0.9),
-        k.z(15),
-      ]) as PlayerParticleGameObject;
-
       const maxLife = life;
-      p.onUpdate(() => {
-        const dt = k.dt();
-        vel.y += 280 * dt;
-        p.pos.x += vel.x * dt;
-        p.pos.y += vel.y * dt;
-        life -= dt;
-        p.opacity = Math.max(0, (life / maxLife) * 0.9);
-        if (life <= 0) k.destroy(p);
+      spawnManagedParticleNode(k, {
+        identifier: "player_oil_spout_particle",
+        shape: "circle",
+        radius,
+        position: pPos,
+        rgb: [30, 22, 16],
+        opacity: 0.9,
+        zIndex: 15,
+        onFrame: (particle, dt, destroySelf) => {
+          vel.y += 280 * dt;
+          particle.pos.x += vel.x * dt;
+          particle.pos.y += vel.y * dt;
+          life -= dt;
+          particle.opacity = Math.max(0, (life / maxLife) * 0.9);
+          if (life <= 0) destroySelf();
+        },
       });
     }
   }
@@ -100,7 +232,11 @@ export function spawnPurifyBubbles(
 ) {
   const pool = getParticlePool();
   for (let i = 0; i < 35; i++) {
-    const pPos = k.vec2(pos.x + getRandomFloat(-20, 20), pos.y + getRandomFloat(-10, 10));
+    const pPos = createSafeVec2(
+      k,
+      pos.x + getRandomFloat(-20, 20),
+      pos.y + getRandomFloat(-10, 10)
+    );
     const radius = getRandomFloat(2.0, 4.5);
     const bLife = getRandomFloat(0.8, 1.3);
     const vy = getRandomFloat(-140, -60);
@@ -109,32 +245,33 @@ export function spawnPurifyBubbles(
       pool.spawnCircle({
         pos: pPos,
         radius,
-        color: k.rgb(180, 240, 255),
+        color: createParticleColorValue(k, 180, 240, 255),
         opacity: 0.85,
         z: 16,
-        vel: k.vec2(0, vy),
+        vel: createSafeVec2(k, 0, vy),
         fadeRate: 0.9,
         maxLife: bLife,
       });
     } else {
-      const b = k.add([
-        k.circle(radius),
-        k.pos(pPos),
-        k.color(180, 240, 255),
-        k.opacity(0.85),
-        k.z(16),
-      ]) as PlayerParticleGameObject;
       let lifeRemaining = bLife;
-      b.onUpdate(() => {
-        const dt = k.dt();
-        b.pos.y += vy * dt;
-        lifeRemaining -= dt;
-        if (typeof b.opacity === "number") {
-          b.opacity -= dt * 0.9;
-        }
-        if (lifeRemaining <= 0 || (typeof b.opacity === "number" && b.opacity <= 0)) {
-          k.destroy(b);
-        }
+      spawnManagedParticleNode(k, {
+        identifier: "player_purify_bubble",
+        shape: "circle",
+        radius,
+        position: pPos,
+        rgb: [180, 240, 255],
+        opacity: 0.85,
+        zIndex: 16,
+        onFrame: (bubble, dt, destroySelf) => {
+          bubble.pos.y += vy * dt;
+          lifeRemaining -= dt;
+          if (typeof bubble.opacity === "number") {
+            bubble.opacity -= dt * 0.9;
+          }
+          if (lifeRemaining <= 0 || (typeof bubble.opacity === "number" && bubble.opacity <= 0)) {
+            destroySelf();
+          }
+        },
       });
     }
   }
@@ -148,34 +285,35 @@ export function spawnBlowholeSpout(
 ) {
   audioSystem.playBlowholeSpout();
 
-  const spoutOrigin = addVec(k, pos, k.vec2(isFacingRight ? 22 : -22, -13));
+  const spoutOrigin = addVec(k, pos, createSafeVec2(k, isFacingRight ? 22 : -22, -13));
   const pool = getParticlePool();
 
   // Halo de luz do espiráculo ao romper a água para respirar na superfície (Fase 30.6)
-  const halo = k.add([
-    k.circle(30),
-    k.pos(spoutOrigin.x, GAME_CONFIG.SEA_LEVEL),
-    k.color(255, 255, 255),
-    k.opacity(0.2),
-    k.scale(1, 0.4), // Projeção horizontal elíptica na lâmina da água
-    k.anchor("center"),
-    k.z(14),
-    "blowhole_sun_halo",
-  ]) as PlayerParticleGameObject;
-
   let haloTimer = 0.5;
-  halo.onUpdate(() => {
-    const dt = k.dt();
-    haloTimer -= dt;
-    halo.pos.x += hSpeed * 0.25 * dt;
-    if (halo.scale && "x" in halo.scale && "y" in halo.scale) {
-      halo.scale.x += dt * 0.8;
-      halo.scale.y += dt * 0.3;
-    }
-    halo.opacity = Math.max(0, (haloTimer / 0.5) * 0.2);
-    if (haloTimer <= 0) {
-      k.destroy(halo);
-    }
+  spawnManagedParticleNode(k, {
+    identifier: "player_blowhole_sun_halo",
+    shape: "circle",
+    radius: 30,
+    position: { x: spoutOrigin.x, y: GAME_CONFIG.SEA_LEVEL },
+    rgb: [255, 255, 255],
+    opacity: 0.2,
+    scaleX: 1,
+    scaleY: 0.4,
+    anchorCenter: true,
+    zIndex: 14,
+    tags: ["blowhole_sun_halo"],
+    onFrame: (halo, dt, destroySelf) => {
+      haloTimer -= dt;
+      halo.pos.x += hSpeed * 0.25 * dt;
+      if (halo.scale && "x" in halo.scale && "y" in halo.scale) {
+        halo.scale.x += dt * 0.8;
+        halo.scale.y += dt * 0.3;
+      }
+      halo.opacity = Math.max(0, (haloTimer / 0.5) * 0.2);
+      if (haloTimer <= 0) {
+        destroySelf();
+      }
+    },
   });
 
   // 32 partículas de condensação e vapor marinho em formato de V
@@ -185,12 +323,12 @@ export function spawnBlowholeSpout(
     const baseAngle = isRightPlume ? -1.45 : -1.69;
     const spread = getRandomFloat(-0.11, 0.11);
     const speed = getRandomFloat(190, 360);
-    const dir = k.vec2(Math.cos(baseAngle + spread), Math.sin(baseAngle + spread));
+    const dir = createSafeVec2(k, Math.cos(baseAngle + spread), Math.sin(baseAngle + spread));
 
     const vel = dir.scale(speed);
     vel.x += hSpeed * 0.35; // herda parte do movimento horizontal da baleia
 
-    const pPos = k.vec2(spoutOrigin.x + getRandomFloat(-3, 3), spoutOrigin.y);
+    const pPos = createSafeVec2(k, spoutOrigin.x + getRandomFloat(-3, 3), spoutOrigin.y);
     const radius = getRandomFloat(1.8, 4.0);
     const life = getRandomFloat(0.65, 1.1);
 
@@ -198,7 +336,7 @@ export function spawnBlowholeSpout(
       pool.spawnCircle({
         pos: pPos,
         radius,
-        color: k.rgb(225, 242, 255),
+        color: createParticleColorValue(k, 225, 242, 255),
         opacity: 0.85,
         z: 15,
         vel,
@@ -209,31 +347,29 @@ export function spawnBlowholeSpout(
         boundaryYMode: "greater",
       });
     } else {
-      const particle = k.add([
-        k.circle(radius),
-        k.pos(pPos),
-        k.color(225, 242, 255),
-        k.opacity(0.85),
-        k.z(15),
-      ]) as PlayerParticleGameObject;
-
       const maxLife = life;
       let curLife = life;
-
-      particle.onUpdate(() => {
-        const dt = k.dt();
-        vel.y += 240 * dt; // gravidade puxando gotículas de volta ao mar
-        particle.pos.x += vel.x * dt;
-        particle.pos.y += vel.y * dt;
-        if (typeof particle.radius === "number") {
-          particle.radius += dt * 3.2; // expansão de vapor
-        }
-        curLife -= dt;
-        particle.opacity = Math.max(0, (curLife / maxLife) * 0.85);
-
-        if (curLife <= 0 || particle.pos.y > GAME_CONFIG.SEA_LEVEL + 35) {
-          k.destroy(particle);
-        }
+      spawnManagedParticleNode(k, {
+        identifier: "player_blowhole_vapor_particle",
+        shape: "circle",
+        radius,
+        position: pPos,
+        rgb: [225, 242, 255],
+        opacity: 0.85,
+        zIndex: 15,
+        onFrame: (particle, dt, destroySelf) => {
+          vel.y += 240 * dt;
+          particle.pos.x += vel.x * dt;
+          particle.pos.y += vel.y * dt;
+          if (typeof particle.radius === "number") {
+            particle.radius += dt * 3.2;
+          }
+          curLife -= dt;
+          particle.opacity = Math.max(0, (curLife / maxLife) * 0.85);
+          if (curLife <= 0 || particle.pos.y > GAME_CONFIG.SEA_LEVEL + 35) {
+            destroySelf();
+          }
+        },
       });
     }
   }
@@ -244,20 +380,24 @@ export function spawnBaleenSuction(
   pos: StrictPlayerVector2D | PlayerVector2D,
   isFacingRight: boolean
 ) {
-  const mouthPos = addVec(k, pos, k.vec2(isFacingRight ? 46 : -46, 2));
+  const mouthPos = addVec(k, pos, createSafeVec2(k, isFacingRight ? 46 : -46, 2));
   const pool = getParticlePool();
 
   for (let i = 0; i < 12; i++) {
     const pAngle = getRandomFloat(0, Math.PI * 2);
     const dist = getRandomFloat(22, 46);
-    const pPos = k.vec2(mouthPos.x + Math.cos(pAngle) * dist, mouthPos.y + Math.sin(pAngle) * dist);
+    const pPos = createSafeVec2(
+      k,
+      mouthPos.x + Math.cos(pAngle) * dist,
+      mouthPos.y + Math.sin(pAngle) * dist
+    );
     const radius = getRandomFloat(1.2, 2.7);
 
     if (pool) {
       pool.spawnCircle({
         pos: pPos,
         radius,
-        color: k.rgb(255, 175, 145),
+        color: createParticleColorValue(k, 255, 175, 145),
         opacity: 0.85,
         z: 20,
         targetPos: mouthPos,
@@ -266,30 +406,31 @@ export function spawnBaleenSuction(
         maxLife: 0.6,
       });
     } else {
-      const p = k.add([
-        k.circle(radius),
-        k.pos(pPos),
-        k.color(255, 175, 145),
-        k.opacity(0.85),
-        k.z(20),
-      ]) as PlayerParticleGameObject;
-
-      p.onUpdate(() => {
-        const dx = mouthPos.x - p.pos.x;
-        const dy = mouthPos.y - p.pos.y;
-        const distSq = dx * dx + dy * dy;
-        if (distSq < 36) {
-          k.destroy(p);
-        } else {
-          const invDist = 1 / Math.sqrt(distSq);
-          const step = 190 * k.dt();
-          p.pos.x += dx * invDist * step;
-          p.pos.y += dy * invDist * step;
-          if (typeof p.opacity === "number") {
-            p.opacity -= k.dt() * 2.4;
-            if (p.opacity <= 0) k.destroy(p);
+      spawnManagedParticleNode(k, {
+        identifier: "player_baleen_suction_particle",
+        shape: "circle",
+        radius,
+        position: pPos,
+        rgb: [255, 175, 145],
+        opacity: 0.85,
+        zIndex: 20,
+        onFrame: (particle, dt, destroySelf) => {
+          const dx = mouthPos.x - particle.pos.x;
+          const dy = mouthPos.y - particle.pos.y;
+          const distSq = dx * dx + dy * dy;
+          if (distSq < 36) {
+            destroySelf();
+            return;
           }
-        }
+          const invDist = 1 / Math.sqrt(distSq);
+          const step = 190 * dt;
+          particle.pos.x += dx * invDist * step;
+          particle.pos.y += dy * invDist * step;
+          if (typeof particle.opacity === "number") {
+            particle.opacity -= dt * 2.4;
+            if (particle.opacity <= 0) destroySelf();
+          }
+        },
       });
     }
   }
@@ -306,30 +447,33 @@ export function spawnDraftingTrail(
 
   if (pool) {
     pool.spawnRect({
-      pos: k.vec2(trailX, trailY),
+      pos: createSafeVec2(k, trailX, trailY),
       width: getRandomFloat(16, 30),
       height: 1.5,
-      color: k.rgb(140, 240, 255),
+      color: createParticleColorValue(k, 140, 240, 255),
       opacity: 0.75,
       z: 12,
-      vel: k.vec2(isFacingRight ? -140 : 140, 0),
+      vel: createSafeVec2(k, isFacingRight ? -140 : 140, 0),
       fadeRate: 2.0,
       maxLife: 0.45,
     });
   } else {
-    const trail = k.add([
-      k.rect(getRandomFloat(16, 30), 1.5),
-      k.pos(trailX, trailY),
-      k.color(140, 240, 255),
-      k.opacity(0.75),
-      k.z(12),
-    ]) as PlayerParticleGameObject;
-    trail.onUpdate(() => {
-      trail.pos.x -= (isFacingRight ? 140 : -140) * k.dt();
-      if (typeof trail.opacity === "number") {
-        trail.opacity -= k.dt() * 2.0;
-        if (trail.opacity <= 0) k.destroy(trail);
-      }
+    spawnManagedParticleNode(k, {
+      identifier: "player_drafting_trail",
+      shape: "rect",
+      width: getRandomFloat(16, 30),
+      height: 1.5,
+      position: { x: trailX, y: trailY },
+      rgb: [140, 240, 255],
+      opacity: 0.75,
+      zIndex: 12,
+      onFrame: (trail, dt, destroySelf) => {
+        trail.pos.x -= (isFacingRight ? 140 : -140) * dt;
+        if (typeof trail.opacity === "number") {
+          trail.opacity -= dt * 2.0;
+          if (trail.opacity <= 0) destroySelf();
+        }
+      },
     });
   }
 }
@@ -389,27 +533,27 @@ export function spawnTailWaterRipples(
         maxLife: life,
       });
     } else {
-      const ripple = k.add([
-        k.circle(initialRadius),
-        k.pos(ripplePos),
-        k.color(color),
-        k.opacity(opacity),
-        k.z(13),
-      ]) as PlayerParticleGameObject;
-
       let curLife = life;
       let curRadius = initialRadius;
-      ripple.onUpdate(() => {
-        const dt = k.dt();
-        curRadius += growthRate * dt;
-        ripple.radius = curRadius;
-        ripple.pos.x += driftVel.x * dt;
-        ripple.pos.y += driftVel.y * dt;
-        curLife -= dt;
-        ripple.opacity = Math.max(0, (curLife / life) * opacity);
-        if (curLife <= 0 || (typeof ripple.opacity === "number" && ripple.opacity <= 0)) {
-          k.destroy(ripple);
-        }
+      spawnManagedParticleNode(k, {
+        identifier: "player_tail_water_ripple",
+        shape: "circle",
+        radius: initialRadius,
+        position: ripplePos,
+        rgb: [160, 235, 255],
+        opacity,
+        zIndex: 13,
+        onFrame: (ripple, dt, destroySelf) => {
+          curRadius += growthRate * dt;
+          ripple.radius = curRadius;
+          ripple.pos.x += driftVel.x * dt;
+          ripple.pos.y += driftVel.y * dt;
+          curLife -= dt;
+          ripple.opacity = Math.max(0, (curLife / life) * opacity);
+          if (curLife <= 0 || (typeof ripple.opacity === "number" && ripple.opacity <= 0)) {
+            destroySelf();
+          }
+        },
       });
     }
   }
@@ -496,25 +640,25 @@ export function spawnTailStrokeBubbles(
         boundaryYMode: "less",
       });
     } else {
-      const bubble = k.add([
-        k.circle(data.radius),
-        k.pos(bubblePos),
-        k.color(col),
-        k.opacity(data.opacity),
-        k.z(13),
-        "tail_stroke_bubble",
-      ]) as PlayerParticleGameObject;
-
       let curLife = data.life;
-      bubble.onUpdate(() => {
-        const dt = k.dt();
-        bubble.pos.x += vel.x * dt;
-        bubble.pos.y += vel.y * dt;
-        curLife -= dt;
-        bubble.opacity = Math.max(0, (curLife / data.life) * data.opacity);
-        if (curLife <= 0 || bubble.pos.y <= GAME_CONFIG.SEA_LEVEL) {
-          k.destroy(bubble);
-        }
+      spawnManagedParticleNode(k, {
+        identifier: "player_tail_stroke_bubble",
+        shape: "circle",
+        radius: data.radius,
+        position: bubblePos,
+        rgb: data.color,
+        opacity: data.opacity,
+        zIndex: 13,
+        tags: ["tail_stroke_bubble"],
+        onFrame: (bubble, dt, destroySelf) => {
+          bubble.pos.x += vel.x * dt;
+          bubble.pos.y += vel.y * dt;
+          curLife -= dt;
+          bubble.opacity = Math.max(0, (curLife / data.life) * data.opacity);
+          if (curLife <= 0 || bubble.pos.y <= GAME_CONFIG.SEA_LEVEL) {
+            destroySelf();
+          }
+        },
       });
     }
   }

@@ -5,6 +5,9 @@ import type { RandomNumberGenerator } from "../../utils/random";
 import type { SpatialHashGrid, SpatialAABB } from "../../systems/spatialHashGrid";
 import type { CompanionGameObject, CompanionState, CompanionVector2D } from "./types";
 import type { CompanionEngineContext } from "./states/types";
+import { resolveInitializedRenderEngine } from "../../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveWorldRenderContainer } from "../../engine/adapters/RenderEngineAdapter";
+import { createNativeCircleNode } from "../../engine/adapters/NativeRenderNodeFactory";
 
 export interface CompanionSenses<TGameObj = CompanionGameObject> {
   getTargetKrill: () => TGameObj | null;
@@ -67,37 +70,68 @@ export function createCompanionSenses<
     const headY = companion.pos.y;
     audioSystem.playSonarSound();
 
+    const resolvedNativeRenderEngine = resolveInitializedRenderEngine(k);
+    const worldRenderContainer = resolvedNativeRenderEngine
+      ? resolveWorldRenderContainer(resolvedNativeRenderEngine)
+      : null;
+
     // Ondas concêntricas visuais
     for (let waveIndex = 0; waveIndex < 3; waveIndex++) {
-      const ringComponents: unknown[] = [
-        k.circle(10),
-        k.pos(headX, headY),
-        k.color(100, 240, 255),
-        k.opacity(0.85),
-        k.z(21),
-      ];
-      if (k.outline) {
-        ringComponents.push(k.outline(2, k.rgb(180, 250, 255)));
-      }
-
-      const ring = k.add(ringComponents) as SonarRingObject;
-
       let expansionRadius = 10 + waveIndex * 12;
       let ringOpacity = 0.85;
-      ring.onUpdate(() => {
-        const dt = k.dt();
-        expansionRadius += dt * 260;
-        ringOpacity -= dt * 0.95;
-        ring.radius = expansionRadius;
-        ring.opacity = Math.max(0, ringOpacity);
-        if (ringOpacity <= 0) {
-          k.destroy(ring as unknown as TDestroyable);
+
+      if (resolvedNativeRenderEngine && worldRenderContainer) {
+        const ring = createNativeCircleNode(k, resolvedNativeRenderEngine, worldRenderContainer, {
+          identifier: `companion_sonar_ring_${waveIndex}`,
+          radius: 10,
+          positionX: headX,
+          positionY: headY,
+          fillColor: [100, 240, 255],
+          outlineColor: [180, 250, 255],
+          outlineWidth: 2,
+          opacity: 0.85,
+          zIndex: 21,
+        });
+
+        ring.onUpdate((deltaTimeInSeconds: number) => {
+          expansionRadius += deltaTimeInSeconds * 260;
+          ringOpacity -= deltaTimeInSeconds * 0.95;
+          ring.radius = expansionRadius;
+          ring.opacity = Math.max(0, ringOpacity);
+          if (ringOpacity <= 0) {
+            ring.destroy();
+          }
+        });
+      } else {
+        const ringComponents: unknown[] = [
+          k.circle(10),
+          k.pos(headX, headY),
+          k.color(100, 240, 255),
+          k.opacity(0.85),
+          k.z(21),
+        ];
+        if (k.outline) {
+          ringComponents.push(k.outline(2, k.rgb(180, 250, 255)));
         }
-      });
+
+        const ring = k.add(ringComponents) as SonarRingObject;
+
+        ring.onUpdate(() => {
+          const dt = k.dt();
+          expansionRadius += dt * 260;
+          ringOpacity -= dt * 0.95;
+          ring.radius = expansionRadius;
+          ring.opacity = Math.max(0, ringOpacity);
+          if (ringOpacity <= 0) {
+            k.destroy(ring as unknown as TDestroyable);
+          }
+        });
+      }
     }
 
     // Varredura acústica real: revela entidades no mapa
-    const headPosition = k.vec2(headX, headY);
+    const headPosition =
+      typeof k.vec2 === "function" ? k.vec2(headX, headY) : { x: headX, y: headY };
     if (typeof revealEntitiesInSonarRadius === "function") {
       revealEntitiesInSonarRadius(
         k as unknown as Parameters<typeof revealEntitiesInSonarRadius>[0],

@@ -6,6 +6,18 @@ import { getActivePlayerObject } from "../entities/player";
 import { getRandomFloat } from "../utils/random";
 import { getSpatialCullingManager, type CullableTargetObject } from "./spatialCullingSystem";
 import { getEntityFamilyTicker } from "./entityFamilyTicker";
+import {
+  resolveInitializedRenderEngine,
+  type IRenderEngine,
+} from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
+import {
+  createNativeCircleNode,
+  createNativeContainerNode,
+  createNativePolygonNode,
+  createNativeRectNode,
+  registerNativeSceneUpdate,
+} from "../engine/adapters/NativeRenderNodeFactory";
 
 export interface PenguinVector2D {
   x: number;
@@ -20,6 +32,7 @@ export interface PenguinGameObject {
   hidden?: boolean;
   add: (components: unknown[]) => PenguinGameObject;
   onUpdate?: (cb: () => void) => void;
+  destroy?: () => void;
 }
 
 export interface PenguinEngineContext<
@@ -42,6 +55,7 @@ export interface PenguinEngineContext<
   z: (v: number) => unknown;
   rgb?: (r: number, g: number, b: number) => TColor;
   vec2: (x: number, y: number) => TVec;
+  onSceneLeave?: (callback: () => void) => unknown;
 }
 
 /**
@@ -60,7 +74,36 @@ export function setupPenguinFlockSystem<
   TDestroyable = unknown,
   TColor = unknown,
   TVec extends { x: number; y: number } = PenguinVector2D,
->(k: PenguinEngineContext<TDestroyable, TColor, TVec>) {
+>(k: IRenderEngine | PenguinEngineContext<TDestroyable, TColor, TVec>) {
+  const resolvedNativeRenderEngine = resolveInitializedRenderEngine(k);
+  const nativeWorldContainer = resolvedNativeRenderEngine
+    ? resolveWorldRenderContainer(resolvedNativeRenderEngine)
+    : null;
+  const legacyContext = k as PenguinEngineContext<TDestroyable, TColor, TVec>;
+  const cleanupHandles: Array<() => void> = [];
+
+  const getDeltaTime = (): number => {
+    if (typeof legacyContext.dt === "function") {
+      return legacyContext.dt();
+    }
+    return resolvedNativeRenderEngine
+      ? resolvedNativeRenderEngine.getTicker().getDeltaTime()
+      : 0.016;
+  };
+
+  const createVector = (x: number, y: number): TVec => {
+    if (typeof legacyContext.vec2 === "function") {
+      return legacyContext.vec2(x, y);
+    }
+    return { x, y } as TVec;
+  };
+
+  const resolveRgbColor = (red: number, green: number, blue: number): unknown => {
+    return typeof legacyContext.rgb === "function"
+      ? legacyContext.rgb(red, green, blue)
+      : { r: red, g: green, b: blue };
+  };
+
   let isSystemActive = true;
   const allPenguinBodies: PenguinGameObject[] = [];
 
@@ -123,45 +166,141 @@ export function setupPenguinFlockSystem<
       const pOffsetX = -i * 18 - getRandomFloat(0, 5);
       const pOffsetY = (i % 2 === 0 ? -6 : 6) + getRandomFloat(-2, 2);
 
-      // Corpo em torpedo do pinguim (proporção biológica 14x5px para escala com a jubarte de 108px)
-      const pBody = k.add([
-        k.rect(14, 5, { radius: 2 }),
-        k.pos(colony.initialX + pOffsetX, GAME_CONFIG.SEA_LEVEL + colony.depth + pOffsetY),
-        k.color(12, 14, 18), // Dorso preto de alto contraste
-        k.anchor("center"),
-        k.scale(k.vec2(colony.initialDir, 1)),
-        k.z(13),
-        "penguin",
-      ]) as PenguinGameObject;
+      let pBody: PenguinGameObject;
+      let wing: PenguinGameObject;
 
-      // Ventre branco brilhante
-      pBody.add([
-        k.rect(10, 2.5, { radius: 1 }),
-        k.pos(-0.5, 1),
-        k.color(255, 255, 255),
-        k.anchor("center"),
-      ]);
+      if (resolvedNativeRenderEngine && nativeWorldContainer) {
+        const penguinContainer = createNativeContainerNode(
+          k,
+          resolvedNativeRenderEngine,
+          nativeWorldContainer,
+          {
+            identifier: "penguin_body_container",
+            positionX: colony.initialX + pOffsetX,
+            positionY: GAME_CONFIG.SEA_LEVEL + colony.depth + pOffsetY,
+            scaleX: colony.initialDir,
+            scaleY: 1,
+            zIndex: 13,
+            tags: ["penguin"],
+          }
+        );
 
-      // Faixa facial branca do Pinguim-de-Magalhães
-      pBody.add([k.circle(1.2), k.pos(3.5, -1.2), k.color(245, 250, 255)]);
+        createNativeRectNode(k, resolvedNativeRenderEngine, penguinContainer.renderNode, {
+          identifier: "penguin_torso",
+          width: 14,
+          height: 5,
+          cornerRadius: 2,
+          fillColor: [12, 14, 18],
+          anchor: "center",
+        });
+        createNativeRectNode(k, resolvedNativeRenderEngine, penguinContainer.renderNode, {
+          identifier: "penguin_belly",
+          width: 10,
+          height: 2.5,
+          cornerRadius: 1,
+          positionX: -0.5,
+          positionY: 1,
+          fillColor: [255, 255, 255],
+          anchor: "center",
+        });
+        createNativeCircleNode(k, resolvedNativeRenderEngine, penguinContainer.renderNode, {
+          identifier: "penguin_face_stripe",
+          radius: 1.2,
+          positionX: 3.5,
+          positionY: -1.2,
+          fillColor: [245, 250, 255],
+        });
+        createNativeRectNode(k, resolvedNativeRenderEngine, penguinContainer.renderNode, {
+          identifier: "penguin_beak",
+          width: 3,
+          height: 1.5,
+          cornerRadius: 0.8,
+          positionX: 7.5,
+          positionY: 0,
+          fillColor: [230, 165, 40],
+          anchor: "center",
+        });
+        const wingNode = createNativePolygonNode(
+          k,
+          resolvedNativeRenderEngine,
+          penguinContainer.renderNode,
+          {
+            identifier: "penguin_wing",
+            points: [
+              { x: 0, y: 0 },
+              { x: -2.5, y: 4 },
+              { x: -5, y: 0.8 },
+            ],
+            positionX: 0.5,
+            positionY: 0.5,
+            fillColor: [10, 12, 16],
+          }
+        );
+        createNativeRectNode(k, resolvedNativeRenderEngine, penguinContainer.renderNode, {
+          identifier: "penguin_feet",
+          width: 2.5,
+          height: 1.5,
+          positionX: -7,
+          positionY: 1.2,
+          fillColor: [215, 120, 45],
+          anchor: "center",
+        });
 
-      // Bico âmbar
-      pBody.add([
-        k.rect(3, 1.5, { radius: 0.8 }),
-        k.pos(7.5, 0),
-        k.color(230, 165, 40),
-        k.anchor("center"),
-      ]);
+        pBody = penguinContainer as unknown as PenguinGameObject;
+        wing = wingNode as unknown as PenguinGameObject;
+      } else {
+        // Corpo em torpedo do pinguim (proporção biológica 14x5px para escala com a jubarte de 108px)
+        pBody = legacyContext.add([
+          legacyContext.rect(14, 5, { radius: 2 }),
+          legacyContext.pos(
+            colony.initialX + pOffsetX,
+            GAME_CONFIG.SEA_LEVEL + colony.depth + pOffsetY
+          ),
+          legacyContext.color(12, 14, 18), // Dorso preto de alto contraste
+          legacyContext.anchor("center"),
+          legacyContext.scale(createVector(colony.initialDir, 1)),
+          legacyContext.z(13),
+          "penguin",
+        ]) as PenguinGameObject;
 
-      // Asa / Nadadeira
-      const wing = pBody.add([
-        k.polygon([k.vec2(0, 0), k.vec2(-2.5, 4), k.vec2(-5, 0.8)]),
-        k.pos(0.5, 0.5),
-        k.color(10, 12, 16),
-      ]) as PenguinGameObject;
+        // Ventre branco brilhante
+        pBody.add([
+          legacyContext.rect(10, 2.5, { radius: 1 }),
+          legacyContext.pos(-0.5, 1),
+          legacyContext.color(255, 255, 255),
+          legacyContext.anchor("center"),
+        ]);
 
-      // Patas
-      pBody.add([k.rect(2.5, 1.5), k.pos(-7, 1.2), k.color(215, 120, 45), k.anchor("center")]);
+        // Faixa facial branca do Pinguim-de-Magalhães
+        pBody.add([
+          legacyContext.circle(1.2),
+          legacyContext.pos(3.5, -1.2),
+          legacyContext.color(245, 250, 255),
+        ]);
+
+        // Bico âmbar
+        pBody.add([
+          legacyContext.rect(3, 1.5, { radius: 0.8 }),
+          legacyContext.pos(7.5, 0),
+          legacyContext.color(230, 165, 40),
+          legacyContext.anchor("center"),
+        ]);
+
+        // Asa / Nadadeira
+        wing = pBody.add([
+          legacyContext.polygon([createVector(0, 0), createVector(-2.5, 4), createVector(-5, 0.8)]),
+          legacyContext.pos(0.5, 0.5),
+          legacyContext.color(10, 12, 16),
+        ]);
+
+        // Patas
+        pBody.add([
+          legacyContext.rect(2.5, 1.5),
+          legacyContext.pos(-7, 1.2),
+          legacyContext.color(215, 120, 45),
+          legacyContext.anchor("center"),
+        ]);
+      }
 
       allPenguinBodies.push(pBody);
       const cullingManager = getSpatialCullingManager();
@@ -313,35 +452,53 @@ export function setupPenguinFlockSystem<
             if (player && Math.abs(penguin.obj.pos.x - player.pos.x) < 700) {
               if (penguin.leapProgress < 0.15 || penguin.leapProgress > 0.85) {
                 if (getRandomFloat(0, 1) < 0.3) {
-                  const splashPos = k.vec2(penguin.obj.pos.x, GAME_CONFIG.SEA_LEVEL + 2);
+                  const splashPos = createVector(penguin.obj.pos.x, GAME_CONFIG.SEA_LEVEL + 2);
                   const pool = getParticlePool();
                   if (pool) {
                     pool.spawnCircle({
                       pos: splashPos,
                       radius: 1.2,
-                      color:
-                        typeof k.rgb === "function"
-                          ? k.rgb(220, 240, 255)
-                          : { r: 220, g: 240, b: 255 },
+                      color: resolveRgbColor(220, 240, 255),
                       opacity: 0.8,
                       z: 14,
-                      vel: k.vec2(0, -25),
+                      vel: createVector(0, -25),
                       fadeRate: 3.0,
                       maxLife: 0.3,
                     });
+                  } else if (resolvedNativeRenderEngine && nativeWorldContainer) {
+                    const splash = createNativeCircleNode(
+                      k,
+                      resolvedNativeRenderEngine,
+                      nativeWorldContainer,
+                      {
+                        identifier: "penguin_splash_drop",
+                        radius: 1.2,
+                        positionX: splashPos.x,
+                        positionY: splashPos.y,
+                        fillColor: [220, 240, 255],
+                        opacity: 0.8,
+                        zIndex: 14,
+                      }
+                    );
+                    splash.onUpdate((stepDelta) => {
+                      splash.pos.y -= stepDelta * 25;
+                      splash.opacity -= stepDelta * 3.0;
+                      if (splash.opacity <= 0) splash.destroy();
+                    });
                   } else {
-                    const splash = k.add([
-                      k.circle(1.2),
-                      k.pos(splashPos.x, splashPos.y),
-                      k.color(220, 240, 255),
-                      k.opacity(0.8),
-                      k.z(14),
+                    const splash = legacyContext.add([
+                      legacyContext.circle(1.2),
+                      legacyContext.pos(splashPos.x, splashPos.y),
+                      legacyContext.color(220, 240, 255),
+                      legacyContext.opacity(0.8),
+                      legacyContext.z(14),
                     ]) as PenguinGameObject;
-                    k.onUpdate(() => {
+                    legacyContext.onUpdate(() => {
                       if (splash.opacity !== undefined) {
                         splash.pos.y -= dt * 25;
                         splash.opacity -= dt * 3.0;
-                        if (splash.opacity <= 0) k.destroy(splash as unknown as TDestroyable);
+                        if (splash.opacity <= 0)
+                          legacyContext.destroy(splash as unknown as TDestroyable);
                       }
                     });
                   }
@@ -379,7 +536,7 @@ export function setupPenguinFlockSystem<
         // Trilha de bolhas subaquáticas
         if (player && Math.abs(penguin.obj.pos.x - player.pos.x) < 900) {
           if (!penguin.isLeaping && getRandomFloat(0, 1) < 0.12) {
-            const bubblePos = k.vec2(
+            const bubblePos = createVector(
               penguin.obj.pos.x - currentFacing * 12,
               penguin.obj.pos.y + getRandomFloat(-2, 2)
             );
@@ -388,28 +545,48 @@ export function setupPenguinFlockSystem<
               pool.spawnCircle({
                 pos: bubblePos,
                 radius: 1.0,
-                color:
-                  typeof k.rgb === "function" ? k.rgb(210, 240, 255) : { r: 210, g: 240, b: 255 },
+                color: resolveRgbColor(210, 240, 255),
                 opacity: 0.65,
                 z: 11,
-                vel: k.vec2(-currentFacing * 20, -15),
+                vel: createVector(-currentFacing * 20, -15),
                 fadeRate: 2.5,
                 maxLife: 0.35,
               });
+            } else if (resolvedNativeRenderEngine && nativeWorldContainer) {
+              const bubble = createNativeCircleNode(
+                k,
+                resolvedNativeRenderEngine,
+                nativeWorldContainer,
+                {
+                  identifier: "penguin_trail_bubble",
+                  radius: 1.0,
+                  positionX: bubblePos.x,
+                  positionY: bubblePos.y,
+                  fillColor: [210, 240, 255],
+                  opacity: 0.65,
+                  zIndex: 11,
+                }
+              );
+              bubble.onUpdate((stepDelta) => {
+                bubble.pos.x -= currentFacing * stepDelta * 20;
+                bubble.pos.y -= stepDelta * 15;
+                bubble.opacity -= stepDelta * 2.5;
+                if (bubble.opacity <= 0) bubble.destroy();
+              });
             } else {
-              const bubble = k.add([
-                k.circle(1.0),
-                k.pos(bubblePos.x, bubblePos.y),
-                k.color(210, 240, 255),
-                k.opacity(0.65),
-                k.z(11),
+              const bubble = legacyContext.add([
+                legacyContext.circle(1.0),
+                legacyContext.pos(bubblePos.x, bubblePos.y),
+                legacyContext.color(210, 240, 255),
+                legacyContext.opacity(0.65),
+                legacyContext.z(11),
               ]) as PenguinGameObject;
-              k.onUpdate(() => {
+              legacyContext.onUpdate(() => {
                 if (bubble.opacity !== undefined) {
                   bubble.pos.x -= currentFacing * dt * 20;
                   bubble.pos.y -= dt * 15;
                   bubble.opacity -= dt * 2.5;
-                  if (bubble.opacity <= 0) k.destroy(bubble as unknown as TDestroyable);
+                  if (bubble.opacity <= 0) legacyContext.destroy(bubble as unknown as TDestroyable);
                 }
               });
             }
@@ -427,9 +604,13 @@ export function setupPenguinFlockSystem<
         width: (colony.maxX - colony.minX) / 2,
         update: updatePenguinColony,
       });
+    } else if (resolvedNativeRenderEngine) {
+      cleanupHandles.push(
+        registerNativeSceneUpdate(k, resolvedNativeRenderEngine, updatePenguinColony)
+      );
     } else {
-      k.onUpdate(() => {
-        updatePenguinColony(k.dt());
+      legacyContext.onUpdate(() => {
+        updatePenguinColony(getDeltaTime());
       });
     }
   });
@@ -448,6 +629,20 @@ export function setupPenguinFlockSystem<
     });
   };
 
+  const destroy = () => {
+    for (let index = 0; index < cleanupHandles.length; index++) {
+      cleanupHandles[index]();
+    }
+    cleanupHandles.length = 0;
+    for (let index = 0; index < allPenguinBodies.length; index++) {
+      allPenguinBodies[index].destroy?.();
+    }
+  };
+
+  if (resolvedNativeRenderEngine && typeof legacyContext.onSceneLeave === "function") {
+    legacyContext.onSceneLeave(destroy);
+  }
+
   const biomeMgr = getBiomeLifecycleManager();
   if (biomeMgr) {
     biomeMgr.registerModule({
@@ -464,6 +659,7 @@ export function setupPenguinFlockSystem<
   return {
     activate,
     deactivate,
+    destroy,
     isActive: () => isSystemActive,
   };
 }

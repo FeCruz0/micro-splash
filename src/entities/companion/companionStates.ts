@@ -11,6 +11,9 @@ import type {
 } from "./types";
 import { CompanionStateMachine } from "./companionStateMachine";
 import type { CompanionEngineContext, CompanionStateContext } from "./states/types";
+import { resolveInitializedRenderEngine } from "../../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveWorldRenderContainer } from "../../engine/adapters/RenderEngineAdapter";
+import { createNativeCircleNode } from "../../engine/adapters/NativeRenderNodeFactory";
 
 export * from "./states/types";
 export * from "./states/concreteStates";
@@ -81,6 +84,11 @@ export function createCompanionStates<
   let feedActionTimer = 0;
   let isDepartedFlag = false;
 
+  const resolvedNativeRenderEngine = resolveInitializedRenderEngine(k);
+  const worldRenderContainer = resolvedNativeRenderEngine
+    ? resolveWorldRenderContainer(resolvedNativeRenderEngine)
+    : null;
+
   const emitDoubleBlowholeSpout = (sourceX: number, sourceY: number): void => {
     const pool = getParticlePool();
     const particlesPerPlume = Math.floor(COMPANION_CONFIG.STEAM_PARTICLES_COUNT / 2);
@@ -99,6 +107,29 @@ export function createCompanionStates<
             maxLife: 1.0,
             growthRate: 1.4,
             z: 22,
+          });
+        } else if (resolvedNativeRenderEngine && worldRenderContainer) {
+          const steamParticle = createNativeCircleNode(
+            k,
+            resolvedNativeRenderEngine,
+            worldRenderContainer,
+            {
+              identifier: "companion_steam_particle",
+              radius: 2.2 + prng() * 2.2,
+              positionX: sourceX + plumeOffsetX,
+              positionY: sourceY - 14,
+              fillColor: [220, 245, 255],
+              opacity: 0.85,
+              zIndex: 22,
+            }
+          );
+          let lifeTime = 0.85;
+          steamParticle.onUpdate((deltaTimeInSeconds: number) => {
+            steamParticle.pos.y -= deltaTimeInSeconds * 150;
+            steamParticle.pos.x += (prng() - 0.5) * deltaTimeInSeconds * 20;
+            lifeTime -= deltaTimeInSeconds;
+            steamParticle.opacity = Math.max(0, lifeTime);
+            if (lifeTime <= 0) steamParticle.destroy();
           });
         } else {
           const steamParticle = k.add([

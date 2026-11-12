@@ -3,6 +3,16 @@ import { createKrill } from "../entities/krill";
 import type { PlayerController } from "../entities/player";
 import { safeShake } from "../utils/camera";
 import { getRandomFloat } from "../utils/random";
+import {
+  resolveInitializedRenderEngine,
+  type IRenderEngine,
+} from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
+import {
+  createNativeContainerNode,
+  createNativeRectNode,
+  registerNativeSceneUpdate,
+} from "../engine/adapters/NativeRenderNodeFactory";
 
 /**
  * Calcula o impulso vertical da ressurgência sobre a baleia com trava de superfície.
@@ -29,6 +39,8 @@ export interface UpwellingGameObject<TColor = unknown> {
   opacity?: number;
   add: (components: unknown[]) => UpwellingGameObject<TColor>;
   onUpdate: (cb: () => void) => void;
+  exists?: () => boolean;
+  destroy?: () => void;
 }
 
 export interface UpwellingEngineContext<
@@ -63,6 +75,7 @@ export interface UpwellingEngineContext<
   vec2: (x: number, y: number) => TVec;
   clamp: (val: number, min: number, max: number) => number;
   shake?: (amount: number) => void;
+  onSceneLeave?: (callback: () => void) => unknown;
 }
 
 export function createUpwellingStream<
@@ -70,66 +83,166 @@ export function createUpwellingStream<
   TColor = unknown,
   TVec extends { x: number; y: number } = UpwellingVector2D,
 >(
-  k: UpwellingEngineContext<TDestroyable, TColor, TVec>,
+  k: IRenderEngine | UpwellingEngineContext<TDestroyable, TColor, TVec>,
   spawnXPosition: number,
   spawnYPosition: number
 ) {
-  const upwellingStream = k.add([
-    k.rect(36, 84),
-    k.pos(spawnXPosition, spawnYPosition),
-    k.color(0, 220, 255),
-    k.opacity(0),
-    k.rotate(-25), // 25º de inclinação ascendente
-    k.area({ scale: k.vec2(4, 10) }),
-    k.anchor("center"),
-    k.z(-1),
-    TAGS.UPWELLING_STREAM,
-    "upwelling_stream_parent",
-  ]) as UpwellingGameObject<TColor>;
+  const resolvedNativeRenderEngine = resolveInitializedRenderEngine(k);
+  const nativeWorldContainer = resolvedNativeRenderEngine
+    ? resolveWorldRenderContainer(resolvedNativeRenderEngine)
+    : null;
+  const legacyContext = k as UpwellingEngineContext<TDestroyable, TColor, TVec>;
 
+  const getDeltaTime = (): number => {
+    if (typeof legacyContext.dt === "function") {
+      return legacyContext.dt();
+    }
+    return resolvedNativeRenderEngine
+      ? resolvedNativeRenderEngine.getTicker().getDeltaTime()
+      : 0.016;
+  };
+
+  let upwellingStream: UpwellingGameObject<TColor>;
   const strands: UpwellingGameObject<TColor>[] = [];
   const strandCount = 6;
-  for (let strandIndex = 0; strandIndex < strandCount; strandIndex++) {
-    const strandOffsetX = (strandIndex - (strandCount - 1) / 2) * 5.5;
-    const strandAngle = (strandIndex - (strandCount - 1) / 2) * 2.2;
 
-    const baseSegment = upwellingStream.add([
-      k.rect(4, 30, { radius: 2 }),
-      k.pos(strandOffsetX, 20),
-      k.color(0, 210, 255),
-      k.opacity(0.55),
-      k.rotate(strandAngle),
-      k.anchor("center"),
-      "upwelling_strand_base",
-    ]);
+  if (resolvedNativeRenderEngine && nativeWorldContainer) {
+    const streamContainerNode = createNativeContainerNode(
+      k,
+      resolvedNativeRenderEngine,
+      nativeWorldContainer,
+      {
+        identifier: "upwelling_stream_parent",
+        positionX: spawnXPosition,
+        positionY: spawnYPosition,
+        rotationDegrees: -25,
+        zIndex: -1,
+        tags: [TAGS.UPWELLING_STREAM, "upwelling_stream_parent"],
+      }
+    );
 
-    const middleSegment = upwellingStream.add([
-      k.rect(3.5, 30, { radius: 1.5 }),
-      k.pos(strandOffsetX + strandAngle * 0.4, -8),
-      k.color(60, 225, 255),
-      k.opacity(0.35),
-      k.rotate(strandAngle),
-      k.anchor("center"),
-      "upwelling_strand_mid",
-    ]);
+    for (let strandIndex = 0; strandIndex < strandCount; strandIndex++) {
+      const strandOffsetX = (strandIndex - (strandCount - 1) / 2) * 5.5;
+      const strandAngle = (strandIndex - (strandCount - 1) / 2) * 2.2;
 
-    const topSegment = upwellingStream.add([
-      k.rect(3, 25, { radius: 1.5 }),
-      k.pos(strandOffsetX + strandAngle * 0.8, -34),
-      k.color(160, 245, 255),
-      k.opacity(0.18),
-      k.rotate(strandAngle),
-      k.anchor("center"),
-      "upwelling_strand_top",
-    ]);
+      const baseSegment = createNativeRectNode(
+        k,
+        resolvedNativeRenderEngine,
+        streamContainerNode.renderNode,
+        {
+          identifier: "upwelling_strand_base",
+          width: 4,
+          height: 30,
+          cornerRadius: 2,
+          positionX: strandOffsetX,
+          positionY: 20,
+          fillColor: [0, 210, 255],
+          opacity: 0.55,
+          rotationDegrees: strandAngle,
+          anchor: "center",
+        }
+      );
 
-    strands.push(baseSegment, middleSegment, topSegment);
+      const middleSegment = createNativeRectNode(
+        k,
+        resolvedNativeRenderEngine,
+        streamContainerNode.renderNode,
+        {
+          identifier: "upwelling_strand_mid",
+          width: 3.5,
+          height: 30,
+          cornerRadius: 1.5,
+          positionX: strandOffsetX + strandAngle * 0.4,
+          positionY: -8,
+          fillColor: [60, 225, 255],
+          opacity: 0.35,
+          rotationDegrees: strandAngle,
+          anchor: "center",
+        }
+      );
+
+      const topSegment = createNativeRectNode(
+        k,
+        resolvedNativeRenderEngine,
+        streamContainerNode.renderNode,
+        {
+          identifier: "upwelling_strand_top",
+          width: 3,
+          height: 25,
+          cornerRadius: 1.5,
+          positionX: strandOffsetX + strandAngle * 0.8,
+          positionY: -34,
+          fillColor: [160, 245, 255],
+          opacity: 0.18,
+          rotationDegrees: strandAngle,
+          anchor: "center",
+        }
+      );
+
+      strands.push(
+        baseSegment as unknown as UpwellingGameObject<TColor>,
+        middleSegment as unknown as UpwellingGameObject<TColor>,
+        topSegment as unknown as UpwellingGameObject<TColor>
+      );
+    }
+
+    upwellingStream = streamContainerNode as unknown as UpwellingGameObject<TColor>;
+  } else {
+    upwellingStream = legacyContext.add([
+      legacyContext.rect(36, 84),
+      legacyContext.pos(spawnXPosition, spawnYPosition),
+      legacyContext.color(0, 220, 255),
+      legacyContext.opacity(0),
+      legacyContext.rotate(-25), // 25º de inclinação ascendente
+      legacyContext.area({ scale: legacyContext.vec2(4, 10) }),
+      legacyContext.anchor("center"),
+      legacyContext.z(-1),
+      TAGS.UPWELLING_STREAM,
+      "upwelling_stream_parent",
+    ]) as UpwellingGameObject<TColor>;
+
+    for (let strandIndex = 0; strandIndex < strandCount; strandIndex++) {
+      const strandOffsetX = (strandIndex - (strandCount - 1) / 2) * 5.5;
+      const strandAngle = (strandIndex - (strandCount - 1) / 2) * 2.2;
+
+      const baseSegment = upwellingStream.add([
+        legacyContext.rect(4, 30, { radius: 2 }),
+        legacyContext.pos(strandOffsetX, 20),
+        legacyContext.color(0, 210, 255),
+        legacyContext.opacity(0.55),
+        legacyContext.rotate(strandAngle),
+        legacyContext.anchor("center"),
+        "upwelling_strand_base",
+      ]);
+
+      const middleSegment = upwellingStream.add([
+        legacyContext.rect(3.5, 30, { radius: 1.5 }),
+        legacyContext.pos(strandOffsetX + strandAngle * 0.4, -8),
+        legacyContext.color(60, 225, 255),
+        legacyContext.opacity(0.35),
+        legacyContext.rotate(strandAngle),
+        legacyContext.anchor("center"),
+        "upwelling_strand_mid",
+      ]);
+
+      const topSegment = upwellingStream.add([
+        legacyContext.rect(3, 25, { radius: 1.5 }),
+        legacyContext.pos(strandOffsetX + strandAngle * 0.8, -34),
+        legacyContext.color(160, 245, 255),
+        legacyContext.opacity(0.18),
+        legacyContext.rotate(strandAngle),
+        legacyContext.anchor("center"),
+        "upwelling_strand_top",
+      ]);
+
+      strands.push(baseSegment, middleSegment, topSegment);
+    }
   }
 
   let streamTime = 0;
   let streamLifetime = 1.0;
   upwellingStream.onUpdate(() => {
-    const deltaTime = k.dt();
+    const deltaTime = getDeltaTime();
     streamTime += deltaTime;
     // move jato diagonalmente para direita e para cima
     upwellingStream.pos.x += deltaTime * GAME_CONFIG.UPWELLING_PUSH_X;
@@ -144,7 +257,11 @@ export function createUpwellingStream<
       }
     }
     if (upwellingStream.pos.y <= -50 || streamLifetime <= 0) {
-      k.destroy(upwellingStream as unknown as TDestroyable);
+      if (resolvedNativeRenderEngine && typeof upwellingStream.destroy === "function") {
+        upwellingStream.destroy();
+      } else {
+        legacyContext.destroy(upwellingStream as unknown as TDestroyable);
+      }
     }
   });
 
@@ -155,13 +272,71 @@ export function setupUpwellingSystem<
   TDestroyable = unknown,
   TColor = unknown,
   TVec extends { x: number; y: number } = UpwellingVector2D,
->(k: UpwellingEngineContext<TDestroyable, TColor, TVec>, playerController: PlayerController) {
+>(
+  k: IRenderEngine | UpwellingEngineContext<TDestroyable, TColor, TVec>,
+  playerController: PlayerController
+) {
+  const resolvedNativeRenderEngine = resolveInitializedRenderEngine(k);
+  const legacyContext = k as UpwellingEngineContext<TDestroyable, TColor, TVec>;
+  const activeStreams: Array<UpwellingGameObject<TColor>> = [];
+
+  const getDeltaTime = (): number => {
+    if (typeof legacyContext.dt === "function") {
+      return legacyContext.dt();
+    }
+    return resolvedNativeRenderEngine
+      ? resolvedNativeRenderEngine.getTicker().getDeltaTime()
+      : 0.016;
+  };
+
+  const getViewportHeight = (): number => {
+    if (resolvedNativeRenderEngine) {
+      return resolvedNativeRenderEngine.getDimensions().height;
+    }
+    return legacyContext.height();
+  };
+
+  const clampValue = (value: number, min: number, max: number): number => {
+    return typeof legacyContext.clamp === "function"
+      ? legacyContext.clamp(value, min, max)
+      : Math.max(min, Math.min(max, value));
+  };
+
+  const createVelocityVector = (
+    x: number,
+    y: number
+  ): Parameters<PlayerController["setSpeed"]>[0] => {
+    if (typeof legacyContext.vec2 === "function") {
+      return legacyContext.vec2(x, y) as unknown as Parameters<PlayerController["setSpeed"]>[0];
+    }
+    return {
+      x,
+      y,
+      len: () => Math.hypot(x, y),
+      scale: (factor: number) => createVelocityVector(x * factor, y * factor),
+    } as unknown as Parameters<PlayerController["setSpeed"]>[0];
+  };
+
+  const applyUpwellingImpulseToPlayer = (): void => {
+    const currentVelocity = playerController.getSpeed();
+    playerController.setSpeed(
+      createVelocityVector(
+        clampValue(currentVelocity.x + 10, -GAME_CONFIG.MAX_SPEED, GAME_CONFIG.MAX_SPEED),
+        clampValue(
+          currentVelocity.y + computeUpwellingVerticalForce(playerController.gameObj.pos.y),
+          -GAME_CONFIG.MAX_SPEED,
+          GAME_CONFIG.MAX_SPEED
+        )
+      )
+    );
+  };
+
   let upwellingTimer = 0;
   let isUpwellingActive = false;
   let upwellingEventTimer = 0;
   let eventOriginXPosition = 0;
 
-  k.onUpdate(() => {
+  const updateUpwelling = (deltaTime: number) => {
     // só produz ressurgencia se baleia não estiver desmaiando
     if (playerController.isFainting()) return;
 
@@ -176,7 +351,7 @@ export function setupUpwellingSystem<
       return;
     }
 
-    upwellingTimer += k.dt();
+    upwellingTimer += deltaTime;
 
     // ativa ressurgencia a cada 18 segundos
     if (upwellingTimer >= GAME_CONFIG.UPWELLING_INTERVAL && !isUpwellingActive) {
@@ -184,47 +359,80 @@ export function setupUpwellingSystem<
       upwellingEventTimer = GAME_CONFIG.UPWELLING_DURATION;
       upwellingTimer = 0;
       eventOriginXPosition = currentXPosition;
-      safeShake(k, 2); // leve tremida na tela com guarda de acessibilidade
+      safeShake(legacyContext, 2); // leve tremida na tela com guarda de acessibilidade
     }
 
     // ativa ressurgencia (4 segundos)
     if (isUpwellingActive) {
-      const deltaTime = k.dt();
       upwellingEventTimer -= deltaTime;
       const normalizedDeltaTime = deltaTime * 60;
 
       // fluxo de agua ascendente na diagonal para direita independente de taxa de quadros
       if (getRandomFloat(0, 1) < 0.4 * normalizedDeltaTime) {
         const spawnXPosition = eventOriginXPosition + getRandomFloat(-100, 300);
-        const spawnYPosition = k.height() - 40;
-        createUpwellingStream(k, spawnXPosition, spawnYPosition);
+        const spawnYPosition = getViewportHeight() - 40;
+        const createdStream = createUpwellingStream(k, spawnXPosition, spawnYPosition);
+        activeStreams.push(createdStream.upwellingStream);
       }
 
       // gera cardume de krill na area independente de taxa de quadros
-      if (getRandomFloat(0, 1) < 0.005 * normalizedDeltaTime) {
+      if (
+        getRandomFloat(0, 1) < 0.005 * normalizedDeltaTime &&
+        (resolvedNativeRenderEngine || typeof legacyContext.add === "function")
+      ) {
         const krillXPosition = eventOriginXPosition + 300 + getRandomFloat(0, 200);
-        const krillYPosition = k.height() - 100 - getRandomFloat(0, 200);
-        createKrill(k, k.vec2(krillXPosition, krillYPosition));
+        const krillYPosition = getViewportHeight() - 100 - getRandomFloat(0, 200);
+        createKrill(
+          k as unknown as Parameters<typeof createKrill>[0],
+          { x: krillXPosition, y: krillYPosition } as unknown as Parameters<typeof createKrill>[1]
+        );
       }
 
       if (upwellingEventTimer <= 0) {
         isUpwellingActive = false;
       }
     }
-  });
 
-  // física: ressurgencia empurra baleia
-  k.onCollideUpdate(TAGS.PLAYER, TAGS.UPWELLING_STREAM, (_player, _upwellingStream) => {
-    const currentVelocity = playerController.getSpeed();
-    playerController.setSpeed(
-      k.vec2(
-        k.clamp(currentVelocity.x + 10, -GAME_CONFIG.MAX_SPEED, GAME_CONFIG.MAX_SPEED),
-        k.clamp(
-          currentVelocity.y + computeUpwellingVerticalForce(playerController.gameObj.pos.y),
-          -GAME_CONFIG.MAX_SPEED,
-          GAME_CONFIG.MAX_SPEED
-        )
-      ) as unknown as Parameters<PlayerController["setSpeed"]>[0]
-    );
-  });
+    // Física nativa no pipeline PixiJS v8: verifica sobreposição AABB direta com os jatos ativos
+    if (resolvedNativeRenderEngine && activeStreams.length > 0) {
+      const playerPos = playerController.gameObj.pos;
+      let hasStreamOverlap = false;
+      for (let index = activeStreams.length - 1; index >= 0; index--) {
+        const stream = activeStreams[index];
+        if (typeof stream.exists === "function" && !stream.exists()) {
+          activeStreams.splice(index, 1);
+          continue;
+        }
+        if (
+          Math.abs(playerPos.x - stream.pos.x) <= 95 &&
+          Math.abs(playerPos.y - stream.pos.y) <= 220
+        ) {
+          hasStreamOverlap = true;
+        }
+      }
+      if (hasStreamOverlap) {
+        applyUpwellingImpulseToPlayer();
+      }
+    }
+  };
+
+  if (resolvedNativeRenderEngine) {
+    registerNativeSceneUpdate(k, resolvedNativeRenderEngine, updateUpwelling);
+    if (typeof legacyContext.onSceneLeave === "function") {
+      legacyContext.onSceneLeave(() => {
+        for (let index = 0; index < activeStreams.length; index++) {
+          activeStreams[index].destroy?.();
+        }
+        activeStreams.length = 0;
+      });
+    }
+  } else {
+    legacyContext.onUpdate(() => {
+      updateUpwelling(getDeltaTime());
+    });
+    // física: ressurgencia empurra baleia
+    legacyContext.onCollideUpdate(TAGS.PLAYER, TAGS.UPWELLING_STREAM, () => {
+      applyUpwellingImpulseToPlayer();
+    });
+  }
 }

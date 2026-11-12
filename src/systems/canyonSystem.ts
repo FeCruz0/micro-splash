@@ -1,4 +1,8 @@
 import { GAME_CONFIG } from "../config";
+import {
+  resolveInitializedRenderEngine,
+  type IRenderEngine,
+} from "../engine/contracts/INTERFACE_CONTRACTS";
 import type { CanyonConfig, CanyonEngineContext, CanyonVector2D } from "./canyon/canyonTypes";
 import { setupCanyonGeometry } from "./canyon/canyonGeometry";
 import { setupCanyonObstacles } from "./canyon/canyonObstacles";
@@ -20,13 +24,18 @@ import { setupCanyonCurrents } from "./canyon/canyonCurrents";
 export function setupCanyonSystem<
   TColor = unknown,
   TVec extends { x: number; y: number } = CanyonVector2D,
->(k: CanyonEngineContext<TColor, TVec>) {
+>(k: IRenderEngine | CanyonEngineContext<TColor, TVec>) {
+  const resolvedNativeRenderEngine = resolveInitializedRenderEngine(k);
+  const legacyContext = k as CanyonEngineContext<TColor, TVec>;
   const surfaceY = GAME_CONFIG.SEA_LEVEL; // 80px (nível do mar)
-  const deepFloorY = k.height() - 40; // Leito oceânico profundo padrão (~320px em 360p)
+  const viewportHeight = resolvedNativeRenderEngine
+    ? resolvedNativeRenderEngine.getDimensions().height
+    : legacyContext.height();
+  const deepFloorY = viewportHeight - 40; // Leito oceânico profundo padrão (~320px em 360p)
 
   // Altura do topo da laje rochosa rasa do Boqueirão:
   // Deixa uma lâmina d'água livre de cerca de 85px entre o nível do mar (80) e a rocha (165)
-  const shallowRockTopY = Math.round(surfaceY + (k.height() - surfaceY) * 0.3);
+  const shallowRockTopY = Math.round(surfaceY + (viewportHeight - surfaceY) * 0.3);
   const seabedThickness = deepFloorY + 140 - shallowRockTopY;
 
   // Extensão horizontal da passagem
@@ -50,6 +59,6 @@ export function setupCanyonSystem<
   };
 
   const geometry = setupCanyonGeometry(k, config);
-  const anemones = setupCanyonObstacles(k, config);
-  setupCanyonCurrents(k, geometry, anemones, config);
+  const anemones = setupCanyonObstacles(legacyContext, config);
+  setupCanyonCurrents(legacyContext, geometry, anemones, config);
 }

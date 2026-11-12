@@ -82,7 +82,7 @@ export interface CanyonEngineContext<
   rotate: (a: number) => unknown;
   anchor: (a: "center" | "bot") => unknown;
   area: () => unknown;
-  body: (opt?: { isStatic?: boolean }) => unknown;
+  body?: (opt?: { isStatic?: boolean }) => unknown;
   z: (v: number) => unknown;
   rgb: (r: number, g: number, b: number) => TColor;
   onUpdate: (cb: () => void) => void;

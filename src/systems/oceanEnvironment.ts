@@ -29,17 +29,17 @@ export interface OceanColorsResult<TColor = unknown> {
   currentBiome: BiomeColorStop;
 }
 
+export interface OceanEnvironmentEngineContext {
+  lerp?: (a: number, b: number, t: number) => number;
+  rgb?: (r: number, g: number, b: number) => unknown;
+  setBackground?: (color: unknown) => void;
+}
+
 /**
  * Calcula as cores interpoladas (background, superfície e chão) para uma dada distância.
  */
 export function getColorsAtDistance(
-  engineOrContext:
-    | IRenderEngine
-    | any
-    | {
-        lerp?: (a: number, b: number, t: number) => number;
-        rgb?: (r: number, g: number, b: number) => unknown;
-      },
+  engineOrContext: IRenderEngine | OceanEnvironmentEngineContext,
   distance: number
 ): OceanColorsResult {
   const clampedDistance = Math.min(Math.max(distance, 0), GAME_CONFIG.ROUTE_TOTAL_DISTANCE);
@@ -133,14 +133,7 @@ export function isOceanColorDirty(distance: number, thresholdInMeters: number = 
  * interpolações e alocações repetidas de cores a cada quadro.
  */
 export function updateOceanColors(
-  engineOrContext:
-    | IRenderEngine
-    | any
-    | {
-        setBackground?: (c: unknown) => void;
-        lerp?: (a: number, b: number, t: number) => number;
-        rgb?: (r: number, g: number, b: number) => unknown;
-      },
+  engineOrContext: IRenderEngine | OceanEnvironmentEngineContext,
   distance: number,
   surfaceObj?: unknown,
   floorObj?: unknown,

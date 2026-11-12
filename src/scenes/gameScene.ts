@@ -1,5 +1,17 @@
 import { GAME_CONFIG, TAGS, centralizedDeltaTimeClamp } from "../config";
-import type { IScene, ISceneManager } from "../engine/contracts/INTERFACE_CONTRACTS";
+import {
+  resolveInitializedRenderEngine,
+  type IScene,
+  type ISceneManager,
+} from "../engine/contracts/INTERFACE_CONTRACTS";
+import {
+  resolveScreenRenderContainer,
+  resolveWorldRenderContainer,
+} from "../engine/adapters/RenderEngineAdapter";
+import {
+  createNativeRectNode,
+  createNativeTextNode,
+} from "../engine/adapters/NativeRenderNodeFactory";
 import { createPlayer, type PlayerController } from "../entities/player";
 import { createRescueBoat } from "../entities/boat";
 import { setupCollisions } from "../systems/collisions";
@@ -322,15 +334,38 @@ export function createGameScene(
         else initialX = 120; // Antártica
       }
 
+      const resolvedNativeRenderEngine = resolveInitializedRenderEngine(k);
+      const gameSceneWorldContainer = resolvedNativeRenderEngine
+        ? resolveWorldRenderContainer(resolvedNativeRenderEngine)
+        : null;
+      const gameSceneScreenContainer = resolvedNativeRenderEngine
+        ? resolveScreenRenderContainer(resolvedNativeRenderEngine)
+        : null;
+      const initialViewportDimensions = resolvedNativeRenderEngine
+        ? resolvedNativeRenderEngine.getDimensions()
+        : { width: k.width(), height: k.height() };
+
       // Overlay de Fade-In para suavizar a entrada no jogo
-      const fadeOverlay = k.add([
-        k.rect(k.width(), k.height()),
-        k.pos(0, 0),
-        k.color(6, 18, 42),
-        k.opacity(1),
-        k.fixed(),
-        k.z(100),
-      ]) as GameSceneUiObject;
+      const fadeOverlay: GameSceneUiObject =
+        resolvedNativeRenderEngine && gameSceneScreenContainer
+          ? createNativeRectNode(k, resolvedNativeRenderEngine, gameSceneScreenContainer, {
+              identifier: "game_scene_fade_overlay",
+              width: initialViewportDimensions.width,
+              height: initialViewportDimensions.height,
+              positionX: 0,
+              positionY: 0,
+              fillColor: [6, 18, 42],
+              opacity: 1,
+              zIndex: 100,
+            })
+          : (k.add([
+              k.rect(k.width(), k.height()),
+              k.pos(0, 0),
+              k.color(6, 18, 42),
+              k.opacity(1),
+              k.fixed(),
+              k.z(100),
+            ]) as GameSceneUiObject);
 
       const fadeTweenHandle = createTween(
         1,
@@ -342,25 +377,60 @@ export function createGameScene(
         Easings.easeOutQuad
       );
       fadeTweenHandle.promise.then(() => {
-        k.destroy(fadeOverlay);
+        if (resolvedNativeRenderEngine) {
+          fadeOverlay.destroy?.();
+        } else {
+          k.destroy(fadeOverlay);
+        }
       });
-      registerSceneLeaveHook(() => fadeTweenHandle.cancel());
+      registerSceneLeaveHook(() => {
+        fadeTweenHandle.cancel();
+        fadeOverlay.destroy?.();
+      });
 
       // Limites do mar
-      const oceanFloor = k.add([
-        k.rect(k.width() * 2, 60),
-        k.pos(-k.width() / 2, k.height() - 40),
-        k.color(20, 50, 120),
-      ]) as GameSceneUiObject;
+      const oceanFloor: GameSceneUiObject =
+        resolvedNativeRenderEngine && gameSceneWorldContainer
+          ? createNativeRectNode(k, resolvedNativeRenderEngine, gameSceneWorldContainer, {
+              identifier: "game_scene_ocean_floor",
+              width: initialViewportDimensions.width * 2,
+              height: 60,
+              positionX: -initialViewportDimensions.width / 2,
+              positionY: initialViewportDimensions.height - 40,
+              fillColor: [20, 50, 120],
+              zIndex: 0,
+            })
+          : (k.add([
+              k.rect(k.width() * 2, 60),
+              k.pos(-k.width() / 2, k.height() - 40),
+              k.color(20, 50, 120),
+            ]) as GameSceneUiObject);
 
       // Área do céu acima do nível do mar (0px a 80px)
-      const skyBand = k.add([
-        k.rect(k.width() * 2, GAME_CONFIG.SEA_LEVEL),
-        k.pos(-k.width() / 2, 0),
-        k.color(120, 190, 245),
-        k.z(-10),
-        "sky",
-      ]) as GameSceneUiObject;
+      const skyBand: GameSceneUiObject =
+        resolvedNativeRenderEngine && gameSceneWorldContainer
+          ? createNativeRectNode(k, resolvedNativeRenderEngine, gameSceneWorldContainer, {
+              identifier: "game_scene_sky_band",
+              width: initialViewportDimensions.width * 2,
+              height: GAME_CONFIG.SEA_LEVEL,
+              positionX: -initialViewportDimensions.width / 2,
+              positionY: 0,
+              fillColor: [120, 190, 245],
+              zIndex: -10,
+              tags: ["sky"],
+            })
+          : (k.add([
+              k.rect(k.width() * 2, GAME_CONFIG.SEA_LEVEL),
+              k.pos(-k.width() / 2, 0),
+              k.color(120, 190, 245),
+              k.z(-10),
+              "sky",
+            ]) as GameSceneUiObject);
+
+      registerSceneLeaveHook(() => {
+        oceanFloor.destroy?.();
+        skyBand.destroy?.();
+      });
 
       // Tag da superfície posicionada no nível do mar (80px) - Sistema Ondulado Orgânico (Fase 29.1)
       const waterSurface = createWaterSurfaceSystem(k);
@@ -407,34 +477,76 @@ export function createGameScene(
 
       // HUD adicional de modo no topo direito
       let timerUI: GameSceneUiObject | null = null;
+      let modeBadgeUI: GameSceneUiObject | null = null;
       if (options.mode === "quick_challenge") {
-        timerUI = k.add([
-          k.text("⏱️ 60s", { size: 16.5, font: "Outfit" }),
-          k.pos(k.width() - 110, 18),
-          k.color(255, 220, 80),
-          k.fixed(),
-          k.z(150),
-        ]) as GameSceneUiObject;
+        timerUI =
+          resolvedNativeRenderEngine && gameSceneScreenContainer
+            ? createNativeTextNode(k, resolvedNativeRenderEngine, gameSceneScreenContainer, {
+                identifier: "game_scene_mode_timer",
+                content: "⏱️ 60s",
+                fontSize: 16.5,
+                fontFamily: "Outfit",
+                color: [255, 220, 80],
+                positionX: initialViewportDimensions.width - 110,
+                positionY: 18,
+                zIndex: 150,
+              })
+            : (k.add([
+                k.text("⏱️ 60s", { size: 16.5, font: "Outfit" }),
+                k.pos(k.width() - 110, 18),
+                k.color(255, 220, 80),
+                k.fixed(),
+                k.z(150),
+              ]) as GameSceneUiObject);
       } else if (options.mode === "serene") {
-        k.add([
-          k.text("🌸 Migração Serena (∞)", { size: 14.5, font: "Outfit" }),
-          k.pos(k.width() - 190, 18),
-          k.color(140, 255, 200),
-          k.fixed(),
-          k.z(150),
-        ]);
+        modeBadgeUI =
+          resolvedNativeRenderEngine && gameSceneScreenContainer
+            ? createNativeTextNode(k, resolvedNativeRenderEngine, gameSceneScreenContainer, {
+                identifier: "game_scene_mode_serene",
+                content: "🌸 Migração Serena (∞)",
+                fontSize: 14.5,
+                fontFamily: "Outfit",
+                color: [140, 255, 200],
+                positionX: initialViewportDimensions.width - 190,
+                positionY: 18,
+                zIndex: 150,
+              })
+            : (k.add([
+                k.text("🌸 Migração Serena (∞)", { size: 14.5, font: "Outfit" }),
+                k.pos(k.width() - 190, 18),
+                k.color(140, 255, 200),
+                k.fixed(),
+                k.z(150),
+              ]) as GameSceneUiObject);
       } else if (options.mode === "weekly") {
-        k.add([
-          k.text(`📅 Desafio Semanal (#${options.seed || "Semanal"})`, {
-            size: 14.5,
-            font: "Outfit",
-          }),
-          k.pos(k.width() - 260, 18),
-          k.color(255, 220, 80),
-          k.fixed(),
-          k.z(150),
-        ]);
+        const weeklyLabel = `📅 Desafio Semanal (#${options.seed || "Semanal"})`;
+        modeBadgeUI =
+          resolvedNativeRenderEngine && gameSceneScreenContainer
+            ? createNativeTextNode(k, resolvedNativeRenderEngine, gameSceneScreenContainer, {
+                identifier: "game_scene_mode_weekly",
+                content: weeklyLabel,
+                fontSize: 14.5,
+                fontFamily: "Outfit",
+                color: [255, 220, 80],
+                positionX: initialViewportDimensions.width - 260,
+                positionY: 18,
+                zIndex: 150,
+              })
+            : (k.add([
+                k.text(weeklyLabel, {
+                  size: 14.5,
+                  font: "Outfit",
+                }),
+                k.pos(k.width() - 260, 18),
+                k.color(255, 220, 80),
+                k.fixed(),
+                k.z(150),
+              ]) as GameSceneUiObject);
       }
+      registerSceneLeaveHook(() => {
+        timerUI?.destroy?.();
+        modeBadgeUI?.destroy?.();
+      });
 
       // 1.5. Registra Início da Jornada no Dashboard Coletivo (Fase 16) e Analytics (Fase 27)
       recordMigrationStart();
@@ -691,7 +803,10 @@ export function createGameScene(
             spatialGridSyncTimer = 0;
             const krills = typeof k.get === "function" ? k.get(TAGS.KRILL) : [];
             for (let i = 0; i < krills.length; i++) {
-              const krill = krills[i];
+              const krill = krills[i] as {
+                id?: string | number;
+                pos?: { x: number; y: number };
+              } | null;
               if (krill && krill.pos) {
                 const krillIdentifier = `krill_${krill.id ?? i}`;
                 const krillBoundingBox = {

@@ -2,6 +2,18 @@ import { GAME_CONFIG, TAGS } from "../config";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
 import { getRandomFloat } from "../utils/random";
 import { getEntityFamilyTicker } from "../systems/entityFamilyTicker";
+import {
+  registerSonarTarget,
+  unregisterSonarTarget,
+  type RevealableTarget,
+} from "./player/playerSonar";
+import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
+import {
+  createNativeCircleNode,
+  createNativeRectNode,
+  type NativeVisualObjectAdapter,
+} from "../engine/adapters/NativeRenderNodeFactory";
 
 export interface NetVector2D {
   x: number;
@@ -96,94 +108,195 @@ export function createGhostNet<TColor = unknown>(
   const baseOpacity = isHighContrast ? 0.35 : 0.0;
   const palette = getBiomeNetPalette(position.x, isHighContrast);
 
-  // Fundo semi-transparente da rede (corpo principal)
-  const net = k.add([
-    k.rect(38, 52, { radius: 2 }),
-    k.pos(position),
-    k.color(palette.mesh[0], palette.mesh[1], palette.mesh[2]),
-    k.outline(
-      isHighContrast ? 2.5 : 1.5,
-      k.rgb(palette.outline[0], palette.outline[1], palette.outline[2])
-    ),
-    k.opacity(baseOpacity),
-    k.area(),
-    k.anchor("center"),
-    TAGS.NET,
-    {
-      reveal() {
-        revealTimer = GAME_CONFIG.SONAR_REVEAL_DURATION;
-        net.hidden = false;
-      },
-    },
-  ]) as GhostNetObject;
-
-  net.hidden = !isHighContrast;
-
-  // Grade visual: malha monofilamento autêntica (linhas verticais e horizontais, nós e boias)
   const netW = 38;
   const netH = 52;
-  const lineColor = k.rgb(palette.mesh[0], palette.mesh[1], palette.mesh[2]);
-  const floatColor = k.rgb(palette.floats[0], palette.floats[1], palette.floats[2]);
   const gridLines: NetGameObject[] = [];
+  const resolvedNativeRenderEngine = resolveInitializedRenderEngine(k);
+  let net: GhostNetObject;
+  let nativeNetAdapter: NativeVisualObjectAdapter | null = null;
 
-  // 1. Cabo superior de sustentação (floatline)
-  const topCable = net.add([
-    k.rect(netW + 4, 2),
-    k.pos(0, -netH / 2),
-    k.color(lineColor),
-    k.opacity(baseOpacity),
-    k.anchor("center"),
-  ]) as NetGameObject;
-  gridLines.push(topCable);
+  const activateReveal = () => {
+    revealTimer = GAME_CONFIG.SONAR_REVEAL_DURATION;
+    net.hidden = false;
+  };
 
-  // 2. Pequenas boias de flutuação no topo da rede fantasma
-  for (let b = 0; b < 4; b++) {
-    const floatObj = net.add([
-      k.rect(6, 4, { radius: 2 }),
-      k.pos(-netW / 2 + 5 + b * 9.5, -netH / 2 - 2),
-      k.color(floatColor),
+  if (resolvedNativeRenderEngine) {
+    const worldRenderContainer = resolveWorldRenderContainer(resolvedNativeRenderEngine);
+    nativeNetAdapter = createNativeRectNode(k, resolvedNativeRenderEngine, worldRenderContainer, {
+      identifier: "ghost_net_body",
+      width: netW,
+      height: netH,
+      cornerRadius: 2,
+      positionX: position.x,
+      positionY: position.y,
+      fillColor: palette.mesh,
+      outlineColor: palette.outline,
+      outlineWidth: isHighContrast ? 2.5 : 1.5,
+      opacity: baseOpacity,
+      anchor: "center",
+      visible: isHighContrast,
+      tags: [TAGS.NET],
+      onReveal: activateReveal,
+    });
+    const netRenderNode = nativeNetAdapter.getRenderNode();
+
+    gridLines.push(
+      createNativeRectNode(k, resolvedNativeRenderEngine, netRenderNode, {
+        identifier: "ghost_net_top_cable",
+        width: netW + 4,
+        height: 2,
+        positionX: 0,
+        positionY: -netH / 2,
+        fillColor: palette.mesh,
+        opacity: baseOpacity,
+        anchor: "center",
+      }) as unknown as NetGameObject
+    );
+    for (let floatIndex = 0; floatIndex < 4; floatIndex++) {
+      gridLines.push(
+        createNativeRectNode(k, resolvedNativeRenderEngine, netRenderNode, {
+          identifier: `ghost_net_float_${floatIndex}`,
+          width: 6,
+          height: 4,
+          cornerRadius: 2,
+          positionX: -netW / 2 + 5 + floatIndex * 9.5,
+          positionY: -netH / 2 - 2,
+          fillColor: palette.floats,
+          opacity: baseOpacity,
+          anchor: "center",
+        }) as unknown as NetGameObject
+      );
+    }
+    for (let verticalIndex = 1; verticalIndex <= 3; verticalIndex++) {
+      gridLines.push(
+        createNativeRectNode(k, resolvedNativeRenderEngine, netRenderNode, {
+          identifier: `ghost_net_v_line_${verticalIndex}`,
+          width: 1.2,
+          height: netH,
+          positionX: -netW / 2 + verticalIndex * (netW / 4),
+          positionY: 0,
+          fillColor: palette.mesh,
+          opacity: baseOpacity,
+          anchor: "center",
+        }) as unknown as NetGameObject
+      );
+    }
+    for (let horizontalIndex = 1; horizontalIndex <= 5; horizontalIndex++) {
+      gridLines.push(
+        createNativeRectNode(k, resolvedNativeRenderEngine, netRenderNode, {
+          identifier: `ghost_net_h_line_${horizontalIndex}`,
+          width: netW,
+          height: 1.2,
+          positionX: 0,
+          positionY: -netH / 2 + horizontalIndex * (netH / 6),
+          fillColor: palette.mesh,
+          opacity: baseOpacity,
+          anchor: "center",
+        }) as unknown as NetGameObject
+      );
+    }
+    for (let verticalIndex = 1; verticalIndex <= 3; verticalIndex++) {
+      for (let horizontalIndex = 1; horizontalIndex <= 5; horizontalIndex++) {
+        gridLines.push(
+          createNativeCircleNode(k, resolvedNativeRenderEngine, netRenderNode, {
+            identifier: `ghost_net_knot_${verticalIndex}_${horizontalIndex}`,
+            radius: 0.9,
+            positionX: -netW / 2 + verticalIndex * (netW / 4),
+            positionY: -netH / 2 + horizontalIndex * (netH / 6),
+            fillColor: palette.mesh,
+            opacity: baseOpacity,
+            anchor: "center",
+          }) as unknown as NetGameObject
+        );
+      }
+    }
+
+    net = nativeNetAdapter as unknown as GhostNetObject;
+    registerSonarTarget(net as unknown as RevealableTarget);
+    nativeNetAdapter.onDestroy(() => {
+      unregisterSonarTarget(net as unknown as RevealableTarget);
+    });
+  } else {
+    // Fundo semi-transparente da rede (corpo principal legado)
+    net = k.add([
+      k.rect(netW, netH, { radius: 2 }),
+      k.pos(position),
+      k.color(palette.mesh[0], palette.mesh[1], palette.mesh[2]),
+      k.outline(
+        isHighContrast ? 2.5 : 1.5,
+        k.rgb(palette.outline[0], palette.outline[1], palette.outline[2])
+      ),
       k.opacity(baseOpacity),
+      k.area(),
       k.anchor("center"),
-    ]) as NetGameObject;
-    gridLines.push(floatObj);
-  }
+      TAGS.NET,
+      {
+        reveal() {
+          activateReveal();
+        },
+      },
+    ]) as GhostNetObject;
 
-  // 3. Linhas verticais da malha
-  for (let v = 1; v <= 3; v++) {
-    const line = net.add([
-      k.rect(1.2, netH),
-      k.pos(-netW / 2 + v * (netW / 4), 0),
+    net.hidden = !isHighContrast;
+
+    // Grade visual: malha monofilamento autêntica (linhas verticais e horizontais, nós e boias)
+    const lineColor = k.rgb(palette.mesh[0], palette.mesh[1], palette.mesh[2]);
+    const floatColor = k.rgb(palette.floats[0], palette.floats[1], palette.floats[2]);
+
+    const topCable = net.add([
+      k.rect(netW + 4, 2),
+      k.pos(0, -netH / 2),
       k.color(lineColor),
       k.opacity(baseOpacity),
       k.anchor("center"),
     ]) as NetGameObject;
-    gridLines.push(line);
-  }
+    gridLines.push(topCable);
 
-  // 4. Linhas horizontais da malha
-  for (let h = 1; h <= 5; h++) {
-    const line = net.add([
-      k.rect(netW, 1.2),
-      k.pos(0, -netH / 2 + h * (netH / 6)),
-      k.color(lineColor),
-      k.opacity(baseOpacity),
-      k.anchor("center"),
-    ]) as NetGameObject;
-    gridLines.push(line);
-  }
+    for (let b = 0; b < 4; b++) {
+      const floatObj = net.add([
+        k.rect(6, 4, { radius: 2 }),
+        k.pos(-netW / 2 + 5 + b * 9.5, -netH / 2 - 2),
+        k.color(floatColor),
+        k.opacity(baseOpacity),
+        k.anchor("center"),
+      ]) as NetGameObject;
+      gridLines.push(floatObj);
+    }
 
-  // 5. Nós de cruzamento da malha monofilamento
-  for (let v = 1; v <= 3; v++) {
-    for (let h = 1; h <= 5; h++) {
-      const knotComp = typeof k.circle === "function" ? k.circle(0.9) : k.rect(1.8, 1.8);
-      const knot = net.add([
-        knotComp,
-        k.pos(-netW / 2 + v * (netW / 4), -netH / 2 + h * (netH / 6)),
+    for (let v = 1; v <= 3; v++) {
+      const line = net.add([
+        k.rect(1.2, netH),
+        k.pos(-netW / 2 + v * (netW / 4), 0),
         k.color(lineColor),
         k.opacity(baseOpacity),
         k.anchor("center"),
       ]) as NetGameObject;
-      gridLines.push(knot);
+      gridLines.push(line);
+    }
+
+    for (let h = 1; h <= 5; h++) {
+      const line = net.add([
+        k.rect(netW, 1.2),
+        k.pos(0, -netH / 2 + h * (netH / 6)),
+        k.color(lineColor),
+        k.opacity(baseOpacity),
+        k.anchor("center"),
+      ]) as NetGameObject;
+      gridLines.push(line);
+    }
+
+    for (let v = 1; v <= 3; v++) {
+      for (let h = 1; h <= 5; h++) {
+        const knotComp = typeof k.circle === "function" ? k.circle(0.9) : k.rect(1.8, 1.8);
+        const knot = net.add([
+          knotComp,
+          k.pos(-netW / 2 + v * (netW / 4), -netH / 2 + h * (netH / 6)),
+          k.color(lineColor),
+          k.opacity(baseOpacity),
+          k.anchor("center"),
+        ]) as NetGameObject;
+        gridLines.push(knot);
+      }
     }
   }
 
@@ -224,6 +337,11 @@ export function createGhostNet<TColor = unknown>(
       width: 40,
       targetObject: net,
       update: updateGhostNet,
+    });
+  } else if (nativeNetAdapter) {
+    nativeNetAdapter.onUpdate((deltaTimeInSeconds: number) => {
+      if (nativeNetAdapter.hidden && revealTimer <= 0) return;
+      updateGhostNet(deltaTimeInSeconds);
     });
   } else {
     net.onUpdate(() => {

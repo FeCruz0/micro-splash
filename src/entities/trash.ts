@@ -2,6 +2,18 @@ import { GAME_CONFIG, TAGS, ACCESSIBILITY_VISUAL_CONFIG } from "../config";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
 import { getRandomFloat, getRandomInteger } from "../utils/random";
 import { getEntityFamilyTicker } from "../systems/entityFamilyTicker";
+import {
+  registerSonarTarget,
+  unregisterSonarTarget,
+  type RevealableTarget,
+} from "./player/playerSonar";
+import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
+import {
+  createNativeCircleNode,
+  createNativeRectNode,
+  type NativeVisualObjectAdapter,
+} from "../engine/adapters/NativeRenderNodeFactory";
 
 export interface TrashVector2D {
   x: number;
@@ -105,9 +117,135 @@ export function createTrash<TColor = unknown, TVec = TrashVector2D>(
 
   // 3 tipos procedurais de lixo plástico intercalados
   const trashType = getRandomInteger(0, 2);
+  const resolvedNativeRenderEngine = resolveInitializedRenderEngine(k);
   let trash: TrashGameObject;
+  let nativeTrashAdapter: NativeVisualObjectAdapter | null = null;
 
-  if (trashType === 0) {
+  const activateReveal = () => {
+    revealTimer = GAME_CONFIG.SONAR_REVEAL_DURATION;
+  };
+
+  if (resolvedNativeRenderEngine) {
+    const worldRenderContainer = resolveWorldRenderContainer(resolvedNativeRenderEngine);
+    const outlineWidth = isHighContrast ? 2.5 : 1.5;
+
+    if (trashType === 0) {
+      nativeTrashAdapter = createNativeRectNode(
+        k,
+        resolvedNativeRenderEngine,
+        worldRenderContainer,
+        {
+          identifier: "trash_pet_bottle",
+          width: 11,
+          height: 22,
+          cornerRadius: 3,
+          positionX: position.x,
+          positionY: position.y,
+          fillColor: palette.body,
+          outlineColor: palette.outline,
+          outlineWidth,
+          opacity: baseOpacity,
+          anchor: "center",
+          tags: [TAGS.TRASH],
+          onReveal: activateReveal,
+        }
+      );
+      const trashRenderNode = nativeTrashAdapter.getRenderNode();
+      const capColor = palette.cap || palette.outline;
+      createNativeRectNode(k, resolvedNativeRenderEngine, trashRenderNode, {
+        identifier: "trash_pet_cap",
+        width: 6,
+        height: 4,
+        cornerRadius: 1,
+        positionX: 0,
+        positionY: -13,
+        fillColor: capColor,
+        anchor: "center",
+      });
+      createNativeRectNode(k, resolvedNativeRenderEngine, trashRenderNode, {
+        identifier: "trash_pet_label",
+        width: 11,
+        height: 6,
+        positionX: 0,
+        positionY: 1,
+        fillColor: palette.accent,
+        opacity: 0.7,
+        anchor: "center",
+      });
+    } else if (trashType === 1) {
+      const bagOpacity = isHighContrast
+        ? ACCESSIBILITY_VISUAL_CONFIG.HIGH_CONTRAST_OPACITY
+        : ACCESSIBILITY_VISUAL_CONFIG.ENHANCED_TRASH_OPACITY;
+      nativeTrashAdapter = createNativeRectNode(
+        k,
+        resolvedNativeRenderEngine,
+        worldRenderContainer,
+        {
+          identifier: "trash_plastic_bag",
+          width: 20,
+          height: 17,
+          cornerRadius: 6,
+          positionX: position.x,
+          positionY: position.y,
+          fillColor: palette.body,
+          outlineColor: palette.outline,
+          outlineWidth,
+          opacity: bagOpacity,
+          anchor: "center",
+          tags: [TAGS.TRASH],
+          onReveal: activateReveal,
+        }
+      );
+      createNativeRectNode(k, resolvedNativeRenderEngine, nativeTrashAdapter.getRenderNode(), {
+        identifier: "trash_bag_handles",
+        width: 14,
+        height: 4,
+        cornerRadius: 2,
+        positionX: 0,
+        positionY: -10,
+        fillColor: palette.accent,
+        outlineColor: palette.outline,
+        outlineWidth: 1,
+        anchor: "center",
+      });
+    } else {
+      nativeTrashAdapter = createNativeCircleNode(
+        k,
+        resolvedNativeRenderEngine,
+        worldRenderContainer,
+        {
+          identifier: "trash_crumpled_cup",
+          radius: 10,
+          positionX: position.x,
+          positionY: position.y,
+          fillColor: palette.body,
+          outlineColor: palette.outline,
+          outlineWidth,
+          opacity: baseOpacity,
+          anchor: "center",
+          tags: [TAGS.TRASH],
+          onReveal: activateReveal,
+        }
+      );
+      createNativeRectNode(k, resolvedNativeRenderEngine, nativeTrashAdapter.getRenderNode(), {
+        identifier: "trash_cup_crease",
+        width: 8,
+        height: 3,
+        cornerRadius: 1,
+        positionX: -1,
+        positionY: -1,
+        rotationDegrees: 25,
+        fillColor: palette.accent,
+        anchor: "center",
+      });
+    }
+
+    trash = nativeTrashAdapter as unknown as TrashGameObject;
+    registerSonarTarget(trash as unknown as RevealableTarget);
+    nativeTrashAdapter.onDestroy(() => {
+      unregisterSonarTarget(trash as unknown as RevealableTarget);
+    });
+  } else if (trashType === 0) {
     // 1. Garrafa PET — corpo vertical com gargalo estreito e tampa calibrada
     const shapeArea =
       typeof k.Rect === "function" ? { shape: new k.Rect(k.vec2(-5.5, -14), 11, 26) } : undefined;
@@ -125,11 +263,10 @@ export function createTrash<TColor = unknown, TVec = TrashVector2D>(
       TAGS.TRASH,
       {
         reveal() {
-          revealTimer = GAME_CONFIG.SONAR_REVEAL_DURATION;
+          activateReveal();
         },
       },
     ]) as TrashGameObject;
-    // Gargalo e tampa estreita da garrafa (proporção autêntica)
     const capColor = palette.cap || palette.outline;
     trash.add([
       k.rect(6, 4, { radius: 1 }),
@@ -137,7 +274,6 @@ export function createTrash<TColor = unknown, TVec = TrashVector2D>(
       k.color(capColor[0], capColor[1], capColor[2]),
       k.anchor("center"),
     ]);
-    // Faixa de rótulo desbotado
     trash.add([
       k.rect(11, 6),
       k.pos(0, 1),
@@ -167,11 +303,10 @@ export function createTrash<TColor = unknown, TVec = TrashVector2D>(
       TAGS.TRASH,
       {
         reveal() {
-          revealTimer = GAME_CONFIG.SONAR_REVEAL_DURATION;
+          activateReveal();
         },
       },
     ]) as TrashGameObject;
-    // Alças superiores da sacola plástica
     trash.add([
       k.rect(14, 4, { radius: 2 }),
       k.pos(0, -10),
@@ -195,11 +330,10 @@ export function createTrash<TColor = unknown, TVec = TrashVector2D>(
       TAGS.TRASH,
       {
         reveal() {
-          revealTimer = GAME_CONFIG.SONAR_REVEAL_DURATION;
+          activateReveal();
         },
       },
     ]) as TrashGameObject;
-    // Vinco de amassamento plástico
     trash.add([
       k.rect(8, 3, { radius: 1 }),
       k.pos(-1, -1),
@@ -239,6 +373,11 @@ export function createTrash<TColor = unknown, TVec = TrashVector2D>(
       width: 25,
       targetObject: trash,
       update: updateTrashItem,
+    });
+  } else if (nativeTrashAdapter) {
+    nativeTrashAdapter.onUpdate((deltaTimeInSeconds: number) => {
+      if (nativeTrashAdapter.hidden && revealTimer <= 0) return;
+      updateTrashItem(deltaTimeInSeconds);
     });
   } else {
     trash.onUpdate(() => {
