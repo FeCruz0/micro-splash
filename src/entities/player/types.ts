@@ -92,6 +92,8 @@ export interface PlayerController<TGameObj = PlayerGameObject, TVector2 = Strict
 
   // Fase 18: Dinâmica Hidrodinâmica de Correntezas (A favor vs. Contra o Fluxo)
   isFacingRight?: () => boolean;
+  getAngle?: () => number;
+  getFacingAdjustedAngle?: () => number;
   setCurrentFlowModifier?: (modifier: number) => void;
   getCurrentFlowModifier?: () => number;
 

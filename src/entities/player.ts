@@ -17,7 +17,11 @@ import type {
 import { PlayerOxygenManager } from "./player/playerOxygen";
 import { PlayerPhysicsManager } from "./player/playerPhysics";
 import { PlayerSonarManager, type RevealableTarget } from "./player/playerSonar";
-import { PlayerControlsManager } from "./player/playerControls";
+import {
+  PlayerControlsManager,
+  adjustFacingDirectionRotation,
+  normalizeWhaleVerticalRotation,
+} from "./player/playerControls";
 import { getInputStateManager, type InputStateManager } from "../systems/inputState";
 import {
   spawnBaleenSuction,
@@ -51,7 +55,7 @@ export {
   validatePlayerBuoyancyPhysics,
   type PlayerBuoyancyPhysicsResult,
 } from "./player/playerPhysics";
-export { calculateOceanIdleDrift };
+export { calculateOceanIdleDrift, adjustFacingDirectionRotation, normalizeWhaleVerticalRotation };
 
 export interface PlayerEngineContext {
   vec2(x: number, y: number): StrictPlayerVector2D;
@@ -548,6 +552,44 @@ export function createPlayer(
     const maxOx = oxygenMgr.getMaxOxygen();
     const oxygenRatio = oxygenMgr.getOxygen() / maxOx;
 
+    // Ondulação da coluna vertebral sincronizada com o ciclo de nado ou com o swell oceânico
+    let swimSway = 0;
+    if (!oxygenMgr.isFaintingState() && !trapMgr.isFrozen()) {
+      if (isMuscularStroke) {
+        const strokeProgress = physicsMgr.getStrokeTimer() / GAME_CONFIG.MAX_STROKE_TIME;
+        swimSway = Math.sin(strokeProgress * Math.PI * 2) * 3.2;
+      } else if (horizontalSpeed > 35) {
+        // Balanço suave e majestoso em planeio hidrodinâmico
+        swimSway = Math.sin(k.time() * 3.2) * Math.min(1.2, horizontalSpeed / 100);
+      } else if (!trapMgr.isTrapped() && inWater) {
+        // Balanço do mar quando horizontalmente estática — composto por swell oceânico longo (0.85 rad/s) e ripple de ondas (2.1 rad/s)
+        const swell = Math.sin(k.time() * 0.85) * 2.4;
+        const ripple = Math.sin(k.time() * 2.1) * 0.6;
+        swimSway = (swell + ripple) * idleBlend;
+      }
+    }
+
+    // Fase 40.2 & 40.3: Rotação composta com deflexão da espinha e pivô hidrodinâmico
+    // A flexão da cauda atenua o giro rígido, fazendo a cabeça apontar primeiro e o corpo dobrar
+    const spineFlexAngle = spineCurvature * 0.42;
+    const baseAngle = adjustFacingDirectionRotation(
+      controlsMgr.getAngle(),
+      controlsMgr.isFacingRight()
+    );
+    const rollTilt = currentRoll * 2.2;
+
+    baleia.angle =
+      baseAngle -
+      (controlsMgr.isFacingRight() ? spineFlexAngle : -spineFlexAngle) +
+      swimSway +
+      rollTilt;
+
+    // Feedback Físico de Aprisionamento: Tremor de Esforço (Struggle Jitter)
+    if (trapMgr.isTrapped()) {
+      const struggleTime = typeof k.time === "function" ? k.time() : 0;
+      baleia.angle += Math.sin(struggleTime * 32) * 1.5;
+    }
+
     // Fase 51.1: Pipeline Unificada de Renderização da Baleia (Rig -> Slices -> Fins -> Palette)
     currentRenderPipelineSnapshot = executeWhaleRenderPipeline(
       {
@@ -609,43 +651,6 @@ export function createPlayer(
 
       baleia.scale.x = k.lerp(baleia.scale.x, targetScaleX, dt * 8);
       baleia.scale.y = k.lerp(baleia.scale.y, targetScaleY, dt * 8);
-    }
-
-    // Ondulação da coluna vertebral sincronizada com o ciclo de nado ou com o swell oceânico
-    let swimSway = 0;
-    if (!oxygenMgr.isFaintingState() && !trapMgr.isFrozen()) {
-      if (isMuscularStroke) {
-        const strokeProgress = physicsMgr.getStrokeTimer() / GAME_CONFIG.MAX_STROKE_TIME;
-        swimSway = Math.sin(strokeProgress * Math.PI * 2) * 3.2;
-      } else if (horizontalSpeed > 35) {
-        // Balanço suave e majestoso em planeio hidrodinâmico
-        swimSway = Math.sin(k.time() * 3.2) * Math.min(1.2, horizontalSpeed / 100);
-      } else if (!trapMgr.isTrapped() && inWater) {
-        // Balanço do mar quando horizontalmente estática — composto por swell oceânico longo (0.85 rad/s) e ripple de ondas (2.1 rad/s)
-        const swell = Math.sin(k.time() * 0.85) * 2.4;
-        const ripple = Math.sin(k.time() * 2.1) * 0.6;
-        swimSway = (swell + ripple) * idleBlend;
-      }
-    }
-
-    // Fase 40.2 & 40.3: Rotação composta com deflexão da espinha e pivô hidrodinâmico
-    // A flexão da cauda atenua o giro rígido, fazendo a cabeça apontar primeiro e o corpo dobrar
-    const spineFlexAngle = spineCurvature * 0.42;
-    const baseAngle = controlsMgr.isFacingRight()
-      ? controlsMgr.getAngle()
-      : -controlsMgr.getAngle();
-    const rollTilt = currentRoll * 2.2;
-
-    baleia.angle =
-      baseAngle -
-      (controlsMgr.isFacingRight() ? spineFlexAngle : -spineFlexAngle) +
-      swimSway +
-      rollTilt;
-
-    // Feedback Físico de Aprisionamento: Tremor de Esforço (Struggle Jitter)
-    if (trapMgr.isTrapped()) {
-      const struggleTime = typeof k.time === "function" ? k.time() : 0;
-      baleia.angle += Math.sin(struggleTime * 32) * 1.5;
     }
 
     // Fase 40.5: Emissão de micro-vórtices nas aletas peitorais durante guinadas bruscas
@@ -949,6 +954,8 @@ export function createPlayer(
 
     // Fase 18: Dinâmica Hidrodinâmica de Correntezas
     isFacingRight: () => controlsMgr.isFacingRight(),
+    getAngle: () => controlsMgr.getAngle(),
+    getFacingAdjustedAngle: () => controlsMgr.getAdjustedFacingRotation(),
     getTargetCameraHorizontalOffset: () => controlsMgr.getTargetCamOffset(),
     setCurrentFlowModifier: (mod: number) => {
       oxygenMgr.setCurrentFlowModifier(mod);

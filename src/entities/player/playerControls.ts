@@ -27,6 +27,34 @@ export interface PlayerInputSnapshot {
   isDownDown: boolean;
 }
 
+/**
+ * Normalizes whale vertical pitch rotation depending on horizontal facing direction.
+ * When mirrored horizontally (scale.x = -1 / flipX = true), vertical pitch must be
+ * compensated so upward commands (W / ArrowUp) incline the whale's head upward,
+ * and downward commands (S / ArrowDown) incline the whale downward.
+ *
+ * @param verticalPitchAngleInDegrees - Logical vertical pitch angle in degrees (negative = pitch up, positive = pitch down).
+ * @param isFacingRight - Whether the whale is facing right.
+ * @returns Direction-compensated visual rotation angle in degrees.
+ */
+export function normalizeWhaleVerticalRotation(
+  verticalPitchAngleInDegrees: number,
+  isFacingRight: boolean
+): number {
+  return isFacingRight ? verticalPitchAngleInDegrees : -verticalPitchAngleInDegrees;
+}
+
+/**
+ * Adjusts whale pitch rotation based on horizontal facing direction.
+ * Clean Code alias for normalizeWhaleVerticalRotation providing explicit naming.
+ */
+export function adjustFacingDirectionRotation(
+  verticalPitchAngleInDegrees: number,
+  isFacingRight: boolean
+): number {
+  return normalizeWhaleVerticalRotation(verticalPitchAngleInDegrees, isFacingRight);
+}
+
 export class PlayerControlsManager {
   private k: PlayerControlsEngineContext;
   private touchState?: TouchControlsState;
@@ -70,6 +98,14 @@ export class PlayerControlsManager {
 
   public getAngle(): number {
     return this.angle;
+  }
+
+  public getNormalizedRotationAngle(): number {
+    return normalizeWhaleVerticalRotation(this.angle, this.facingRight);
+  }
+
+  public getAdjustedFacingRotation(): number {
+    return adjustFacingDirectionRotation(this.angle, this.facingRight);
   }
 
   public setAngle(angle: number): void {

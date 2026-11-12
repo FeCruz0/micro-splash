@@ -210,7 +210,7 @@ export function calculateWhalePuppetRig(parameters: PuppetRigParameters): Puppet
       relativeAngleInDegrees: isFacingRight ? relativeAngle : -relativeAngle,
       bodyAngleInDegrees: isFacingRight
         ? bodyAngleInDegrees + accumulatedBodyAngle
-        : -bodyAngleInDegrees - accumulatedBodyAngle,
+        : bodyAngleInDegrees - accumulatedBodyAngle,
     };
   }
 

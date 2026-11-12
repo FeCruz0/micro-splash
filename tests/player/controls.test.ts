@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
   PlayerControlsManager,
+  normalizeWhaleVerticalRotation,
+  adjustFacingDirectionRotation,
   type PlayerInputSnapshot,
 } from "../../src/entities/player/playerControls";
 import { createPlayer } from "../../src/entities/player";
@@ -284,5 +286,129 @@ describe("PlayerControlsManager: Controle de Orientação", () => {
     expect(finalAngle120).toBeCloseTo(finalAngle60, 1);
     expect(finalAngle60).toBeLessThan(30);
     expect(finalAngle60).toBeGreaterThan(0);
+  });
+
+  describe("Consistência de Rotação Vertical com Espelhamento (flipX / facingLeft)", () => {
+    it("normalizeWhaleVerticalRotation e adjustFacingDirectionRotation preservam ângulo quando virada para a direita", () => {
+      // Subida (Up): ângulo negativo
+      expect(normalizeWhaleVerticalRotation(-30, true)).toBe(-30);
+      expect(adjustFacingDirectionRotation(-30, true)).toBe(-30);
+
+      // Mergulho (Down): ângulo positivo
+      expect(normalizeWhaleVerticalRotation(30, true)).toBe(30);
+      expect(adjustFacingDirectionRotation(30, true)).toBe(30);
+    });
+
+    it("normalizeWhaleVerticalRotation e adjustFacingDirectionRotation invertem sinal para manter inclinação visual quando virada para a esquerda (flipX)", () => {
+      // Subida (Up): ao inclinar para cima virada para a esquerda, rotação visual deve ser positiva para apontar a cabeça para a superfície
+      expect(normalizeWhaleVerticalRotation(-30, false)).toBe(30);
+      expect(adjustFacingDirectionRotation(-30, false)).toBe(30);
+
+      // Mergulho (Down): ao inclinar para baixo virada para a esquerda, rotação visual deve ser negativa para apontar para o fundo
+      expect(normalizeWhaleVerticalRotation(30, false)).toBe(-30);
+      expect(adjustFacingDirectionRotation(30, false)).toBe(-30);
+    });
+
+    it("PlayerControlsManager expõe getNormalizedRotationAngle e getAdjustedFacingRotation sincronizados com a direção", () => {
+      const k = createMockKaboom();
+      const controls = new PlayerControlsManager(k);
+      controls.setAngle(-25);
+
+      // Virada para a direita: retorna -25°
+      controls.setFacingRight(true);
+      expect(controls.getNormalizedRotationAngle()).toBe(-25);
+      expect(controls.getAdjustedFacingRotation()).toBe(-25);
+
+      // Virada para a esquerda (flipX): retorna +25°
+      controls.setFacingRight(false);
+      expect(controls.getNormalizedRotationAngle()).toBe(25);
+      expect(controls.getAdjustedFacingRotation()).toBe(25);
+    });
+
+    it("garante consistência angular de inclinação vertical (W/S) quando a baleia está virada para a esquerda no controlador completo", () => {
+      let registeredUpdate: (() => void) | null = null;
+      let isKeyReturn = false;
+      let activeKeyTested = "";
+
+      const mockKaboom: any = {
+        height: () => 720,
+        width: () => 1280,
+        sprite: () => ({ anim: "glide" }),
+        pos: (x: number, y: number) => ({ x, y }),
+        area: () => ({ area: true }),
+        body: () => ({ body: true }),
+        rotate: (r: number) => ({ rotate: r }),
+        color: (r: number, g: number, b: number) => ({ r, g, b }),
+        anchor: (_a: string) => ({ anchor: _a }),
+        scale: (x: number, y: number) => ({ scale: { x, y } }),
+        opacity: (o: number) => ({ opacity: o }),
+        z: (z: number) => ({ z }),
+        rect: (w: number, h: number) => ({ type: "rect", w, h }),
+        circle: (r: number) => ({ type: "circle", r }),
+        polygon: (pts: any) => ({ pts }),
+        Rect: class {
+          constructor(_pos: any, _w: number, _h: number) {}
+        },
+        dt: () => 0.016,
+        time: () => 1.0,
+        vec2: (x: number, y: number) => ({
+          x,
+          y,
+          len: () => Math.sqrt(x * x + y * y),
+          unit: () => ({ x: 0, y: 0 }),
+          add: (other: any) => mockKaboom.vec2(x + other.x, y + other.y),
+          scale: (s: number) => mockKaboom.vec2(x * s, y * s),
+        }),
+        deg2rad: (deg: number) => (deg * Math.PI) / 180,
+        rad2deg: (rad: number) => (rad * 180) / Math.PI,
+        clamp: (val: number, min: number, max: number) => Math.max(min, Math.min(max, val)),
+        lerp: (a: number, b: number, t: number) => a + (b - a) * t,
+        isKeyDown: (key: string) => (key === activeKeyTested ? isKeyReturn : false),
+        isKeyPressed: () => false,
+        isKeyReleased: () => false,
+        rand: (min: number) => min,
+        camPos: () => ({ x: 0, y: 0 }),
+        rgb: (r: number, g: number, b: number) => ({ r, g, b }),
+        add: () => ({
+          pos: { x: 300, y: 200, add: (v: any) => ({ x: 300 + v.x, y: 200 + v.y }) },
+          angle: 0,
+          scale: { x: 1, y: 1 },
+          flipX: false,
+          opacity: 1,
+          color: { r: 255, g: 255, b: 255 },
+          play: () => {},
+          move: () => {},
+          onUpdate: (cb: () => void) => {
+            registeredUpdate = cb;
+          },
+          onDestroy: () => {},
+        }),
+      };
+
+      const player = createPlayer(mockKaboom, 300, false);
+      const updateFn = (registeredUpdate ?? player.update) as unknown as (() => void) | null;
+
+      // 1. Vira o jogador para a esquerda (A / Left)
+      activeKeyTested = "left";
+      isKeyReturn = true;
+      updateFn?.();
+      expect(player.isFacingRight?.()).toBe(false);
+
+      // 2. Comanda subida vertical (W / Up) virado para a esquerda por 5 quadros
+      activeKeyTested = "up";
+      for (let frame = 0; frame < 5; frame++) {
+        updateFn?.();
+      }
+
+      // O ângulo lógico da cabeça é negativo (subida)
+      expect(player.getAngle?.()).toBeLessThan(0);
+
+      // O snapshot do Puppet Rig craniano/torácico deve ter ângulo ajustado positivo (+bodyAngle)
+      // para que a rotação no sprite espelhado com scale.x = -1 aponte o focinho para CIMA (direção da superfície)
+      const pipelineSnapshot = player.getRenderPipelineSnapshot!();
+      expect(pipelineSnapshot).toBeDefined();
+      const thoraxAngle = pipelineSnapshot!.puppetRig.cranialThorax.bodyAngleInDegrees;
+      expect(thoraxAngle).toBeGreaterThan(0);
+    });
   });
 });

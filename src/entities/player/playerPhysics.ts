@@ -7,6 +7,9 @@ import {
 import { audioSystem } from "../../systems/audioSystem";
 import { accessibilitySystem } from "../../systems/accessibilitySystem";
 import type { PlayerGameObject, PlayerVector2D, StrictPlayerVector2D } from "./types";
+import { normalizeWhaleVerticalRotation, adjustFacingDirectionRotation } from "./playerControls";
+
+export { normalizeWhaleVerticalRotation, adjustFacingDirectionRotation };
 
 export interface PlayerPhysicsEngineContext extends BreachSplashEngineContext<
   unknown,
