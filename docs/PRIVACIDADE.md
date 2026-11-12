@@ -1,6 +1,6 @@
 # Política de Privacidade & Proteção de Dados — Micro Splash 🛡️🐋
 
-Este documento estabelece o compromisso do **Micro Splash** com a proteção de dados pessoais, a privacidade e a conformidade legal, atendendo aos princípios da **Lei Geral de Proteção de Dados Pessoais do Brasil (LGPD — Lei nº 13.709/2018)** e do **Regulamento Geral sobre a Proteção de Dados da União Europeia (GDPR — Regulamento 2016/679)**.
+Este documento descreve os dados persistidos e as comunicações de rede implementadas no **Micro Splash**. Ele é informativo e não constitui certificação nem aconselhamento jurídico. Cada implantação deve revisar suas configurações, provedores externos e obrigações legais aplicáveis.
 
 O _Micro Splash_ é um projeto de caráter estritamente educativo, de código aberto, concebido para uso universal em navegadores web, feiras de ciências, laboratórios de informática de redes escolares públicas municipais/estaduais e totens interativos em museus e centros de conservação marinha.
 
@@ -8,93 +8,86 @@ O _Micro Splash_ é um projeto de caráter estritamente educativo, de código ab
 
 ## 📋 Sumário
 
-1. [Princípios Fundamentais](#1-princípios-fundamentais)
-2. [Quais Dados São Armazenados](#2-quais-dados-são-armazenados)
-3. [Armazenamento Local (Offline-First)](#3-armazenamento-local-offline-first)
-4. [Tabela Completa de Chaves do LocalStorage](#4-tabela-completa-de-chaves-do-localstorage)
-5. [Placar de Líderes (Ranking Global & Local)](#5-placar-de-líderes-ranking-global--local)
-6. [Direito ao Esquecimento & Botão "Apagar Dados"](#6-direito-ao-esquecimento--botão-apagar-dados)
-7. [Uso em Redes Escolares e Totens Públicos](#7-uso-em-redes-escolares-e-totens-públicos)
-8. [Contato & Dúvidas](#8-contato--dúvidas)
+1. [Princípios e comunicações](#1-princípios-e-comunicações)
+2. [Dados persistidos localmente](#2-dados-persistidos-localmente)
+3. [Funcionamento offline](#3-funcionamento-offline)
+4. [Chaves locais](#4-chaves-locais)
+5. [Placar online](#5-placar-online)
+6. [Analytics configurável](#6-analytics-configurável)
+7. [Limpar dados locais](#7-limpar-dados-locais)
+8. [Contato](#8-contato)
 
 ---
 
-## 1. Princípios Fundamentais
+## 1. Princípios e comunicações
 
-- **Coleta Mínima (Privacy by Default):** Coletamos apenas o estritamente necessário para o funcionamento das mecânicas do jogo (recorde, configurações de acessibilidade e fatos desbloqueados).
-- **Sem Rastreamento de Terceiros:** O jogo **NÃO** utiliza cookies de rastreamento, Google Analytics, pixels do Meta, scripts de publicidade ou qualquer serviço de telemetria invasiva.
-- **Transparência Total:** Todo o código é aberto e auditável no repositório oficial do projeto.
-- **Segurança para Menores:** Em conformidade com o Artigo 14 da LGPD (tratamento de dados de crianças e adolescentes), o jogo não solicita e-mail, nome completo, CPF, localização geográfica ou telefone.
-
----
-
-## 2. Quais Dados São Armazenados
-
-O _Micro Splash_ armazena exclusivamente preferências técnicas e progresso no dispositivo do próprio usuário. Nenhum dado pessoal identificável (PII) é coletado ou exigido.
+- O jogo persiste preferências e progresso no armazenamento do navegador.
+- A API do placar pode receber uma entrada quando o usuário escolhe enviar uma pontuação. Analytics Plausible é opcional e depende de configuração de build.
+- O projeto não solicita e-mail, nome completo, CPF ou telefone como parte do fluxo normal do jogo. Iniciais enviadas ao placar são exibidas publicamente.
+- O uso de provedores de rede pode envolver dados técnicos processados por esses provedores. Consulte as políticas do serviço de hospedagem, do endpoint Plausible configurado e do endpoint do placar usado na implantação.
 
 ---
 
-## 3. Armazenamento Local (Offline-First)
+## 2. Dados persistidos localmente
 
-Todos os dados salvos pelo jogo permanecem confinados no navegador do usuário utilizando a API padrão de `localStorage`. Isso assegura que o jogo funcione **100% offline** e que as informações não saiam do dispositivo, a menos que o usuário opte expressamente por participar do placar global.
-
----
-
-## 4. Tabela Completa de Chaves do LocalStorage
-
-Todas as chaves criadas pelo Micro Splash utilizam o prefixo identificador `micro_splash_`:
-
-| Chave                           | Finalidade                                                                                           | Tipo de Dado                  |
-| :------------------------------ | :--------------------------------------------------------------------------------------------------- | :---------------------------- |
-| `micro_splash_highscore`        | Maior pontuação obtida na migração.                                                                  | Número inteiro                |
-| `micro_splash_cumulative_stats` | Métricas ecológicas somadas (lixos coletados, redes desfeitas, km nadados).                          | Objeto JSON                   |
-| `micro_splash_unlocked_facts`   | Lista de identificadores de fatos ecológicos desbloqueados no Diário de Bordo.                       | Array JSON de strings         |
-| `micro_splash_color_mode`       | Paleta de acessibilidade selecionada (`normal`, `protanopia`, `deuteranopia`, `high_contrast`).      | String                        |
-| `micro_splash_reduced_motion`   | Preferência de atenuação de movimento (`auto`, `reduced`, `full`).                                   | String                        |
-| `micro_splash_font_scale`       | Escala do tamanho das fontes da interface (`small`, `normal`, `large`).                              | String                        |
-| `micro_splash_soundtrack_mode`  | Modo de trilha sonora ativo (16-bit chiptune, ambiente contemplativo, foco).                         | String                        |
-| `micro_splash_volume`           | Nível do volume sonoro geral (0% a 100%).                                                            | Número decimal                |
-| `micro_splash_sfx_enabled`      | Estado de ativação dos efeitos sonoros procedurais.                                                  | Booleano (`"true"`/`"false"`) |
-| `micro_splash_haptics`          | Estado de ativação da vibração tátil em dispositivos móveis.                                         | Booleano (`"true"`/`"false"`) |
-| `micro_splash_touch_controls`   | Modo de exibição dos controles touch na tela (`auto`, `on`, `off`).                                  | String                        |
-| `micro_splash_resolution`       | Preset de resolução do canvas (`auto`, `4K`, `1440p`, `1080p`) e chaves específicas por dispositivo. | String                        |
-| `micro_splash_display_mode`     | Modo de proporção de tela (`stretch` ou `letterbox`).                                                | String                        |
-| `micro_splash_onboarding_seen`  | Indica se o onboarding em 3 slides já foi visualizado no dispositivo.                                | Booleano (`"true"`)           |
-| `micro_splash_tts_enabled`      | Ativação da narração em voz acessível dos fatos ecológicos (em desenvolvimento).                     | Booleano (`"true"`/`"false"`) |
+O jogo salva configurações de acessibilidade, idioma, áudio e tela; recordes, estatísticas e progresso educativo; estado de onboarding e preferências do modo quiosque/companheira. A implementação usa `localStorage` e, para detectar controles touch durante a sessão, `sessionStorage`.
 
 ---
 
-## 5. Placar de Líderes (Ranking Global & Local)
+## 3. Funcionamento offline
 
-- **Pseudonimização:** Ao alcançar uma pontuação notável, o jogador pode opcionalmente salvar até **3 caracteres de iniciais** (ex: `"ABC"`).
-- **Modo Offline:** Em totens de museus sem conexão à internet ou salas de aula desconectadas, o ranking opera em modo local restrito àquele navegador.
-- **Sincronização Opcional:** Quando há conexão, apenas o score numérico, a data e as iniciais de 3 letras são transmitidos para o Cloudflare KV. Nenhum endereço IP é indexado ou armazenado na listagem pública do ranking.
+O jogo foi projetado para que a partida principal funcione sem chamadas obrigatórias ao placar ou ao analytics. O service worker pode armazenar recursos para uso offline depois que forem carregados; disponibilidade offline depende de instalação/cache e da política do navegador. Consultar ou enviar pontuações ao placar requer rede.
 
 ---
 
-## 6. Direito ao Esquecimento & Botão "Apagar Dados"
+## 4. Chaves locais
 
-Em pleno cumprimento do **Artigo 18 da LGPD** (Direito de eliminação dos dados pessoais tratados), o _Micro Splash_ disponibiliza uma ferramenta de exclusão imediata e irrestrita:
+As principais chaves persistidas pela aplicação usam o prefixo `micro_splash_`. Algumas são compostas dinamicamente:
 
-1. Acesse o menu **Opções ⚙️** na tela inicial do jogo.
-2. Clique no botão vermelho **"🗑️ Apagar Dados (LGPD)"**.
-3. Uma tela de confirmação é exibida: _"Deseja apagar todos os recordes, conquistas e configurações salvas? Esta ação é irreversível."_.
-4. Ao clicar em **"Sim, Apagar Tudo"**, todas as chaves do `localStorage` iniciadas com `micro_splash_` são expurgadas imediatamente da memória do dispositivo e o jogo é reinicializado ao seu estado de fábrica.
+| Chave(s)                                                                                                  | Conteúdo                                                  |
+| :-------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------- |
+| `micro_splash_highscore`, `micro_splash_top10`, `micro_splash_weekly_top10_*`                             | Recordes e rankings locais.                               |
+| `micro_splash_cumulative_stats`, `micro_splash_educational_telemetry`                                     | Estatísticas e progresso educativo.                       |
+| `micro_splash_unlocked_facts`                                                                             | IDs de fatos desbloqueados no Codex.                      |
+| `micro_splash_color_mode`, `micro_splash_reduced_motion`, `micro_splash_font_scale`                       | Preferências de acessibilidade.                           |
+| `micro_splash_audio_settings`                                                                             | Volume, música, efeitos e modo de trilha num objeto JSON. |
+| `micro_splash_haptics_enabled`, `micro_splash_touch_controls`                                             | Preferências de controles.                                |
+| `micro_splash_resolution`, `micro_splash_resolution_<largura>x<altura>`                                   | Preset de resolução global e por dimensão de tela.        |
+| `micro_splash_display_mode`, `micro_splash_letterbox_color`                                               | Preferências de apresentação.                             |
+| `micro_splash_locale`                                                                                     | Idioma selecionado.                                       |
+| `micro_splash_online_cache_*`                                                                             | Cache local das respostas do placar online.               |
+| `micro_splash_kiosk_timeout`, `micro_splash_companion_whale_enabled`, `micro_splash_companion_whale_seen` | Preferências de quiosque e baleia-companheira.            |
+| `micro_splash_onboarding_done`, `micro_splash_tts`                                                        | Estado do onboarding e configuração de narração.          |
+
+Durante a sessão, `sessionStorage` também pode conter `micro_splash_touch_active` para detectar interação touch; essa chave não é removida pelo botão de limpeza do `localStorage`.
 
 ---
 
-## 7. Uso em Redes Escolares e Totens Públicos
+## 5. Placar online
 
-O _Micro Splash_ é certificado para ambientes institucionais:
-
-- **Totens de Museus:** O botão de apagar dados permite que monitores de museu redefinam o quiosque entre grupos escolares com facilidade.
-- **Laboratórios de Informática:** Professores podem utilizar o jogo com segurança jurídica absoluta, sabendo que os estudantes não são expostos a coleta de dados comerciais.
+- O usuário pode consultar o placar online e optar por enviar uma pontuação. O envio transmite iniciais (até 3 caracteres), score, distância, modo, data e, quando aplicável, chave semanal para o endpoint configurado.
+- O Worker armazena as entradas do placar no Cloudflare KV e mantém as melhores 10 entradas por lista. As iniciais e pontuações podem ser vistas por outras pessoas.
+- O cache do placar é gravado localmente. Limpar o armazenamento deste navegador não apaga entradas já enviadas ao serviço remoto; para solicitar remoção, use o contato do repositório.
 
 ---
 
-## 8. Contato & Dúvidas
+## 6. Analytics configurável
 
-Em caso de dúvidas sobre este documento ou solicitações relativas a dados, consulte a página oficial do projeto no GitHub:
+- O serviço Plausible está desativado quando `VITE_PLAUSIBLE_DOMAIN` não está definido. O host pode ser configurado por `VITE_PLAUSIBLE_API_HOST` (o padrão no código é `https://plausible.io`).
+- Se habilitado, o jogo envia eventos de início/conclusão/abandono de migração, quiz e salto. O payload pode incluir URL da página, modo, trilha sonora, pontuação, distância, biome, ID da questão e métricas do evento.
+- A inicialização respeita a configuração Do Not Track do navegador. A implantação que habilitar analytics deve informar isso aos usuários e revisar a política do provedor configurado.
+
+---
+
+## 7. Limpar dados locais
+
+Em **Opções → Apagar Dados**, a confirmação **"Sim, Apagar Tudo"** chama a rotina que remove do `localStorage` todas as chaves com prefixo `micro_splash_` e redefine preferências de acessibilidade. A página é recarregada. Isso não apaga dados do `sessionStorage`, logs do provedor de rede nem pontuações previamente enviadas ao placar remoto.
+
+---
+
+## 8. Uso em redes escolares e contato
+
+Para uso institucional, revise as variáveis de ambiente de analytics, o endpoint de ranking e as políticas dos provedores antes de disponibilizar o jogo. Em caso de dúvida ou solicitação sobre dados enviados ao placar, consulte o repositório:
 
 - **Repositório:** [https://github.com/FeCruz0/micro-splash](https://github.com/FeCruz0/micro-splash)
 - **Mantenedor Principal:** Felipe Cruz

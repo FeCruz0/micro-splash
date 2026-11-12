@@ -2,11 +2,13 @@
 
 Este documento organiza o plano de desenvolvimento em **Fases Sequenciais de Produção**, alinhadas aos princípios de Game Design Document (GDD) e desenvolvimento iterativo de jogos.
 
+> **Nota de manutenção:** as fases antigas preservam o escopo e as métricas registrados na época. A configuração atual define uma rota de 30.000 m (`src/config.ts`); valores menores nas fases iniciais são históricos, não o tamanho atual da rota. A fase 70 registra a conclusão da migração do runtime PixiJS, não a remoção integral da API de compatibilidade de `RenderingContextAdapter`.
+
 ---
 
 ## ✅ Fases Já Concluídas e Implementadas
 
-### 🚀 FASE 1: Base do Mapa & Geografia dos 27.000m
+### 🚀 FASE 1: Base do Mapa & Geografia dos 27.000m (escopo histórico)
 
 - [x] **1.1 Transição Dinâmica de Cores do Mar (`main.ts`):** Gradiente de fundo de azul polar escuro (`#051c38`) a azul turquesa luminoso (`#1490b8`).
 - [x] **1.2 Restrição Geográfica da Ressurgência (`upwellingSystem.ts`):** Jatos ascensionais e geração de Krill exclusivos na faixa de Arraial do Cabo (`19.000m - 25.000m`).
@@ -203,7 +205,7 @@ _Objetivo: Preparar o jogo para eventos públicos, feiras de ciências escolares
 - [x] **19.1 Eventos Climáticos Dinâmicos na Rota:**
   - Micro-climas ao longo da migração: nevasca polar passageira na Antártica, céu encoberto com vendaval em alto-mar e calmaria solar radiante em Arraial do Cabo.
 - [x] **19.2 Modo PWA Offline-First para Totens Interativos & Feiras de Ciências:**
-  - Configuração de Service Worker e Web App Manifest permitindo instalação autônoma no desktop ou tela inicial de tablets, com cache local de todos os assets (sprites, sons, scripts), rodando 100% offline em estandes e museus sem necessidade de conexão com a internet.
+  - Configuração do Service Worker e Web App Manifest para instalação em desktop/tablets e cache de recursos. A disponibilidade offline depende dos arquivos estarem no cache e da política do navegador; placar e analytics configurado precisam de rede.
 
 ---
 
@@ -1025,4 +1027,4 @@ _Objetivo: Extirpar componentes de colisão estática da engine clássica e acel
 - [x] **70.3 Entidades, colisões, input e interface:** Migração das superfícies de gameplay e UI para nós PixiJS, estado unificado de input, consultas de colisão espaciais e tweens desacoplados.
 - [x] **70.4 Dependência e assets:** Remoção da dependência Kaboom.js e de `LegacyBridge`; carregamento de sprites pelo `Assets` do PixiJS v8.
 - [x] **70.5 Verificação de desempenho:** Teste de estresse cobre a rota de 30.000 m no modo Sereno sem quadros sustentados acima de 33,3 ms; a meta não representa garantia geral de 60 FPS em todo hardware.
-- [x] **70.6 Remoção da fachada compatível:** Remoção definitiva de `createPixiBridgeContext` em `src/main.ts` e migração para o `RenderingContextAdapter` baseado nos contratos tipados da engine.
+- [x] **70.6 Substituição de `createPixiBridgeContext`:** Remoção do bridge do bootstrap e criação do `RenderingContext` tipado por `RenderingContextAdapter`. A API de compatibilidade ainda tem consumidores; sua migração integral é uma limpeza futura separada.

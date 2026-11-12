@@ -37,15 +37,16 @@ Exemplo de entrada:
 ```json
 {
   "id": "fato-novo-01",
-  "text": "As baleias-jubarte utilizam a ecolocalização e cantos complexos que podem se propagar por centenas de quilômetros no oceano profundo.",
-  "biome": "pelagic",
-  "category": "comportamento",
-  "source": "Instituto Baleia Jubarte"
+  "title": "Cantos no oceano",
+  "location": "Atlântico Sul",
+  "triggerX": 8000,
+  "description": "As vocalizações das baleias podem se propagar por grandes distâncias no oceano."
 }
 ```
 
-- **`biome`** válidos: `"polar"`, `"pelagic"`, `"coastal"`, `"sanctuary"`.
-- **`category`** válidas: `"comportamento"`, `"conservacao"`, `"anatomia"`, `"ecologia"`.
+- `id`, `title` e `location` devem ser strings não vazias.
+- `triggerX` deve ser um número entre `0` e `30000`.
+- `description` deve conter pelo menos 10 caracteres.
 
 ### 2. Adicionar ou Editar Perguntas do Quiz (`data/quiz.json`)
 
@@ -75,7 +76,7 @@ Exemplo de entrada:
 - **`difficulty`**: `"facil"`, `"medio"` ou `"dificil"`.
 
 > [!TIP]
-> Após editar qualquer arquivo JSON, execute `npm run validate:data` para verificar se os schemas continuam 100% em conformidade com o Zod!
+> Após editar qualquer arquivo JSON, execute `npm run validate:data` para verificar a conformidade com os schemas Zod.
 
 Para mais detalhes sobre as regras dos dados, consulte [`docs/DATA_SCHEMA.md`](docs/DATA_SCHEMA.md).
 
@@ -190,6 +191,6 @@ git commit -m "docs(schema): documentar regras de bioma do quiz.json"
 - **TypeScript Estrito:** Evite o uso de `any`. Declare interfaces e tipos explícitos para entidades e sistemas.
 - **Design System do Jogo:** Mantenha a consistência visual em 16-bit com as paletas já estabelecidas em `src/config.ts`.
 - **Acessibilidade:** Certifique-se de que novos modais e botões respeitem a navegação por teclado (`Tab`, `Setas`, `Enter`) e considerem o modo de movimento reduzido (`prefers-reduced-motion`).
-- **Offline-First:** O jogo deve funcionar 100% offline em totens e feiras escolares. Não inclua chamadas obrigatórias a APIs externas durante a gameplay.
+- **Offline-First:** A partida principal não deve depender de APIs externas. Recursos já armazenados pelo navegador podem permitir uso offline; placar online e analytics configurado dependem de rede.
 
 Agradecemos imensamente por dedicar seu tempo e talento à conservação marinha através do Micro Splash! 🐋💙

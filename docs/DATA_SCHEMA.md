@@ -34,13 +34,13 @@ Armazena os fatos informativos que surgem como popups educativos quando a jubart
 
 ### Definição do Schema (`FactSchema`)
 
-| Campo         | Tipo     | Restrições               | Descrição                                                            |
-| :------------ | :------- | :----------------------- | :------------------------------------------------------------------- |
-| `id`          | `string` | Min: 1 caractere, único  | Identificador alfanumérico do fato (ex: `"fato-01"`).                |
-| `title`       | `string` | Min: 1 caractere         | Título de destaque exibido no cabeçalho do popup.                    |
-| `location`    | `string` | Min: 1 caractere         | Nome do marco geográfico ou bioma (ex: `"Antártica (0m – 5.000m)"`). |
-| `triggerX`    | `number` | `0 <= triggerX <= 30000` | Distância em metros na rota onde o fato é disparado.                 |
-| `description` | `string` | Min: 10 caracteres       | Texto explicativo com rigor científico e linguagem didática.         |
+| Campo         | Tipo     | Restrições               | Descrição                                                                 |
+| :------------ | :------- | :----------------------- | :------------------------------------------------------------------------ |
+| `id`          | `string` | Min: 1 caractere         | Identificador do fato (ex: `"fato-01"`). O schema não verifica unicidade. |
+| `title`       | `string` | Min: 1 caractere         | Título de destaque exibido no cabeçalho do popup.                         |
+| `location`    | `string` | Min: 1 caractere         | Nome do marco geográfico ou bioma (ex: `"Antártica (0m – 5.000m)"`).      |
+| `triggerX`    | `number` | `0 <= triggerX <= 30000` | Distância em metros na rota onde o fato é disparado.                      |
+| `description` | `string` | Min: 10 caracteres       | Texto explicativo com rigor científico e linguagem didática.              |
 
 ### Exemplo Válido
 
@@ -62,16 +62,16 @@ Contém as questões do quiz educacional apresentadas de forma opcional na tela 
 
 ### Definição do Schema (`QuizQuestionSchema`)
 
-| Campo          | Tipo       | Restrições                                                                          | Descrição                                                             |
-| :------------- | :--------- | :---------------------------------------------------------------------------------- | :-------------------------------------------------------------------- |
-| `id`           | `string`   | Min: 1 caractere, único                                                             | Identificador alfanumérico da questão (ex: `"quiz-01"`).              |
-| `factId`       | `string`   | Min: 1 caractere                                                                    | ID do fato correspondente em `facts.json` para referência pedagógica. |
-| `biome`        | `enum`     | `"antartica"`, `"pelagico"`, `"oceano"`, `"costa_urbana"`, `"canyons"`, `"arraial"` | Bioma temático ao qual a pergunta pertence.                           |
-| `difficulty`   | `enum`     | `"facil"`, `"medio"`, `"dificil"`                                                   | Nível de profundidade biológica da questão.                           |
-| `question`     | `string`   | Min: 5 caracteres                                                                   | Enunciado claro e objetivo da questão.                                |
-| `options`      | `string[]` | Exatamente 4 itens, não vazios                                                      | Quatro opções plausíveis de resposta em ordem arbitrária.             |
-| `correctIndex` | `number`   | Inteiro: `0`, `1`, `2` ou `3`                                                       | Índice da alternativa correta no vetor `options`.                     |
-| `explanation`  | `string`   | Min: 5 caracteres                                                                   | Justificativa didática exibida após a escolha do jogador.             |
+| Campo          | Tipo       | Restrições                                                                          | Descrição                                                                    |
+| :------------- | :--------- | :---------------------------------------------------------------------------------- | :--------------------------------------------------------------------------- |
+| `id`           | `string`   | Min: 1 caractere                                                                    | Identificador da questão (ex: `"quiz-01"`). O schema não verifica unicidade. |
+| `factId`       | `string`   | Min: 1 caractere                                                                    | ID do fato correspondente em `facts.json` para referência pedagógica.        |
+| `biome`        | `enum`     | `"antartica"`, `"pelagico"`, `"oceano"`, `"costa_urbana"`, `"canyons"`, `"arraial"` | Bioma temático ao qual a pergunta pertence.                                  |
+| `difficulty`   | `enum`     | `"facil"`, `"medio"`, `"dificil"`                                                   | Nível de profundidade biológica da questão.                                  |
+| `question`     | `string`   | Min: 5 caracteres                                                                   | Enunciado claro e objetivo da questão.                                       |
+| `options`      | `string[]` | Exatamente 4 itens, não vazios                                                      | Quatro opções plausíveis de resposta em ordem arbitrária.                    |
+| `correctIndex` | `number`   | Inteiro: `0`, `1`, `2` ou `3`                                                       | Índice da alternativa correta no vetor `options`.                            |
+| `explanation`  | `string`   | Min: 5 caracteres                                                                   | Justificativa didática exibida após a escolha do jogador.                    |
 
 ### Exemplo Válido
 

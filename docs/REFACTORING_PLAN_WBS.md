@@ -4,7 +4,7 @@
 **Critério de Ordenação**: Menor Impacto $\rightarrow$ Maior Dependência (Folha $\rightarrow$ Raiz).  
 **Meta**: Transição Atômica dos 109 arquivos acoplados com Zero Downtime, Zero Type Drift e Zero regressões nos testes.
 
-**Status de execução (2026-11-08):** PixiJS v8 é o runtime gráfico e a dependência Kaboom.js foi removida. A `Onda 5` foi concluída: `createPixiBridgeContext` foi definitivamente removida de `src/main.ts` e substituída pelo `RenderingContextAdapter` baseado nos contratos de `src/engine/contracts/INTERFACE_CONTRACTS.ts`.
+**Status de execução (2026-11-12):** Migração do runtime para PixiJS v8 concluída e dependência Kaboom.js removida. `createPixiBridgeContext` não é mais usado em `src/main.ts`; o contexto atual é criado por `RenderingContextAdapter` sobre os contratos de `src/engine/contracts/INTERFACE_CONTRACTS.ts`. A API de compatibilidade do contexto ainda tem consumidores; este WBS documenta a migração do runtime e não declara sua remoção total.
 
 ---
 
@@ -15,7 +15,7 @@
 - [Onda 2: Camada de UI, Modais & Design System Acessível (36 arquivos)](#onda-2-camada-de-ui-modais--design-system-acessível-36-arquivos)
 - [Onda 3: Dinâmica de Jogo, Obstáculos, Cânion & Companion (29 arquivos)](#onda-3-dinâmica-de-jogo-obstáculos-cânion--companion-29-arquivos)
 - [Onda 4: Entidades do Loop Central, Cenas & Bootstrap (21 arquivos)](#onda-4-entidades-do-loop-central-cenas--bootstrap-21-arquivos)
-- [Onda 5: Limpeza de Dependências, Homologação & Cutover Final (Parcialmente Concluída)](#onda-5-limpeza-de-dependências-homologação--cutover-final-parcialmente-concluída)
+- [Onda 5: Limpeza de Dependências, Homologação & Cutover Final (Concluída)](#onda-5-limpeza-de-dependências-homologação--cutover-final-concluída)
 
 ---
 
@@ -178,7 +178,7 @@ _O núcleo da jogabilidade: Player, Física de Batimento, Cenas Modulares e Pont
 
 ---
 
-## Onda 5: Limpeza de Dependências, Homologação & Cutover Final (Parcialmente Concluída)
+## Onda 5: Limpeza de Dependências, Homologação & Cutover Final (Concluída)
 
 ### Concluído
 
@@ -186,5 +186,5 @@ _O núcleo da jogabilidade: Player, Física de Batimento, Cenas Modulares e Pont
 - `assetLoader` utiliza `Assets` do PixiJS v8 para carregar sprites.
 - O registro da implementação informa validação com `npx tsc --noEmit`, `npm test` e teste de estresse de 30.000 m no modo Sereno, sem quadros sustentados acima de 33,3 ms.
 
-- `createPixiBridgeContext` foi totalmente removida de `src/main.ts`, sendo substituída pelo `RenderingContextAdapter` baseado nos contratos de `src/engine/contracts/INTERFACE_CONTRACTS.ts`.
+- `createPixiBridgeContext` foi totalmente removida de `src/main.ts`; `RenderingContextAdapter` cria o contexto tipado, mantendo a API de compatibilidade necessária aos consumidores existentes.
 - Validação contínua através de TypeScript rigoroso (`npx tsc --noEmit`), suíte Vitest completa e testes de regressão de ciclo de vida.

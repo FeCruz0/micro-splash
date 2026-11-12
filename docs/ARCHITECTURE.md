@@ -1,6 +1,6 @@
 # 🏗️ Arquitetura do Sistema - Micro Splash
 
-O **Micro Splash** usa **PixiJS v8** como runtime gráfico, com uma camada de adaptação em TypeScript, áudio procedural via **Web Audio API** e empacotamento via **Vite**. Kaboom.js não é dependência do projeto. A antiga fachada `createPixiBridgeContext` foi completamente removida de `src/main.ts`, sendo substituída pelo `RenderingContextAdapter` e contratos de `INTERFACE_CONTRACTS.ts`.
+O **Micro Splash** usa **PixiJS v8** como runtime gráfico, com adapters e contratos TypeScript, áudio procedural via **Web Audio API** e empacotamento via **Vite**. Kaboom.js não é dependência do projeto. `createPixiBridgeContext` não é mais usado no bootstrap; `RenderingContextAdapter` ainda fornece uma API de compatibilidade tipada para consumidores existentes.
 
 ---
 
@@ -8,86 +8,26 @@ O **Micro Splash** usa **PixiJS v8** como runtime gráfico, com uma camada de ad
 
 ```
 micro-splash/
-├── data/
-│   ├── facts.json                  # Acervo pedagógico de curiosidades marinhas indexadas por bioma
-│   ├── quiz.json                   # Banco de perguntas e respostas para o desafio educacional
-│   └── level_layout.json           # Definição espacial de biomas, densidades e marcos náuticos
-├── docs/
-│   ├── ARCHITECTURE.md             # Este documento (visão técnica e estrutural)
-│   ├── GDD.md                      # Game Design Document completo
-│   ├── OCEAN_FACTS.md              # Fundamentação científica e artigos revisados por pares
-│   └── ROADMAP.md                  # Roteiro de fases e status de entrega
-├── public/
-│   ├── fonts/                      # Fontes locais otimizadas (WOFF2 prioritário com fallback TTF)
-│   ├── sprites/                    # Texturas e spritesheets (incluindo fauna_manifest.json)
-│   ├── offline.html                # Tela de contingência offline PWA estilizada
-│   └── sw.js                       # Service Worker com cache LRU versionado dinamicamente
-├── scripts/                        # Utilitários de build, validação e geradores em Node/ESM
+├── data/                 # Fatos, quiz e layout de fase (JSON validado por Zod)
+├── docs/                 # Arquitetura, design, schemas, roadmap e políticas
+├── public/               # Sprites, fontes, ícones e recursos PWA
+├── scripts/              # Validadores, geradores de recursos e build do service worker
+├── server/cloudflare-worker/ # API opcional do placar online
 ├── src/
-│   ├── config.ts                   # Parâmetros físicos, biomas, sementes, tags e dimensões
-│   ├── main.ts                     # Bootstrap do PixiJS, SceneManager e contexto de compatibilidade temporário
-│   ├── scenes/                     # Registro de cenas no SceneManager
-│   │   ├── assetLoader.ts          # Pré-carregamento determinístico de atlas e recursos
-│   │   ├── menuScene.ts            # Cena de menu com code-splitting dinâmico
-│   │   ├── gameScene.ts            # Orquestrador do loop de gameplay de 30.000m
-│   │   ├── gameOverScene.ts        # Cena dramática de resgate ou fim de jogo
-│   │   └── victoryScene.ts         # Cena de celebração com ritual do salto e eco-score
-│   ├── entities/                   # Atores e objetos interativos do jogo
-│   │   ├── player.ts               # Fachada da Jubarte (orquestração e ciclo de vida)
-│   │   ├── player/                 # Módulos especializados de biomecânica e renderização
-│   │   │   ├── playerRenderPipeline.ts # Coordenador puro e determinístico de renderização
-│   │   │   ├── playerPuppetRig.ts      # Cinemática direta de 4 nós e flukes caudais
-│   │   │   ├── playerSliceRenderer.ts  # Fatiamento sagital vertical e onda viajante
-│   │   │   ├── playerPectoralFin.ts    # Hidroplanos peitorais com diedro e perspectiva 2.5D
-│   │   │   ├── playerBreathPalette.ts  # Colorimetria centralizada dos estados de fôlego
-│   │   │   ├── playerAnimation.ts      # Interpolador harmônico de spritesheet de 16 quadros
-│   │   │   ├── playerDrift.ts          # Simulação de balanço de maré e deriva orbital
-│   │   │   ├── playerCaustics.ts       # Iluminação e cáusticos ventrais dinâmicos
-│   │   │   ├── playerCollision.ts      # Gerenciamento de redes, armadilhas e salvamento
-│   │   │   └── playerParticles.ts      # Spawners de vórtices peitorais e bolhas
-│   │   ├── companionWhale.ts       # Fachada da Baleia-Guia NPC (Mãe-Guia Antártica) autônoma
-│   │   ├── companion/              # Módulos especializados da IA da Baleia-Guia
-│   │   │   ├── companionStateMachine.ts # Orquestrador formal da máquina de estados (FSM)
-│   │   │   ├── companionLocomotion.ts   # Propulsão, decaimento e arrasto hidrodinâmico
-│   │   │   ├── companionSenses.ts       # Varredura sensorial com acelerador espacial
-│   │   │   ├── companionStates.ts       # Fachada retrocompatível de estados e respiração
-│   │   │   ├── states/                  # Nós concretos de estado (Intro, Cruise, Seek, etc.)
-│   │   │   └── types.ts                 # Contratos de controle, estado e colisão
-│   │   ├── boat.ts                 # Traineiras de pesca artesanal e barcos da guarda costeira
-│   │   ├── iceberg.ts              # Plataforma de gelo polar com fendas de respiração
-│   │   ├── krill.ts                # Cardumes alimentares com atração magnética e física oscilatória
-│   │   ├── net.ts                  # Redes de pesca fantasma com mecânica de enredamento e ruptura
-│   │   ├── ship.ts                 # Cargueiros industriais móveis com ruído e perigo de colisão
-│   │   └── trash.ts                # Lixo plástico camuflado no fundo com revelação por sonar
-│   ├── systems/                    # Sistemas de simulação de mundo, áudio e acessibilidade
-│   │   ├── accessibilitySystem.ts  # Daltonismo, tipografia, foco e movimento reduzido
-│   │   ├── companionTutorialSettings.ts # Configurações, persistência e alternância da Baleia-Guia
-│   │   ├── systemRunner.ts         # Despachante orquestrador de fases do game loop
-│   │   ├── spatialHashGrid.ts      # Particionamento espacial 2D em células uniformes O(1)
-│   │   ├── frameBudgetMonitor.ts   # Auditoria de orçamento de frame time e picos de GC
-│   │   ├── audioSystem.ts          # Fachada canônica para o subsistema de áudio
-│   │   ├── audio/                  # Arquitetura modular de áudio e síntese Web Audio API
-│   │   │   ├── audioEngine.ts      # Master bus, limiter (-6dB), convolver e ciclo de aba
-│   │   │   ├── audioMusic.ts       # Motor musical procedural com crossfade entre biomas
-│   │   │   ├── audioNoise.ts       # Geradores de ruído marrom/rosa para ambiência
-│   │   │   ├── audioWhale.ts       # Canto da baleia em síntese FM acionado por sonar
-│   │   │   └── sfx/                # Efeitos sonoros divididos por famílias temáticas
-│   │   ├── spatialCullingSystem.ts # Culling frustum com histerese e visibilidade O(1)
-│   │   ├── biomeLifecycleManager.ts# Ciclo de vida e desova determinística de entidades
-│   │   └── ...
-│   ├── ui/                         # Interface do usuário decomposta e modular
-│   │   ├── screens/                # Telas completas (optionsScreen, codexScreen, etc.)
-│   │   ├── modals/                 # Diálogos modais (quizModal, shareModal, statsModal)
-│   │   ├── hud/                    # Componentes do HUD de navegação e oxigênio
-│   │   ├── shared/                 # Componentes compartilhados e botões padronizados
-│   │   ├── animationUtils.ts       # Tokens UI_TRANSITIONS e transições com easings
-│   │   └── keyboardNav.ts          # Pilha LIFO de foco com suporte a focus trap
-│   └── utils/                      # Funções puras, persistência e matemática determinística
-│       ├── storage.ts              # Persistência desacoplada validada com schemas Zod
-│       ├── random.ts               # PRNG determinístico Mulberry32 com semente
-│       ├── contrast.ts             # Algoritmo de contraste e luminância WCAG 2.1 AA
-│       └── errorReporter.ts        # Barramento unificado de telemetria e erros
+│   ├── engine/           # Contratos, adapters PixiJS, cenas e utilitários gráficos
+│   ├── entities/         # Jogador, companheira e entidades de gameplay
+│   ├── i18n/             # Localização
+│   ├── schemas/          # Schemas Zod de dados e persistência
+│   ├── scenes/           # Cenas e carregamento de assets
+│   ├── services/         # Analytics, placar e reporte de erros
+│   ├── systems/          # Sistemas de simulação e apresentação (inclui audio/, benthic/, canyon/, ice/, sky/)
+│   ├── types/            # Tipos compartilhados
+│   ├── ui/               # HUD, telas, modais e opções
+│   └── utils/            # Persistência, PWA, erros e utilitários
+└── tests/                # Testes Vitest por área funcional
 ```
+
+Os pontos de entrada centrais são `src/main.ts`, `src/scenes/index.ts` e `src/scenes/gameScene.ts`. Os nomes e a composição interna dos módulos evoluem; consulte o diretório `src/` em vez de tratar esta visão resumida como inventário exaustivo.
 
 ---
 
@@ -98,19 +38,18 @@ O jogo gerencia a navegação por cenas registradas no `SceneManager` e atualiza
 ```mermaid
 graph TD
     BOOT["Boot (main.ts)"] -->|"assetLoader.ts"| MENU["Cena: menu (menuScene.ts)"]
-    MENU -->|"Dynamic import()"| SCREENS["Screens: Options / Codex / ModeSelect / Leaderboard"]
+    MENU -->|"Abrir telas e opções"| SCREENS["UI: opções / Codex / placar / modais"]
     MENU -->|"Iniciar Jogo"| GAME["Cena: game (gameScene.ts)"]
-    GAME -->|"Perda de Fôlego / Colisão Letal"| GAMEOVER["Cena: gameover (gameOverScene.ts)"]
-    GAME -->|"Linha de Chegada (30.000m)"| VICTORY["Cena: victory (victoryScene.ts)"]
+    GAME -->|"Resgate ou fim de partida"| GAMEOVER["Cena: gameover / rescue"]
     GAMEOVER -->|"Reiniciar / Voltar"| MENU
-    VICTORY -->|"Novo Ciclo / Voltar"| MENU
+    GAME -->|"Linha de chegada"| MENU
 ```
 
 - **`assetLoader`**: Pré-carrega de forma determinística os atlas de sprites, manifesto de fauna e fontes antes da ativação do menu inicial.
-- **`menuScene`**: Tela inicial receptiva com partículas bioluminescentes, recordes persistentes e interface modal bloqueante (`isModalOpen`). Importa telas sob demanda com `await import(...)`.
+- **`menuScene`**: Tela inicial com partículas bioluminescentes, recordes persistentes e fluxo de seleção/início.
 - **`gameScene`**: Instancia a rota de 30.000m, o jogador via singleton O(1), os sistemas de bioma, áudio, fauna e colisões de acordo com o modo selecionado.
-- **`gameOverScene`**: Sequência dramática com tentativa de resgate pela Guarda Marítima na Costa Urbana.
-- **`victoryScene`**: Clímax do Salto Majestoso (_Breach_), cálculo do Eco-Score e exibição da Sabedoria Ancestral herdada.
+- **`gameoverScene` e `rescueScene`**: Fluxos de fim de partida e resgate.
+- A implementação atual registra `splash`, `menu`, `start`, `kiosk`, `game`, `rescue` e `gameover`; não há cenas separadas chamadas `victoryScene` ou `gameOverScene`.
 
 ---
 
@@ -499,9 +438,10 @@ Essas otimizações reduzem trabalho desnecessário no ambiente WebGL/PixiJS v8.
 
 ---
 
-## 🔄 17. Runtime PixiJS e compatibilidade temporária
+## 🔄 17. Runtime PixiJS e API de compatibilidade
 
 - `main.ts` inicializa uma única instância de `RenderEngineAdapter` e um `SceneManager`; `PixiRenderTicker` fornece o delta limitado e o ciclo de atualização.
 - O `SystemRunner` ordena os sistemas nas fases `input`, `physics`, `ai`, `collision`, `culling` e `render`.
-- `createPixiBridgeContext` foi definitivamente removida de `main.ts`, com a infraestrutura visual e ciclo de cenas migrados para `RenderingContextAdapter` e os contratos de `INTERFACE_CONTRACTS.ts`.
-- A remoção da dependência Kaboom.js e do `LegacyBridge` está concluída; a migração de todos os consumidores `k.*` para os contratos permanece como limpeza técnica pendente.
+- `createPixiBridgeContext` foi removida de `main.ts`; o contexto é criado por `RenderingContextAdapter` sobre os contratos de `INTERFACE_CONTRACTS.ts`.
+- Kaboom.js e `LegacyBridge` não são dependências/runtime. `RenderingContextAdapter`, porém, ainda fornece uma API de compatibilidade (`add`, `pos`, `rect` e similares) usada por módulos existentes.
+- A migração do runtime está concluída; migrar todos os consumidores da API de compatibilidade diretamente para os contratos é uma atividade separada e ainda pendente. Código novo deve seguir os contratos/adapters nativos, sem confundir a API de compatibilidade com uma dependência de Kaboom.

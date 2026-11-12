@@ -1,6 +1,6 @@
 # DECISION LOG — Architecture Decision Records (ADR)
 
-## Projeto: Micro Splash — Migração Kaboom.js → PixiJS v8
+## Projeto: Micro Splash — Runtime PixiJS v8
 
 Este documento registra formalmente as decisões arquiteturais fundamentais adotadas para a migração da camada de apresentação do jogo, garantindo governança técnica, zero deriva de tipagem (_type drift_) e ausência de regressões na suíte de testes.
 
@@ -11,13 +11,13 @@ Este documento registra formalmente as decisões arquiteturais fundamentais adot
 - **Status:** Aprovado e Vigente ✅
 - **Data:** 2026-10-29
 - **Contexto:**
-  O projeto possui 109 arquivos TypeScript acoplados diretamente ao runtime do `kaboom` (`KaboomCtx`, `GameObj`). A substituição direta e indiscriminada do Kaboom por chamadas nativas do PixiJS v8 (`Container`, `Sprite`, `Graphics`) geraria um novo acoplamento proprietário de 64%, tornando futuras atualizações de engine onerosas e provocando regressões em cascata durante a migração.
+  O código de gameplay precisava se desacoplar do runtime Kaboom e do acesso direto a tipos gráficos. O runtime atual é PixiJS v8, mas há consumidores da API de compatibilidade mantida por `RenderingContextAdapter`.
 - **Decisão:**
-  Implementar uma camada de abstração com o padrão Adapter baseado estritamente nas interfaces declaradas em [`src/engine/contracts/INTERFACE_CONTRACTS.ts`](src/engine/contracts/INTERFACE_CONTRACTS.ts). As entidades de jogo (player, companion, obstáculos, cardumes de krill, biomas) interagirão exclusivamente com `IRenderEngine`, `IRenderNode`, `ISpriteNode`, `IGraphicsNode` e `ITextNode`.
+  Implementar uma camada de abstração com contratos em [`src/engine/contracts/INTERFACE_CONTRACTS.ts`](src/engine/contracts/INTERFACE_CONTRACTS.ts) e adapters PixiJS. O objetivo para novos módulos é consumir essas interfaces; módulos existentes ainda podem usar `RenderingContextAdapter` durante a migração gradual.
 - **Consequências:**
   - **Positivas:** A camada de contratos e os adapters isolam a maior parte do uso da API do PixiJS, facilitando mocking e testes unitários sem WebGL/WebGPU em headless CI.
   - **Negativas:** Requer uma camada adicional de indirection e wrappers leves em torno dos objetos gráficos do PixiJS.
-  - **Implementação atual:** O bootstrap (`main.ts`) inicializa o `RenderEngineAdapter` e o `SceneManager` sem Kaboom.js; `createPixiBridgeContext` foi removida definitivamente e substituída pelo `RenderingContextAdapter` tipado.
+  - **Implementação atual:** O bootstrap (`main.ts`) inicializa `RenderEngineAdapter` e `SceneManager` sem Kaboom.js. `createPixiBridgeContext` foi removida; o contexto tipado é criado por `RenderingContextAdapter`, que mantém métodos de compatibilidade usados por módulos existentes.
 
 ---
 
@@ -37,7 +37,7 @@ Este documento registra formalmente as decisões arquiteturais fundamentais adot
 - **Consequências:**
   - **Positivas:** 100% de nitidez tipográfica nativa do navegador; acessibilidade imediata com leitores de tela; simplificação drástica do código de modais; redução do tamanho do bundle gráfico.
   - **Negativas:** Necessidade de gerenciar a visibilidade e o pointer-events da camada overlay em sincronia com o estado das cenas do jogo.
-- **Implementação atual:** As telas e os modais migrados são renderizados na camada PixiJS de tela; a sobreposição DOM semântica prevista originalmente não é o caminho usado pela UI atual.
+- **Implementação atual:** O jogo mantém o canvas PixiJS no contêiner `#app`; elementos de UI de canvas usam a camada de tela e controles são navegáveis por teclado. Não se deve inferir que uma UI em canvas, por si só, forneça semântica equivalente a controles DOM para leitores de tela.
 
 ---
 
@@ -114,15 +114,15 @@ Este documento registra formalmente as decisões arquiteturais fundamentais adot
 
 ---
 
-### ADR 007: Runtime PixiJS v8 e remoção da API legada
+### ADR 007: Runtime PixiJS v8 e compatibilidade gradual
 
 - **Status:** Concluído ✅
 - **Data:** 2026-11-08
-- **Contexto:** A troca do runtime e a remoção da fachada `createPixiBridgeContext` foram concluídas. `src/main.ts` opera de forma enxuta consumindo diretamente os contratos tipados da engine (`RenderEngineAdapter`, `SceneManager` e `RenderingContextAdapter`).
+- **Contexto:** A troca do runtime e a remoção de `createPixiBridgeContext` foram concluídas. `src/main.ts` cria o `RenderingContext` tipado sobre o `RenderEngineAdapter` e o `SceneManager`.
 - **Decisão:**
   1. PixiJS v8, por meio de `RenderEngineAdapter`, é o único runtime gráfico; `SceneManager` e `PixiRenderTicker` gerenciam cenas e atualizações.
-  2. A fachada de compatibilidade é transitória e não deve receber novos consumidores nem ser ampliada.
+  2. A API de compatibilidade de `RenderingContextAdapter` deve ser mantida para consumidores existentes; não adicionar novos consumidores quando houver um contrato/adaptador nativo adequado.
   3. Módulos novos ou alterados devem usar `IRenderEngine`, `IRenderNode` e os demais contratos de `INTERFACE_CONTRACTS.ts`; a fachada será removida após a migração dos consumidores existentes.
 - **Consequências:**
-  - **Positivas:** O runtime não depende mais do pacote Kaboom.js, mantendo a transição funcional e isolando a limpeza restante.
-  - **Pendentes:** A fachada ainda concentra comportamento de compatibilidade e não permite afirmar que todos os módulos foram migrados diretamente para os contratos tipados.
+  - **Positivas:** O runtime não depende do pacote Kaboom.js; os contratos isolam o backend de renderização.
+  - **Pendentes:** Migrar consumidores da API de compatibilidade é uma limpeza incremental, não uma pendência da migração de runtime.

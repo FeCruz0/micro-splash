@@ -79,9 +79,9 @@ implementada com pendências; pendente = ainda não implementada.
 
 ## Validação
 
-| Verificação                                                                                                                                                                   | Status                                                      |
-| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| Testes direcionados de câmera, binding e pausa (`phase1_4_containers_camera.test.ts`, `entity_position_binding_sprites.test.ts`, `phase_sprite_movement_clock_pause.test.ts`) | **Passou:** 3 arquivos, 22 testes                           |
-| `npx tsc --noEmit`                                                                                                                                                            | **Passou:** 0 erros de compilação (código 0)                |
-| Suíte completa (`npm test`)                                                                                                                                                   | **Passou:** 109 arquivos, 854 testes aprovados (100% verde) |
-| Smoke visual (`npm run dev`)                                                                                                                                                  | Verificado em conformidade com o motor PixiJS v8            |
+| Verificação                                                                                                                                                                   | Status                                                       |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| Testes direcionados de câmera, binding e pausa (`phase1_4_containers_camera.test.ts`, `entity_position_binding_sprites.test.ts`, `phase_sprite_movement_clock_pause.test.ts`) | **Passou:** 3 arquivos, 22 testes                            |
+| `npx tsc --noEmit`                                                                                                                                                            | **Passou:** 0 erros de compilação (código 0)                 |
+| Suíte completa (`npm test`)                                                                                                                                                   | **Passou em 2026-11-12:** 114 arquivos, 876 testes aprovados |
+| Smoke visual (`npm run dev`)                                                                                                                                                  | Verificado em conformidade com o motor PixiJS v8             |

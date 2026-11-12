@@ -1,10 +1,9 @@
-# Plano de Implementação — Migração Kaboom.js para PixiJS v8
+# Registro de Implementação — Migração do Runtime para PixiJS v8
 
-Status: PixiJS v8 em produção; limpeza da fachada de compatibilidade pendente
-Data: 2026-11-08
-Alvo: executar o jogo com PixiJS v8, preservar a simulação e concluir a remoção das chamadas legadas `k.*`.
+Status: migração do runtime concluída; consumidores da API de compatibilidade ainda existem
+Data de atualização: 2026-11-12
 
-Estado atual: o boot e o ticker usam PixiJS v8, e Kaboom.js foi removido das dependências. A fachada temporária `createPixiBridgeContext` foi removida definitivamente de `src/main.ts` e substituída pelo `RenderingContext` tipado em `src/engine/adapters/RenderingContextAdapter.ts`, operando diretamente com `RenderEngineAdapter` e `SceneManager`.
+Estado atual: o boot e o ticker usam PixiJS v8 e Kaboom.js foi removido das dependências. `createPixiBridgeContext` não é usado em `src/main.ts`; o contexto tipado é criado por `RenderingContextAdapter`. Esse adapter ainda expõe métodos compatíveis (`k.*`) usados por código existente. A migração do runtime não significa que toda a API de compatibilidade foi removida.
 
 ---
 
@@ -57,7 +56,7 @@ Estado atual: o boot e o ticker usam PixiJS v8, e Kaboom.js foi removido das dep
 ## Etapa 5: Corte do Kaboom e validacao
 
 - [x] Etapa 5.1a: Remover a dependencia kaboom e o LegacyBridge; deixar o PixiJS v8 como runtime de renderizacao, com um canvas e um ticker.
-- [x] Etapa 5.1b: Remover `createPixiBridgeContext` e migrar os consumidores restantes de `k.*` para os contratos tipados da engine.
+- [x] Etapa 5.1b: Remover `createPixiBridgeContext` do bootstrap e criar o contexto por `RenderingContextAdapter`; os consumidores da API compatível `k.*` ainda não foram todos migrados diretamente para os contratos.
 - [x] Etapa 5.2: Trocar loadSprite do Kaboom em assetLoader pelo carregador Assets do PixiJS v8.
 - [x] Etapa 5.3: Validar com npx tsc --noEmit e npm test; confirmar no overlay de frame budget que input, physics, ai, collision, culling e render permanecem dentro de 1, 4, 3, 2.5, 2 e 4.1 ms.
   - Rota de 30000 m no modo Sereno, sem quadro sustentado acima de 33,3 ms.

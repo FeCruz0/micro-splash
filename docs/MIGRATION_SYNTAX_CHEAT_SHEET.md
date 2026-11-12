@@ -1,6 +1,6 @@
 # Tabela de Equivalência Sintática: Kaboom.js → PixiJS v8 Adapter
 
-Este documento registra as equivalências da migração do **Micro Splash** para o **PixiJS v8** e orienta o código novo a usar os contratos da engine. A migração do runtime foi concluída e a antiga fachada `createPixiBridgeContext` foi totalmente removida; os novos módulos devem adotar diretamente `IRenderEngine`, `IRenderNode` e os contratos de interface da engine.
+Este documento registra equivalências úteis para migrar módulos do **Micro Splash** para o **PixiJS v8**. A migração do runtime foi concluída e `createPixiBridgeContext` não é mais usado no bootstrap. `RenderingContextAdapter` ainda expõe uma API de compatibilidade para código existente; isso não significa que Kaboom.js esteja presente no projeto.
 
 ---
 
@@ -27,22 +27,23 @@ Este documento registra as equivalências da migração do **Micro Splash** para
 
 ## 2. Padrões Arquiteturais & Regras de Ouro
 
-### Regra 1: Zero Imports de Engine Externa nos Módulos de Gameplay
+### Regra 1: Manter PixiJS atrás dos contratos e adapters
 
-- **PROIBIDO**: `import ... from "kaboom"` ou `import ... from "pixi.js"` dentro de entidades, sistemas e telas.
-- **PERMITIDO**: Consumir exclusivamente `IRenderEngine`, `IRenderNode`, `ISpriteNode`, `IGraphicsNode`, `ITextNode` e `Vector2D` de `@/engine/contracts/INTERFACE_CONTRACTS`.
+- Kaboom.js não deve ser adicionado como dependência ou usado como runtime.
+- Para código novo, prefira `IRenderEngine`, `IRenderNode`, `ISpriteNode`, `IGraphicsNode`, `ITextNode` e `Vector2D` de `src/engine/contracts/INTERFACE_CONTRACTS.ts`.
+- Evite importar `pixi.js` diretamente nos sistemas e entidades; mantenha esse acoplamento nos adapters. Exceções existentes devem ser tratadas em uma migração focada, não ampliadas por conveniência.
+- O uso atual de `k.*` é atendido por `RenderingContextAdapter`, não pelo pacote Kaboom.
 
 ### Regra 2: UI Acessível (ADR 002)
 
-- Menus complexos, modais (`modalShell.ts`), formulários e painéis de opções devem preferencialmente usar **DOM/HTML Overlay** estilizado semanticamente (CSS puro/Glassmorphism).
-- O Canvas do PixiJS deve ser reservado prioritariamente para:
-  1. Mundo do jogo (baleia, correntes, cânion, lixo, fauna, partículas).
-  2. Elementos de HUD de alta taxa de atualização (bússola, oxigênio, placar ao vivo, minimapa).
+- A UI atual é desenhada principalmente como nós PixiJS na camada de tela (`screenContainer`) e usa navegação de foco por teclado.
+- Para novos formulários ou conteúdo que exija semântica de leitor de tela, prefira elementos DOM acessíveis; a camada canvas não fornece essa semântica automaticamente.
+- Mantenha HUD e elementos de alta taxa de atualização no canvas e não dependa de hit-testing global do PixiJS para a navegação da UI.
 
-### Regra 3: Desacoplamento da Física (ADR 003)
+### Regra 3: Simulação desacoplada do backend gráfico (ADR 003)
 
-- O loop de física do `playerPhysics.ts` e de detecção espacial `spatialHashGrid.ts` opera de forma estritamente desacoplada do ticker gráfico.
-- O ticker de renderização injeta o `deltaTime` normalizado com teto de segurança (`MAX_DELTA_TIME = 0.1s`), garantindo que picos de frametime ou perda de foco da aba não quebrem a colisão do jogo ("tunneling").
+- Física e colisões são calculadas pelos sistemas de gameplay e pelo `SpatialHashGrid`, sem um motor de física de Kaboom.
+- O ticker PixiJS fornece delta em segundos com teto de segurança de `0.1s`; o `SystemRunner` executa os sistemas no ciclo do jogo.
 
 ### Regra 4: Limpeza e Ciclo de Vida do DOM (Docker / Vite HMR)
 

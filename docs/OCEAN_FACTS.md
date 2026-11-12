@@ -7,12 +7,12 @@ Este documento reúne a fundamentação científica, biológica e geográfica ap
 ## 🐋 1. A Baleia-Jubarte (_Megaptera novaeangliae_)
 
 - **Rota Migratória Real:** As jubartes percorrem cerca de 4.000 km a 5.000 km saindo da Antártida (zona de alimentação no verão polar) em direção às águas quentes e cristalinas da costa brasileira (Abrolhos e Região dos Lagos / Arraial do Cabo) para acasalamento e amamentação de filhotes (entre junho e novembro).
-- **Mapeamento de Escala no Jogo (0m a 27.000m):**
+- **Mapeamento de Escala no Jogo (0m a 30.000m):**
   - **0m – 5.000m (Alimentação Polar / Antártida):** Teto de superfície congelada (camada de gelo) com aberturas/fendas específicas no gelo para subir e respirar oxigênio. Abundância de Krill. Orcas visíveis apenas em plano estético ao fundo (foco real das orcas são filhotes/outros mamíferos vulneráveis).
   - **5.000m – 12.000m (Grande Travessia Oceânica):** Mar aberto escuro sem alimentação (jejum). Outras jubartes passam ocasionalmente ao fundo emitindo cantos de baixa frequência, revelando caminhos e obstáculos no escuro.
   - **12.000m – 19.000m (Costa Urbana & Tráfego Marítimo):** Presença de lixo plástico, redes fantasma e ruído motorizado de navios. Um barco da Guarda Marítima patrulha ativamente a superfície e intervém ajudando a baleia quando esta fica em perigo se estiver próxima.
   - **19.000m – 25.000m (Fenômeno da Ressurgência em Arraial):** Pluma de água profunda gelada rica em nutrientes subindo a cada 18s por 4s, impulsionando a baleia e gerando novos cardumes de Krill entre cânions de pedra.
-  - **25.000m – 27.000m (Santuário Marinho):** Chegada às águas cristalinas abrigadas de Arraial do Cabo para o evento do Salto Majestoso (Breach) na linha de chegada.
+  - **25.000m – 30.000m (Santuário Marinho):** Chegada às águas cristalinas abrigadas de Arraial do Cabo, encontro com o filhote e evento do Salto Majestoso (Breach) na linha de chegada.
 
 ---
 

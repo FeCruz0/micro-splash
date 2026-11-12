@@ -1,55 +1,28 @@
-SKILLS.md — Technical Skills, Architectural Standards & Guidelines
+# Práticas de Engenharia — Micro Splash
 
-This document synthesizes the core technical competencies, architectural principles, patterns, and guidelines established during the project's migration and ongoing engine maintenance.
+Este documento resume os padrões observáveis no projeto. Para regras de agentes e estilo detalhado, consulte `ai.rules` e `CONTRIBUTING.md`.
 
-1. Technical Core Competencies
+## Arquitetura
 
-Modern Web & Graphics Engine Architecture
+- PixiJS v8 é o runtime gráfico; Kaboom.js não é dependência.
+- `RenderEngineAdapter` e os contratos em `src/engine/contracts/INTERFACE_CONTRACTS.ts` isolam o backend.
+- `RenderingContextAdapter` ainda mantém uma API de compatibilidade para consumidores existentes. Não a confundir com o runtime Kaboom nem afirmar que todos os módulos já foram migrados diretamente aos contratos.
+- O input de teclado, toque e gamepad converge no estado compartilhado; `SystemRunner` ordena as fases da simulação.
+- `SpatialHashGrid` atende consultas espaciais e broad phase de colisões.
 
-Engine Migration: Migrating legacy game engines (e.g., Kaboom.js APIs) to modern, web-standard renderers (PixiJS v8).
+## Implementação
 
-Single-Canvas Rendering Pipeline: Architectural separation of rendering backends using clean interface contracts (IRenderEngine, IRenderNode, IGraphicsNode).
+- Preserve tipos explícitos, limites entre módulos e o ciclo de vida de nós, callbacks e listeners.
+- Para código novo, prefira os contratos existentes e os adapters; evite ampliar o uso direto de APIs específicas do PixiJS fora da camada gráfica.
+- Use nomes descritivos de domínio quando isso melhorar a clareza, mantendo consistência com o módulo existente.
+- Respeite as preferências de acessibilidade, movimento reduzido e navegação por teclado.
+- Partículas e atualizações de entidades frequentes devem seguir os mecanismos de pool, culling ou ticker familiar já existentes na área.
 
-Adapter & Facade Patterns: Writing robust adapters (RenderingContextAdapter) to mirror legacy API signatures while maintaining full dynamic type safety and backward compatibility.
+## Validação
 
-State & Input Management
+- Testes: `npm test` ou um arquivo/suíte Vitest direcionada.
+- Tipos: `npx tsc --noEmit`.
+- Dados: `npm run validate:data`.
+- Build: `npm run build`.
 
-Unified Input Pipeline (InputStateManager): Decoupling physical input devices (Keyboard, Mouse, Touch, Gamepad) into a single-frame, deterministic input state snapshot.
-
-Event Lifecycle Normalization: Handlers for key presses, key releases, pointer position mapping, canvas boundary offsets, and input-state persistence across frame resets.
-
-Spatial Systems & Physics Simulation
-
-Spatial Hash Grid: Efficient broad-phase spatial hash partitioning (spatialHashGrid.ts) for collision culling, rendering culling, and scalable entity queries.
-
-Fluid Hydrodynamic Physics: Realistic oceanic buoyancy, water resistance (WATER_DRAG), ballistic jump gravity in air, and variable sink rates (SINK_RATE).
-
-2. Engineering Guidelines & Coding Standards
-
-Code Naming & Clarity (ai.rules)
-
-Explicit Variable & Function Names: Strictly avoid cryptic or ambiguous abbreviations (e.g., use coordinateX, positionVector, deltaFrameTimeInSeconds instead of x, pos, dt).
-
-Strict English Identifier Naming: All core codebase identifiers, interfaces, and variables must be written in explicit English.
-
-Type Safety & Clean Architecture
-
-Interface Segregation: Clear boundaries between engine subsystems via contract files (INTERFACE_CONTRACTS.ts).
-
-Zero-Error Compilation: Strict adherence to TypeScript configurations with npx tsc --noEmit passing clean at 0 errors.
-
-3. Performance & Memory Management
-
-Frame Budget Monitoring: Frame rate tracking (FrameRateMonitor) and budget allocation tools (FrameBudgetMonitor) to maintain a target 60 FPS under heavy rendering loads.
-
-Particle & Entity Pooling: Object pooling strategies for high-frequency short-lived entities (particles, krill, floating debris) to avoid GC spikes.
-
-Spatial Culling & Family Ticking: Automatic visual offscreen culling and batched family updates (entityFamilyTicker.ts) for offscreen entities.
-
-4. Verification & Testing Standards
-
-Unit & Integration Testing: Comprehensive coverage using Vitest.
-
-Deterministic Time Mocking: Testing time-dependent lifecycle events using mock tickers and controllable input state providers.
-
-Regression Testing: Continuous validation of legacy proxy layers to prevent breaking changes across project phases.
+Execute os menores checks que cubram a alteração e amplie a validação quando necessário. Consulte `package.json` antes de depender de comandos adicionais.

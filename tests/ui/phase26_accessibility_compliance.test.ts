@@ -385,21 +385,21 @@ describe("Fase 26: Documentação, Acessibilidade & Compliance", () => {
       expect(content).toContain("correctIndex");
     });
 
-    it("possui docs/PRIVACIDADE.md em conformidade com a LGPD e GDPR", async () => {
+    it("possui docs/PRIVACIDADE.md documentando chaves locais, uso offline e exclusão de dados", async () => {
       // @ts-ignore
-      const fs = await import("node:fs");
+      const fileSystemModule = await import("node:fs");
       // @ts-ignore
-      const path = await import("node:path");
+      const pathModule = await import("node:path");
       const nodeProcess = (globalThis as any).process;
 
-      const privPath = path.resolve(nodeProcess.cwd(), "docs/PRIVACIDADE.md");
-      expect(fs.existsSync(privPath)).toBe(true);
+      const privacyDocumentPath = pathModule.resolve(nodeProcess.cwd(), "docs/PRIVACIDADE.md");
+      expect(fileSystemModule.existsSync(privacyDocumentPath)).toBe(true);
 
-      const content = fs.readFileSync(privPath, "utf-8");
-      expect(content).toContain("Lei Geral de Proteção de Dados");
-      expect(content).toContain("Artigo 18");
-      expect(content).toContain("micro_splash_");
-      expect(content).toContain("Offline-First");
+      const privacyDocumentContent = fileSystemModule.readFileSync(privacyDocumentPath, "utf-8");
+      expect(privacyDocumentContent).toContain("Política de Privacidade & Proteção de Dados");
+      expect(privacyDocumentContent).toContain("Funcionamento offline");
+      expect(privacyDocumentContent).toContain("micro_splash_");
+      expect(privacyDocumentContent).toContain("Sim, Apagar Tudo");
     });
 
     it("possui README.md enriquecido com badges de CI, acessibilidade e controles", async () => {
