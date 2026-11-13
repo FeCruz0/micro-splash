@@ -124,7 +124,7 @@ export function setupLightRaysSystem(engineOrContext: IRenderEngine | unknown): 
       graphicsNode.setPosition(0, GAME_CONFIG.SEA_LEVEL);
       graphicsNode.setRotation((baseAngleDeg * Math.PI) / 180);
       graphicsNode.setOpacity(0.04);
-      graphicsNode.setZIndex(-2);
+      graphicsNode.setZIndex(6);
       worldContainer.addChild(graphicsNode);
 
       godRays.push({
@@ -200,8 +200,9 @@ export function setupLightRaysSystem(engineOrContext: IRenderEngine | unknown): 
 
         const rawOffset = (data.baseXOffset - parallaxDrift + wrapSpan) % wrapSpan;
         const currentRayX = screenLeft - 70 + rawOffset + sway * 20;
+        const boundedRayX = currentRayX < 16 ? currentRayX + wrapSpan : currentRayX;
 
-        node.setPosition(currentRayX, GAME_CONFIG.SEA_LEVEL);
+        node.setPosition(boundedRayX, GAME_CONFIG.SEA_LEVEL);
         node.setRotation(((data.angleOffsetDeg + angleSwayInDegrees) * Math.PI) / 180);
 
         const pulseOpacity = (0.75 + sway * 0.25) * atmospheric.lightFactor;
@@ -243,7 +244,7 @@ export function setupLightRaysSystem(engineOrContext: IRenderEngine | unknown): 
           legacyCtx.pos(0, GAME_CONFIG.SEA_LEVEL),
           legacyCtx.color(120, 195, 235),
           legacyCtx.opacity(0.04 * segment.relativeAlpha),
-          legacyCtx.z(-2),
+          legacyCtx.z(6),
           "god_ray_segment",
         ]) as unknown as LegacyLightObj;
 
@@ -346,6 +347,7 @@ export function setupLightRaysSystem(engineOrContext: IRenderEngine | unknown): 
         const angleSway = Math.cos(time * 0.6 + ray.pulsePhase) * 4;
         const rawOffset = (ray.baseXOffset - parallaxDrift + wrapSpan) % wrapSpan;
         const currentX = screenLeft - 70 + rawOffset + sway * 20;
+        const boundedX = currentX < 16 ? currentX + wrapSpan : currentX;
         const currentAngle = ray.angleOffsetDeg + angleSway;
         const pulseOpacity = (0.75 + sway * 0.25) * atmospheric.lightFactor;
         const baseOpacity = Math.max(0.015, Math.min(0.06, pulseOpacity));
@@ -353,7 +355,7 @@ export function setupLightRaysSystem(engineOrContext: IRenderEngine | unknown): 
         const segments = ray.segments;
         for (let s = 0; s < segments.length; s++) {
           const seg = segments[s];
-          seg.obj.pos.x = currentX;
+          seg.obj.pos.x = boundedX;
           seg.obj.pos.y = GAME_CONFIG.SEA_LEVEL;
           seg.obj.angle = currentAngle;
           seg.obj.opacity = baseOpacity * seg.relativeAlpha;

@@ -308,7 +308,6 @@ export class PixiSpriteNode extends PixiContainerNode implements ISpriteNode {
  */
 export class PixiGraphicsNode extends PixiContainerNode implements IGraphicsNode {
   protected readonly graphics: Graphics;
-  private static readonly sharedPolygonBuffer: number[] = [];
 
   constructor(graphics?: Graphics, id?: string) {
     const nativeGraphics = graphics ?? new Graphics();
@@ -345,10 +344,10 @@ export class PixiGraphicsNode extends PixiContainerNode implements IGraphicsNode
 
   drawPolygon(points: readonly Vector2D[], style?: GraphicStyle): void {
     if (points.length < 3) return;
-    const flatPoints = PixiGraphicsNode.sharedPolygonBuffer;
-    flatPoints.length = 0;
+    const flatPoints: number[] = new Array(points.length * 2);
     for (let index = 0; index < points.length; index++) {
-      flatPoints.push(points[index].x, points[index].y);
+      flatPoints[index * 2] = points[index].x;
+      flatPoints[index * 2 + 1] = points[index].y;
     }
     this.graphics.poly(flatPoints);
     this.applyStyle(style);

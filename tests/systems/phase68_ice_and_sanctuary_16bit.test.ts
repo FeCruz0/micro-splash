@@ -5,7 +5,39 @@ import {
   draw16BitIcebergWall,
   create16BitIceTextures,
 } from "../../src/systems/ice/ice16BitTextures";
-import { renderIcebergWall } from "../../src/systems/ice/icebergWallRenderer";
+import {
+  attachWallToWorldContainer,
+  renderBoundedAntarcticGlacier,
+  renderIcebergWall,
+  renderAntarcticGlacierWall,
+  renderSoleFacetedGlacierCliff,
+  renderVisibleFacetedGlacierCliff,
+  updateWorldBoundaryConstraint,
+  reorganizeGlacierLayerDepths,
+  GLACIER_WALL_BACKGROUND_Z_INDEX,
+  GLACIER_CLIFF_FRONT_Z_INDEX,
+  GLACIER_CLIFF_SNOW_Z_INDEX,
+  ANTARCTIC_WALL_MIN_WORLD_X,
+} from "../../src/systems/ice/icebergWallRenderer";
+import {
+  createChaoticIceBlockMatrix,
+  createOrganicFracturedGlacierBlocks,
+  createTriangularFacetedGlacierBlocks,
+  createVerticalFacetedGlacierPrisms,
+  extendSeamlessGlacierToLeftBoundary,
+  normalizeGlacierTopBoundaryPoints,
+  renderAuthenticGlacierFractures,
+  renderChaoticFracturedIceBlocks,
+  renderMassiveMonolithicIceBlocks,
+  renderMassiveVerticalGlacierPillars,
+  renderMonolithicVerticalShardsWithDiagonalFaults,
+  renderSolidGlacierBackdropBase,
+  renderTriangularFacetedGlacierBlocks,
+  renderUniformlyDetailedGlacierBlocks,
+  GLACIER_16BIT_COLOR_PALETTE,
+  GLACIER_CLIFF_BASE_OFFSET_X,
+} from "../../src/systems/ice/glacierCliffGeometry";
+import { DEFAULT_ICE_GAPS } from "../../src/systems/ice/iceGaps";
 import { initSpatialGrid, getSpatialGrid } from "../../src/systems/spatialHashGrid";
 import {
   ARRAIAL_16BIT_PALETTE,
@@ -105,7 +137,7 @@ describe("Fase 68 / Etapa 3: Estética 16-Bits do Gelo e Santuário de Arraial d
       expect(destroyedGraphics.length).toBe(2);
     });
 
-    it("deve renderizar paredão de iceberg modularmente em ladrilhos com cristas escarpadas e barreira física", () => {
+    it("deve renderizar paredão de geleira facetado como única fonte visual sem ladrilhos repetitivos e com barreira física", () => {
       initSpatialGrid({ cellSize: 100 });
       const addedChildren: any[] = [];
       const mockContainer = {
@@ -133,21 +165,127 @@ describe("Fase 68 / Etapa 3: Estética 16-Bits do Gelo e Santuário de Arraial d
         })),
       };
 
-      renderIcebergWall(mockEngine as any, { source: {} });
+      const createdNodes = renderVisibleFacetedGlacierCliff(mockEngine as any, { source: {} });
+      expect(createdNodes.length).toBe(2);
 
       const spriteTiles = addedChildren.filter((node) => node.type === "sprite");
-      expect(spriteTiles.length).toBeGreaterThanOrEqual(3);
+      expect(spriteTiles.length).toBe(0);
 
       const cliffGraphic = addedChildren.find((node) => node.id === "iceberg_cliff_front");
       const snowGraphic = addedChildren.find((node) => node.id === "iceberg_cliff_snow");
       expect(cliffGraphic).toBeDefined();
       expect(snowGraphic).toBeDefined();
+      expect(cliffGraphic.setPosition).toHaveBeenCalledWith(0, 0);
+      expect(cliffGraphic.setZIndex).toHaveBeenCalledWith(GLACIER_CLIFF_FRONT_Z_INDEX);
+      expect(snowGraphic.setPosition).toHaveBeenCalledWith(0, 0);
+      expect(snowGraphic.setZIndex).toHaveBeenCalledWith(GLACIER_CLIFF_SNOW_Z_INDEX);
+
+      // Falésia deve cobrir completamente a margem esquerda até o limite absoluto do mundo sem recortes
+      const cliffCalls = cliffGraphic.drawPolygon.mock.calls;
+      expect(cliffCalls.length).toBeGreaterThanOrEqual(10);
+      const outerBathyalPoints = cliffCalls[0][0] as Array<{ x: number; y: number }>;
+      const positiveBoundaryVertices = outerBathyalPoints.filter((point) => point.x > 0);
+      expect(positiveBoundaryVertices.length).toBeGreaterThanOrEqual(6);
+      expect(outerBathyalPoints.some((point) => point.x <= GLACIER_CLIFF_BASE_OFFSET_X)).toBe(true);
+
+      // Cornija de neve deve permanecer restrita ao topo da geleira (0 <= y <= 36), estendendo-se até o limite esquerdo
+      const snowCalls = snowGraphic.drawPolygon.mock.calls;
+      expect(snowCalls.length).toBeGreaterThanOrEqual(1);
+      const snowPoints = snowCalls[0][0] as Array<{ x: number; y: number }>;
+      const maxSnowY = Math.max(...snowPoints.map((point) => point.y));
+      const minSnowY = Math.min(...snowPoints.map((point) => point.y));
+      expect(minSnowY).toBeGreaterThanOrEqual(0);
+      expect(maxSnowY).toBeLessThanOrEqual(36);
+      expect(snowPoints.some((point) => point.x <= GLACIER_CLIFF_BASE_OFFSET_X)).toBe(true);
+
+      // attachWallToWorldContainer deve anexar diretamente ao worldContainer com coordenadas e zIndex explícitos
+      const customNode = { setPosition: vi.fn(), setZIndex: vi.fn() } as any;
+      attachWallToWorldContainer(mockContainer as any, customNode, -360, 0, 10);
+      expect(customNode.setPosition).toHaveBeenCalledWith(-360, 0);
+      expect(customNode.setZIndex).toHaveBeenCalledWith(10);
+      expect(mockContainer.addChild).toHaveBeenCalledWith(customNode);
+
+      // reorganizeGlacierLayerDepths deve configurar camadas de fundo (5), frente (14) e neve (15)
+      const mockBg = { setZIndex: vi.fn() } as any;
+      const mockFront = { setZIndex: vi.fn() } as any;
+      const mockSnow = { setZIndex: vi.fn() } as any;
+      reorganizeGlacierLayerDepths(mockBg, mockFront, mockSnow);
+      expect(mockBg.setZIndex).toHaveBeenCalledWith(GLACIER_WALL_BACKGROUND_Z_INDEX);
+      expect(mockFront.setZIndex).toHaveBeenCalledWith(GLACIER_CLIFF_FRONT_Z_INDEX);
+      expect(mockSnow.setZIndex).toHaveBeenCalledWith(GLACIER_CLIFF_SNOW_Z_INDEX);
 
       const spatialGrid = getSpatialGrid();
       expect(spatialGrid).not.toBeNull();
-      const wallObstacle = spatialGrid?.queryAABB({ minX: -10, minY: 0, maxX: 10, maxY: 100 });
+      const wallObstacle = spatialGrid?.queryAABB({ minX: -10, minY: 0, maxX: 30, maxY: 100 });
       expect(wallObstacle?.length).toBe(1);
       expect((wallObstacle?.[0] as any)?.id).toBe("iceberg_wall_static");
+
+      // Valida que renderMonolithicVerticalShardsWithDiagonalFaults gera pilares verticais continuos com falhas diagonais e fendas verticais
+      const fracturedBlocks = renderMonolithicVerticalShardsWithDiagonalFaults(720, 80);
+      expect(fracturedBlocks.length).toBeGreaterThanOrEqual(50);
+      expect(fracturedBlocks.every((layer) => layer.points.length >= 4)).toBe(true);
+      const cleftShadowLayers = fracturedBlocks.filter(
+        (layer) => layer.color === GLACIER_16BIT_COLOR_PALETTE.BATHYAL_SHADOW
+      );
+      expect(cleftShadowLayers.length).toBeGreaterThanOrEqual(8);
+      const fissureLayers = fracturedBlocks.filter(
+        (layer) => layer.color === GLACIER_16BIT_COLOR_PALETTE.FISSURE_ABYSS_LINE
+      );
+      expect(fissureLayers.length).toBe(0);
+      expect(renderMassiveMonolithicIceBlocks).toBe(
+        renderMonolithicVerticalShardsWithDiagonalFaults
+      );
+      expect(renderAuthenticGlacierFractures).toBe(
+        renderMonolithicVerticalShardsWithDiagonalFaults
+      );
+      expect(renderMassiveVerticalGlacierPillars).toBe(
+        renderMonolithicVerticalShardsWithDiagonalFaults
+      );
+      expect(createChaoticIceBlockMatrix).toBe(renderMonolithicVerticalShardsWithDiagonalFaults);
+
+      // Valida que renderSolidGlacierBackdropBase fecha gaps com base macica continua e transicao de azul medio
+      const backdropLayers = renderSolidGlacierBackdropBase(720, 80);
+      expect(backdropLayers.length).toBe(3);
+      expect(backdropLayers[0].color).toBe(GLACIER_16BIT_COLOR_PALETTE.OCEAN_COBALT_DEEP);
+      expect(backdropLayers[1].color).toBe(GLACIER_16BIT_COLOR_PALETTE.GLACIAL_BLUE_MAIN);
+      expect(backdropLayers[2].color).toBe(GLACIER_16BIT_COLOR_PALETTE.GLACIAL_BLUE_SHADE);
+      expect(renderChaoticFracturedIceBlocks).toBe(renderMassiveVerticalGlacierPillars);
+      expect(createTriangularFacetedGlacierBlocks).toBe(renderMassiveVerticalGlacierPillars);
+      expect(renderTriangularFacetedGlacierBlocks).toBe(renderMassiveVerticalGlacierPillars);
+      expect(createVerticalFacetedGlacierPrisms).toBe(renderMassiveVerticalGlacierPillars);
+      expect(createOrganicFracturedGlacierBlocks).toBe(renderMassiveVerticalGlacierPillars);
+      expect(renderUniformlyDetailedGlacierBlocks).toBe(renderMassiveVerticalGlacierPillars);
+
+      // Valida que nenhuma faceta submersa corta acima da linha d'agua (topo nivelado sem rampa diagonal)
+      const normalizedBlocks = normalizeGlacierTopBoundaryPoints(fracturedBlocks, 80);
+      expect(normalizedBlocks.every((layer) => layer.points.every((point) => point.y >= 80))).toBe(
+        true
+      );
+
+      // Valida que extendSeamlessGlacierToLeftBoundary alinha vertices esquerdos ao limite absoluto
+      const extendedLayers = extendSeamlessGlacierToLeftBoundary(fracturedBlocks, -1600);
+      expect(extendedLayers[0].points.some((point) => point.x === -1600)).toBe(true);
+    });
+
+    it("deve conter o jogador na barreira esquerda via updateWorldBoundaryConstraint e iniciar fenda polar em x = 0", () => {
+      expect(DEFAULT_ICE_GAPS[0].start).toBe(0);
+      expect(DEFAULT_ICE_GAPS[0].end).toBeGreaterThanOrEqual(240);
+      expect(renderAntarcticGlacierWall).toBe(renderVisibleFacetedGlacierCliff);
+      expect(renderIcebergWall).toBe(renderVisibleFacetedGlacierCliff);
+      expect(renderBoundedAntarcticGlacier).toBe(renderVisibleFacetedGlacierCliff);
+      expect(renderSoleFacetedGlacierCliff).toBe(renderVisibleFacetedGlacierCliff);
+
+      const setSpeedSpy = vi.fn();
+      const mockPlayerController = {
+        gameObj: { pos: { x: 18, y: 220 } },
+        getSpeed: vi.fn(() => ({ x: -140, y: 25 })),
+        setSpeed: setSpeedSpy,
+      };
+
+      updateWorldBoundaryConstraint(mockPlayerController as any);
+
+      expect(mockPlayerController.gameObj.pos.x).toBe(ANTARCTIC_WALL_MIN_WORLD_X);
+      expect(setSpeedSpy).toHaveBeenCalledWith({ x: 0, y: 25 });
     });
   });
 

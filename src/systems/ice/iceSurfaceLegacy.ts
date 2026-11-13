@@ -222,11 +222,12 @@ export function setupLegacyIceSurface(
     }
   }
 
-  const wallWidth = 1100;
-  const wallStartX = -1100;
+  const wallWidth = 1440;
+  const wallStartX = -1440;
+  const glacierCliffCollisionMaxX = 28;
 
   legacyCtx.add([
-    legacyCtx.rect(wallWidth, legacyCtx.height()),
+    legacyCtx.rect(wallWidth + glacierCliffCollisionMaxX, legacyCtx.height()),
     legacyCtx.pos(wallStartX, 0),
     legacyCtx.color(150, 195, 235),
     legacyCtx.opacity(1),
@@ -241,7 +242,7 @@ export function setupLegacyIceSurface(
       id: "iceberg_wall_static",
       tag: TAGS.OBSTACLE,
       pos: { x: wallStartX, y: 0 },
-      width: wallWidth,
+      width: wallWidth + glacierCliffCollisionMaxX,
       height: legacyCtx.height(),
       isStatic: true,
     };
@@ -251,7 +252,7 @@ export function setupLegacyIceSurface(
       {
         minX: wallStartX,
         minY: 0,
-        maxX: wallStartX + wallWidth,
+        maxX: glacierCliffCollisionMaxX,
         maxY: legacyCtx.height(),
       },
       true

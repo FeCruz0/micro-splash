@@ -23,6 +23,14 @@ import {
 } from "./ice/iceGaps";
 import { setupPolarIceRendering } from "./ice/iceSurfaceRenderer";
 import { setupLegacyIceSurface, type LegacyIceSurfaceEngineContext } from "./ice/iceSurfaceLegacy";
+import {
+  attachWallToWorldContainer,
+  renderAntarcticGlacierWall,
+  renderBoundedAntarcticGlacier,
+  renderSoleFacetedGlacierCliff,
+  renderVisibleFacetedGlacierCliff,
+  updateWorldBoundaryConstraint,
+} from "./ice/icebergWallRenderer";
 
 export type { IceGap };
 export {
@@ -32,6 +40,12 @@ export {
   resetActiveIceGaps,
   isPositionInIceGap,
   getNearestIceGap,
+  attachWallToWorldContainer,
+  renderAntarcticGlacierWall,
+  renderBoundedAntarcticGlacier,
+  renderSoleFacetedGlacierCliff,
+  renderVisibleFacetedGlacierCliff,
+  updateWorldBoundaryConstraint,
 };
 
 /**
@@ -44,9 +58,14 @@ export function setupIceSurfaceSystem(
   let isSystemActive = true;
   resetActiveIceGaps();
 
+  let destroyRenderer: (() => void) | null = null;
   const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrContext);
   if (resolvedRenderEngine) {
-    setupPolarIceRendering(resolvedRenderEngine, playerController, () => isSystemActive);
+    destroyRenderer = setupPolarIceRendering(
+      resolvedRenderEngine,
+      playerController,
+      () => isSystemActive
+    );
   } else if (engineOrContext) {
     setupLegacyIceSurface(engineOrContext as LegacyIceSurfaceEngineContext, playerController);
   }
@@ -59,12 +78,25 @@ export function setupIceSurfaceSystem(
     isSystemActive = false;
   };
 
+  const destroy = () => {
+    isSystemActive = false;
+    if (destroyRenderer) {
+      destroyRenderer();
+      destroyRenderer = null;
+    }
+  };
+
+  const sceneLifecycle = engineOrContext as { onSceneLeave?: (cb: () => void) => unknown } | null;
+  if (sceneLifecycle && typeof sceneLifecycle.onSceneLeave === "function") {
+    sceneLifecycle.onSceneLeave(destroy);
+  }
+
   const biomeManager = getBiomeLifecycleManager();
   if (biomeManager) {
     biomeManager.registerModule({
       id: "ice_surface",
       name: "Camada de Gelo (Antartica)",
-      minX: -1100,
+      minX: -1440,
       maxX: 5400,
       activate,
       deactivate,
@@ -75,6 +107,7 @@ export function setupIceSurfaceSystem(
   return {
     activate,
     deactivate,
+    destroy,
     isActive: () => isSystemActive,
   };
 }

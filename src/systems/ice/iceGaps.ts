@@ -11,7 +11,7 @@ export interface IceGap {
 
 // Fendas de respiracao pre-definidas na camada de gelo (0m a 5.000m) - Modelo Imutavel
 export const DEFAULT_ICE_GAPS: IceGap[] = [
-  { start: 60, end: 240 }, // Fenda inicial de respiracao e salto no ponto de largada (120m)
+  { start: 0, end: 240 }, // Fenda inicial de respiracao e salto no ponto de largada (120m) junto ao paredao da geleira
   { start: 600, end: 750 },
   { start: 1400, end: 1550 },
   { start: 2200, end: 2350 },

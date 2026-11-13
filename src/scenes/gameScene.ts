@@ -243,7 +243,10 @@ export function synchronizeGameSceneCameraTracking(
       : isFacingRight
         ? 200
         : -200;
-  const targetCameraPositionCoordinateX = playerEntity.pos.x + cameraHorizontalOffset;
+  const targetCameraPositionCoordinateX = Math.max(
+    320,
+    playerEntity.pos.x + cameraHorizontalOffset
+  );
 
   if (typeof renderingContext.synchronizePlayerCameraTracking === "function") {
     return renderingContext.synchronizePlayerCameraTracking(

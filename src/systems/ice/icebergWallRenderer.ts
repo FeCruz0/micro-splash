@@ -1,115 +1,133 @@
 /**
- * Renderizador de Paredao de Iceberg e Colunas Glaciais — Micro Splash
+ * Renderizador de Paredao de Geleira e Limite Esquerdo (Antartica) — Micro Splash
  */
 
-import { TAGS } from "../../config";
-import type { IRenderEngine, Vector2D } from "../../engine/contracts/INTERFACE_CONTRACTS";
+import { GAME_CONFIG, TAGS } from "../../config";
+import { getActivePlayerObject, type PlayerController } from "../../entities/player";
+import type { IRenderEngine, IRenderNode } from "../../engine/contracts/INTERFACE_CONTRACTS";
 import { getSpatialGrid } from "../spatialHashGrid";
 import { resolveWorldRenderContainer } from "../../engine/adapters/RenderEngineAdapter";
+import {
+  createSubmergedGlacierCliffLayers,
+  createAlpineSnowCrestLayers,
+} from "./glacierCliffGeometry";
 
-export function renderIcebergWall(engine: IRenderEngine, icebergWallTexture: unknown | null): void {
-  const worldContainer = resolveWorldRenderContainer(engine);
-  const screenHeight = engine.getDimensions().height;
-  const wallWidth = 1100;
-  const wallStartX = -1100;
+export const ANTARCTIC_WALL_MIN_WORLD_X = 64;
+export const GLACIER_WALL_BACKGROUND_Z_INDEX = 5;
+export const GLACIER_CLIFF_FRONT_Z_INDEX = 14;
+export const GLACIER_CLIFF_SNOW_Z_INDEX = 15;
 
-  if (icebergWallTexture) {
-    // Renderização modular em ladrilhos para evitar distorção horizontal na pixel art
-    const tileSize = 368;
-    for (let tileX = wallStartX; tileX < 0; tileX += tileSize) {
-      const tileWidth = Math.min(tileSize, 0 - tileX);
-      const wallSprite = engine.createSprite(icebergWallTexture, `iceberg_wall_${tileX}`);
-      wallSprite.setSize(tileWidth, screenHeight);
-      wallSprite.setPosition(tileX, 0);
-      wallSprite.setZIndex(10);
-      worldContainer.addChild(wallSprite);
-    }
-  } else {
-    const wallG = engine.createGraphics("iceberg_wall");
-    wallG.drawRect(0, 0, wallWidth, screenHeight, {
-      fill: { color: [150, 195, 235], alpha: 1 },
-    });
-    wallG.setPosition(wallStartX, 0);
-    wallG.setZIndex(10);
-    worldContainer.addChild(wallG);
+const GLACIER_WALL_START_X = -1440;
+const GLACIER_WALL_WIDTH = 1440;
+const GLACIER_CLIFF_COLLISION_MAX_X = 28;
 
-    // Colunas de gelo verticais
-    for (let x = wallStartX; x < 0; x += 75) {
-      const colWidth = 65 + Math.sin(x * 0.04) * 20;
-      const bumpX = x + Math.cos(x * 0.02) * 12;
+/**
+ * Reorganiza as profundidades de camada (z-index) para que o fundo do paredao fique
+ * estritamente em zIndex = 5 e a falesia escarpada facetada ocupe o primeiro plano (zIndex = 14..15).
+ */
+export function reorganizeGlacierLayerDepths(
+  wallBackgroundNode: IRenderNode,
+  cliffFrontNode: IRenderNode,
+  cliffSnowNode: IRenderNode
+): void {
+  wallBackgroundNode.setZIndex(GLACIER_WALL_BACKGROUND_Z_INDEX);
+  cliffFrontNode.setZIndex(GLACIER_CLIFF_FRONT_Z_INDEX);
+  cliffSnowNode.setZIndex(GLACIER_CLIFF_SNOW_Z_INDEX);
+}
 
-      const colG = engine.createGraphics();
-      const colPts: readonly Vector2D[] = [
-        { x: bumpX, y: 0 },
-        { x: bumpX + colWidth, y: 0 },
-        { x: bumpX + colWidth - 15, y: screenHeight },
-        { x: bumpX - 20, y: screenHeight },
-      ];
-      colG.drawPolygon(colPts, {
-        fill: { color: [180, 220, 255], alpha: 0.35 },
-      });
-      colG.setZIndex(11);
-      worldContainer.addChild(colG);
+/**
+ * Posiciona e anexa um no grafico ou sprite diretamente ao worldContainer na coordenada de mundo exata.
+ */
+export function attachWallToWorldContainer(
+  worldContainer: IRenderNode,
+  wallNode: IRenderNode,
+  worldPositionX: number,
+  worldPositionY: number,
+  zIndex: number
+): IRenderNode {
+  wallNode.setPosition(worldPositionX, worldPositionY);
+  wallNode.setZIndex(zIndex);
+  worldContainer.addChild(wallNode);
+  return wallNode;
+}
 
-      const ridgeG = engine.createGraphics();
-      const ridgePts: readonly Vector2D[] = [
-        { x: bumpX + 8, y: 0 },
-        { x: bumpX + colWidth * 0.45, y: 0 },
-        { x: bumpX + colWidth * 0.25, y: screenHeight },
-      ];
-      ridgeG.drawPolygon(ridgePts, {
-        fill: { color: [230, 248, 255], alpha: 0.55 },
-      });
-      ridgeG.setZIndex(12);
-      worldContainer.addChild(ridgeG);
-    }
+/**
+ * Impoe o limite esquerdo do mundo impedindo que a baleia atravesse o paredao de geleira.
+ */
+export function updateWorldBoundaryConstraint(
+  playerController?: PlayerController,
+  minimumWorldPositionX: number = ANTARCTIC_WALL_MIN_WORLD_X
+): void {
+  const playerObject = playerController ? playerController.gameObj : getActivePlayerObject();
+  if (!playerObject || !playerObject.pos) {
+    return;
   }
 
-  // Crista pontiaguda e falésia escarpada sempre renderizada na borda frontal (x = 0)
-  const cliffG = engine.createGraphics("iceberg_cliff_front");
-  const cliffPts: readonly Vector2D[] = [
-    { x: -50, y: 0 },
-    { x: 0, y: 35 },
-    { x: -20, y: 95 },
-    { x: 8, y: 165 },
-    { x: -25, y: 235 },
-    { x: 5, y: 315 },
-    { x: -30, y: 385 },
-    { x: 0, y: 455 },
-    { x: -35, y: screenHeight },
-    { x: -120, y: screenHeight },
-    { x: -120, y: 0 },
-  ];
-  cliffG.drawPolygon(cliffPts, {
-    fill: { color: [210, 240, 255], alpha: 0.98 },
-    stroke: { color: [120, 180, 230], width: 3 },
-  });
-  cliffG.setZIndex(14);
-  worldContainer.addChild(cliffG);
+  if (playerObject.pos.x < minimumWorldPositionX) {
+    playerObject.pos.x = minimumWorldPositionX;
+    if (playerController && typeof playerController.getSpeed === "function") {
+      const playerVelocity = playerController.getSpeed();
+      if (playerVelocity.x < 0 && typeof playerController.setSpeed === "function") {
+        playerController.setSpeed({
+          x: 0,
+          y: playerVelocity.y,
+        } as Parameters<PlayerController["setSpeed"]>[0]);
+      }
+    }
+  }
+}
 
-  // Manto superior de neve pura na crista acima da linha d'água (SEA_LEVEL)
-  const cliffSnowG = engine.createGraphics("iceberg_cliff_snow");
-  const snowPts: readonly Vector2D[] = [
-    { x: -120, y: 0 },
-    { x: 0, y: 0 },
-    { x: 2, y: 32 },
-    { x: -18, y: 80 },
-    { x: -120, y: 80 },
-  ];
-  cliffSnowG.drawPolygon(snowPts, {
-    fill: { color: [255, 255, 255], alpha: 1.0 },
-    stroke: { color: [224, 242, 241], width: 2 },
-  });
-  cliffSnowG.setZIndex(15);
-  worldContainer.addChild(cliffSnowG);
+/**
+ * Renderiza a falesia geometrica facetada visivel como a unica representacao visual do paredao de geleira (Antartica),
+ * ancorada diretamente ao worldContainer com a geometria de glacierCliffGeometry.ts.
+ */
+export function renderVisibleFacetedGlacierCliff(
+  engine: IRenderEngine,
+  _icebergWallTexture?: unknown | null
+): IRenderNode[] {
+  const worldContainer = resolveWorldRenderContainer(engine);
+  const screenHeight = engine.getDimensions().height;
+  const seaLevelY = GAME_CONFIG.SEA_LEVEL;
+  const snowCrestHeight = Math.max(18, Math.round(seaLevelY * 0.3));
+  const createdNodes: IRenderNode[] = [];
+
+  // 1. Falesia escarpada organica com blocos prismaticos facetados e talus abissal (zIndex = 14)
+  const cliffFrontGraphics = engine.createGraphics("iceberg_cliff_front");
+  const cliffLayers = createSubmergedGlacierCliffLayers(screenHeight, seaLevelY, snowCrestHeight);
+  for (const cliffLayer of cliffLayers) {
+    cliffFrontGraphics.drawPolygon(cliffLayer.points, {
+      fill: { color: cliffLayer.color, alpha: cliffLayer.alpha },
+    });
+  }
+  createdNodes.push(
+    attachWallToWorldContainer(
+      worldContainer,
+      cliffFrontGraphics,
+      0,
+      0,
+      GLACIER_CLIFF_FRONT_Z_INDEX
+    )
+  );
+
+  // 2. Cornija superior de neve alinhada exatamente ao topo da geleira (zIndex = 15)
+  const cliffSnowGraphics = engine.createGraphics("iceberg_cliff_snow");
+  const snowLayers = createAlpineSnowCrestLayers(snowCrestHeight);
+  for (const snowLayer of snowLayers) {
+    cliffSnowGraphics.drawPolygon(snowLayer.points, {
+      fill: { color: snowLayer.color, alpha: snowLayer.alpha },
+    });
+  }
+  createdNodes.push(
+    attachWallToWorldContainer(worldContainer, cliffSnowGraphics, 0, 0, GLACIER_CLIFF_SNOW_Z_INDEX)
+  );
 
   const polarIceSpatialGrid = getSpatialGrid();
   if (polarIceSpatialGrid) {
     const polarIceWallEntity = {
       id: "iceberg_wall_static",
       tag: TAGS.OBSTACLE,
-      pos: { x: wallStartX, y: 0 },
-      width: wallWidth + 8,
+      pos: { x: GLACIER_WALL_START_X, y: 0 },
+      width: GLACIER_WALL_WIDTH + GLACIER_CLIFF_COLLISION_MAX_X,
       height: screenHeight,
       isStatic: true,
     };
@@ -117,12 +135,19 @@ export function renderIcebergWall(engine: IRenderEngine, icebergWallTexture: unk
       "iceberg_wall_static",
       polarIceWallEntity,
       {
-        minX: wallStartX,
+        minX: GLACIER_WALL_START_X,
         minY: 0,
-        maxX: 8,
+        maxX: GLACIER_CLIFF_COLLISION_MAX_X,
         maxY: screenHeight,
       },
       true
     );
   }
+
+  return createdNodes;
 }
+
+export const renderSoleFacetedGlacierCliff = renderVisibleFacetedGlacierCliff;
+export const renderBoundedAntarcticGlacier = renderVisibleFacetedGlacierCliff;
+export const renderAntarcticGlacierWall = renderVisibleFacetedGlacierCliff;
+export const renderIcebergWall = renderVisibleFacetedGlacierCliff;
