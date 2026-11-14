@@ -29,6 +29,10 @@ export function resetActiveIceGaps(): void {
   activeIceGaps = DEFAULT_ICE_GAPS.map((gap) => ({ ...gap }));
 }
 
+export function setActiveIceGaps(gaps: readonly IceGap[]): void {
+  activeIceGaps = gaps.map((gap) => ({ ...gap }));
+}
+
 /**
  * Checa se uma coordenada X no Oceano Antartico (0 a 5.000m) localiza-se dentro de uma fenda de ar livre.
  *
