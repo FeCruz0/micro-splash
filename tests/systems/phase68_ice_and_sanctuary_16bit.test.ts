@@ -20,23 +20,31 @@ import {
   ANTARCTIC_WALL_MIN_WORLD_X,
 } from "../../src/systems/ice/icebergWallRenderer";
 import {
+  createAlpineSnowCrestLayers,
   createChaoticIceBlockMatrix,
   createOrganicFracturedGlacierBlocks,
+  createSubmergedGlacierCliffLayers,
   createTriangularFacetedGlacierBlocks,
   createVerticalFacetedGlacierPrisms,
   extendSeamlessGlacierToLeftBoundary,
   normalizeGlacierTopBoundaryPoints,
   renderAuthenticGlacierFractures,
+  renderBroadIrregularGlacierMasses,
   renderChaoticFracturedIceBlocks,
+  renderCleanFacetedGlacierColumns,
+  renderInterlockingDiagonalGlacierBlocks,
   renderMassiveMonolithicIceBlocks,
   renderMassiveVerticalGlacierPillars,
   renderMonolithicVerticalShardsWithDiagonalFaults,
   renderSolidGlacierBackdropBase,
+  renderSolidWidePolygonalGlacierBlocks,
   renderTriangularFacetedGlacierBlocks,
   renderUniformlyDetailedGlacierBlocks,
   GLACIER_16BIT_COLOR_PALETTE,
   GLACIER_CLIFF_BASE_OFFSET_X,
 } from "../../src/systems/ice/glacierCliffGeometry";
+import { PILLAR_BOUNDARIES_X } from "../../src/systems/ice/glacierCliffPalette";
+import { buildSubmarineTalusButtressLayers } from "../../src/systems/ice/glacierEmergedAndTalus";
 import { DEFAULT_ICE_GAPS } from "../../src/systems/ice/iceGaps";
 import { initSpatialGrid, getSpatialGrid } from "../../src/systems/spatialHashGrid";
 import {
@@ -265,6 +273,51 @@ describe("Fase 68 / Etapa 3: Estética 16-Bits do Gelo e Santuário de Arraial d
       // Valida que extendSeamlessGlacierToLeftBoundary alinha vertices esquerdos ao limite absoluto
       const extendedLayers = extendSeamlessGlacierToLeftBoundary(fracturedBlocks, -1600);
       expect(extendedLayers[0].points.some((point) => point.x === -1600)).toBe(true);
+
+      // Valida blocos amplos e irregulares (2x-3x mais largos que estacas finas e sem largura uniforme)
+      expect(renderBroadIrregularGlacierMasses).toBe(
+        renderMonolithicVerticalShardsWithDiagonalFaults
+      );
+      expect(renderSolidWidePolygonalGlacierBlocks).toBe(
+        renderMonolithicVerticalShardsWithDiagonalFaults
+      );
+      expect(renderInterlockingDiagonalGlacierBlocks).toBe(
+        renderMonolithicVerticalShardsWithDiagonalFaults
+      );
+      expect(renderCleanFacetedGlacierColumns).toBe(
+        renderMonolithicVerticalShardsWithDiagonalFaults
+      );
+      for (const shadowLayer of cleftShadowLayers) {
+        const ys = shadowLayer.points.map((point) => point.y);
+        const verticalSpan = Math.max(...ys) - Math.min(...ys);
+        expect(verticalSpan).toBeLessThan(540);
+      }
+      const quadOrPentagonPlates = fracturedBlocks.filter(
+        (layer) => layer.points.length === 4 || layer.points.length === 5
+      );
+      expect(quadOrPentagonPlates.length).toBeGreaterThan(fracturedBlocks.length * 0.5);
+      const pillarSpans: number[] = [];
+      for (let i = 1; i < PILLAR_BOUNDARIES_X.length; i++) {
+        expect(PILLAR_BOUNDARIES_X[i]).toBeGreaterThan(PILLAR_BOUNDARIES_X[i - 1]);
+        const span = PILLAR_BOUNDARIES_X[i] - PILLAR_BOUNDARIES_X[i - 1];
+        expect(span).toBeGreaterThanOrEqual(72);
+        pillarSpans.push(span);
+      }
+      expect(new Set(pillarSpans).size).toBeGreaterThanOrEqual(4);
+
+      // Valida silhueta emersa com picos assimétricos variados e sem faixa horizontal reta na base
+      const fullCliffLayers = createSubmergedGlacierCliffLayers(720, 80, 24);
+      expect(fullCliffLayers.length).toBeGreaterThan(fracturedBlocks.length);
+      const alpineSnowLayers = createAlpineSnowCrestLayers(24);
+      const primarySnowMaxX = Math.max(...alpineSnowLayers[0].points.map((point) => point.x));
+      expect(primarySnowMaxX).toBeLessThan(0);
+      const distinctSnowYs = new Set(alpineSnowLayers[0].points.map((point) => point.y));
+      expect(distinctSnowYs.size).toBeGreaterThanOrEqual(5);
+
+      const talusLayers = buildSubmarineTalusButtressLayers(720, 80);
+      expect(talusLayers.every((layer) => layer.points.every((point) => point.x >= -30))).toBe(
+        true
+      );
     });
 
     it("deve conter o jogador na barreira esquerda via updateWorldBoundaryConstraint e iniciar fenda polar em x = 0", () => {
