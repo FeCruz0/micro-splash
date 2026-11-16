@@ -1,193 +1,241 @@
 /**
- * Geometria 16-Bit da Falésia Glacial Submersa (Antártica) — Micro Splash
+ * Geometria e Renderização 16-Bit da Grande Geleira Flutuante (Antártica) — PixiJS 8
  *
- * Orquestra os contrafortes verticais densos, cristas cristalinas ramificadas,
- * fendas abissais, talus marinho e pináculos nevados com nervuras direcionais.
+ * Subdivide a massa glacial em dezenas de formações verticais fundidas de larguras,
+ * comprimentos e inclinações variadas, com facetas pequenas, médias e grandes em pixel art
+ * (bordas em degraus), cadeia de picos nevados e silhueta submersa irregular.
  */
 
 import {
-  DEPTH_SAMPLE_RATIOS,
+  DEFAULT_COLOSSAL_ICEBERG_SEED,
+  generateColossalIcebergSpec,
+  type ColossalIcebergGenerationOptions,
+  type ColossalIcebergSpec,
+} from "./colossalIcebergGenerator";
+import {
+  appendConnectedBaseButtresses,
+  appendFormationSubfacets,
+  snapStep,
+} from "./glacierBaseAndFormationFacets";
+import {
   extendSeamlessGlacierToLeftBoundary,
   GLACIER_16BIT_COLOR_PALETTE,
   GLACIER_CLIFF_BASE_OFFSET_X,
+  ICEBERG_FAMILY_PALETTE,
   normalizeGlacierTopBoundaryPoints,
-  PILLAR_BOUNDARIES_X,
-  RIGHT_CLIFF_KEYPOINTS,
+  renderMonolithicVerticalShardsWithDiagonalFaults,
+  renderSolidGlacierBackdropBase,
   type GlacierPoint,
   type GlacierPolygonLayer,
 } from "./glacierCliffPalette";
-import { buildSubmergedColumnFacetLayers } from "./glacierColumnFacets";
-import {
-  buildAlpineSnowCrestPeakLayers,
-  buildEmergedGlacierSpireLayers,
-  buildSubmarineTalusButtressLayers,
-} from "./glacierEmergedAndTalus";
 
 export {
+  DEFAULT_COLOSSAL_ICEBERG_SEED,
   extendSeamlessGlacierToLeftBoundary,
+  generateColossalIcebergSpec,
   GLACIER_16BIT_COLOR_PALETTE,
   GLACIER_CLIFF_BASE_OFFSET_X,
+  ICEBERG_FAMILY_PALETTE,
   normalizeGlacierTopBoundaryPoints,
+  renderMonolithicVerticalShardsWithDiagonalFaults,
+  renderSolidGlacierBackdropBase,
+  type ColossalIcebergGenerationOptions,
+  type ColossalIcebergSpec,
   type GlacierPoint,
   type GlacierPolygonLayer,
 };
 
-function resolvePillarEdgeKeypoints(
-  pillarIndex: number
-): ReadonlyArray<{ readonly r: number; readonly x: number }> {
-  if (pillarIndex === 0) {
-    return DEPTH_SAMPLE_RATIOS.map((r) => ({ r, x: GLACIER_CLIFF_BASE_OFFSET_X }));
-  }
-  if (pillarIndex >= PILLAR_BOUNDARIES_X.length) {
-    return RIGHT_CLIFF_KEYPOINTS;
-  }
-  const baseX = PILLAR_BOUNDARIES_X[pillarIndex];
-  const previousSpan = Math.abs(baseX - PILLAR_BOUNDARIES_X[pillarIndex - 1]);
-  const nextSpan =
-    pillarIndex + 1 < PILLAR_BOUNDARIES_X.length
-      ? Math.abs(PILLAR_BOUNDARIES_X[pillarIndex + 1] - baseX)
-      : previousSpan;
-  const maxSafeAmplitude = Math.max(
-    8,
-    Math.min(20, Math.floor(Math.min(previousSpan, nextSpan) * 0.2))
-  );
-
-  return DEPTH_SAMPLE_RATIOS.map((r, depthIndex) => {
-    const harmonic =
-      Math.sin(pillarIndex * 2.15 + depthIndex * 1.45) * 0.65 +
-      Math.cos(pillarIndex * 3.6 - depthIndex * 2.1) * 0.35;
-    const organicOffset = Math.round(harmonic * maxSafeAmplitude);
-    return { r, x: baseX + organicOffset };
-  });
-}
-
 /**
- * Renderiza massas glaciais 16-bit amplas e irregulares com cristas de luz quebradas,
- * bifurcações diagonais e sombras abissais individuais na base de cada bloco.
+ * Gera a grande geleira flutuante com silhueta orgânica, dezenas de formações verticais
+ * subdivididas em facetas pixel art, cadeia de picos e base submersa irregular.
  */
-export function renderBroadIrregularGlacierMasses(
+export function createColossalFloatingIcebergLayers(
   screenHeight: number,
-  seaLevelY: number
+  seaLevelY: number,
+  options: ColossalIcebergGenerationOptions = {}
 ): readonly GlacierPolygonLayer[] {
-  const submergedHeight = Math.max(1, screenHeight - seaLevelY);
+  const spec = generateColossalIcebergSpec(screenHeight, seaLevelY, options);
   const layers: GlacierPolygonLayer[] = [];
-  const totalPillars = PILLAR_BOUNDARIES_X.length;
 
-  for (let pillarIndex = 0; pillarIndex < totalPillars; pillarIndex++) {
-    const leftKeypoints = resolvePillarEdgeKeypoints(pillarIndex);
-    const rightKeypoints = resolvePillarEdgeKeypoints(pillarIndex + 1);
-    layers.push(
-      ...buildSubmergedColumnFacetLayers(
-        leftKeypoints,
-        rightKeypoints,
-        pillarIndex,
-        totalPillars,
-        seaLevelY,
-        submergedHeight
-      )
-    );
+  // --- CAMADA 3: Massa Submersa Contínua + Formações Verticais Subdivididas ---
+  layers.push({
+    points: spec.submergedContour,
+    color: ICEBERG_FAMILY_PALETTE.SUBMERGED_MID,
+    alpha: 0.98,
+    stroke: { color: ICEBERG_FAMILY_PALETTE.SUBMERGED_DEEP, width: 1.5, alpha: 0.85 },
+  });
+
+  for (const formation of spec.formations) {
+    appendFormationSubfacets(layers, formation);
+  }
+  appendConnectedBaseButtresses(layers, spec);
+
+  // --- CAMADA 2: Cadeia de Montanhas de Gelo Emersas com Contorno Pixel Art ---
+  layers.push({
+    points: spec.surfaceContour,
+    color: ICEBERG_FAMILY_PALETTE.EMERGED_MID,
+    alpha: 0.98,
+    stroke: { color: ICEBERG_FAMILY_PALETTE.EMERGED_OUTLINE, width: 2, alpha: 0.92 },
+  });
+
+  for (let i = 0; i < spec.peaks.length; i++) {
+    const { left, peak, right } = spec.peaks[i];
+    const baseY = seaLevelY + 2;
+    const midRidgeX = snapStep(peak.x + (i % 2 === 0 ? 6 : -4));
+
+    layers.push({
+      points: [
+        { x: left.x, y: left.y },
+        { x: peak.x, y: peak.y },
+        { x: midRidgeX, y: baseY },
+        { x: left.x, y: baseY },
+      ],
+      color: ICEBERG_FAMILY_PALETTE.EMERGED_HIGHLIGHT,
+      alpha: 0.9,
+    });
+    layers.push({
+      points: [
+        { x: peak.x, y: peak.y },
+        { x: right.x, y: right.y },
+        { x: right.x, y: baseY },
+        { x: midRidgeX - 2, y: baseY },
+      ],
+      color: ICEBERG_FAMILY_PALETTE.EMERGED_SHADE,
+      alpha: 0.85,
+    });
+    const leftCapX = snapStep(peak.x + (left.x - peak.x) * 0.42);
+    const leftCapY = snapStep(peak.y + (left.y - peak.y) * 0.42);
+    const rightCapX = snapStep(peak.x + (right.x - peak.x) * 0.42);
+    const rightCapY = snapStep(peak.y + (right.y - peak.y) * 0.42);
+    const midCapY = snapStep(peak.y + (seaLevelY - peak.y) * 0.36);
+
+    layers.push({
+      points: [
+        { x: leftCapX, y: leftCapY },
+        { x: peak.x, y: peak.y },
+        { x: rightCapX, y: rightCapY },
+        { x: snapStep(peak.x + 2), y: midCapY },
+      ],
+      color: ICEBERG_FAMILY_PALETTE.SNOW_ICE,
+      alpha: 0.94,
+    });
+
+    const pureLeftX = snapStep(peak.x + (left.x - peak.x) * 0.28);
+    const pureLeftY = snapStep(peak.y + (left.y - peak.y) * 0.28);
+    const pureRightX = snapStep(peak.x + (right.x - peak.x) * 0.24);
+    const pureRightY = snapStep(peak.y + (right.y - peak.y) * 0.24);
+    const pureMidY = snapStep(peak.y + (seaLevelY - peak.y) * 0.22);
+
+    layers.push({
+      points: [
+        { x: pureLeftX, y: pureLeftY },
+        { x: peak.x, y: peak.y },
+        { x: pureRightX, y: pureRightY },
+        { x: peak.x, y: pureMidY },
+      ],
+      color: ICEBERG_FAMILY_PALETTE.SNOW_PURE,
+      alpha: 0.98,
+    });
   }
 
-  return normalizeGlacierTopBoundaryPoints(layers, seaLevelY);
+  // Realce especular na linha d'água
+  layers.push({
+    points: [
+      { x: spec.leftBoundaryX + 2, y: seaLevelY - 1 },
+      { x: spec.rightWaterlineX - 2, y: seaLevelY - 1 },
+      { x: spec.rightWaterlineX - 6, y: seaLevelY + 3 },
+      { x: spec.leftBoundaryX + 2, y: seaLevelY + 3 },
+    ],
+    color: ICEBERG_FAMILY_PALETTE.WATERLINE_FOAM,
+    alpha: 0.8,
+  });
+
+  return layers;
 }
 
-export const renderCleanFacetedGlacierColumns = renderBroadIrregularGlacierMasses;
-export const renderInterlockingDiagonalGlacierBlocks = renderBroadIrregularGlacierMasses;
-export const renderSolidWidePolygonalGlacierBlocks = renderBroadIrregularGlacierMasses;
-export const renderMonolithicVerticalShardsWithDiagonalFaults = renderBroadIrregularGlacierMasses;
-export const renderMassiveMonolithicIceBlocks = renderBroadIrregularGlacierMasses;
-export const renderAuthenticGlacierFractures = renderBroadIrregularGlacierMasses;
-export const renderMassiveVerticalGlacierPillars = renderBroadIrregularGlacierMasses;
-export const createChaoticIceBlockMatrix = renderBroadIrregularGlacierMasses;
-export const renderChaoticFracturedIceBlocks = renderBroadIrregularGlacierMasses;
-export const renderTriangularFacetedGlacierBlocks = renderBroadIrregularGlacierMasses;
-export const createTriangularFacetedGlacierBlocks = renderBroadIrregularGlacierMasses;
-export const renderUniformlyDetailedGlacierBlocks = renderBroadIrregularGlacierMasses;
-export const createOrganicFracturedGlacierBlocks = renderBroadIrregularGlacierMasses;
-export const createVerticalFacetedGlacierPrisms = renderBroadIrregularGlacierMasses;
-
 /**
- * Renderiza o polígono de fundo maciço contínuo por trás de todas as massas glaciais
- * (`OCEAN_COBALT_DEEP`, `GLACIAL_BLUE_MAIN` e `GLACIAL_BLUE_SHADE`).
+ * Gera a camada de neve superior dos picos do iceberg colossal (`0 <= y <= snowCrestHeight`).
  */
-export function renderSolidGlacierBackdropBase(
-  screenHeight: number,
-  seaLevelY: number
+export function createAlpineSnowCrestLayers(
+  snowCrestHeight: number,
+  seed: number = DEFAULT_COLOSSAL_ICEBERG_SEED
 ): readonly GlacierPolygonLayer[] {
-  const submergedHeight = Math.max(1, screenHeight - seaLevelY);
-  const outerCliffPolygonPoints: GlacierPoint[] = [
-    { x: GLACIER_CLIFF_BASE_OFFSET_X, y: seaLevelY },
-    ...RIGHT_CLIFF_KEYPOINTS.map((keypoint) => ({
-      x: keypoint.x,
-      y: seaLevelY + Math.round(submergedHeight * keypoint.r),
-    })),
-    { x: GLACIER_CLIFF_BASE_OFFSET_X, y: screenHeight },
-  ];
+  const spec = generateColossalIcebergSpec(720, Math.max(24, snowCrestHeight * 3), { seed });
+  const layers: GlacierPolygonLayer[] = [];
+  const snowEndX = Math.min(-8, spec.rightWaterlineX - 34);
 
-  return [
-    {
-      points: outerCliffPolygonPoints,
-      color: GLACIER_16BIT_COLOR_PALETTE.OCEAN_COBALT_DEEP,
-      alpha: 1.0,
-    },
-    {
+  const topRidgePoints: GlacierPoint[] = spec.peaks.flatMap(({ left, peak }, idx) => {
+    const peakY =
+      idx % 3 === 0
+        ? 0
+        : idx % 2 === 0
+          ? Math.round(snowCrestHeight * 0.14)
+          : Math.round(snowCrestHeight * 0.28);
+    const valleyY = Math.round(snowCrestHeight * (0.48 + (idx % 3) * 0.1));
+    return [
+      { x: left.x, y: valleyY },
+      { x: peak.x, y: peakY },
+    ];
+  });
+
+  // Camada legada mantida transparente (alpha: 0) para não flutuar no céu acima dos picos reais
+  layers.push({
+    points: [
+      { x: GLACIER_CLIFF_BASE_OFFSET_X, y: Math.round(snowCrestHeight * 0.35) },
+      ...topRidgePoints.filter((pt) => pt.x < snowEndX),
+      { x: snowEndX - 4, y: Math.round(snowCrestHeight * 0.55) },
+      { x: snowEndX, y: snowCrestHeight },
+      { x: GLACIER_CLIFF_BASE_OFFSET_X, y: snowCrestHeight },
+    ],
+    color: ICEBERG_FAMILY_PALETTE.SNOW_PURE,
+    alpha: 0,
+  });
+
+  for (let i = 0; i < spec.peaks.length; i++) {
+    const { left, peak, right } = spec.peaks[i];
+    const peakY = i % 3 === 0 ? 0 : Math.round(snowCrestHeight * 0.2);
+    const capBottomY = Math.round(snowCrestHeight * 0.82);
+    const rightCapX = Math.round(peak.x + (right.x - peak.x) * 0.55);
+    layers.push({
       points: [
-        { x: GLACIER_CLIFF_BASE_OFFSET_X, y: seaLevelY },
-        ...RIGHT_CLIFF_KEYPOINTS.slice(0, 6).map((keypoint) => ({
-          x: keypoint.x,
-          y: seaLevelY + Math.round(submergedHeight * keypoint.r),
-        })),
-        { x: -240, y: seaLevelY + Math.round(submergedHeight * 0.62) },
-        { x: -640, y: seaLevelY + Math.round(submergedHeight * 0.8) },
-        { x: GLACIER_CLIFF_BASE_OFFSET_X, y: seaLevelY + Math.round(submergedHeight * 0.68) },
+        { x: left.x, y: capBottomY },
+        { x: peak.x, y: peakY },
+        { x: rightCapX, y: capBottomY },
+        { x: peak.x + 4, y: snowCrestHeight },
       ],
-      color: GLACIER_16BIT_COLOR_PALETTE.GLACIAL_BLUE_MAIN,
-      alpha: 0.9,
-    },
-    {
-      points: [
-        { x: GLACIER_CLIFF_BASE_OFFSET_X, y: seaLevelY + Math.round(submergedHeight * 0.34) },
-        { x: -320, y: seaLevelY + Math.round(submergedHeight * 0.24) },
-        { x: 19, y: seaLevelY + Math.round(submergedHeight * 0.32) },
-        { x: 34, y: seaLevelY + Math.round(submergedHeight * 0.64) },
-        { x: 108, y: seaLevelY + Math.round(submergedHeight * 0.9) },
-        { x: 158, y: screenHeight },
-        { x: GLACIER_CLIFF_BASE_OFFSET_X, y: screenHeight },
-      ],
-      color: GLACIER_16BIT_COLOR_PALETTE.GLACIAL_BLUE_SHADE,
-      alpha: 0.68,
-    },
-  ];
+      color: ICEBERG_FAMILY_PALETTE.SNOW_ICE,
+      alpha: 0,
+    });
+  }
+
+  return layers;
 }
 
-/**
- * Gera as camadas da falésia submersa, talus do leito marinho e pináculos emersos.
- */
 export function createSubmergedGlacierCliffLayers(
   screenHeight: number,
   seaLevelY: number,
-  snowCrestHeight: number
+  _snowCrestHeight: number,
+  seed: number = DEFAULT_COLOSSAL_ICEBERG_SEED
 ): readonly GlacierPolygonLayer[] {
-  const submergedAndTalusLayers = normalizeGlacierTopBoundaryPoints(
-    [
-      ...renderSolidGlacierBackdropBase(screenHeight, seaLevelY),
-      ...renderMonolithicVerticalShardsWithDiagonalFaults(screenHeight, seaLevelY),
-      ...buildSubmarineTalusButtressLayers(screenHeight, seaLevelY),
-    ],
-    seaLevelY
-  );
-
-  return [
-    ...submergedAndTalusLayers,
-    ...buildEmergedGlacierSpireLayers(seaLevelY, snowCrestHeight),
-  ];
+  return createColossalFloatingIcebergLayers(screenHeight, seaLevelY, { seed });
 }
 
-/**
- * Gera picos alpinos de neve serrilhados com nervuras azuis glaciais (0 <= y <= snowCrestHeight).
- */
-export function createAlpineSnowCrestLayers(
-  snowCrestHeight: number
-): readonly GlacierPolygonLayer[] {
-  return buildAlpineSnowCrestPeakLayers(snowCrestHeight);
-}
+export const renderBroadIrregularGlacierMasses = renderMonolithicVerticalShardsWithDiagonalFaults;
+export const renderCleanFacetedGlacierColumns = renderMonolithicVerticalShardsWithDiagonalFaults;
+export const renderInterlockingDiagonalGlacierBlocks =
+  renderMonolithicVerticalShardsWithDiagonalFaults;
+export const renderSolidWidePolygonalGlacierBlocks =
+  renderMonolithicVerticalShardsWithDiagonalFaults;
+export const renderMassiveMonolithicIceBlocks = renderMonolithicVerticalShardsWithDiagonalFaults;
+export const renderAuthenticGlacierFractures = renderMonolithicVerticalShardsWithDiagonalFaults;
+export const renderMassiveVerticalGlacierPillars = renderMonolithicVerticalShardsWithDiagonalFaults;
+export const createChaoticIceBlockMatrix = renderMonolithicVerticalShardsWithDiagonalFaults;
+export const renderChaoticFracturedIceBlocks = renderMonolithicVerticalShardsWithDiagonalFaults;
+export const renderTriangularFacetedGlacierBlocks =
+  renderMonolithicVerticalShardsWithDiagonalFaults;
+export const createTriangularFacetedGlacierBlocks =
+  renderMonolithicVerticalShardsWithDiagonalFaults;
+export const renderUniformlyDetailedGlacierBlocks =
+  renderMonolithicVerticalShardsWithDiagonalFaults;
+export const createOrganicFracturedGlacierBlocks = renderMonolithicVerticalShardsWithDiagonalFaults;
+export const createVerticalFacetedGlacierPrisms = renderMonolithicVerticalShardsWithDiagonalFaults;

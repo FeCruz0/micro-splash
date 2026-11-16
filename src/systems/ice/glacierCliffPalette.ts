@@ -7,11 +7,32 @@ export interface GlacierPoint {
   readonly y: number;
 }
 
+export interface GlacierPolygonStroke {
+  readonly color: [number, number, number];
+  readonly width: number;
+  readonly alpha: number;
+}
+
 export interface GlacierPolygonLayer {
   readonly points: readonly GlacierPoint[];
   readonly color: [number, number, number];
   readonly alpha: number;
+  readonly stroke?: GlacierPolygonStroke;
 }
+
+/** Paleta compartilhada com `proceduralIcebergRenderer.ts` para identidade visual unificada. */
+export const ICEBERG_FAMILY_PALETTE = {
+  SNOW_PURE: [248, 253, 255] as [number, number, number],
+  SNOW_ICE: [206, 238, 255] as [number, number, number],
+  EMERGED_HIGHLIGHT: [146, 228, 255] as [number, number, number],
+  EMERGED_MID: [88, 192, 242] as [number, number, number],
+  EMERGED_SHADE: [44, 132, 204] as [number, number, number],
+  EMERGED_OUTLINE: [16, 68, 132] as [number, number, number],
+  WATERLINE_FOAM: [222, 248, 255] as [number, number, number],
+  SUBMERGED_LIT: [40, 118, 196] as [number, number, number],
+  SUBMERGED_MID: [24, 82, 152] as [number, number, number],
+  SUBMERGED_DEEP: [14, 52, 108] as [number, number, number],
+} as const;
 
 export const GLACIER_CLIFF_BASE_OFFSET_X = -1440;
 
@@ -208,4 +229,87 @@ export function extendSeamlessGlacierToLeftBoundary(
       point.x <= -360 ? { ...point, x: Math.min(point.x, leftBoundaryX) } : point
     ),
   }));
+}
+
+export function renderSolidGlacierBackdropBase(
+  screenHeight: number,
+  seaLevelY: number
+): readonly GlacierPolygonLayer[] {
+  const submergedHeight = Math.max(1, screenHeight - seaLevelY);
+  return [
+    {
+      points: [
+        { x: GLACIER_CLIFF_BASE_OFFSET_X, y: seaLevelY },
+        { x: 26, y: seaLevelY },
+        { x: 30, y: seaLevelY + Math.round(submergedHeight * 0.16) },
+        { x: 22, y: seaLevelY + Math.round(submergedHeight * 0.34) },
+        { x: 28, y: seaLevelY + Math.round(submergedHeight * 0.52) },
+        { x: 46, y: seaLevelY + Math.round(submergedHeight * 0.72) },
+        { x: 88, y: seaLevelY + Math.round(submergedHeight * 0.88) },
+        { x: 136, y: screenHeight },
+        { x: GLACIER_CLIFF_BASE_OFFSET_X, y: screenHeight },
+      ],
+      color: GLACIER_16BIT_COLOR_PALETTE.OCEAN_COBALT_DEEP,
+      alpha: 1.0,
+    },
+    {
+      points: [
+        { x: GLACIER_CLIFF_BASE_OFFSET_X, y: seaLevelY },
+        { x: 26, y: seaLevelY },
+        { x: 38, y: seaLevelY + Math.round(submergedHeight * 0.64) },
+        { x: GLACIER_CLIFF_BASE_OFFSET_X, y: seaLevelY + Math.round(submergedHeight * 0.64) },
+      ],
+      color: GLACIER_16BIT_COLOR_PALETTE.GLACIAL_BLUE_MAIN,
+      alpha: 0.94,
+    },
+    {
+      points: [
+        { x: GLACIER_CLIFF_BASE_OFFSET_X, y: seaLevelY + Math.round(submergedHeight * 0.28) },
+        { x: 46, y: seaLevelY + Math.round(submergedHeight * 0.72) },
+        { x: GLACIER_CLIFF_BASE_OFFSET_X, y: seaLevelY + Math.round(submergedHeight * 0.72) },
+      ],
+      color: GLACIER_16BIT_COLOR_PALETTE.GLACIAL_BLUE_SHADE,
+      alpha: 0.72,
+    },
+  ];
+}
+
+export function renderMonolithicVerticalShardsWithDiagonalFaults(
+  screenHeight: number,
+  seaLevelY: number
+): readonly GlacierPolygonLayer[] {
+  const layers: GlacierPolygonLayer[] = [];
+  for (let p = 0; p < PILLAR_BOUNDARIES_X.length; p++) {
+    const lKp =
+      p === 0
+        ? DEPTH_SAMPLE_RATIOS.map((r) => ({ r, x: GLACIER_CLIFF_BASE_OFFSET_X }))
+        : DEPTH_SAMPLE_RATIOS.map((r) => ({ r, x: PILLAR_BOUNDARIES_X[p] }));
+    const rKp =
+      p >= PILLAR_BOUNDARIES_X.length - 1
+        ? RIGHT_CLIFF_KEYPOINTS
+        : DEPTH_SAMPLE_RATIOS.map((r) => ({ r, x: PILLAR_BOUNDARIES_X[p + 1] }));
+    layers.push({
+      points: [
+        { x: resolveInterpolatedX(0, lKp), y: seaLevelY },
+        { x: resolveInterpolatedX(0, rKp), y: seaLevelY },
+        { x: resolveInterpolatedX(1, rKp), y: screenHeight },
+        { x: resolveInterpolatedX(1, lKp), y: screenHeight },
+      ],
+      color: DEPTH_PALETTE_BANDS[p % DEPTH_PALETTE_BANDS.length].topLightColor,
+      alpha: 0.94,
+    });
+    if (p < PILLAR_BOUNDARIES_X.length - 1) {
+      layers.push({
+        points: [
+          { x: resolveInterpolatedX(0, rKp) - 8, y: seaLevelY + 60 },
+          { x: resolveInterpolatedX(0, rKp) + 8, y: seaLevelY + 60 },
+          { x: resolveInterpolatedX(1, rKp) + 8, y: screenHeight - 80 },
+          { x: resolveInterpolatedX(1, rKp) - 8, y: screenHeight - 80 },
+        ],
+        color: GLACIER_16BIT_COLOR_PALETTE.BATHYAL_SHADOW,
+        alpha: 0.8,
+      });
+    }
+  }
+  return normalizeGlacierTopBoundaryPoints(layers, seaLevelY);
 }

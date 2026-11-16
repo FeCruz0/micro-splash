@@ -91,12 +91,13 @@ export function renderVisibleFacetedGlacierCliff(
   const snowCrestHeight = Math.max(18, Math.round(seaLevelY * 0.3));
   const createdNodes: IRenderNode[] = [];
 
-  // 1. Falesia escarpada organica com blocos prismaticos facetados e talus abissal (zIndex = 14)
+  // 1. Grande geleira flutuante colossal com volumes submersos e contorno pixel art (zIndex = 14)
   const cliffFrontGraphics = engine.createGraphics("iceberg_cliff_front");
   const cliffLayers = createSubmergedGlacierCliffLayers(screenHeight, seaLevelY, snowCrestHeight);
   for (const cliffLayer of cliffLayers) {
     cliffFrontGraphics.drawPolygon(cliffLayer.points, {
       fill: { color: cliffLayer.color, alpha: cliffLayer.alpha },
+      ...(cliffLayer.stroke ? { stroke: cliffLayer.stroke } : {}),
     });
   }
   createdNodes.push(
@@ -115,6 +116,7 @@ export function renderVisibleFacetedGlacierCliff(
   for (const snowLayer of snowLayers) {
     cliffSnowGraphics.drawPolygon(snowLayer.points, {
       fill: { color: snowLayer.color, alpha: snowLayer.alpha },
+      ...(snowLayer.stroke ? { stroke: snowLayer.stroke } : {}),
     });
   }
   createdNodes.push(

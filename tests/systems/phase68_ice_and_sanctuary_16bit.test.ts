@@ -22,11 +22,14 @@ import {
 import {
   createAlpineSnowCrestLayers,
   createChaoticIceBlockMatrix,
+  createColossalFloatingIcebergLayers,
   createOrganicFracturedGlacierBlocks,
   createSubmergedGlacierCliffLayers,
   createTriangularFacetedGlacierBlocks,
   createVerticalFacetedGlacierPrisms,
   extendSeamlessGlacierToLeftBoundary,
+  generateColossalIcebergSpec,
+  ICEBERG_FAMILY_PALETTE,
   normalizeGlacierTopBoundaryPoints,
   renderAuthenticGlacierFractures,
   renderBroadIrregularGlacierMasses,
@@ -228,9 +231,43 @@ describe("Fase 68 / Etapa 3: Estética 16-Bits do Gelo e Santuário de Arraial d
       expect(wallObstacle?.length).toBe(1);
       expect((wallObstacle?.[0] as any)?.id).toBe("iceberg_wall_static");
 
-      // Valida que renderMonolithicVerticalShardsWithDiagonalFaults gera pilares verticais continuos com falhas diagonais e fendas verticais
+      // Valida o novo gerador procedural do iceberg colossal (mesma familia visual dos pequenos icebergs)
+      const specA = generateColossalIcebergSpec(720, 80, {
+        seed: 4242,
+        peakCount: 7,
+        keelCount: 4,
+      });
+      const specB = generateColossalIcebergSpec(720, 80, {
+        seed: 4242,
+        peakCount: 7,
+        keelCount: 4,
+      });
+      expect(specA.surfaceContour).toEqual(specB.surfaceContour);
+      expect(specA.submergedContour).toEqual(specB.submergedContour);
+      expect(specA.peaks.length).toBe(7);
+      expect(specA.keels.length).toBeGreaterThanOrEqual(3);
+
+      const colossalLayers = createColossalFloatingIcebergLayers(720, 80, { seed: 4242 });
+      expect(colossalLayers.length).toBeGreaterThanOrEqual(250);
+      expect(specA.formations.length).toBeGreaterThanOrEqual(14);
+      expect(
+        colossalLayers.some(
+          (layer) =>
+            layer.color === ICEBERG_FAMILY_PALETTE.EMERGED_MID &&
+            layer.stroke?.color === ICEBERG_FAMILY_PALETTE.EMERGED_OUTLINE
+        )
+      ).toBe(true);
+      expect(
+        colossalLayers.some(
+          (layer) =>
+            layer.color === ICEBERG_FAMILY_PALETTE.SUBMERGED_MID &&
+            layer.stroke?.color === ICEBERG_FAMILY_PALETTE.SUBMERGED_DEEP
+        )
+      ).toBe(true);
+
+      // Valida compatibilidade retroativa das exportacoes legadas
       const fracturedBlocks = renderMonolithicVerticalShardsWithDiagonalFaults(720, 80);
-      expect(fracturedBlocks.length).toBeGreaterThanOrEqual(50);
+      expect(fracturedBlocks.length).toBeGreaterThanOrEqual(15);
       expect(fracturedBlocks.every((layer) => layer.points.length >= 4)).toBe(true);
       const cleftShadowLayers = fracturedBlocks.filter(
         (layer) => layer.color === GLACIER_16BIT_COLOR_PALETTE.BATHYAL_SHADOW
