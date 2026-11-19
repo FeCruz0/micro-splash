@@ -22,25 +22,33 @@ export const DEFAULT_ICE_GAPS: IceGap[] = [
 
 export const ICE_GAPS = DEFAULT_ICE_GAPS;
 
+export const DEFAULT_ICE_END_DISTANCE = 5000;
+
 // Fendas ativas da partida em execucao (resetadas a cada reinicio de partida)
 export let activeIceGaps: IceGap[] = [];
+let activeIceEndDistance: number = DEFAULT_ICE_END_DISTANCE;
 
 export function resetActiveIceGaps(): void {
   activeIceGaps = DEFAULT_ICE_GAPS.map((gap) => ({ ...gap }));
+  activeIceEndDistance = DEFAULT_ICE_END_DISTANCE;
 }
 
-export function setActiveIceGaps(gaps: readonly IceGap[]): void {
+export function setActiveIceGaps(
+  gaps: readonly IceGap[],
+  iceEndDistance: number = DEFAULT_ICE_END_DISTANCE
+): void {
   activeIceGaps = gaps.map((gap) => ({ ...gap }));
+  activeIceEndDistance = iceEndDistance;
 }
 
 /**
- * Checa se uma coordenada X no Oceano Antartico (0 a 5.000m) localiza-se dentro de uma fenda de ar livre.
+ * Checa se uma coordenada X no Oceano Antartico localiza-se dentro de uma fenda de ar livre.
  *
  * @param x - Posicao horizontal no mundo em metros.
- * @returns `true` se o ar estiver livre para respiracao (ou fora da Antartica); `false` se houver teto de gelo.
+ * @returns `true` se o ar estiver livre para respiracao (ou alem do limite ativo do gelo); `false` se houver teto de gelo.
  */
 export function isPositionInIceGap(x: number): boolean {
-  if (x < 0 || x > 5000) return true; // Fora do gelo antartico, ar sempre livre
+  if (x < 0 || x > activeIceEndDistance) return true; // Fora do gelo antartico, ar sempre livre
   const gapsToCheck = activeIceGaps.length > 0 ? activeIceGaps : DEFAULT_ICE_GAPS;
   return gapsToCheck.some((gap) => x >= gap.start && x <= gap.end);
 }

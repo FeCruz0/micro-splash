@@ -4,7 +4,11 @@ import {
   WHALE_JUMP_PHYSICS,
 } from "../../src/systems/ice/proceduralIcebergGenerator";
 import { createProceduralIcebergNode } from "../../src/systems/ice/proceduralIcebergRenderer";
-import { setupPolarIceRendering } from "../../src/systems/ice/iceSurfaceRenderer";
+import {
+  setupPolarIceRendering,
+  ICE_DISPERSION_START_DISTANCE,
+  TOTAL_ICE_DISTANCE,
+} from "../../src/systems/ice/iceSurfaceRenderer";
 import { initSpatialGrid, getSpatialGrid } from "../../src/systems/spatialHashGrid";
 import { isPositionInIceGap, resetActiveIceGaps } from "../../src/systems/ice/iceGaps";
 import { PixiContainerNode, PixiGraphicsNode } from "../../src/engine/adapters/PixiNodes";
@@ -116,6 +120,73 @@ describe("Geração Procedural e Renderização em 3 Camadas de Icebergs Flutuan
 
     // Espaços entre icebergs devem permanecer livres para salto
     expect(isPositionInIceGap(120)).toBe(true);
+    destroy();
+  });
+
+  it("ativa cacheAsTexture (freeze(true)) nos icebergs e invalida (freeze(false)) ao destruir", () => {
+    const engine = createTestPixiEngine();
+    const layout = generateProceduralIcebergLayout(1200, 777, 80);
+    const freezeSpy = vi.spyOn(PixiGraphicsNode.prototype, "freeze");
+
+    const node = createProceduralIcebergNode(engine, layout.icebergs[0], 80);
+    expect(freezeSpy).toHaveBeenCalledWith(true);
+
+    node.destroy();
+    expect(freezeSpy).toHaveBeenCalledWith(false);
+    freezeSpy.mockRestore();
+  });
+
+  it("dispersa gradualmente os icebergs após 4.100m e preserva 100% de coerência com isPositionInIceGap(x)", () => {
+    const engine = createTestPixiEngine();
+    const layout = generateProceduralIcebergLayout(
+      TOTAL_ICE_DISTANCE,
+      20261114,
+      80,
+      ICE_DISPERSION_START_DISTANCE
+    );
+
+    const coreIcebergs = layout.icebergs.filter((i) => i.x < ICE_DISPERSION_START_DISTANCE);
+    const dispersedIcebergs = layout.icebergs.filter((i) => i.x >= ICE_DISPERSION_START_DISTANCE);
+    const lateIcebergs = layout.icebergs.filter((i) => i.x >= 4900);
+
+    expect(coreIcebergs.length).toBeGreaterThan(5);
+    expect(dispersedIcebergs.length).toBeGreaterThanOrEqual(1);
+
+    const avgCoreWidth = coreIcebergs.reduce((sum, i) => sum + i.width, 0) / coreIcebergs.length;
+    const avgDispersedWidth =
+      dispersedIcebergs.reduce((sum, i) => sum + i.width, 0) / dispersedIcebergs.length;
+    expect(avgDispersedWidth).toBeLessThan(avgCoreWidth);
+
+    for (const frag of lateIcebergs) {
+      expect(["small", "irregular"]).toContain(frag.category);
+    }
+
+    const dispersedGaps = layout.gaps.filter(
+      (g) => g.start >= ICE_DISPERSION_START_DISTANCE && g.end < TOTAL_ICE_DISTANCE
+    );
+    for (const gap of dispersedGaps) {
+      expect(gap.end - gap.start).toBeGreaterThanOrEqual(WHALE_JUMP_PHYSICS.JUMP_GAP_MIN);
+    }
+
+    const destroy = setupPolarIceRendering(
+      engine,
+      { gameObj: { pos: { x: 80, y: 120 } }, getSpeed: () => ({ x: 0, y: 0 }) } as never,
+      () => true,
+      20261114
+    );
+
+    // Coerência estrita em toda a extensão: sob qualquer iceberg é falso, em toda fenda é verdadeiro
+    for (const iceberg of layout.icebergs) {
+      const midX = iceberg.x + Math.floor(iceberg.width / 2);
+      expect(isPositionInIceGap(midX)).toBe(false);
+    }
+    for (const gap of layout.gaps) {
+      if (gap.end - gap.start >= 4) {
+        const midGapX = Math.floor((gap.start + gap.end) / 2);
+        expect(isPositionInIceGap(midGapX)).toBe(true);
+      }
+    }
+    expect(isPositionInIceGap(TOTAL_ICE_DISTANCE + 50)).toBe(true);
     destroy();
   });
 });

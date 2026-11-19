@@ -16,10 +16,9 @@ export interface LevelLayoutData {
 }
 
 export function loadStaticLevelLayout<
-  TDestroyable = unknown,
   TColor = unknown,
   TVec extends { x: number; y: number } = ProceduralVector2D,
->(k: ProceduralEngineContext<TDestroyable, TColor, TVec>): void {
+>(k: ProceduralEngineContext<TColor, TVec>): void {
   const data = levelLayout as LevelLayoutData;
 
   const minY = 120;
@@ -57,11 +56,10 @@ export function loadStaticLevelLayout<
 }
 
 export function loadLevelLayout<
-  TDestroyable = unknown,
   TColor = unknown,
   TVec extends { x: number; y: number } = ProceduralVector2D,
 >(
-  k: ProceduralEngineContext<TDestroyable, TColor, TVec>,
+  k: ProceduralEngineContext<TColor, TVec>,
   useProcedural: boolean = true,
   seed?: number
 ): ProceduralObstacleData | void {

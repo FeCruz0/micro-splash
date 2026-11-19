@@ -14,7 +14,7 @@ import {
 } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
 import {
-  createNativeCircleNode,
+  createNativePolygonNode,
   createNativeRectNode,
   type NativeVisualObjectAdapter,
 } from "../engine/adapters/NativeRenderNodeFactory";
@@ -53,7 +53,7 @@ export interface BubbleVentEngineContext<TObj = BubbleVentObj> {
   rand?(min: number, max: number): number;
   dt?(): number;
   add(components?: unknown): TObj;
-  destroy?(targetObject: unknown): void;
+  destroy?(targetObject: BubbleVentObj): void;
 }
 
 /**
@@ -79,6 +79,7 @@ export function createBubbleVent<TObj = BubbleVentObj>(
   let ventCore: TObj;
   let ventCoreObj: BubbleVentObj;
   let nativeVentAdapter: NativeVisualObjectAdapter | null = null;
+  let nativeVentBaseAdapter: NativeVisualObjectAdapter | null = null;
 
   const collectAirFromCore = (): boolean => {
     if (cooldownTimer > 0) return false;
@@ -202,18 +203,48 @@ export function createBubbleVent<TObj = BubbleVentObj>(
 
     if (resolvedNativeRenderEngine) {
       const worldRenderContainer = resolveWorldRenderContainer(resolvedNativeRenderEngine);
+      if (!nativeVentBaseAdapter) {
+        nativeVentBaseAdapter = createNativePolygonNode(
+          engineContext,
+          resolvedNativeRenderEngine,
+          worldRenderContainer,
+          {
+            identifier: "bubble_vent_base",
+            points: [
+              { x: -16, y: 6 },
+              { x: -10, y: -2 },
+              { x: -2, y: -5 },
+              { x: 6, y: -3 },
+              { x: 16, y: 6 },
+            ],
+            positionX: position.x,
+            positionY: baseY + columnHeight / 2 - 4,
+            fillColor: [20, 48, 76],
+            outlineColor: [86, 196, 232],
+            outlineWidth: 1.5,
+            opacity: 0.9,
+            zIndex: 9,
+          }
+        );
+      }
       const chosenColor = nativeBubblePalette[index % nativeBubblePalette.length];
-      nativeBubbleAdapter = createNativeCircleNode(
+      const pixelBubbleSize = Math.max(3, Math.round(radius * 1.9));
+      nativeBubbleAdapter = createNativeRectNode(
         engineContext,
         resolvedNativeRenderEngine,
         worldRenderContainer,
         {
           identifier: `bubble_vent_particle_${index}`,
-          radius,
+          width: pixelBubbleSize,
+          height: pixelBubbleSize,
+          cornerRadius: 1,
           positionX: position.x + relX,
           positionY: baseY + columnHeight / 2 - relY,
           fillColor: chosenColor,
+          outlineColor: [240, 252, 255],
+          outlineWidth: 0.8,
           opacity: bubbleOpacity,
+          anchor: "center",
           zIndex: 12,
         }
       );
@@ -336,6 +367,10 @@ export function createBubbleVent<TObj = BubbleVentObj>(
 
   // Limpeza
   const cleanupBubbles = () => {
+    if (nativeVentBaseAdapter) {
+      nativeVentBaseAdapter.destroy();
+      nativeVentBaseAdapter = null;
+    }
     bubbles.forEach((b) => {
       if (b.nativeAdapter) {
         b.nativeAdapter.destroy();

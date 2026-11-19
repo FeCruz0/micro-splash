@@ -28,6 +28,7 @@ import {
 } from "./benthic/benthicTypes";
 import { setupBenthicFlora } from "./benthic/benthicFloraRenderer";
 import { setupBenthicSanctuary } from "./benthic/benthicSanctuaryRenderer";
+import { setupBenthicStageSilhouettes } from "./benthic/benthicStageSilhouettes";
 import { updateBenthicMotion } from "./benthic/benthicMotionUpdater";
 import { setupLegacyBenthicFloor } from "./benthic/benthicLegacyFloor";
 
@@ -87,6 +88,7 @@ export function setupBenthicFloorSystem(engineOrContext: IRenderEngine | unknown
   if (isPixi && realEngine) {
     const flora = setupBenthicFlora(realEngine, floorY);
     const sanctuary = setupBenthicSanctuary(realEngine, floorY);
+    setupBenthicStageSilhouettes(realEngine, floorY);
 
     let time = 0;
     realEngine.getTicker().add((dt: number) => {

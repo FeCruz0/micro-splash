@@ -1,59 +1,245 @@
 # ==============================================================================
-# AI AGENT RULES (.ai-rules / .cursorrules / .claudecode)
-# Focus: Maximum Token Economy, Strict Type Security, & Direct Execution
-# Architecture: SPA Game Engine (TypeScript + Vite + PixiJS v8 + Docker)
+# MICRO SPLASH — AI ENGINEERING RULES
+# Project: A Jornada da Jubarte
+# Architecture: TypeScript + Vite + PixiJS 8 + Docker
+# Focus: Token Efficiency, Architectural Integrity, Visual Fidelity & Execution
 # ==============================================================================
 
-# 1. RESPONSE POLICY: DIRECT EXECUTION & ZERO-CHAT
+# 1. RESPONSE POLICY: EFFICIENT COMMUNICATION
 # ------------------------------------------------------------------------------
-- NO greetings, introductions, transitions, or conversational filler.
-- NO explanations of code logic unless explicitly requested.
-- Respond ONLY with raw unified diff blocks, atomic code modifications, or telegraphic answers (max 10 words).
-- Output exclusively affected lines using precise patch or diff syntax.
+- Prioritize direct execution over explanations.
+- No greetings, introductions, conversational filler or unnecessary summaries.
+- Keep responses concise and technical.
+- For code modifications, provide precise unified diffs or atomic file changes.
+- Do not reproduce unchanged code.
+- Explain architectural decisions only when necessary or explicitly requested.
+- Final execution reports must identify:
+  1. What changed.
+  2. Files affected.
+  3. Verification performed.
+  4. Remaining issues or limitations.
+  5. Suggested conventional commit message.
+- Never claim an operation, test, visual inspection or validation succeeded unless actually performed.
+- Communicate exclusively in Brazilian Portuguese (PT-BR), except for code, identifiers, technical terminology and commit messages.
 
-# 2. ROLE & WORKFLOW: SENIOR EXECUTION AGENT
+# 2. ROLE & EXECUTION WORKFLOW
 # ------------------------------------------------------------------------------
-- ACT AS A SENIOR EXECUTION AGENT. Do not tutor or lecture.
-- Execute code modifications, refactorings, and schema adjustments strictly as commanded.
-- Perform changes atomically: one module per execution step.
+- ACT AS A SENIOR GAME ENGINEERING AGENT.
+- Prioritize implementation, correctness and project consistency.
+- Understand existing architecture before modifying it.
+- Never assume how an existing component works without inspecting its implementation.
+- Execute tasks incrementally, preserving existing functionality.
+- Group changes by logical dependency, not by an arbitrary one-file restriction.
+- Avoid unrelated refactoring during targeted tasks.
+- Do not introduce new abstractions without a demonstrated architectural benefit.
+- When requirements are ambiguous, ask only the essential clarification.
+- When requirements are sufficiently clear, execute without unnecessary confirmation.
 
-# 3. ATOMIC CODE & ARCHITECTURAL PURITY
+# 3. ARCHITECTURAL INTEGRITY & CODE QUALITY
 # ------------------------------------------------------------------------------
-- Write pure, modular, utility-first functions with strict TypeScript typing.
-- Check existing utility directories before building new functions to prevent duplication.
-- Encapsulate rendering logic through adapters to decouple game state and physics from the active graphics engine.
+- Follow existing project conventions and architectural patterns.
+- Inspect existing utilities, services, interfaces and components before creating alternatives.
+- Prefer pure, modular and reusable functions.
+- Use strict TypeScript typing.
+- Avoid `any`, unsafe type assertions and unnecessary non-null assertions.
+- Prefer explicit interfaces and discriminated unions where appropriate.
+- Maintain separation between:
+  - Game state and business logic.
+  - Deterministic simulation and physics.
+  - Rendering and visual presentation.
+  - Input handling.
+  - Audio systems.
+  - Asset management.
+- Keep rendering-framework dependencies outside domain logic.
+- Use adapters only when they solve an actual coupling problem.
+- Avoid premature abstraction and unnecessary design patterns.
+- Preserve public interfaces and existing contracts unless modification is necessary.
+- Avoid circular dependencies.
 
-# 4. CONTEXT RESTRICTION & TARGETED SEARCH
+# 4. TARGETED SEARCH & CONTEXT ECONOMY
 # ------------------------------------------------------------------------------
-- Prohibited: Unbounded global project searches (`grep`, `find`) across the repository.
-- Permitted: Scoped, targeted directory searches within relevant subpaths (`src/engine/`, `src/utils/`, `src/player/`).
-- Respect `.cursorignore` and `.claudecodeignore` boundaries to preserve input token economy.
+- Prohibited: Unbounded repository-wide searches without a specific reason.
+- Prefer scoped searches within relevant directories.
+- Respect `.cursorignore` and `.claudecodeignore`.
+- Inspect relevant entry points, dependencies and consumers before modifying a component.
+- Check package scripts and existing tooling before introducing new commands or dependencies.
+- Expand the search scope only when dependencies or references require it.
+- Do not inspect unrelated assets, generated files, build artifacts or dependencies.
+- Never assume a filename or directory structure without verification.
+- Reuse already available project context instead of repeatedly reading unchanged files.
 
-# 5. POST-EXECUTION VERIFICATION LOOP (MANDATORY)
+# 5. PIXIJS 8 & GAME ENGINE RULES
 # ------------------------------------------------------------------------------
-- Immediately after modifying code, run type checking (`npx tsc --noEmit`) and relevant unit tests.
-- If type errors or test regressions occur, correct the code autonomously within the same step before outputting the final diff.
+- Use PixiJS 8 APIs and conventions.
+- Avoid deprecated APIs and outdated PixiJS examples.
+- Preserve the separation between simulation updates and rendering.
+- Keep physics deterministic and independent of rendering frame rate.
+- Handle delta time consistently.
+- Avoid unnecessary allocations inside frequently executed update loops.
+- Reuse graphics objects, containers and textures when appropriate.
+- Avoid unnecessary display object creation and destruction.
+- Consider draw calls, batching, texture memory and GPU workload.
+- Properly manage event listeners, ticker callbacks and resource lifecycles.
+- Prevent memory leaks during scene transitions and object destruction.
+- Use appropriate texture filtering and scaling for pixel art assets.
+- Preserve correct coordinate transformations between world space, screen space and local space.
+- Never couple collision geometry directly to decorative visual geometry unless explicitly intended.
 
-# 6. GIT & COMMITS
+# 6. VISUAL FIDELITY & ART DIRECTION
+# ------------------------------------------------------------------------------
+- Treat approved visual references as authoritative artistic constraints.
+- Preserve the established visual identity of Micro Splash.
+- Prioritize visual quality and reference fidelity over simplistic implementations.
+- Do not replace detailed artwork with generic geometric approximations.
+- Avoid unnecessary changes to already approved visual elements.
+- Maintain consistency in:
+  - Color palettes.
+  - Lighting direction.
+  - Shadow intensity.
+  - Geometric language.
+  - Pixel density.
+  - Facet sizes.
+  - Material appearance.
+  - Environmental depth.
+- Avoid excessive polygon repetition, artificial symmetry and procedural uniformity.
+- Procedural generation must produce controlled variation, not arbitrary visual noise.
+- Preserve visual hierarchy and readability at the actual game resolution.
+- Before modifying an approved asset, identify precisely what needs improvement.
+- Change only the requested visual characteristics unless broader changes are explicitly authorized.
+
+# 7. VISUAL ASSET & SPRITE MANAGEMENT
+# ------------------------------------------------------------------------------
+- Inspect existing assets and every relevant consumer before replacing them.
+- Preserve established asset dimensions, frame organization and transparency unless a change is justified.
+- Validate sprite sheet dimensions, frame boundaries, alignment and animation continuity.
+- Maintain consistent proportions, silhouettes, lighting and materials across animation frames.
+- Avoid frame-to-frame visual flickering, deformation and unintended scale changes.
+- Ensure sprites remain readable at their actual in-game display size.
+- Validate alpha transparency and prevent unwanted background pixels.
+- Preserve texture filtering and pixel-art rendering characteristics.
+- Separate visual artwork from collision and interaction geometry.
+- When generating procedural artwork, use deterministic seeds when reproducibility is required.
+- Never overwrite original reference assets without explicit authorization.
+- Preserve previous approved versions when introducing substantial visual changes.
+
+# 8. VISUAL VALIDATION LOOP — MANDATORY
+# ------------------------------------------------------------------------------
+- Compilation is NOT proof of visual correctness.
+- For visual modifications, run the game in the browser whenever the environment permits.
+- Inspect the actual rendered result, not just source code or generated asset previews.
+- Compare the result against supplied references and previously approved versions.
+- Validate at the actual game resolution and scale.
+- Inspect relevant animation frames individually and in motion.
+- Check for:
+  - Incorrect proportions.
+  - Clipping and transparency artifacts.
+  - Texture seams.
+  - Visual discontinuities.
+  - Incorrect lighting.
+  - Unexpected overlaps.
+  - Z-order problems.
+  - Excessive visual noise.
+  - Performance degradation.
+- Correct identified visual regressions before completion.
+- If browser inspection or visual validation is unavailable, explicitly report this limitation.
+- Never describe an unverified visual result as approved or complete.
+
+# 9. PERFORMANCE & RESOURCE MANAGEMENT
+# ------------------------------------------------------------------------------
+- Optimize based on actual bottlenecks rather than assumptions.
+- Avoid premature optimization that reduces code clarity or visual quality.
+- Prioritize stable frame rates and predictable memory usage.
+- Minimize garbage collection pressure in hot paths.
+- Avoid unnecessary texture uploads and repeated asset decoding.
+- Reuse resources whenever practical.
+- Consider the impact of procedural generation on runtime performance.
+- Keep expensive geometry generation outside frequently executed rendering callbacks.
+- Use culling and appropriate visibility management when beneficial.
+- Avoid introducing dependencies without clear justification.
+- Preserve performance while improving visual fidelity.
+
+# 10. GAMEPLAY, PHYSICS & STATE SAFETY
+# ------------------------------------------------------------------------------
+- Never modify player physics, movement, jump behavior or collision boundaries during visual-only tasks.
+- Keep gameplay state independent of rendering state.
+- Preserve finite state machine transitions and existing game rules.
+- Maintain predictable collision behavior.
+- Do not introduce visual changes that silently alter gameplay geometry.
+- Preserve input responsiveness and animation synchronization.
+- Verify gameplay behavior after modifications involving shared systems.
+- Use seeded randomness when procedural content must be reproducible.
+- Do not modify unrelated gameplay systems without explicit authorization.
+
+# 11. NAMING & CLEAN CODE CONVENTIONS
+# ------------------------------------------------------------------------------
+- Use descriptive, explicit and non-abbreviated English identifiers.
+- Avoid ambiguous variable and function names.
+- Examples:
+  - `angleInRadians` instead of `rad`.
+  - `distanceToObject` instead of `dist`.
+  - `targetEntity` instead of `obj`.
+  - `deltaTime` instead of `dt`.
+- Mathematical exception:
+  - Standard coordinate components `x`, `y`, `z`.
+  - Conventional vector and matrix components.
+- Prefer functions with clear responsibilities.
+- Avoid excessive nesting and unnecessary conditional complexity.
+- Avoid comments that merely repeat the code.
+- Document non-obvious algorithms, mathematical decisions and architectural constraints.
+- Do not split files solely because they exceed an arbitrary line count.
+- Refactor when complexity, responsibility or maintainability justifies it.
+
+# 12. MANDATORY POST-EXECUTION VERIFICATION
+# ------------------------------------------------------------------------------
+- Detect the project's package manager and use existing scripts.
+- After modifications, execute relevant verification:
+  1. TypeScript type checking.
+  2. Relevant unit and integration tests.
+  3. ESLint.
+  4. Prettier verification.
+  5. Production build.
+- Prioritize targeted tests, expanding coverage when shared functionality is affected.
+- Run browser validation for visual or gameplay changes whenever possible.
+- Correct regressions introduced by the modification.
+- Do not suppress existing errors or weaken TypeScript configuration to achieve a passing build.
+- Distinguish pre-existing failures from newly introduced failures.
+- Never claim tests passed when they were not executed.
+
+# 13. GIT & CHANGE MANAGEMENT
 # ------------------------------------------------------------------------------
 - Git commands must be executed exclusively by the user.
-- Provide a concise commit message proposal at the end of execution using the conventional commits standard:
-  Format: `type(scope): message` (e.g., `feat(engine): integrate pixi container for whale entity`)
-- Commit summaries and explanations must be delivered EXCLUSIVELY in Portuguese (PT-BR).
+- Never create commits, branches, merges or tags.
+- Never reset, revert, stash or discard user changes.
+- Never overwrite unrelated modifications.
+- Preserve the user's working tree.
+- Provide a conventional commit message proposal after implementation.
+- Format: `type(scope): message`.
+- Examples:
+  - `feat(art): improve humpback whale sprite animation`
+  - `fix(environment): refine underwater glacier silhouette`
+  - `perf(renderer): reduce procedural geometry allocations`
+  - `refactor(player): isolate whale animation logic`
 
-# 7. UX & DESIGN AESTHETICS (GAME UI & CANVAS)
+# 14. UI & USER EXPERIENCE
 # ------------------------------------------------------------------------------
-- DO NOT use native browser `alert()`, `confirm()`, or `prompt()` dialogs.
-- Implement inline interactive UI components, custom canvas modals, or DOM overlays styled for a high-end indie ocean aesthetic.
+- Never use native browser `alert()`, `confirm()` or `prompt()` dialogs.
+- Prefer integrated interfaces, custom modals and DOM overlays.
+- Maintain consistency with Micro Splash's established visual identity.
+- Preserve accessibility, usability and input responsiveness.
+- Avoid introducing unnecessary UI elements or interactions.
 
-# 8. ENGINEERING BEST PRACTICES & GAME STACK
+# 15. FINAL EXECUTION PRINCIPLE
 # ------------------------------------------------------------------------------
-- Component Architecture: Decompose monolithic modules exceeding 300 lines into specialized sub-components or utility classes.
-- Game Loop & Physics: Maintain strict separation between the deterministic game loop/physics (`spatialHashGrid.ts`, FSM) and the rendering ticker (`PixiJS v8`).
-- State Management: Keep business logic, audio, and state schemas completely agnostic of rendering frameworks.
+- Correctness first.
+- Visual fidelity second, without compromising gameplay or stability.
+- Architectural consistency always.
+- Performance without premature optimization.
+- Minimal and focused changes.
+- No unnecessary dependencies.
+- No unverified claims.
+- No unrelated refactoring.
 
-# 9. NAMING & CLEAN CODE CONVENTIONS (HUMAN READABILITY)
-# ------------------------------------------------------------------------------
-- Use descriptive, explicit, and non-abbreviated variable, function, and parameter names in English (Clean Code standard).
-- Avoid abbreviations (e.g., use `angleInRadians` instead of `rad`, `distanceToObject` instead of `dist`, `targetEntity` instead of `obj`, `deltaTime` instead of `dt`, `playerXPosition` instead of `currentX`).
-- **Mathematical Exception:** Standard mathematical/physics coordinate components (`x`, `y`, `z`) and basic vector/matrix components may remain as single letters if bound to core geometric algorithms.
+THE OBJECTIVE IS NOT MERELY TO MAKE THE CODE WORK.
+THE OBJECTIVE IS TO DELIVER A POLISHED, STABLE AND VISUALLY
+COHESIVE GAME WHILE PRESERVING THE EXISTING PROJECT ARCHITECTURE.
+# ==============================================================================

@@ -18,6 +18,7 @@ import type {
 import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { resolveCameraX } from "./cameraSystem";
 import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
+import { calculateAsymmetricTransitionFactor } from "./biomeTransitionSystem";
 
 class FallbackRenderNodeAdapter implements IRenderNode {
   readonly id: string;
@@ -477,12 +478,14 @@ export function setupBioluminescenceSystem(
     }
 
     totalAmbientTime += deltaTime;
-    const ambientActive = isAmbientPlanktonActive(baleia.pos.x);
+    const ambientFade = isAmbientPlanktonActive(baleia.pos.x)
+      ? calculateAsymmetricTransitionFactor(baleia.pos.x, 12000, 12800, 24200, 25000)
+      : 0;
     const camX = resolveCameraX(resolvedRenderEngine ?? engineOrContext) || baleia.pos.x || 0;
 
     for (let index = 0; index < ambientPlankton.length; index++) {
       const p = ambientPlankton[index];
-      if (!ambientActive) {
+      if (ambientFade <= 0) {
         if (p.node.isVisible()) {
           p.node.setVisible(false);
           p.node.setOpacity(0);
@@ -495,7 +498,8 @@ export function setupBioluminescenceSystem(
 
       p.relX = (p.relX + 2.5 * deltaTime) % screenW;
 
-      const op = calculateAmbientPlanktonOpacity(totalAmbientTime, p.phase, p.baseOpacity);
+      const op =
+        calculateAmbientPlanktonOpacity(totalAmbientTime, p.phase, p.baseOpacity) * ambientFade;
       p.node.setOpacity(op);
       p.node.setVisible(true);
     }

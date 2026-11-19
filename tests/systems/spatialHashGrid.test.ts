@@ -88,4 +88,18 @@ describe("SpatialHashGrid — Particionamento Espacial 2D em Grade (Fase 59)", (
     expect(grid.getStats().entityCount).toBe(0);
     expect(grid.getStats().cellCount).toBe(0);
   });
+
+  it("atualiza bounds na mesma célula e ao cruzar fronteiras de célula com queryAABB consistente", () => {
+    const grid = new SpatialHashGrid<{ id: number }>({ cellSize: 100 });
+    const item = { id: 99 };
+
+    grid.insert("k_1", item, { minX: 10, minY: 10, maxX: 30, maxY: 30 }, false);
+    expect(grid.update("k_1", { minX: 15, minY: 15, maxX: 35, maxY: 35 })).toBe(true);
+    expect(grid.queryAABB({ minX: 14, minY: 14, maxX: 36, maxY: 36 })).toEqual([item]);
+
+    // Cruza para outra célula (120..140)
+    expect(grid.update("k_1", { minX: 120, minY: 120, maxX: 140, maxY: 140 })).toBe(true);
+    expect(grid.queryAABB({ minX: 10, minY: 10, maxX: 30, maxY: 30 })).toEqual([]);
+    expect(grid.queryAABB({ minX: 115, minY: 115, maxX: 145, maxY: 145 })).toEqual([item]);
+  });
 });

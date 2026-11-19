@@ -1,7 +1,8 @@
 import { Sprite, Texture } from "pixi.js";
 import { PixiSpriteNode } from "../engine/adapters/PixiNodes";
 import { getActiveRenderEngine } from "../engine/adapters/RenderEngineAdapter";
-import type { IRenderEngine, ISpriteNode } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { getSpriteSheetManager } from "../engine/adapters/SpriteSheetManager";
+import type { ISpriteNode } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { getParticlePool } from "../systems/particlePool";
 import { safeShake } from "../utils/camera";
 import { GAME_CONFIG, TAGS, PLAYER_ANIMATION_CONFIG, centralizedDeltaTimeClamp } from "../config";
@@ -36,12 +37,14 @@ import type { PuppetRigTransforms } from "./player/playerPuppetRig";
 import type { WhaleAnimationState } from "./player/playerAnimation";
 import {
   executeWhaleRenderPipeline,
+  type WhaleRenderPipelineParameters,
   type WhaleRenderPipelineSnapshot,
 } from "./player/playerRenderPipeline";
 import { accessibilitySystem } from "../systems/accessibilitySystem";
 
 import { calculateOceanIdleDrift } from "./player/playerDrift";
 import { setupPlayerCaustics } from "./player/playerCaustics";
+import { getSpatialGrid, type SpatialAABB } from "../systems/spatialHashGrid";
 import { PlayerTrapManager } from "./player/playerCollision";
 import { setupWhaleNetOverlay } from "./player/playerNetOverlay";
 
@@ -109,6 +112,52 @@ let activePlayerController: PlayerController | null = null;
 
 export function setActivePlayerObject(playerObject: PlayerGameObject | null): void {
   activePlayerObject = playerObject;
+}
+
+interface KrillApproachCandidate {
+  id?: string;
+  tag?: string;
+  is?: (tag: string) => boolean;
+  exists?: () => boolean;
+}
+
+/**
+ * Verifica via SpatialHashGrid se há cardume de krill ativo dentro da margem frontal (~80px à frente da boca).
+ */
+function hasKrillAheadOfWhale(
+  whaleX: number,
+  whaleY: number,
+  isFacingRight: boolean,
+  queryBox: SpatialAABB
+): boolean {
+  const spatialGrid = getSpatialGrid();
+  if (!spatialGrid) {
+    return false;
+  }
+
+  if (isFacingRight) {
+    queryBox.minX = whaleX + 16;
+    queryBox.maxX = whaleX + 134;
+  } else {
+    queryBox.minX = whaleX - 134;
+    queryBox.maxX = whaleX - 16;
+  }
+  queryBox.minY = whaleY - 34;
+  queryBox.maxY = whaleY + 34;
+
+  const candidates = spatialGrid.queryAABB(queryBox);
+  for (let i = 0; i < candidates.length; i++) {
+    const candidate = candidates[i] as KrillApproachCandidate | null;
+    if (!candidate) continue;
+    const isKrill =
+      candidate.tag === TAGS.KRILL ||
+      (typeof candidate.is === "function" && candidate.is(TAGS.KRILL)) ||
+      (typeof candidate.id === "string" && candidate.id.startsWith("krill_"));
+    if (isKrill && (typeof candidate.exists !== "function" || candidate.exists())) {
+      return true;
+    }
+  }
+  return false;
 }
 
 export function getActivePlayerObject(): PlayerGameObject | null {
@@ -229,6 +278,7 @@ export function createPlayer(
     },
     play: (animationName: string) => {
       animState = animationName as WhaleAnimationState;
+      spriteAnimationController?.play(animationName);
     },
     onUpdate: (callback: () => void) => {
       updateCallbacks.push(callback);
@@ -266,6 +316,12 @@ export function createPlayer(
   baleia.node = playerSpriteNode;
   baleia.getNativeNode = () => playerSpriteNode.getNativeNode();
 
+  const spriteAnimationController = getSpriteSheetManager().createAnimationController(
+    playerSpriteNode,
+    "baleia",
+    "idle_swim"
+  );
+
   activePlayerObject = baleia;
 
   const oxygenMgr = new PlayerOxygenManager(k);
@@ -275,6 +331,7 @@ export function createPlayer(
 
   let animState: WhaleAnimationState = "idle_swim";
   let feedTimer = 0;
+  const reusableKrillApproachBox: SpatialAABB = { minX: 0, minY: 0, maxX: 0, maxY: 0 };
 
   const trapMgr = new PlayerTrapManager(k, physicsMgr);
   const causticsSystem = setupPlayerCaustics(k, initialX, 200);
@@ -289,6 +346,28 @@ export function createPlayer(
   let currentPectoralFinTransforms: DualPectoralFinsData | null = null; // Hidroplanos peitorais com diedro (Fase 42)
   let currentPuppetRigTransforms: PuppetRigTransforms | null = null; // Cadeia esquelética multissegmentar (Fase 43)
   let currentRenderPipelineSnapshot: WhaleRenderPipelineSnapshot | null = null; // Snapshot consolidado da pipeline (Fase 51)
+  let lastAppliedTintRed = -1;
+  let lastAppliedTintGreen = -1;
+  let lastAppliedTintBlue = -1;
+  const reusablePipelineParameters: WhaleRenderPipelineParameters = {
+    bodyAngleInDegrees: 0,
+    spineCurvatureInDegrees: 0,
+    pitchFlexionInDegrees: 0,
+    pitchAngularVelocity: 0,
+    strokeProgress: 0,
+    isMuscularStroke: false,
+    horizontalSpeed: 0,
+    verticalSpeed: 0,
+    idleBlendFactor: 1,
+    currentRoll: 0,
+    timeInSeconds: 0,
+    isFacingRight: true,
+    oxygenRatio: 1,
+    isTrapped: false,
+    isFainting: false,
+    isHighContrast: false,
+    isReducedMotion: false,
+  };
   const pectoralFinsSystem = setupPectoralFins(k, baleia);
   const netOverlaySystem = setupWhaleNetOverlay(k, baleia);
 
@@ -372,6 +451,11 @@ export function createPlayer(
 
     // 1. Se estiver desmaiada (blackout)
     if (oxygenMgr.isFaintingState()) {
+      feedTimer = 0;
+      if (animState !== "glide") {
+        animState = "glide";
+        baleia.play?.("glide");
+      }
       baleia.color = k.rgb(60, 60, 80);
       baleia.move(0, GAME_CONFIG.SINK_RATE * 2);
       return;
@@ -395,7 +479,7 @@ export function createPlayer(
           Boolean(touchState && touchState.strokePressed);
       if (isStrokePressedNow) {
         const currentRenderEngine = getActiveRenderEngine();
-        safeShake(currentRenderEngine ?? (k as unknown as IRenderEngine), 2);
+        safeShake(currentRenderEngine ?? k, 2);
         trapMgr.tryEscape();
       }
       controlsMgr.setAngle(k.lerp(controlsMgr.getAngle(), 0, 0.05));
@@ -474,11 +558,34 @@ export function createPlayer(
     }
 
     // 5. Atualização de animações orgânicas
-    if (feedTimer > 0) {
+    const hasPriorityOverride =
+      trapMgr.isTrapped() || trapMgr.isFrozen() || oxygenMgr.isFaintingState();
+    if (hasPriorityOverride) {
+      feedTimer = 0;
+    }
+
+    const canAnticipateFeed =
+      baleia.pos.y >= GAME_CONFIG.SEA_LEVEL && !hasPriorityOverride && !trapMgr.isBreaching();
+    const isAnticipatingKrill =
+      feedTimer <= 0 &&
+      canAnticipateFeed &&
+      hasKrillAheadOfWhale(
+        baleia.pos.x,
+        baleia.pos.y,
+        controlsMgr.isFacingRight(),
+        reusableKrillApproachBox
+      );
+
+    if (!hasPriorityOverride && feedTimer > 0) {
       feedTimer -= dt;
       if (animState !== "feed") {
         animState = "feed";
         baleia.play?.("feed");
+      }
+    } else if (isAnticipatingKrill) {
+      if (animState !== "anticipation_open") {
+        animState = "anticipation_open";
+        baleia.play?.("anticipation_open");
       }
     } else {
       if (isStrokeInMotion && !trapMgr.isTrapped() && !oxygenMgr.isFaintingState()) {
@@ -523,6 +630,7 @@ export function createPlayer(
         }
       }
     }
+    spriteAnimationController?.update(dt);
 
     // 6. Deformação Orgânica (Squash & Stretch), Curvatura Espinhal (Cambering) e Roll em Perspectiva
     const isMuscularStroke =
@@ -591,27 +699,30 @@ export function createPlayer(
     }
 
     // Fase 51.1: Pipeline Unificada de Renderização da Baleia (Rig -> Slices -> Fins -> Palette)
+    reusablePipelineParameters.bodyAngleInDegrees = baleia.angle;
+    reusablePipelineParameters.spineCurvatureInDegrees = spineCurvature;
+    reusablePipelineParameters.pitchFlexionInDegrees = pitchFlexion;
+    reusablePipelineParameters.pitchAngularVelocity = pitchVelocity;
+    reusablePipelineParameters.strokeProgress =
+      physicsMgr.getStrokeTimer() / GAME_CONFIG.MAX_STROKE_TIME;
+    reusablePipelineParameters.isMuscularStroke = isMuscularStroke;
+    reusablePipelineParameters.horizontalSpeed = horizontalSpeed;
+    reusablePipelineParameters.verticalSpeed = physicsMgr.getSpeed().y;
+    reusablePipelineParameters.idleBlendFactor = idleBlend;
+    reusablePipelineParameters.currentRoll = currentRoll;
+    reusablePipelineParameters.timeInSeconds = k.time();
+    reusablePipelineParameters.isFacingRight = controlsMgr.isFacingRight();
+    reusablePipelineParameters.oxygenRatio = oxygenRatio;
+    reusablePipelineParameters.isTrapped = trapMgr.isTrapped();
+    reusablePipelineParameters.isFainting = oxygenMgr.isFaintingState();
+    reusablePipelineParameters.isHighContrast = accessibilitySystem.isHighContrast();
+    reusablePipelineParameters.isReducedMotion = accessibilitySystem.isReducedMotion();
+
     currentRenderPipelineSnapshot = executeWhaleRenderPipeline(
-      {
-        bodyAngleInDegrees: baleia.angle,
-        spineCurvatureInDegrees: spineCurvature,
-        pitchFlexionInDegrees: pitchFlexion,
-        pitchAngularVelocity: pitchVelocity,
-        strokeProgress: physicsMgr.getStrokeTimer() / GAME_CONFIG.MAX_STROKE_TIME,
-        isMuscularStroke,
-        horizontalSpeed,
-        verticalSpeed: physicsMgr.getSpeed().y,
-        idleBlendFactor: idleBlend,
-        currentRoll,
-        timeInSeconds: k.time(),
-        isFacingRight: controlsMgr.isFacingRight(),
-        oxygenRatio,
-        isTrapped: trapMgr.isTrapped(),
-        isFainting: oxygenMgr.isFaintingState(),
-        isHighContrast: accessibilitySystem.isHighContrast(),
-        isReducedMotion: accessibilitySystem.isReducedMotion(),
-      },
-      reusableSliceBuffer
+      reusablePipelineParameters,
+      reusableSliceBuffer,
+      currentPuppetRigTransforms ?? undefined,
+      currentRenderPipelineSnapshot ?? undefined
     );
 
     currentPuppetRigTransforms = currentRenderPipelineSnapshot.puppetRig;
@@ -744,11 +855,20 @@ export function createPlayer(
 
       const [bodyColorRed, bodyColorGreen, bodyColorBlue] =
         currentRenderPipelineSnapshot.palette.bodyColor;
-      playerSpriteNode.setTint([bodyColorRed, bodyColorGreen, bodyColorBlue]);
-      baleia.color =
-        typeof k.rgb === "function"
-          ? k.rgb(bodyColorRed, bodyColorGreen, bodyColorBlue)
-          : { r: bodyColorRed, g: bodyColorGreen, b: bodyColorBlue };
+      if (
+        bodyColorRed !== lastAppliedTintRed ||
+        bodyColorGreen !== lastAppliedTintGreen ||
+        bodyColorBlue !== lastAppliedTintBlue
+      ) {
+        lastAppliedTintRed = bodyColorRed;
+        lastAppliedTintGreen = bodyColorGreen;
+        lastAppliedTintBlue = bodyColorBlue;
+        playerSpriteNode.setTint([bodyColorRed, bodyColorGreen, bodyColorBlue]);
+        baleia.color =
+          typeof k.rgb === "function"
+            ? k.rgb(bodyColorRed, bodyColorGreen, bodyColorBlue)
+            : { r: bodyColorRed, g: bodyColorGreen, b: bodyColorBlue };
+      }
     }
 
     // 10.5. Atualização do Overlay 16-bits de Rede de Pesca (Fase 68 / Etapa 2)
@@ -853,19 +973,9 @@ export function createPlayer(
     },
 
     trapInNet: (count: number) => {
+      feedTimer = 0;
       trapMgr.trapInNet(count);
-      const overlay = (
-        baleia as unknown as {
-          netOverlaySprite?: {
-            visible?: boolean;
-            hidden?: boolean;
-            opacity?: number;
-            alpha?: number;
-            setVisible?: (v: boolean) => void;
-            setOpacity?: (a: number) => void;
-          };
-        }
-      ).netOverlaySprite;
+      const overlay = baleia.netOverlaySprite;
       if (overlay) {
         overlay.visible = true;
         overlay.hidden = false;
@@ -878,18 +988,7 @@ export function createPlayer(
 
     addTrapCount: (count: number) => {
       trapMgr.addTrapCount(count);
-      const overlay = (
-        baleia as unknown as {
-          netOverlaySprite?: {
-            visible?: boolean;
-            hidden?: boolean;
-            opacity?: number;
-            alpha?: number;
-            setVisible?: (v: boolean) => void;
-            setOpacity?: (a: number) => void;
-          };
-        }
-      ).netOverlaySprite;
+      const overlay = baleia.netOverlaySprite;
       if (overlay) {
         overlay.visible = true;
         overlay.hidden = false;
@@ -935,6 +1034,7 @@ export function createPlayer(
 
     // Estado de congelamento (telas de fim de jogo, vitória e pausa)
     freeze: () => {
+      feedTimer = 0;
       trapMgr.freeze();
       if (animState !== "glide") {
         animState = "glide";
@@ -963,22 +1063,28 @@ export function createPlayer(
     getCurrentFlowModifier: () => oxygenMgr.getCurrentFlowModifier(),
 
     // Fase 41: Deformação Sagital por Fatiamento Segmentado (Vertical Slice Ribbon)
-    getSliceTransforms: () => currentSliceTransforms,
+    getSliceTransforms: () => structuredClone(currentSliceTransforms),
     getSpineCurvature: () => controlsMgr.getSpineCurvature(),
     getPitchFlexion: () => controlsMgr.getPitchFlexion(),
 
     // Fase 42: Nadadeiras Peitorais Independentes e Hidrodinâmica de Diedro
-    getPectoralFinTransforms: () => currentPectoralFinTransforms,
+    getPectoralFinTransforms: () =>
+      currentPectoralFinTransforms ? structuredClone(currentPectoralFinTransforms) : null,
 
     // Fase 43: Articulação Multissegmentar de Cauda e Flukes (Multi-Part Puppet Rig)
-    getPuppetRigTransforms: () => currentPuppetRigTransforms,
+    getPuppetRigTransforms: () =>
+      currentPuppetRigTransforms ? structuredClone(currentPuppetRigTransforms) : null,
 
     // Fase 44: Spritesheet Expandido de 16 Quadros e Interpolação Harmônica
     getAnimationState: () => animState,
 
     // Fase 51: Pipeline Unificada de Renderização e Paleta de Fôlego
-    getRenderPipelineSnapshot: () => currentRenderPipelineSnapshot,
-    getBreathPalette: () => currentRenderPipelineSnapshot?.palette || null,
+    getRenderPipelineSnapshot: () =>
+      currentRenderPipelineSnapshot ? structuredClone(currentRenderPipelineSnapshot) : null,
+    getBreathPalette: () =>
+      currentRenderPipelineSnapshot?.palette
+        ? structuredClone(currentRenderPipelineSnapshot.palette)
+        : null,
 
     // Fase 68: Overlay 16-Bits de Rede de Pesca (Zero-Overhead)
     getNetOverlaySprite: () => netOverlaySystem.netOverlaySprite,

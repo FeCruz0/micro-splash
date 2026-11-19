@@ -1,7 +1,7 @@
 import { createTrash } from "../entities/trash";
-import { createKrill } from "../entities/krill";
+import { createKrill, type KrillGameObject } from "../entities/krill";
 import { createGhostNet } from "../entities/net";
-import { createBubbleVent } from "../entities/bubbleVent";
+import { createBubbleVent, type BubbleVentObj } from "../entities/bubbleVent";
 import { TAGS } from "../config";
 import type { CurrentZone } from "./oceanCurrentsSystem";
 import { getRandomInteger } from "../utils/random";
@@ -13,15 +13,16 @@ export interface ProceduralVector2D {
   y: number;
 }
 
+export type ProceduralDestroyable = KrillGameObject | BubbleVentObj;
+
 export interface ProceduralEngineContext<
-  TDestroyable = unknown,
   TColor = unknown,
   TVec extends { x: number; y: number } = ProceduralVector2D,
 > {
   height: () => number;
   vec2: (x: number, y: number) => TVec;
   add: (components: unknown[]) => unknown;
-  destroy: (obj: TDestroyable) => void;
+  destroy: (obj: ProceduralDestroyable) => void;
   dt: () => number;
   rect: (w: number, h: number, opt?: { radius?: number }) => unknown;
   circle: (r: number) => unknown;
@@ -330,10 +331,9 @@ export function generateProceduralLayout(
  * @returns Objeto com os metadados das posições geradas.
  */
 export function spawnProceduralLevel<
-  TDestroyable = unknown,
   TColor = unknown,
   TVec extends { x: number; y: number } = ProceduralVector2D,
->(k: ProceduralEngineContext<TDestroyable, TColor, TVec>, seed?: number): ProceduralObstacleData {
+>(k: ProceduralEngineContext<TColor, TVec>, seed?: number): ProceduralObstacleData {
   const actualSeed = seed ?? getRandomInteger(0, 999999);
   const layout = generateProceduralLayout(actualSeed, k.height());
   const cullingManager = getSpatialCullingManager();
@@ -421,7 +421,11 @@ export function spawnProceduralLevel<
     const ventObj = createBubbleVent(k, k.vec2(vent.x, vent.y), ventHeight) as CullableTargetObject;
     cullingManager?.registerEntity(ventObj, () => vent.x, 50);
     if (spatialGrid) {
-      const staticVentItem = ventObj as unknown as { id?: string; tag?: string; isStatic?: boolean };
+      const staticVentItem = ventObj as unknown as {
+        id?: string;
+        tag?: string;
+        isStatic?: boolean;
+      };
       staticVentItem.id = `vent_${i}`;
       staticVentItem.tag = TAGS.AIR_POCKET;
       staticVentItem.isStatic = true;

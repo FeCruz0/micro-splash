@@ -194,6 +194,7 @@ export class PixiContainerNode implements IRenderNode {
   }
 
   destroy(): void {
+    this.freeze(false);
     for (const child of this.childrenList) {
       child.destroy();
     }
@@ -208,7 +209,11 @@ export class PixiContainerNode implements IRenderNode {
     const target = this.container as unknown as {
       cacheAsTexture?: (val: boolean) => void;
       cacheAsBitmap?: boolean;
+      destroyed?: boolean;
     };
+    if (target.destroyed) {
+      return;
+    }
     if (typeof target.cacheAsTexture === "function") {
       target.cacheAsTexture(enabled);
     } else if ("cacheAsBitmap" in target) {

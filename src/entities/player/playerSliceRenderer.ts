@@ -130,7 +130,8 @@ const SLICE_CONFIGURATIONS: ReadonlyArray<{
  */
 export function calculateWhaleSliceTransforms(
   parameters: WhaleSliceComputationParameters,
-  targetBuffer?: WhaleSliceData[]
+  targetBuffer?: WhaleSliceData[],
+  explicitPuppetRig?: PuppetRigTransforms | null
 ): WhaleSliceData[] {
   const {
     spineCurvatureInDegrees,
@@ -215,8 +216,9 @@ export function calculateWhaleSliceTransforms(
 
     // Ângulo relativo composto da fatia
     let combinedRelativeAngle = spineDeflectionAngleInDegrees + shearAngleInDegrees * 0.4;
-    if (sliceConfig.name === "flukes" && parameters.puppetRig) {
-      combinedRelativeAngle += parameters.puppetRig.flukeAngleOfAttackInDegrees * 0.35;
+    const activePuppetRig = explicitPuppetRig ?? parameters.puppetRig;
+    if (sliceConfig.name === "flukes" && activePuppetRig) {
+      combinedRelativeAngle += activePuppetRig.flukeAngleOfAttackInDegrees * 0.35;
     }
     const relativeAngleInDegrees = isFacingRight ? combinedRelativeAngle : -combinedRelativeAngle;
 

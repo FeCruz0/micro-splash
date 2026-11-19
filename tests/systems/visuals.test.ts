@@ -63,6 +63,133 @@ describe("Fase 13: Polimento Visual, Atmosfera & Identidade", () => {
       const endColors = getColorsAtDistance(mockKaboomCtx, 30000);
       expect(endColors.currentBiome.name).toContain("Santuário de Arraial");
     });
+
+    it("preserva núcleos estáveis sem deriva prematura em todos os 5 biomas (incluindo x = 1.500m)", () => {
+      const ctx = {
+        lerp: (a: number, b: number, t: number) => a + (b - a) * t,
+        rgb: (r: number, g: number, b: number) => ({ r, g, b }),
+      };
+
+      const expectExactBiomePalette = (distance: number, stopIndex: number) => {
+        const stop = BIOME_COLOR_STOPS[stopIndex];
+        const result = getColorsAtDistance(ctx, distance);
+        expect(result.bgColor).toEqual({
+          r: stop.bgColor[0],
+          g: stop.bgColor[1],
+          b: stop.bgColor[2],
+        });
+        expect(result.surfaceColor).toEqual({
+          r: stop.surfaceColor[0],
+          g: stop.surfaceColor[1],
+          b: stop.surfaceColor[2],
+        });
+        expect(result.floorColor).toEqual({
+          r: stop.floorColor[0],
+          g: stop.floorColor[1],
+          b: stop.floorColor[2],
+        });
+        expect(result.skyColor).toEqual({
+          r: stop.skyColor[0],
+          g: stop.skyColor[1],
+          b: stop.skyColor[2],
+        });
+      };
+
+      expectExactBiomePalette(0, 0);
+      expectExactBiomePalette(1500, 0);
+      expectExactBiomePalette(4200, 0);
+      expectExactBiomePalette(5800, 1);
+      expectExactBiomePalette(8500, 1);
+      expectExactBiomePalette(11000, 1);
+      expectExactBiomePalette(13000, 2);
+      expectExactBiomePalette(15500, 2);
+      expectExactBiomePalette(18200, 2);
+      expectExactBiomePalette(20200, 3);
+      expectExactBiomePalette(22000, 3);
+      expectExactBiomePalette(24200, 3);
+      expectExactBiomePalette(25800, 4);
+      expectExactBiomePalette(28000, 4);
+      expectExactBiomePalette(30000, 4);
+    });
+
+    it("interpola suavemente via smoothstep nas 4 faixas de transição com continuidade nas extremidades", () => {
+      const ctx = {
+        lerp: (a: number, b: number, t: number) => a + (b - a) * t,
+        rgb: (r: number, g: number, b: number) => ({ r, g, b }),
+      };
+
+      const transitions = [
+        { fromIndex: 0, toIndex: 1, start: 4200, end: 5800 },
+        { fromIndex: 1, toIndex: 2, start: 11000, end: 13000 },
+        { fromIndex: 2, toIndex: 3, start: 18200, end: 20200 },
+        { fromIndex: 3, toIndex: 4, start: 24200, end: 25800 },
+      ];
+
+      for (const transition of transitions) {
+        const fromStop = BIOME_COLOR_STOPS[transition.fromIndex];
+        const toStop = BIOME_COLOR_STOPS[transition.toIndex];
+        const mid = (transition.start + transition.end) / 2;
+
+        // Imediatamente antes e no início da transição: igual ao bioma de origem
+        const before = getColorsAtDistance(ctx, transition.start - 1) as unknown as {
+          skyColor: { r: number; g: number; b: number };
+        };
+        const atStart = getColorsAtDistance(ctx, transition.start) as unknown as {
+          skyColor: { r: number; g: number; b: number };
+        };
+        expect(before.skyColor).toEqual(atStart.skyColor);
+
+        // No ponto médio da transição: smoothstep(0.5) === 0.5
+        const atMid = getColorsAtDistance(ctx, mid) as unknown as {
+          bgColor: { r: number; g: number; b: number };
+          skyColor: { r: number; g: number; b: number };
+        };
+        expect(atMid.bgColor.r).toBeCloseTo((fromStop.bgColor[0] + toStop.bgColor[0]) / 2, 5);
+        expect(atMid.skyColor.r).toBeCloseTo((fromStop.skyColor[0] + toStop.skyColor[0]) / 2, 5);
+
+        // No fim e imediatamente após a transição: igual ao bioma de destino
+        const atEnd = getColorsAtDistance(ctx, transition.end) as unknown as {
+          skyColor: { r: number; g: number; b: number };
+        };
+        const after = getColorsAtDistance(ctx, transition.end + 1) as unknown as {
+          skyColor: { r: number; g: number; b: number };
+        };
+        expect(atEnd.skyColor).toEqual({
+          r: toStop.skyColor[0],
+          g: toStop.skyColor[1],
+          b: toStop.skyColor[2],
+        });
+        expect(after.skyColor).toEqual(atEnd.skyColor);
+      }
+    });
+
+    it("produz canais RGB válidos em toda a extensão de 0m a 30.000m", () => {
+      const ctx = {
+        lerp: (a: number, b: number, t: number) => a + (b - a) * t,
+        rgb: (r: number, g: number, b: number) => ({ r, g, b }),
+      };
+
+      for (let distance = 0; distance <= GAME_CONFIG.ROUTE_TOTAL_DISTANCE; distance += 250) {
+        const result = getColorsAtDistance(ctx, distance) as unknown as {
+          bgColor: { r: number; g: number; b: number };
+          surfaceColor: { r: number; g: number; b: number };
+          floorColor: { r: number; g: number; b: number };
+          skyColor: { r: number; g: number; b: number };
+        };
+        for (const color of [
+          result.bgColor,
+          result.surfaceColor,
+          result.floorColor,
+          result.skyColor,
+        ]) {
+          for (const channel of [color.r, color.g, color.b]) {
+            expect(Number.isFinite(channel)).toBe(true);
+            expect(channel).toBeGreaterThanOrEqual(0);
+            expect(channel).toBeLessThanOrEqual(255);
+          }
+        }
+      }
+    });
   });
 
   describe("Cartão de Vitória e Certificado (victoryCard.ts)", () => {

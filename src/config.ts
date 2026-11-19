@@ -116,6 +116,11 @@ export function getBiomeAtDistance(distanceInMeters: number): BiomeType {
   return "arraial";
 }
 
+export interface BiomeColorTransitionWindow {
+  readonly startDistance: number;
+  readonly endDistance: number;
+}
+
 export interface BiomeColorStop {
   name: string;
   distanceStart: number;
@@ -124,6 +129,7 @@ export interface BiomeColorStop {
   surfaceColor: [number, number, number];
   floorColor: [number, number, number];
   skyColor: [number, number, number];
+  transitionOut?: BiomeColorTransitionWindow;
 }
 
 export const BIOME_COLOR_STOPS: BiomeColorStop[] = [
@@ -135,6 +141,7 @@ export const BIOME_COLOR_STOPS: BiomeColorStop[] = [
     surfaceColor: [45, 95, 140],
     floorColor: [10, 24, 38],
     skyColor: [160, 205, 240], // Céu límpido azul polar
+    transitionOut: { startDistance: 4200, endDistance: 5800 },
   },
   {
     name: "Travessia Pelágica (Pôr do Sol)",
@@ -144,6 +151,7 @@ export const BIOME_COLOR_STOPS: BiomeColorStop[] = [
     surfaceColor: [75, 110, 160],
     floorColor: [12, 30, 55],
     skyColor: [225, 140, 95], // Céu alaranjado âmbar / golden hour
+    transitionOut: { startDistance: 11000, endDistance: 13000 },
   },
   {
     name: "Costa Urbana (Noite Estrelada)",
@@ -153,6 +161,7 @@ export const BIOME_COLOR_STOPS: BiomeColorStop[] = [
     surfaceColor: [20, 42, 70],
     floorColor: [5, 10, 20],
     skyColor: [12, 18, 38], // Céu noturno escuro
+    transitionOut: { startDistance: 18200, endDistance: 20200 },
   },
   {
     name: "Cânions & Ressurgência (Alvorada)",
@@ -162,6 +171,7 @@ export const BIOME_COLOR_STOPS: BiomeColorStop[] = [
     surfaceColor: [30, 120, 150],
     floorColor: [8, 35, 55],
     skyColor: [125, 140, 205], // Alvorada límpida / lilás
+    transitionOut: { startDistance: 24200, endDistance: 25800 },
   },
   {
     name: "Santuário de Arraial (Manhã Solar)",

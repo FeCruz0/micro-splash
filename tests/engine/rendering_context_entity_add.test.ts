@@ -706,4 +706,41 @@ describe("RenderingContextEntity .add() encadeado e hierarquia de nós PixiJS v8
 
     resetScreenLayerGeometryChecker();
   });
+
+  it("reutiliza array cacheado em get(tag) e invalida na criação, alteração de tag e destruição", () => {
+    const renderEngineAdapterInstance = new RenderEngineAdapter();
+    const sceneManagerInstance = new SceneManager();
+    const renderingContextInstance = createRenderingContext(
+      renderEngineAdapterInstance,
+      sceneManagerInstance
+    );
+
+    const emptyFirst = renderingContextInstance.get("tag_teste_cache");
+    const emptySecond = renderingContextInstance.get("tag_teste_cache");
+    expect(emptyFirst).toBe(emptySecond);
+    expect(emptyFirst).toEqual([]);
+
+    const firstEntity = renderingContextInstance.add([
+      renderingContextInstance.pos(10, 20),
+      "tag_teste_cache",
+    ]);
+    const listAfterFirstAdd = renderingContextInstance.get("tag_teste_cache");
+    const listCachedSameFrame = renderingContextInstance.get("tag_teste_cache");
+    expect(listAfterFirstAdd).toBe(listCachedSameFrame);
+    expect(listAfterFirstAdd).toHaveLength(1);
+
+    const secondEntity = renderingContextInstance.add([renderingContextInstance.pos(30, 40)]);
+    secondEntity.tag = "tag_teste_cache";
+    const listAfterTagSet = renderingContextInstance.get("tag_teste_cache");
+    expect(listAfterTagSet).not.toBe(listAfterFirstAdd);
+    expect(listAfterTagSet).toHaveLength(2);
+
+    firstEntity.destroy();
+    const listAfterFirstDestroy = renderingContextInstance.get("tag_teste_cache");
+    expect(listAfterFirstDestroy).toHaveLength(1);
+    expect(listAfterFirstDestroy).not.toContain(firstEntity);
+
+    renderingContextInstance.destroy(secondEntity);
+    expect(renderingContextInstance.get("tag_teste_cache")).toEqual([]);
+  });
 });

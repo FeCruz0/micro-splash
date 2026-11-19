@@ -166,6 +166,7 @@ export class SpriteSheetManager {
         stroke_down: { frameStart: 5, frameEnd: 9, from: 5, to: 9, speed: 14 },
         stroke_up: { frameStart: 10, frameEnd: 13, from: 10, to: 13, speed: 12 },
         swim: { frameStart: 5, frameEnd: 13, from: 5, to: 13, loop: true, speed: 10 },
+        anticipation_open: 14,
         feed: { frameStart: 14, frameEnd: 15, from: 14, to: 15, loop: true, speed: 6 },
       },
     });

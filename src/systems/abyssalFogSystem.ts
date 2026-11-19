@@ -9,6 +9,7 @@ import type { IRenderEngine, IGraphicsNode } from "../engine/contracts/INTERFACE
 import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { resolveCameraX } from "./cameraSystem";
 import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
+import { calculateAsymmetricTransitionFactor } from "./biomeTransitionSystem";
 
 export interface FogRenderObject {
   opacity: number;
@@ -126,9 +127,12 @@ export function setupAbyssalFogSystem(engineOrContext: IRenderEngine | unknown):
     const unregister = resolvedRenderEngine.getTicker().add(() => {
       const camX = resolveCameraX(resolvedRenderEngine);
       const leftX = camX - screenW * 1.1;
-      layers.forEach((layer) => {
-        layer.pos.x = leftX;
-      });
+      const fogBiomeMultiplier =
+        0.35 + 0.65 * calculateAsymmetricTransitionFactor(camX, 4200, 5800, 24200, 25800);
+      for (let i = 0; i < layers.length; i++) {
+        layers[i].pos.x = leftX;
+        layers[i].opacity = layerConfigs[i].opacity * fogBiomeMultiplier;
+      }
     });
 
     const destroy = () => {
@@ -160,9 +164,12 @@ export function setupAbyssalFogSystem(engineOrContext: IRenderEngine | unknown):
     cancelUpdate = legacyCtx.onUpdate(() => {
       const camX = legacyCtx.camPos ? legacyCtx.camPos().x : 0;
       const leftX = camX - screenW * 1.1;
-      layers.forEach((layer) => {
-        layer.pos.x = leftX;
-      });
+      const fogBiomeMultiplier =
+        0.35 + 0.65 * calculateAsymmetricTransitionFactor(camX, 4200, 5800, 24200, 25800);
+      for (let i = 0; i < layers.length; i++) {
+        layers[i].pos.x = leftX;
+        layers[i].opacity = layerConfigs[i].opacity * fogBiomeMultiplier;
+      }
     });
   }
 

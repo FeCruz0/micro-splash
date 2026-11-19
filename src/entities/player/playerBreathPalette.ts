@@ -31,6 +31,34 @@ export interface WhaleColorPalette {
   suffocationIntensity: number;
 }
 
+const FAINTING_HIGH_CONTRAST_PALETTE: WhaleColorPalette = Object.freeze({
+  bodyColor: Object.freeze([80, 80, 100]) as [number, number, number],
+  finsColor: Object.freeze([70, 70, 90]) as [number, number, number],
+  urgencyState: "fainting",
+  suffocationIntensity: 1.0,
+});
+
+const FAINTING_PALETTE: WhaleColorPalette = Object.freeze({
+  bodyColor: Object.freeze([55, 60, 80]) as [number, number, number],
+  finsColor: Object.freeze([48, 52, 70]) as [number, number, number],
+  urgencyState: "fainting",
+  suffocationIntensity: 1.0,
+});
+
+const CALM_PALETTE: WhaleColorPalette = Object.freeze({
+  bodyColor: Object.freeze([255, 255, 255]) as [number, number, number],
+  finsColor: Object.freeze([255, 255, 255]) as [number, number, number],
+  urgencyState: "calm",
+  suffocationIntensity: 0.0,
+});
+
+const CALM_TRAPPED_PALETTE: WhaleColorPalette = Object.freeze({
+  bodyColor: Object.freeze([255, 255, 255]) as [number, number, number],
+  finsColor: Object.freeze([255, 255, 255]) as [number, number, number],
+  urgencyState: "trapped",
+  suffocationIntensity: 0.0,
+});
+
 /**
  * Função de interpolação linear pura e segura.
  */
@@ -55,20 +83,7 @@ export function getWhaleBreathColor(parameters: BreathPaletteParameters): WhaleC
 
   // 1. Estado de Desmaio / Blackout por Asfixia (Cianose profunda acinzentada)
   if (isFainting || clampedRatio <= 0) {
-    if (isHighContrast) {
-      return {
-        bodyColor: [80, 80, 100],
-        finsColor: [70, 70, 90],
-        urgencyState: "fainting",
-        suffocationIntensity: 1.0,
-      };
-    }
-    return {
-      bodyColor: [55, 60, 80],
-      finsColor: [48, 52, 70],
-      urgencyState: "fainting",
-      suffocationIntensity: 1.0,
-    };
+    return isHighContrast ? FAINTING_HIGH_CONTRAST_PALETTE : FAINTING_PALETTE;
   }
 
   // 3. Estado Crítico (< 20% de Fôlego - Alerta pulsante de emergência)
@@ -129,10 +144,5 @@ export function getWhaleBreathColor(parameters: BreathPaletteParameters): WhaleC
   }
 
   // 5. Estado Calmo (> 50% de Fôlego - Textura natural com brilho integral)
-  return {
-    bodyColor: [255, 255, 255],
-    finsColor: [255, 255, 255],
-    urgencyState: isTrapped ? "trapped" : "calm",
-    suffocationIntensity: 0.0,
-  };
+  return isTrapped ? CALM_TRAPPED_PALETTE : CALM_PALETTE;
 }

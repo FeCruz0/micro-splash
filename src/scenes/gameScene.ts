@@ -1,4 +1,4 @@
-import { GAME_CONFIG, TAGS, centralizedDeltaTimeClamp } from "../config";
+import { GAME_CONFIG, centralizedDeltaTimeClamp } from "../config";
 import {
   resolveInitializedRenderEngine,
   type IScene,
@@ -8,10 +8,8 @@ import {
   resolveScreenRenderContainer,
   resolveWorldRenderContainer,
 } from "../engine/adapters/RenderEngineAdapter";
-import {
-  createNativeRectNode,
-  createNativeTextNode,
-} from "../engine/adapters/NativeRenderNodeFactory";
+import { createNativeTextNode } from "../engine/adapters/NativeRenderNodeFactory";
+import { createGameSceneBackdrop } from "./gameSceneBackdrop";
 import { createPlayer, type PlayerController } from "../entities/player";
 import { createRescueBoat } from "../entities/boat";
 import { setupCollisions } from "../systems/collisions";
@@ -20,7 +18,6 @@ import { showRescueScreen } from "../ui/rescueScreen";
 import { loadLevelLayout } from "../systems/levelLoader";
 import { setupUpwellingSystem } from "../systems/upwellingSystem";
 import { showVictoryScreen } from "../ui/victoryScreen";
-import { updateOceanColors } from "../systems/oceanEnvironment";
 import { createDebugDistanceUI } from "../ui/debugDistance";
 import { showFactPopup } from "../ui/factPopup";
 import { setupIceSurfaceSystem } from "../systems/iceSurface";
@@ -60,7 +57,6 @@ import { setupSereneInsightsSystem } from "../systems/sereneMigrationInsights";
 import { createCompanionWhale } from "../entities/companionWhale";
 import { shouldSpawnCompanionWhale } from "../systems/companionTutorialSettings";
 import { SystemRunner } from "../systems/systemRunner";
-import { createTween, Easings } from "../engine/utils/Tween";
 import { initSpatialGrid } from "../systems/spatialHashGrid";
 import { FrameBudgetMonitor } from "../systems/frameBudgetMonitor";
 import { FrameRateMonitor } from "../utils/frameRateMonitor";
@@ -140,7 +136,6 @@ type GameSceneSubsystemEngine = Parameters<typeof createPlayer>[0] &
   Parameters<typeof showVictoryScreen>[0] &
   Parameters<typeof showRescueScreen>[0] &
   Parameters<typeof showChallengeEndScreen>[0] &
-  Parameters<typeof updateOceanColors>[0] &
   Parameters<typeof createDebugDistanceUI>[0] &
   Parameters<typeof showFactPopup>[0] &
   Parameters<typeof setupIceSurfaceSystem>[0] &
@@ -349,91 +344,13 @@ export function createGameScene(
         ? resolvedNativeRenderEngine.getDimensions()
         : { width: k.width(), height: k.height() };
 
-      // Overlay de Fade-In para suavizar a entrada no jogo
-      const fadeOverlay: GameSceneUiObject =
-        resolvedNativeRenderEngine && gameSceneScreenContainer
-          ? createNativeRectNode(k, resolvedNativeRenderEngine, gameSceneScreenContainer, {
-              identifier: "game_scene_fade_overlay",
-              width: initialViewportDimensions.width,
-              height: initialViewportDimensions.height,
-              positionX: 0,
-              positionY: 0,
-              fillColor: [6, 18, 42],
-              opacity: 1,
-              zIndex: 100,
-            })
-          : (k.add([
-              k.rect(k.width(), k.height()),
-              k.pos(0, 0),
-              k.color(6, 18, 42),
-              k.opacity(1),
-              k.fixed(),
-              k.z(100),
-            ]) as GameSceneUiObject);
-
-      const fadeTweenHandle = createTween(
-        1,
-        0,
-        0.8,
-        (currentOpacity: number) => {
-          fadeOverlay.opacity = currentOpacity;
-        },
-        Easings.easeOutQuad
-      );
-      fadeTweenHandle.promise.then(() => {
-        if (resolvedNativeRenderEngine) {
-          fadeOverlay.destroy?.();
-        } else {
-          k.destroy(fadeOverlay);
-        }
-      });
-      registerSceneLeaveHook(() => {
-        fadeTweenHandle.cancel();
-        fadeOverlay.destroy?.();
-      });
-
-      // Limites do mar
-      const oceanFloor: GameSceneUiObject =
-        resolvedNativeRenderEngine && gameSceneWorldContainer
-          ? createNativeRectNode(k, resolvedNativeRenderEngine, gameSceneWorldContainer, {
-              identifier: "game_scene_ocean_floor",
-              width: initialViewportDimensions.width * 2,
-              height: 60,
-              positionX: -initialViewportDimensions.width / 2,
-              positionY: initialViewportDimensions.height - 40,
-              fillColor: [20, 50, 120],
-              zIndex: 0,
-            })
-          : (k.add([
-              k.rect(k.width() * 2, 60),
-              k.pos(-k.width() / 2, k.height() - 40),
-              k.color(20, 50, 120),
-            ]) as GameSceneUiObject);
-
-      // Área do céu acima do nível do mar (0px a 80px)
-      const skyBand: GameSceneUiObject =
-        resolvedNativeRenderEngine && gameSceneWorldContainer
-          ? createNativeRectNode(k, resolvedNativeRenderEngine, gameSceneWorldContainer, {
-              identifier: "game_scene_sky_band",
-              width: initialViewportDimensions.width * 2,
-              height: GAME_CONFIG.SEA_LEVEL,
-              positionX: -initialViewportDimensions.width / 2,
-              positionY: 0,
-              fillColor: [120, 190, 245],
-              zIndex: -10,
-              tags: ["sky"],
-            })
-          : (k.add([
-              k.rect(k.width() * 2, GAME_CONFIG.SEA_LEVEL),
-              k.pos(-k.width() / 2, 0),
-              k.color(120, 190, 245),
-              k.z(-10),
-              "sky",
-            ]) as GameSceneUiObject);
-
-      registerSceneLeaveHook(() => {
-        oceanFloor.destroy?.();
-        skyBand.destroy?.();
+      const sceneBackdrop = createGameSceneBackdrop({
+        engineContext: k,
+        renderEngine: resolvedNativeRenderEngine,
+        worldContainer: gameSceneWorldContainer,
+        screenContainer: gameSceneScreenContainer,
+        viewportDimensions: initialViewportDimensions,
+        registerCleanup: registerSceneLeaveHook,
       });
 
       // Tag da superfície posicionada no nível do mar (80px) - Sistema Ondulado Orgânico (Fase 29.1)
@@ -796,35 +713,10 @@ export function createGameScene(
       );
 
       // Fase 2: PHYSICS
-      let spatialGridSyncTimer = 0;
       systemRunner.register(
         "physics",
         (dt) => {
           particlePool.update(dt);
-
-          spatialGridSyncTimer += dt;
-          if (spatialGridSyncTimer >= 0.5) {
-            spatialGridSyncTimer = 0;
-            const krills = typeof k.get === "function" ? k.get(TAGS.KRILL) : [];
-            for (let i = 0; i < krills.length; i++) {
-              const krill = krills[i] as {
-                id?: string | number;
-                pos?: { x: number; y: number };
-              } | null;
-              if (krill && krill.pos) {
-                const krillIdentifier = `krill_${krill.id ?? i}`;
-                const krillBoundingBox = {
-                  minX: krill.pos.x - 8,
-                  minY: krill.pos.y - 8,
-                  maxX: krill.pos.x + 8,
-                  maxY: krill.pos.y + 8,
-                };
-                if (!spatialGrid.update(krillIdentifier, krillBoundingBox)) {
-                  spatialGrid.insert(krillIdentifier, krill, krillBoundingBox, false);
-                }
-              }
-            }
-          }
         },
         { id: "particle_simulation" }
       );
@@ -1011,11 +903,14 @@ export function createGameScene(
           }
 
           // Posicionamento de limites e cores do oceano
-          oceanFloor.pos.x = currentCameraPosition.x - currentScreenWidth;
-          oceanFloor.pos.y = currentScreenHeight - 40;
           waterSurface.updatePosition(currentCameraPosition.x);
-          skyBand.pos.x = currentCameraPosition.x - currentScreenWidth;
-          updateOceanColors(k, playerXPosition, waterSurface, oceanFloor, skyBand);
+          sceneBackdrop.update(
+            playerXPosition,
+            currentCameraPosition.x,
+            currentScreenWidth,
+            currentScreenHeight,
+            waterSurface
+          );
         },
         { id: "render_and_ui" }
       );

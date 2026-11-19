@@ -10,6 +10,7 @@ import type { IRenderEngine, IGraphicsNode } from "../engine/contracts/INTERFACE
 import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { resolveCameraX } from "./cameraSystem";
 import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
+import { calculateAsymmetricTransitionFactor } from "./biomeTransitionSystem";
 
 export interface FoamRenderObject {
   opacity: number;
@@ -153,7 +154,13 @@ export function setupCoastalSurfSystem(
 
       const camX = resolveCameraX(resolvedRenderEngine);
       const screenLeft = camX - screenW / 2;
-      const coastalIntensity = camX < 24800 ? 0 : camX > 25500 ? 1 : (camX - 24800) / 700;
+      const coastalIntensity = calculateAsymmetricTransitionFactor(
+        camX,
+        24400,
+        25600,
+        Infinity,
+        Infinity
+      );
 
       foamList.forEach((f) => {
         f.relX -= f.speedX * dt;
@@ -220,7 +227,13 @@ export function setupCoastalSurfSystem(
       const camX = legacyCtx.camPos ? legacyCtx.camPos().x : 0;
       const screenLeft = camX - screenW / 2;
 
-      const coastalIntensity = camX < 24800 ? 0 : camX > 25500 ? 1 : (camX - 24800) / 700;
+      const coastalIntensity = calculateAsymmetricTransitionFactor(
+        camX,
+        24400,
+        25600,
+        Infinity,
+        Infinity
+      );
 
       foamList.forEach((f) => {
         f.relX -= f.speedX * dt;

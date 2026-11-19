@@ -11,6 +11,7 @@ import type { IRenderEngine, IRenderNode, Vector2D } from "../engine/contracts/I
 import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { resolveCameraX } from "./cameraSystem";
 import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
+import { calculateAsymmetricTransitionFactor } from "./biomeTransitionSystem";
 
 class FallbackRenderNodeAdapter implements IRenderNode {
   readonly id: string;
@@ -284,22 +285,19 @@ export function setupMarineSnowSystem(engineOrContext: IRenderEngine | unknown):
     const cameraX = resolveCameraX(resolvedRenderEngine ?? engineOrContext);
     const screenLeft = cameraX - screenWidth / 2;
 
-    const isInPelagic =
-      cameraX >= MARINE_SNOW_CONFIG.MIN_DISTANCE - 400 &&
-      cameraX <= MARINE_SNOW_CONFIG.MAX_DISTANCE + 400;
+    const fadeFactor = calculateAsymmetricTransitionFactor(
+      cameraX,
+      MARINE_SNOW_CONFIG.MIN_DISTANCE - 400,
+      MARINE_SNOW_CONFIG.MIN_DISTANCE + 400,
+      MARINE_SNOW_CONFIG.MAX_DISTANCE - 600,
+      MARINE_SNOW_CONFIG.MAX_DISTANCE + 200
+    );
 
-    if (!isInPelagic) {
+    if (fadeFactor <= 0) {
       for (let index = 0; index < particles.length; index++) {
         particles[index].node.setVisible(false);
       }
       return;
-    }
-
-    let fadeFactor = 1;
-    if (cameraX < MARINE_SNOW_CONFIG.MIN_DISTANCE) {
-      fadeFactor = Math.max(0, (cameraX - (MARINE_SNOW_CONFIG.MIN_DISTANCE - 400)) / 400);
-    } else if (cameraX > MARINE_SNOW_CONFIG.MAX_DISTANCE) {
-      fadeFactor = Math.max(0, (MARINE_SNOW_CONFIG.MAX_DISTANCE + 400 - cameraX) / 400);
     }
 
     for (let index = 0; index < particles.length; index++) {

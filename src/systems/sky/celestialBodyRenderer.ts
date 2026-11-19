@@ -6,6 +6,7 @@ import { GAME_CONFIG } from "../../config";
 import type { IRenderEngine } from "../../engine/contracts/INTERFACE_CONTRACTS";
 import type { SkyRenderObject, StarData } from "./skyTypes";
 import { createSkyObject } from "./skyObjectRenderer";
+import { calculateAsymmetricTransitionFactor } from "../biomeTransitionSystem";
 
 export interface CelestialSystemElements {
   sunsetBands: SkyRenderObject[];
@@ -137,17 +138,8 @@ export function updateCelestialElements(
   screenW: number,
   time: number
 ): void {
-  // A. Por do Sol
-  const sunsetIntensity =
-    camX < 4800
-      ? 0
-      : camX < 5800
-        ? (camX - 4800) / 1000
-        : camX > 12200
-          ? 0
-          : camX > 11200
-            ? (12200 - camX) / 1000
-            : 1.0;
+  // A. Por do Sol (alinhado a 4.200-5.800m e 11.000-13.000m)
+  const sunsetIntensity = calculateAsymmetricTransitionFactor(camX, 4400, 5600, 11000, 12400);
 
   const bandCount = elements.sunsetBands.length;
   for (let i = 0; i < bandCount; i++) {
@@ -156,15 +148,8 @@ export function updateCelestialElements(
     band.opacity = sunsetIntensity * 0.88;
   }
 
-  // B. Noite Urbana: Estrelas, Lua e Reflexos
-  const nightIntensity =
-    camX >= 11500 && camX <= 19500
-      ? camX < 13000
-        ? (camX - 11500) / 1500
-        : camX > 18000
-          ? (19500 - camX) / 1500
-          : 1.0
-      : 0;
+  // B. Noite Urbana: Estrelas, Lua e Reflexos (alinhado a 11.000-13.000m e 18.200-20.200m)
+  const nightIntensity = calculateAsymmetricTransitionFactor(camX, 11400, 12800, 18200, 19600);
 
   const starCountLen = elements.stars.length;
   const starWrap = screenW * 1.4;

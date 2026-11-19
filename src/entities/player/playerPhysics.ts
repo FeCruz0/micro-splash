@@ -103,17 +103,23 @@ export class PlayerPhysicsManager {
         (GAME_CONFIG.BASE_THRUST + Math.sin(progresso * Math.PI) * GAME_CONFIG.PEAK_THRUST) *
         draftBoost;
       const angleInRadians = this.k.deg2rad(angle);
-      const direcao = this.k.vec2(
-        facingRight ? Math.cos(angleInRadians) : -Math.cos(angleInRadians),
-        Math.sin(angleInRadians)
-      );
+      const thrustDelta = curvaForca * dt;
+      const thrustX =
+        (facingRight ? Math.cos(angleInRadians) : -Math.cos(angleInRadians)) * thrustDelta;
+      const thrustY = Math.sin(angleInRadians) * thrustDelta;
 
-      this.currentSpeed = this.currentSpeed.add(direcao.scale(curvaForca * dt));
+      let nextSpeedX = this.currentSpeed.x + thrustX;
+      let nextSpeedY = this.currentSpeed.y + thrustY;
 
       const currentMaxSpeed = maxSpeed * draftBoost;
-      if (this.currentSpeed.len() > currentMaxSpeed) {
-        this.currentSpeed = this.currentSpeed.unit().scale(currentMaxSpeed);
+      const nextSpeedMagnitude = Math.hypot(nextSpeedX, nextSpeedY);
+      if (nextSpeedMagnitude > currentMaxSpeed && nextSpeedMagnitude > 0) {
+        const clampRatio = currentMaxSpeed / nextSpeedMagnitude;
+        nextSpeedX *= clampRatio;
+        nextSpeedY *= clampRatio;
       }
+
+      this.currentSpeed = this.k.vec2(nextSpeedX, nextSpeedY);
     }
   }
 

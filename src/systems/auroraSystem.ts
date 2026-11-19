@@ -9,6 +9,7 @@ import type { IRenderEngine, IGraphicsNode } from "../engine/contracts/INTERFACE
 import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { resolveCameraX } from "./cameraSystem";
 import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
+import { calculateAsymmetricTransitionFactor } from "./biomeTransitionSystem";
 
 export interface AuroraRenderObject {
   opacity: number;
@@ -165,7 +166,7 @@ export function setupAuroraSystem(engineOrContext: IRenderEngine | unknown): Aur
 
       const camX = resolveCameraX(resolvedRenderEngine);
       const screenLeft = camX - screenW / 2;
-      const polarIntensity = camX < 4400 ? 1 : camX > 5200 ? 0 : (5200 - camX) / 800;
+      const polarIntensity = calculateAsymmetricTransitionFactor(camX, -Infinity, 0, 4200, 5400);
 
       ribbonList.forEach((r) => {
         const waveX = Math.sin(time * r.speed + r.phase) * 14;
@@ -232,7 +233,7 @@ export function setupAuroraSystem(engineOrContext: IRenderEngine | unknown): Aur
 
       const camX = legacyCtx.camPos ? legacyCtx.camPos().x : 0;
       const screenLeft = camX - screenW / 2;
-      const polarIntensity = camX < 4400 ? 1 : camX > 5200 ? 0 : (5200 - camX) / 800;
+      const polarIntensity = calculateAsymmetricTransitionFactor(camX, -Infinity, 0, 4200, 5400);
 
       ribbonList.forEach((r) => {
         const waveX = Math.sin(time * r.speed + r.phase) * 14;

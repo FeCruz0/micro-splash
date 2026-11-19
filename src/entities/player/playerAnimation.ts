@@ -12,7 +12,7 @@
 import { PLAYER_ANIMATION_CONFIG } from "../../config";
 
 export type WhaleAnimationState =
-  "glide" | "idle_swim" | "stroke_up" | "stroke_down" | "swim" | "feed";
+  "glide" | "idle_swim" | "stroke_up" | "stroke_down" | "swim" | "anticipation_open" | "feed";
 
 export interface WhaleAnimationParameters {
   /** Indica se está em ciclo muscular ativo de propulsão caudal */
@@ -82,6 +82,13 @@ export const WHALE_ANIMATION_DEFINITIONS: Record<WhaleAnimationState, WhaleAnima
     endFrameIndex: 13,
     basePlaybackSpeed: 10,
     isLooping: true,
+  },
+  anticipation_open: {
+    state: "anticipation_open",
+    startFrameIndex: 14,
+    endFrameIndex: 14,
+    basePlaybackSpeed: 1,
+    isLooping: false,
   },
   feed: {
     state: "feed",

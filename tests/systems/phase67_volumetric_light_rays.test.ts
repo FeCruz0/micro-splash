@@ -92,6 +92,50 @@ describe("Fase 67: Volumetric God Rays & Cross-Browser Atmospheric Normalization
       const arraial = resolveBiomeLightColor(24000);
       expect(arraial.rayColor).toEqual([215, 230, 190]);
     });
+
+    it("diferencia os 5 perfis de bioma com transição gradual via smoothstep e zero alocações", () => {
+      const polar = {
+        ...resolveBiomeLightColor(2000),
+        rayColor: [...resolveBiomeLightColor(2000).rayColor],
+      };
+      const pelagic = {
+        ...resolveBiomeLightColor(8000),
+        rayColor: [...resolveBiomeLightColor(8000).rayColor],
+      };
+      const urban = {
+        ...resolveBiomeLightColor(15500),
+        rayColor: [...resolveBiomeLightColor(15500).rayColor],
+      };
+      const canyons = {
+        ...resolveBiomeLightColor(22000),
+        rayColor: [...resolveBiomeLightColor(22000).rayColor],
+      };
+      const sanctuary = {
+        ...resolveBiomeLightColor(28000),
+        rayColor: [...resolveBiomeLightColor(28000).rayColor],
+      };
+
+      // Polar concentrada vs Santuário expansivo e luminoso
+      expect(polar.widthScale).toBeLessThan(pelagic.widthScale);
+      expect(sanctuary.widthScale).toBeGreaterThan(canyons.widthScale);
+      expect(sanctuary.lightFactor).toBeGreaterThan(urban.lightFactor);
+      expect(urban.lightFactor).toBeLessThan(polar.lightFactor);
+      expect(canyons.angleSpreadScale).toBeGreaterThan(polar.angleSpreadScale);
+      expect(sanctuary.rayColor).toEqual([165, 240, 232]);
+
+      // Transição contínua na janela 4.200-5.800m (ponto médio = 5.000m)
+      const midTransition = resolveBiomeLightColor(5000);
+      expect(midTransition.lightFactor).toBeCloseTo(
+        (polar.lightFactor + pelagic.lightFactor) / 2,
+        5
+      );
+      expect(midTransition.widthScale).toBeCloseTo((polar.widthScale + pelagic.widthScale) / 2, 5);
+
+      // Reuso de buffer (zero alocações por frame)
+      const refA = resolveBiomeLightColor(1000);
+      const refB = resolveBiomeLightColor(1005);
+      expect(refA).toBe(refB);
+    });
   });
 
   describe("67.3 Execução no Adaptador PixiJS v8 (Adapter Pattern)", () => {

@@ -10,7 +10,10 @@ import {
 } from "../../src/systems/bioluminescenceSystem";
 import { getBiomeTrashPalette } from "../../src/entities/trash";
 import { getBiomeNetPalette } from "../../src/entities/net";
-import { calculateBiomeTransitionFactor } from "../../src/systems/biomeTransitionSystem";
+import {
+  calculateBiomeTransitionFactor,
+  calculateAsymmetricTransitionFactor,
+} from "../../src/systems/biomeTransitionSystem";
 import {
   getBiomeHudInfo,
   getOxygenUrgencyState,
@@ -173,6 +176,46 @@ describe("FASE 31: Partículas, Coerência de Bioma & Polimento de Interface", (
       // Na zona de atenuação de saída (11850m -> 150m de 12000m)
       const midExit = calculateBiomeTransitionFactor(11850, startX, endX, width);
       expect(midExit).toBeCloseTo(0.5, 2);
+    });
+
+    it("calculateAsymmetricTransitionFactor suporta faixas assimétricas de entrada/saída e extremos abertos", () => {
+      // Faixa assimétrica: fade-in [4400, 5600] (1200m), platô [5600, 11000], fade-out [11000, 12400] (1400m)
+      expect(calculateAsymmetricTransitionFactor(4400, 4400, 5600, 11000, 12400)).toBe(0.0);
+      expect(calculateAsymmetricTransitionFactor(5000, 4400, 5600, 11000, 12400)).toBeCloseTo(
+        0.5,
+        5
+      );
+      expect(calculateAsymmetricTransitionFactor(5600, 4400, 5600, 11000, 12400)).toBe(1.0);
+      expect(calculateAsymmetricTransitionFactor(8500, 4400, 5600, 11000, 12400)).toBe(1.0);
+      expect(calculateAsymmetricTransitionFactor(11000, 4400, 5600, 11000, 12400)).toBe(1.0);
+      expect(calculateAsymmetricTransitionFactor(11700, 4400, 5600, 11000, 12400)).toBeCloseTo(
+        0.5,
+        5
+      );
+      expect(calculateAsymmetricTransitionFactor(12400, 4400, 5600, 11000, 12400)).toBe(0.0);
+
+      // Extremo inicial aberto (-Infinity) como na Aurora Austral
+      expect(calculateAsymmetricTransitionFactor(0, -Infinity, 0, 4200, 5400)).toBe(1.0);
+      expect(calculateAsymmetricTransitionFactor(4200, -Infinity, 0, 4200, 5400)).toBe(1.0);
+      expect(calculateAsymmetricTransitionFactor(4800, -Infinity, 0, 4200, 5400)).toBeCloseTo(
+        0.5,
+        5
+      );
+      expect(calculateAsymmetricTransitionFactor(5400, -Infinity, 0, 4200, 5400)).toBe(0.0);
+
+      // Extremo final aberto (Infinity) como na Espuma Costeira de Arraial
+      expect(calculateAsymmetricTransitionFactor(24400, 24400, 25600, Infinity, Infinity)).toBe(
+        0.0
+      );
+      expect(
+        calculateAsymmetricTransitionFactor(25000, 24400, 25600, Infinity, Infinity)
+      ).toBeCloseTo(0.5, 5);
+      expect(calculateAsymmetricTransitionFactor(25600, 24400, 25600, Infinity, Infinity)).toBe(
+        1.0
+      );
+      expect(calculateAsymmetricTransitionFactor(30000, 24400, 25600, Infinity, Infinity)).toBe(
+        1.0
+      );
     });
   });
 

@@ -171,7 +171,9 @@ export function setupLightRaysSystem(engineOrContext: IRenderEngine | unknown): 
     }
 
     let time = 0;
-    let lastColor: readonly [number, number, number] | null = null;
+    let lastRed = -1;
+    let lastGreen = -1;
+    let lastBlue = -1;
 
     resolvedRenderEngine.getTicker().add((deltaTimeInSeconds: number) => {
       if (!isSystemVisible) return;
@@ -180,9 +182,19 @@ export function setupLightRaysSystem(engineOrContext: IRenderEngine | unknown): 
       const cameraXPosition = resolveCameraX(resolvedRenderEngine);
       const screenLeft = cameraXPosition - screenWidth / 2;
       const atmospheric = resolveBiomeLightColor(cameraXPosition);
+      const nextRed = atmospheric.rayColor[0];
+      const nextGreen = atmospheric.rayColor[1];
+      const nextBlue = atmospheric.rayColor[2];
 
-      if (lastColor !== atmospheric.rayColor) {
-        lastColor = atmospheric.rayColor;
+      // Dirty-check cromático (>= 4 por canal) evita reconstruir polígonos a cada quadro nas transições
+      if (
+        Math.abs(nextRed - lastRed) >= 4 ||
+        Math.abs(nextGreen - lastGreen) >= 4 ||
+        Math.abs(nextBlue - lastBlue) >= 4
+      ) {
+        lastRed = nextRed;
+        lastGreen = nextGreen;
+        lastBlue = nextBlue;
         for (let index = 0; index < godRays.length; index++) {
           const { node, profile } = godRays[index];
           node.clear();
@@ -195,18 +207,23 @@ export function setupLightRaysSystem(engineOrContext: IRenderEngine | unknown): 
 
       for (let index = 0; index < godRays.length; index++) {
         const { node, data } = godRays[index];
-        const sway = Math.sin(time * data.pulseSpeed + data.pulsePhase);
-        const angleSwayInDegrees = Math.cos(time * 0.6 + data.pulsePhase) * 4;
+        const sway = Math.sin(time * data.pulseSpeed + data.pulsePhase) * atmospheric.swayScale;
+        const angleSwayInDegrees =
+          Math.cos(time * 0.6 + data.pulsePhase) * 4 * atmospheric.swayScale;
 
         const rawOffset = (data.baseXOffset - parallaxDrift + wrapSpan) % wrapSpan;
         const currentRayX = screenLeft - 70 + rawOffset + sway * 20;
         const boundedRayX = currentRayX < 16 ? currentRayX + wrapSpan : currentRayX;
 
         node.setPosition(boundedRayX, GAME_CONFIG.SEA_LEVEL);
-        node.setRotation(((data.angleOffsetDeg + angleSwayInDegrees) * Math.PI) / 180);
+        node.setScale(atmospheric.widthScale, atmospheric.lengthScale);
+        node.setRotation(
+          ((data.angleOffsetDeg * atmospheric.angleSpreadScale + angleSwayInDegrees) * Math.PI) /
+            180
+        );
 
         const pulseOpacity = (0.75 + sway * 0.25) * atmospheric.lightFactor;
-        node.setOpacity(Math.max(0.015, Math.min(0.06, pulseOpacity)));
+        node.setOpacity(Math.max(0.012, Math.min(0.072, pulseOpacity)));
       }
 
       for (let index = 0; index < caustics.length; index++) {
@@ -343,14 +360,14 @@ export function setupLightRaysSystem(engineOrContext: IRenderEngine | unknown): 
 
       for (let index = 0; index < godRays.length; index++) {
         const ray = godRays[index];
-        const sway = Math.sin(time * ray.pulseSpeed + ray.pulsePhase);
-        const angleSway = Math.cos(time * 0.6 + ray.pulsePhase) * 4;
+        const sway = Math.sin(time * ray.pulseSpeed + ray.pulsePhase) * atmospheric.swayScale;
+        const angleSway = Math.cos(time * 0.6 + ray.pulsePhase) * 4 * atmospheric.swayScale;
         const rawOffset = (ray.baseXOffset - parallaxDrift + wrapSpan) % wrapSpan;
         const currentX = screenLeft - 70 + rawOffset + sway * 20;
         const boundedX = currentX < 16 ? currentX + wrapSpan : currentX;
-        const currentAngle = ray.angleOffsetDeg + angleSway;
+        const currentAngle = ray.angleOffsetDeg * atmospheric.angleSpreadScale + angleSway;
         const pulseOpacity = (0.75 + sway * 0.25) * atmospheric.lightFactor;
-        const baseOpacity = Math.max(0.015, Math.min(0.06, pulseOpacity));
+        const baseOpacity = Math.max(0.012, Math.min(0.072, pulseOpacity));
 
         const segments = ray.segments;
         for (let s = 0; s < segments.length; s++) {

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { createKrill } from "../../src/entities/krill";
 import { TAGS } from "../../src/config";
+import { initSpatialGrid } from "../../src/systems/spatialHashGrid";
 
 describe("Entidade Krill e Destaque por Biosonar", () => {
   function createMockKaboom() {
@@ -124,5 +125,29 @@ describe("Entidade Krill e Destaque por Biosonar", () => {
     expect(() => {
       mockK.destroy(krill);
     }).not.toThrow();
+  });
+
+  it("sincroniza AABB contínua no SpatialHashGrid mantendo o ID original e remove ao destruir", () => {
+    const grid = initSpatialGrid({ cellSize: 256 });
+    const { mockK } = createMockKaboom();
+    const krill = createKrill(mockK, mockK.vec2(600, 240)) as unknown as {
+      id?: string;
+      pos: { x: number; y: number };
+      _updateHandlers: Array<() => void>;
+    };
+    krill.id = "krill_42";
+    grid.insert("krill_42", krill, { minX: 590, minY: 230, maxX: 610, maxY: 250 }, false);
+
+    krill._updateHandlers.forEach((fn) => fn());
+
+    const updatedBounds = grid.getBounds("krill_42");
+    expect(updatedBounds).toBeDefined();
+    expect(updatedBounds?.minY).toBeCloseTo(krill.pos.y - 10, 4);
+    expect(updatedBounds?.maxY).toBeCloseTo(krill.pos.y + 10, 4);
+    expect(grid.has("krill_krill_42")).toBe(false);
+
+    mockK.destroy(krill);
+    expect(grid.has("krill_42")).toBe(false);
+    grid.clear();
   });
 });

@@ -9,7 +9,6 @@ import { getParticlePool } from "../particlePool";
 import { safeShake } from "../../utils/camera";
 import { getRandomFloat } from "../../utils/random";
 import type { IRenderEngine, IRenderNode } from "../../engine/contracts/INTERFACE_CONTRACTS";
-import { create16BitIceTextures } from "./ice16BitTextures";
 import { getSpatialGrid } from "../spatialHashGrid";
 import { resolveWorldRenderContainer } from "../../engine/adapters/RenderEngineAdapter";
 import { activeIceGaps, setActiveIceGaps } from "./iceGaps";
@@ -27,7 +26,8 @@ import {
 export const ICE_HEIGHT = 40;
 export const ICE_POSITION_Y = GAME_CONFIG.SEA_LEVEL - 20;
 export const ICE_COLLISION_HEIGHT = 24;
-export const TOTAL_ICE_DISTANCE = 5000;
+export const ICE_DISPERSION_START_DISTANCE = 4100;
+export const TOTAL_ICE_DISTANCE = 5450;
 
 interface MaterializedIceberg {
   readonly spec: ProceduralIcebergSpec;
@@ -56,16 +56,16 @@ export function setupPolarIceRendering(
   const asColor = (r: number, g: number, b: number) => ({ r, g, b }) as unknown as ParticleColor;
   const asSpeed = (x: number, y: number) => ({ x, y }) as unknown as PlayerSpeed;
 
-  const { icebergWallTexture } = create16BitIceTextures(engine);
-  const wallNodes = renderBoundedAntarcticGlacier(engine, icebergWallTexture);
+  const wallNodes = renderBoundedAntarcticGlacier(engine);
   createdRenderNodes.push(...wallNodes);
 
   const layout = generateProceduralIcebergLayout(
     TOTAL_ICE_DISTANCE,
     generationSeed,
-    GAME_CONFIG.SEA_LEVEL
+    GAME_CONFIG.SEA_LEVEL,
+    ICE_DISPERSION_START_DISTANCE
   );
-  setActiveIceGaps(layout.gaps);
+  setActiveIceGaps(layout.gaps, TOTAL_ICE_DISTANCE);
 
   function spawnIcebergBreakEffects(spec: ProceduralIcebergSpec): void {
     const pool = getParticlePool();
@@ -244,15 +244,51 @@ export function setupPolarIceRendering(
     }
   }
 
+  let gapShimmerTimer = 0;
+  function updateIceGapBreathingFeedback(deltaTimeInSeconds: number): void {
+    const player = playerController ? playerController.gameObj : getActivePlayerObject();
+    if (!player || !player.pos) return;
+    if (player.pos.x < 0 || player.pos.x > TOTAL_ICE_DISTANCE) return;
+    if (player.pos.y > GAME_CONFIG.SEA_LEVEL + 180) return;
+
+    gapShimmerTimer += deltaTimeInSeconds;
+    if (gapShimmerTimer < 0.22) return;
+    gapShimmerTimer = 0;
+
+    const pool = getParticlePool();
+    if (!pool) return;
+
+    for (let i = 0; i < activeIceGaps.length; i++) {
+      const gap = activeIceGaps[i];
+      if (gap.end < player.pos.x - 260 || gap.start > player.pos.x + 260) {
+        continue;
+      }
+      const shimmerX = getRandomFloat(gap.start + 12, Math.max(gap.start + 14, gap.end - 12));
+      pool.spawnCircle({
+        pos: asPos(shimmerX, GAME_CONFIG.SEA_LEVEL + getRandomFloat(-1, 2)),
+        radius: getRandomFloat(1.4, 2.4),
+        color: asColor(215, 248, 255),
+        opacity: 0.38,
+        z: 9,
+        vel: asPos(0, getRandomFloat(-14, -6)),
+        fadeRate: 0.75,
+        maxLife: 0.55,
+      });
+    }
+  }
+
   // Materializa janela inicial imediatamente (garante cenário e SpatialHashGrid prontos no frame 0)
   syncIcebergsAroundCamera();
 
-  const unregisterIceTicker = engine.getTicker().add(() => {
+  const unregisterIceTicker = engine.getTicker().add((deltaTimeInSeconds: number) => {
     const activeState = isSystemActivePredicate ? isSystemActivePredicate() : true;
     if (!activeState) return;
     updateWorldBoundaryConstraint(playerController);
     syncIcebergsAroundCamera();
     checkPlayerIcebergBreach();
+    updateIceGapBreathingFeedback(
+      typeof deltaTimeInSeconds === "number" && deltaTimeInSeconds > 0 ? deltaTimeInSeconds : 0.016
+    );
   });
   if (typeof unregisterIceTicker === "function") {
     unregisterTickerCallbacks.push(unregisterIceTicker);

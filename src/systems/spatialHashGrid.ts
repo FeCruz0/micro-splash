@@ -106,13 +106,12 @@ export class SpatialHashGrid<T> {
     }
 
     const newKeys = this.getCellsForAABB(bounds);
-    const newKeysSet = new Set(newKeys);
 
-    // Verifica se as células ocupadas mudaram
-    let keysChanged = existing.cellKeys.size !== newKeysSet.size;
+    // Verifica se as células ocupadas mudaram sem alocar Set no caminho comum
+    let keysChanged = existing.cellKeys.size !== newKeys.length;
     if (!keysChanged) {
-      for (const k of newKeysSet) {
-        if (!existing.cellKeys.has(k)) {
+      for (let i = 0; i < newKeys.length; i++) {
+        if (!existing.cellKeys.has(newKeys[i])) {
           keysChanged = true;
           break;
         }
@@ -125,6 +124,7 @@ export class SpatialHashGrid<T> {
     existing.bounds.maxY = bounds.maxY;
 
     if (keysChanged) {
+      const newKeysSet = new Set(newKeys);
       // Remove das células que não ocupa mais
       for (const oldKey of existing.cellKeys) {
         if (!newKeysSet.has(oldKey)) {

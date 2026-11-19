@@ -27,6 +27,15 @@ export interface StrictPlayerVector2D extends PlayerVector2D {
   dist(v: StrictPlayerVector2D | PlayerVector2D): number;
 }
 
+export interface NetOverlaySpriteHandle {
+  visible?: boolean;
+  hidden?: boolean;
+  opacity?: number;
+  alpha?: number;
+  setVisible?: (visible: boolean) => void;
+  setOpacity?: (alpha: number) => void;
+}
+
 export interface PlayerGameObject {
   pos: StrictPlayerVector2D;
   angle: number;
@@ -35,6 +44,7 @@ export interface PlayerGameObject {
   color?: unknown;
   opacity?: number;
   z?: number;
+  netOverlaySprite?: NetOverlaySpriteHandle | null;
   move: (x: number, y: number) => void;
   play?: (anim: string) => void;
   onUpdate: (cb: () => void) => void;

@@ -43,23 +43,27 @@ export function getColorsAtDistance(
   distance: number
 ): OceanColorsResult {
   const clampedDistance = Math.min(Math.max(distance, 0), GAME_CONFIG.ROUTE_TOTAL_DISTANCE);
+  const currentStop = getCurrentBiome(clampedDistance);
 
-  let currentStop: BiomeColorStop = BIOME_COLOR_STOPS[0];
-  let nextStop: BiomeColorStop = BIOME_COLOR_STOPS[0];
+  let sourceStop: BiomeColorStop = currentStop;
+  let targetStop: BiomeColorStop = currentStop;
   let lerpFactor = 0;
 
-  for (let i = 0; i < BIOME_COLOR_STOPS.length; i++) {
+  for (let i = 0; i < BIOME_COLOR_STOPS.length - 1; i++) {
     const stop = BIOME_COLOR_STOPS[i];
-    if (clampedDistance >= stop.distanceStart && clampedDistance <= stop.distanceEnd) {
-      currentStop = stop;
-      if (i < BIOME_COLOR_STOPS.length - 1) {
-        nextStop = BIOME_COLOR_STOPS[i + 1];
-        const range = stop.distanceEnd - stop.distanceStart;
-        lerpFactor = range > 0 ? (clampedDistance - stop.distanceStart) / range : 0;
-      } else {
-        nextStop = stop;
-        lerpFactor = 0;
-      }
+    const transition = stop.transitionOut;
+    if (
+      transition &&
+      clampedDistance >= transition.startDistance &&
+      clampedDistance <= transition.endDistance
+    ) {
+      sourceStop = stop;
+      targetStop = BIOME_COLOR_STOPS[i + 1];
+      const range = transition.endDistance - transition.startDistance;
+      const rawProgress = range > 0 ? (clampedDistance - transition.startDistance) / range : 0;
+      const clampedProgress = Math.min(Math.max(rawProgress, 0), 1);
+      // Smoothstep para entrada e saída contínuas sem degraus cromáticos
+      lerpFactor = clampedProgress * clampedProgress * (3 - 2 * clampedProgress);
       break;
     }
   }
@@ -80,24 +84,24 @@ export function getColorsAtDistance(
         });
 
   // Interpolação RGB para Fundo
-  const bgR = lerpFn(currentStop.bgColor[0], nextStop.bgColor[0], lerpFactor);
-  const bgG = lerpFn(currentStop.bgColor[1], nextStop.bgColor[1], lerpFactor);
-  const bgB = lerpFn(currentStop.bgColor[2], nextStop.bgColor[2], lerpFactor);
+  const bgR = lerpFn(sourceStop.bgColor[0], targetStop.bgColor[0], lerpFactor);
+  const bgG = lerpFn(sourceStop.bgColor[1], targetStop.bgColor[1], lerpFactor);
+  const bgB = lerpFn(sourceStop.bgColor[2], targetStop.bgColor[2], lerpFactor);
 
   // Interpolação RGB para Superfície
-  const sfR = lerpFn(currentStop.surfaceColor[0], nextStop.surfaceColor[0], lerpFactor);
-  const sfG = lerpFn(currentStop.surfaceColor[1], nextStop.surfaceColor[1], lerpFactor);
-  const sfB = lerpFn(currentStop.surfaceColor[2], nextStop.surfaceColor[2], lerpFactor);
+  const sfR = lerpFn(sourceStop.surfaceColor[0], targetStop.surfaceColor[0], lerpFactor);
+  const sfG = lerpFn(sourceStop.surfaceColor[1], targetStop.surfaceColor[1], lerpFactor);
+  const sfB = lerpFn(sourceStop.surfaceColor[2], targetStop.surfaceColor[2], lerpFactor);
 
   // Interpolação RGB para Chão
-  const flR = lerpFn(currentStop.floorColor[0], nextStop.floorColor[0], lerpFactor);
-  const flG = lerpFn(currentStop.floorColor[1], nextStop.floorColor[1], lerpFactor);
-  const flB = lerpFn(currentStop.floorColor[2], nextStop.floorColor[2], lerpFactor);
+  const flR = lerpFn(sourceStop.floorColor[0], targetStop.floorColor[0], lerpFactor);
+  const flG = lerpFn(sourceStop.floorColor[1], targetStop.floorColor[1], lerpFactor);
+  const flB = lerpFn(sourceStop.floorColor[2], targetStop.floorColor[2], lerpFactor);
 
   // Interpolação RGB para o Céu
-  const skR = lerpFn(currentStop.skyColor[0], nextStop.skyColor[0], lerpFactor);
-  const skG = lerpFn(currentStop.skyColor[1], nextStop.skyColor[1], lerpFactor);
-  const skB = lerpFn(currentStop.skyColor[2], nextStop.skyColor[2], lerpFactor);
+  const skR = lerpFn(sourceStop.skyColor[0], targetStop.skyColor[0], lerpFactor);
+  const skG = lerpFn(sourceStop.skyColor[1], targetStop.skyColor[1], lerpFactor);
+  const skB = lerpFn(sourceStop.skyColor[2], targetStop.skyColor[2], lerpFactor);
 
   return {
     bgColor: rgbFn(bgR, bgG, bgB),

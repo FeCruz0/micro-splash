@@ -43,3 +43,34 @@ export function calculateBiomeTransitionFactor(
 
   return factor;
 }
+
+/**
+ * Calcula o fator de transição suave (`smoothstep`, 0.0 a 1.0) com janelas
+ * independentes de entrada (`fadeInStart..fadeInEnd`) e saída (`fadeOutStart..fadeOutEnd`).
+ * Suporta extremos abertos via `-Infinity` / `Infinity` e não realiza alocações.
+ */
+export function calculateAsymmetricTransitionFactor(
+  x: number,
+  fadeInStart: number,
+  fadeInEnd: number,
+  fadeOutStart: number,
+  fadeOutEnd: number
+): number {
+  if (x <= fadeInStart || x >= fadeOutEnd) {
+    return 0.0;
+  }
+
+  let factor = 1.0;
+
+  if (x < fadeInEnd && fadeInEnd > fadeInStart && Number.isFinite(fadeInStart)) {
+    const t = (x - fadeInStart) / (fadeInEnd - fadeInStart);
+    factor = Math.min(factor, t * t * (3 - 2 * t));
+  }
+
+  if (x > fadeOutStart && fadeOutEnd > fadeOutStart && Number.isFinite(fadeOutEnd)) {
+    const t = (fadeOutEnd - x) / (fadeOutEnd - fadeOutStart);
+    factor = Math.min(factor, t * t * (3 - 2 * t));
+  }
+
+  return factor;
+}

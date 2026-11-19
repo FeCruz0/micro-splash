@@ -2,7 +2,10 @@
  * Renderizador da flora submarina (Kelp, Algas Vermelhas Polares, Ervas Marinhas e Rodolitos Lithothamnion).
  */
 
-import { calculateBiomeTransitionFactor } from "../biomeTransitionSystem";
+import {
+  calculateBiomeTransitionFactor,
+  calculateAsymmetricTransitionFactor,
+} from "../biomeTransitionSystem";
 import { getSpatialCullingManager } from "../spatialCullingSystem";
 import type { IRenderEngine } from "../../engine/contracts/INTERFACE_CONTRACTS";
 import { resolveWorldRenderContainer } from "../../engine/adapters/RenderEngineAdapter";
@@ -122,9 +125,14 @@ export function setupBenthicFlora(realEngine: IRenderEngine, floorY: number): Be
 
   // 2. Urban seagrass
   URBAN_SEAGRASS_SPAWN_X.forEach((xPos, sIdx) => {
-    const transitionFactor = calculateBiomeTransitionFactor(xPos, 12000, 19000, 300);
+    const transitionFactor = calculateAsymmetricTransitionFactor(xPos, 11800, 12800, 18200, 19000);
     const blades: BenthicRenderNode[] = [];
-    const grassColor = sIdx % 2 === 0 ? ([75, 95, 70] as const) : ([65, 85, 75] as const);
+    const isNearOilZone = xPos >= 17000;
+    const grassColor = isNearOilZone
+      ? ([54, 68, 56] as const)
+      : sIdx % 2 === 0
+        ? ([75, 95, 70] as const)
+        : ([65, 85, 75] as const);
     const bladeCount = 4 + (sIdx % 3);
 
     for (let b = 0; b < bladeCount; b++) {
@@ -170,7 +178,13 @@ export function setupBenthicFlora(realEngine: IRenderEngine, floorY: number): Be
 
   // 3. Lithothamnion
   LITHOTHAMNION_SPAWN_X.forEach((xPos, lIdx) => {
-    const transitionFactor = calculateBiomeTransitionFactor(xPos, 19000, 30000, 300);
+    const transitionFactor = calculateAsymmetricTransitionFactor(
+      xPos,
+      18800,
+      19800,
+      Infinity,
+      Infinity
+    );
     const crustW = 28 + (lIdx % 4) * 8;
     const crustH = 4 + (lIdx % 3) * 1.5;
     const crustColor = [180 + (lIdx % 3) * 12, 95 + (lIdx % 4) * 8, 135 + (lIdx % 2) * 16] as const;

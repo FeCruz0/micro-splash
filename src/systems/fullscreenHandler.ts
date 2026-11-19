@@ -31,18 +31,16 @@ export function isDocumentFullscreen(): boolean {
   const vendorDocument = document as VendorDocument;
   return Boolean(
     vendorDocument.fullscreenElement ??
-      vendorDocument.webkitFullscreenElement ??
-      vendorDocument.mozFullScreenElement ??
-      vendorDocument.msFullscreenElement
+    vendorDocument.webkitFullscreenElement ??
+    vendorDocument.mozFullScreenElement ??
+    vendorDocument.msFullscreenElement
   );
 }
 
 /**
  * Solicita a transição para modo de tela cheia no elemento alvo (padrão: document.documentElement).
  */
-export async function requestDocumentFullscreen(
-  targetElement?: HTMLElement
-): Promise<void> {
+export async function requestDocumentFullscreen(targetElement?: HTMLElement): Promise<void> {
   if (typeof document === "undefined") {
     return;
   }
@@ -59,8 +57,9 @@ export async function requestDocumentFullscreen(
     } else if (typeof vendorElement.msRequestFullscreen === "function") {
       await vendorElement.msRequestFullscreen();
     }
-  } catch (_error) {
-    // Falha silenciosa caso rejeitado por políticas de permissão do navegador
+  } catch (error) {
+    // Falha silenciosa em UX caso rejeitado por políticas de permissão do navegador, preservando observabilidade
+    console.debug("[FullscreenHandler] Falha ao entrar em tela cheia:", error);
   }
 }
 
@@ -83,17 +82,16 @@ export async function exitDocumentFullscreen(): Promise<void> {
     } else if (typeof vendorDocument.msExitFullscreen === "function") {
       await vendorDocument.msExitFullscreen();
     }
-  } catch (_error) {
-    // Falha silenciosa caso o documento já não esteja em tela cheia
+  } catch (error) {
+    // Falha silenciosa em UX caso o documento já não esteja em tela cheia, preservando observabilidade
+    console.debug("[FullscreenHandler] Falha ao sair da tela cheia:", error);
   }
 }
 
 /**
  * Alterna entre modo janela e tela cheia.
  */
-export async function toggleDocumentFullscreen(
-  targetElement?: HTMLElement
-): Promise<void> {
+export async function toggleDocumentFullscreen(targetElement?: HTMLElement): Promise<void> {
   if (isDocumentFullscreen()) {
     await exitDocumentFullscreen();
   } else {

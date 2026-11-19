@@ -308,4 +308,61 @@ describe("Fase 2.2 — Resolução de Colisões via SpatialHashGrid e queryAABB"
     expect(mockPlayerController.gameObj.pos.x).toBeLessThan(500);
     expect(mockPlayerController.setSpeed).toHaveBeenCalledWith(expect.objectContaining({ x: 0 }));
   });
+
+  it("ajusta a hitbox AABB da baleia conforme o ângulo de inclinação sem falsos positivos em nível", () => {
+    const spatialGrid = getSpatialGrid()!;
+    const overheadIce = {
+      id: "ice_block_angled_1",
+      tag: "ice_block",
+      pos: { x: 470, y: 40 },
+    };
+
+    // Bloco de gelo entre y=40 e y=65 (35px acima do centro y=100 da baleia)
+    spatialGrid.insert(
+      "ice_block_angled_1",
+      overheadIce,
+      { minX: 470, minY: 40, maxX: 530, maxY: 65 },
+      true
+    );
+
+    mockPlayerController.gameObj.pos = { x: 500, y: 100 };
+    mockPlayerController.gameObj.angle = 0;
+
+    setupCollisions(
+      mockEngineContext,
+      mockPlayerController as unknown as PlayerController,
+      mockGameState as unknown as GameState,
+      systemRunner
+    );
+
+    // Em ângulo 0 (halfHeight = 19), y=81..119 não alcança y=65
+    systemRunner.run(0.016);
+    expect(mockPlayerController.gameObj.pos.y).toBe(100);
+
+    // Em inclinação de subida/mergulho (40° -> halfHeight ~49px), detecta o obstáculo acima
+    mockPlayerController.gameObj.angle = -40;
+    systemRunner.run(0.016);
+    expect(mockPlayerController.gameObj.pos.y).toBeGreaterThan(100);
+
+    // Simetria para ângulo positivo (+40°): detecta obstáculo abaixo sem alterar comportamento em 0°
+    mockPlayerController.gameObj.pos = { x: 500, y: 100 };
+    const belowIce = {
+      id: "ice_block_angled_below",
+      tag: "ice_block",
+      pos: { x: 470, y: 135 },
+    };
+    spatialGrid.insert(
+      "ice_block_angled_below",
+      belowIce,
+      { minX: 470, minY: 135, maxX: 530, maxY: 160 },
+      true
+    );
+    mockPlayerController.gameObj.angle = 0;
+    systemRunner.run(0.016);
+    expect(mockPlayerController.gameObj.pos.y).toBe(100);
+
+    mockPlayerController.gameObj.angle = 40;
+    systemRunner.run(0.016);
+    expect(mockPlayerController.gameObj.pos.y).toBeLessThan(100);
+  });
 });

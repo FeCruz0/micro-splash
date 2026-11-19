@@ -90,8 +90,18 @@ function randomInRange(rng: () => number, min: number, max: number): number {
 
 function pickCategory(
   rng: () => number,
-  previousCategory: IcebergCategory | null
+  previousCategory: IcebergCategory | null,
+  dispersionProgress: number = 0
 ): IcebergCategory {
+  if (dispersionProgress >= 0.65) {
+    return rng() < 0.7 ? "small" : "irregular";
+  }
+  if (dispersionProgress >= 0.3) {
+    const midRoll = rng();
+    if (midRoll < 0.45) return "small";
+    if (midRoll < 0.78) return "medium";
+    return "irregular";
+  }
   const categories = Object.keys(CATEGORY_RANGES) as IcebergCategory[];
   let chosen = categories[Math.floor(rng() * categories.length)];
   if (chosen === previousCategory) {
@@ -121,9 +131,19 @@ const GAP_BOUNDS: Record<IcebergGapKind, readonly [number, number]> = {
   wide: [WHALE_JUMP_PHYSICS.WIDE_GAP_MIN, WHALE_JUMP_PHYSICS.WIDE_GAP_MAX],
 };
 
-function computeGapWidth(rng: () => number, kind: IcebergGapKind): number {
+function computeGapWidth(
+  rng: () => number,
+  kind: IcebergGapKind,
+  dispersionProgress: number = 0
+): number {
   const [minGap, maxGap] = GAP_BOUNDS[kind];
-  return Math.round(randomInRange(rng, minGap, maxGap));
+  const baseWidth = randomInRange(rng, minGap, maxGap);
+  if (dispersionProgress <= 0) {
+    return Math.round(baseWidth);
+  }
+  // Alargamento progressivo das aberturas de mar aberto durante a dispersão do gelo
+  const dispersionBoost = dispersionProgress * dispersionProgress * 420 + dispersionProgress * 180;
+  return Math.round(Math.max(WHALE_JUMP_PHYSICS.JUMP_GAP_MIN, baseWidth + dispersionBoost));
 }
 
 function buildSurfaceContour(
@@ -214,12 +234,15 @@ function buildSubmergedContour(
 
 /**
  * Gera a sequência procedural determinística de icebergs flutuantes e aberturas
- * entre x = 0 e totalDistance (5.000m), preservando a polínia inicial em x = 0..240.
+ * entre x = 0 e totalDistance, preservando a polínia inicial em x = 0..245.
+ * Quando `dispersionStartDistance` é informado, reduz gradualmente o porte dos blocos
+ * e amplia o espaçamento em mar aberto até `totalDistance`.
  */
 export function generateProceduralIcebergLayout(
   totalDistance: number = 5000,
   seed: number = DEFAULT_ICEBERG_GENERATION_SEED,
-  seaLevelY: number = GAME_CONFIG.SEA_LEVEL
+  seaLevelY: number = GAME_CONFIG.SEA_LEVEL,
+  dispersionStartDistance?: number
 ): ProceduralIcebergLayout {
   const rng = createSeededRandom(seed);
   const icebergs: ProceduralIcebergSpec[] = [];
@@ -230,14 +253,31 @@ export function generateProceduralIcebergLayout(
   let previousCategory: IcebergCategory | null = null;
   let previousGapKind: IcebergGapKind | null = null;
 
-  while (cursorX + 90 < totalDistance) {
-    const category = pickCategory(rng, previousCategory);
-    const [minW, maxW, minH, maxH, minD, maxD, minP, maxP] = CATEGORY_RANGES[category];
-    const width = Math.min(totalDistance - cursorX, Math.round(randomInRange(rng, minW, maxW)));
-    if (width < 72) break;
+  const hasDispersion =
+    typeof dispersionStartDistance === "number" &&
+    dispersionStartDistance < totalDistance &&
+    dispersionStartDistance >= 0;
 
-    const aboveWaterHeight = Math.round(randomInRange(rng, minH, maxH));
-    const submergedDepth = Math.round(randomInRange(rng, minD, maxD));
+  while (cursorX + 90 < totalDistance) {
+    const dispersionProgress = hasDispersion
+      ? Math.min(
+          1,
+          Math.max(
+            0,
+            (cursorX - dispersionStartDistance) / (totalDistance - dispersionStartDistance)
+          )
+        )
+      : 0;
+
+    const category = pickCategory(rng, previousCategory, dispersionProgress);
+    const [minW, maxW, minH, maxH, minD, maxD, minP, maxP] = CATEGORY_RANGES[category];
+    const sizeScale = 1 - dispersionProgress * 0.35;
+    const rawWidth = randomInRange(rng, minW, maxW) * sizeScale;
+    const width = Math.min(totalDistance - cursorX, Math.max(68, Math.round(rawWidth)));
+    if (width < 68 || cursorX + width > totalDistance) break;
+
+    const aboveWaterHeight = Math.max(12, Math.round(randomInRange(rng, minH, maxH) * sizeScale));
+    const submergedDepth = Math.max(18, Math.round(randomInRange(rng, minD, maxD) * sizeScale));
     const peakCount = Math.min(maxP, Math.max(minP, Math.round(randomInRange(rng, minP, maxP))));
     const leftSlopeFraction = randomInRange(rng, 0.08, 0.18);
     const rightSlopeFraction = randomInRange(rng, 0.08, 0.18);
@@ -279,11 +319,22 @@ export function generateProceduralIcebergLayout(
     previousCategory = category;
 
     if (cursorX + 80 >= totalDistance) {
+      gaps.push({ start: Math.round(cursorX), end: totalDistance });
       break;
     }
 
-    const gapKind = pickGapKind(rng, index, previousGapKind);
-    const gapWidth = computeGapWidth(rng, gapKind);
+    const gapDispersionProgress = hasDispersion
+      ? Math.min(
+          1,
+          Math.max(
+            0,
+            (cursorX - dispersionStartDistance) / (totalDistance - dispersionStartDistance)
+          )
+        )
+      : 0;
+    const gapKind: IcebergGapKind =
+      gapDispersionProgress >= 0.45 ? "wide" : pickGapKind(rng, index, previousGapKind);
+    const gapWidth = computeGapWidth(rng, gapKind, gapDispersionProgress);
     const gapStart = Math.round(cursorX);
     const gapEnd = Math.min(totalDistance, gapStart + gapWidth);
     gaps.push({ start: gapStart, end: gapEnd });
@@ -291,6 +342,12 @@ export function generateProceduralIcebergLayout(
     cursorX = gapEnd;
     previousGapKind = gapKind;
     index++;
+  }
+
+  // Garante que qualquer trecho final livre até totalDistance seja registrado como fenda respirável
+  const lastGapEnd = gaps.length > 0 ? gaps[gaps.length - 1].end : 0;
+  if (cursorX < totalDistance && lastGapEnd < totalDistance) {
+    gaps.push({ start: Math.round(cursorX), end: totalDistance });
   }
 
   return { seed, icebergs, gaps };

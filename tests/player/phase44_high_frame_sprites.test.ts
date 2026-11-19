@@ -50,7 +50,7 @@ describe("Fase 44: Expansão do Spritesheet de Alta Fluidez e Detalhamento Biome
 
     it("garante que todas as definições de animação referenciam frames válidos entre 0 e 15", () => {
       const definitions = Object.values(WHALE_ANIMATION_DEFINITIONS);
-      expect(definitions.length).toBe(6);
+      expect(definitions.length).toBe(7);
 
       for (const def of definitions) {
         expect(def.startFrameIndex).toBeGreaterThanOrEqual(0);

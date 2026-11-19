@@ -21,6 +21,9 @@ export interface CollisionGameObject {
   tags?: string[];
   isStatic?: boolean;
   pos?: { x?: number; y?: number };
+  width?: number;
+  height?: number;
+  bounds?: SpatialAABB;
   is?: (tag: string) => boolean;
   destroy?: () => void;
 }
@@ -41,8 +44,8 @@ export interface CompanionCollisionGameObject extends CollisionGameObject {
   handleNetCollision?: (net: unknown) => void;
 }
 
-export interface CollisionsEngineContext<TDestroyable = unknown> {
-  destroy?: (obj: TDestroyable) => void;
+export interface CollisionsEngineContext {
+  destroy?: (obj: CollisionGameObject) => void;
   time?: () => number;
   shake?: (amount: number) => void;
   onUpdate?: (cb: () => void) => unknown;
@@ -113,13 +116,12 @@ function resolveEntityBounds(
     const gridBounds = spatialGrid.getBounds(entity.id);
     if (gridBounds) return gridBounds;
   }
-  const entityWithBounds = entity as unknown as { bounds?: SpatialAABB };
-  if (entityWithBounds.bounds) {
-    return entityWithBounds.bounds;
+  if (entity.bounds) {
+    return entity.bounds;
   }
   if (entity.pos && typeof entity.pos.x === "number" && typeof entity.pos.y === "number") {
-    const width = (entity as { width?: number }).width ?? 40;
-    const height = (entity as { height?: number }).height ?? 40;
+    const width = entity.width ?? 40;
+    const height = entity.height ?? 40;
     return {
       minX: entity.pos.x,
       minY: entity.pos.y,
@@ -136,8 +138,8 @@ function resolveEntityBounds(
  * Elimina totalmente as varreduras e callbacks legados de k.onCollide, substituindo-os
  * por consultas estritas queryAABB no SpatialHashGrid ao final da fase canônica de colisão.
  */
-export function setupCollisions<TDestroyable = unknown>(
-  engineContext: CollisionsEngineContext<TDestroyable>,
+export function setupCollisions(
+  engineContext: CollisionsEngineContext,
   playerController: PlayerController,
   gameState: GameState,
   systemRunner?: SystemRunner
@@ -160,6 +162,9 @@ export function setupCollisions<TDestroyable = unknown>(
     maxY: 0,
   };
 
+  const reusableCompanionEntities: unknown[] = [];
+  const reusableCompanionSeen = new Set<unknown>();
+
   const runCollisionPhase = (): void => {
     if (!isSystemActive || playerController.isFrozen()) return;
 
@@ -170,11 +175,17 @@ export function setupCollisions<TDestroyable = unknown>(
     if (playerGameObject && playerGameObject.pos) {
       const playerCenterX = playerGameObject.pos.x;
       const playerCenterY = playerGameObject.pos.y;
+      const playerAngleInRadians =
+        (((playerGameObject as { angle?: number }).angle ?? 0) * Math.PI) / 180;
+      const absCos = Math.abs(Math.cos(playerAngleInRadians));
+      const absSin = Math.abs(Math.sin(playerAngleInRadians));
+      const halfHitboxWidth = 54 * absCos + 19 * absSin;
+      const halfHitboxHeight = 54 * absSin + 19 * absCos;
 
-      queryBoundingBox.minX = playerCenterX - 54;
-      queryBoundingBox.minY = playerCenterY - 19;
-      queryBoundingBox.maxX = playerCenterX + 54;
-      queryBoundingBox.maxY = playerCenterY + 19;
+      queryBoundingBox.minX = playerCenterX - halfHitboxWidth;
+      queryBoundingBox.minY = playerCenterY - halfHitboxHeight;
+      queryBoundingBox.maxX = playerCenterX + halfHitboxWidth;
+      queryBoundingBox.maxY = playerCenterY + halfHitboxHeight;
 
       const nearbyCollisionEntities = spatialGrid.queryAABB(queryBoundingBox);
       const totalCandidates = nearbyCollisionEntities.length;
@@ -198,7 +209,7 @@ export function setupCollisions<TDestroyable = unknown>(
             spatialGrid.remove(candidateEntity.id);
           }
           if (typeof engineContext.destroy === "function") {
-            engineContext.destroy(candidateEntity as unknown as TDestroyable);
+            engineContext.destroy(candidateEntity);
           }
           if (typeof candidateEntity.destroy === "function") {
             candidateEntity.destroy();
@@ -256,7 +267,7 @@ export function setupCollisions<TDestroyable = unknown>(
             spatialGrid.remove(candidateEntity.id);
           }
           if (typeof engineContext.destroy === "function") {
-            engineContext.destroy(candidateEntity as unknown as TDestroyable);
+            engineContext.destroy(candidateEntity);
           }
           if (typeof candidateEntity.destroy === "function") {
             candidateEntity.destroy();
@@ -285,7 +296,7 @@ export function setupCollisions<TDestroyable = unknown>(
             spatialGrid.remove(candidateEntity.id);
           }
           if (typeof engineContext.destroy === "function") {
-            engineContext.destroy(candidateEntity as unknown as TDestroyable);
+            engineContext.destroy(candidateEntity);
           }
           if (typeof candidateEntity.destroy === "function") {
             candidateEntity.destroy();
@@ -309,17 +320,7 @@ export function setupCollisions<TDestroyable = unknown>(
             );
           }
 
-          const rawPlayer = (playerGameObject ?? playerController.gameObj) as unknown as {
-            netOverlaySprite?: {
-              visible?: boolean;
-              hidden?: boolean;
-              opacity?: number;
-              alpha?: number;
-              setVisible?: (visible: boolean) => void;
-              setOpacity?: (alpha: number) => void;
-            };
-          };
-          const netOverlay = rawPlayer?.netOverlaySprite;
+          const netOverlay = (playerGameObject ?? playerController.gameObj)?.netOverlaySprite;
           if (netOverlay) {
             netOverlay.visible = true;
             netOverlay.hidden = false;
@@ -475,12 +476,32 @@ export function setupCollisions<TDestroyable = unknown>(
     const contextCompanionEntities =
       typeof engineContext.get === "function" ? engineContext.get("companion_whale") : [];
     const activeNativeCompanions = getActiveCompanionWhaleObjects();
-    const companionEntities = Array.from(
-      new Set<unknown>([...activeNativeCompanions, ...contextCompanionEntities])
-    );
 
-    for (let cIndex = 0; cIndex < companionEntities.length; cIndex++) {
-      const companionObject = companionEntities[cIndex] as CompanionCollisionGameObject;
+    reusableCompanionEntities.length = 0;
+    if (contextCompanionEntities.length === 0) {
+      for (let i = 0; i < activeNativeCompanions.length; i++) {
+        reusableCompanionEntities.push(activeNativeCompanions[i]);
+      }
+    } else {
+      reusableCompanionSeen.clear();
+      for (let i = 0; i < activeNativeCompanions.length; i++) {
+        const companion = activeNativeCompanions[i];
+        if (!reusableCompanionSeen.has(companion)) {
+          reusableCompanionSeen.add(companion);
+          reusableCompanionEntities.push(companion);
+        }
+      }
+      for (let i = 0; i < contextCompanionEntities.length; i++) {
+        const companion = contextCompanionEntities[i];
+        if (!reusableCompanionSeen.has(companion)) {
+          reusableCompanionSeen.add(companion);
+          reusableCompanionEntities.push(companion);
+        }
+      }
+    }
+
+    for (let cIndex = 0; cIndex < reusableCompanionEntities.length; cIndex++) {
+      const companionObject = reusableCompanionEntities[cIndex] as CompanionCollisionGameObject;
       if (
         !companionObject ||
         !companionObject.pos ||
@@ -517,7 +538,7 @@ export function setupCollisions<TDestroyable = unknown>(
               spatialGrid.remove(candidateEntity.id);
             }
             if (typeof engineContext.destroy === "function") {
-              engineContext.destroy(candidateEntity as unknown as TDestroyable);
+              engineContext.destroy(candidateEntity);
             }
             audioSystem.playKrillGulp(candidateEntity.pos?.x, companionObject.pos.x);
           }
@@ -573,6 +594,8 @@ export function setupCollisions<TDestroyable = unknown>(
         }
       }
     }
+    reusableCompanionEntities.length = 0;
+    reusableCompanionSeen.clear();
   };
 
   if (systemRunner) {

@@ -173,11 +173,12 @@ describe("Fase 68 / Etapa 3: Estética 16-Bits do Gelo e Santuário de Arraial d
           drawRect: vi.fn(),
           setPosition: vi.fn(),
           setZIndex: vi.fn(),
+          freeze: vi.fn(),
         })),
       };
 
       const createdNodes = renderVisibleFacetedGlacierCliff(mockEngine as any, { source: {} });
-      expect(createdNodes.length).toBe(2);
+      expect(createdNodes.length).toBe(1);
 
       const spriteTiles = addedChildren.filter((node) => node.type === "sprite");
       expect(spriteTiles.length).toBe(0);
@@ -185,11 +186,10 @@ describe("Fase 68 / Etapa 3: Estética 16-Bits do Gelo e Santuário de Arraial d
       const cliffGraphic = addedChildren.find((node) => node.id === "iceberg_cliff_front");
       const snowGraphic = addedChildren.find((node) => node.id === "iceberg_cliff_snow");
       expect(cliffGraphic).toBeDefined();
-      expect(snowGraphic).toBeDefined();
+      expect(snowGraphic).toBeUndefined();
       expect(cliffGraphic.setPosition).toHaveBeenCalledWith(0, 0);
       expect(cliffGraphic.setZIndex).toHaveBeenCalledWith(GLACIER_CLIFF_FRONT_Z_INDEX);
-      expect(snowGraphic.setPosition).toHaveBeenCalledWith(0, 0);
-      expect(snowGraphic.setZIndex).toHaveBeenCalledWith(GLACIER_CLIFF_SNOW_Z_INDEX);
+      expect(cliffGraphic.freeze).toHaveBeenCalledWith(true);
 
       // Falésia deve cobrir completamente a margem esquerda até o limite absoluto do mundo sem recortes
       const cliffCalls = cliffGraphic.drawPolygon.mock.calls;
@@ -198,16 +198,6 @@ describe("Fase 68 / Etapa 3: Estética 16-Bits do Gelo e Santuário de Arraial d
       const positiveBoundaryVertices = outerBathyalPoints.filter((point) => point.x > 0);
       expect(positiveBoundaryVertices.length).toBeGreaterThanOrEqual(6);
       expect(outerBathyalPoints.some((point) => point.x <= GLACIER_CLIFF_BASE_OFFSET_X)).toBe(true);
-
-      // Cornija de neve deve permanecer restrita ao topo da geleira (0 <= y <= 36), estendendo-se até o limite esquerdo
-      const snowCalls = snowGraphic.drawPolygon.mock.calls;
-      expect(snowCalls.length).toBeGreaterThanOrEqual(1);
-      const snowPoints = snowCalls[0][0] as Array<{ x: number; y: number }>;
-      const maxSnowY = Math.max(...snowPoints.map((point) => point.y));
-      const minSnowY = Math.min(...snowPoints.map((point) => point.y));
-      expect(minSnowY).toBeGreaterThanOrEqual(0);
-      expect(maxSnowY).toBeLessThanOrEqual(36);
-      expect(snowPoints.some((point) => point.x <= GLACIER_CLIFF_BASE_OFFSET_X)).toBe(true);
 
       // attachWallToWorldContainer deve anexar diretamente ao worldContainer com coordenadas e zIndex explícitos
       const customNode = { setPosition: vi.fn(), setZIndex: vi.fn() } as any;

@@ -9,26 +9,10 @@
  * 4. Paleta centralizada por estado de fôlego e oxigênio (Breath Palette).
  */
 
-import {
-  calculateWhalePuppetRig,
-  type PuppetRigParameters,
-  type PuppetRigTransforms,
-} from "./playerPuppetRig";
-import {
-  calculateWhaleSliceTransforms,
-  type WhaleSliceComputationParameters,
-  type WhaleSliceData,
-} from "./playerSliceRenderer";
-import {
-  calculatePectoralFinTransforms,
-  type PectoralFinComputationParameters,
-  type DualPectoralFinsData,
-} from "./playerPectoralFin";
-import {
-  getWhaleBreathColor,
-  type WhaleColorPalette,
-  type BreathPaletteParameters,
-} from "./playerBreathPalette";
+import { calculateWhalePuppetRig, type PuppetRigTransforms } from "./playerPuppetRig";
+import { calculateWhaleSliceTransforms, type WhaleSliceData } from "./playerSliceRenderer";
+import { calculatePectoralFinTransforms, type DualPectoralFinsData } from "./playerPectoralFin";
+import { getWhaleBreathColor, type WhaleColorPalette } from "./playerBreathPalette";
 
 export interface WhaleRenderPipelineParameters {
   /** Ângulo direcional de orientação do corpo em graus */
@@ -85,88 +69,33 @@ export interface WhaleRenderPipelineSnapshot {
  */
 export function executeWhaleRenderPipeline(
   parameters: WhaleRenderPipelineParameters,
-  reusableSliceBuffer?: WhaleSliceData[]
+  reusableSliceBuffer?: WhaleSliceData[],
+  reusablePuppetRigBuffer?: PuppetRigTransforms,
+  reusableSnapshotBuffer?: WhaleRenderPipelineSnapshot
 ): WhaleRenderPipelineSnapshot {
-  const {
-    bodyAngleInDegrees,
-    spineCurvatureInDegrees,
-    pitchFlexionInDegrees,
-    pitchAngularVelocity,
-    strokeProgress,
-    isMuscularStroke,
-    horizontalSpeed,
-    verticalSpeed,
-    idleBlendFactor,
-    currentRoll,
-    timeInSeconds,
-    isFacingRight,
-    oxygenRatio,
-    isTrapped,
-    isFainting,
-    isHighContrast,
-    isReducedMotion,
-  } = parameters;
-
-  // 1. Passo 1: Resolução da cinemática direta do Puppet Rig
-  const puppetRigParameters: PuppetRigParameters = {
-    bodyAngleInDegrees,
-    spineCurvatureInDegrees,
-    pitchAngularVelocity,
-    strokeProgress,
-    isMuscularStroke,
-    horizontalSpeed,
-    verticalSpeed,
-    idleBlendFactor,
-    timeInSeconds,
-    isFacingRight,
-    isReducedMotion,
-  };
-  const puppetRig = calculateWhalePuppetRig(puppetRigParameters);
+  // 1. Passo 1: Resolução da cinemática direta do Puppet Rig (reutilizando buffer se fornecido)
+  const puppetRig = calculateWhalePuppetRig(parameters, reusablePuppetRigBuffer);
 
   // 2. Passo 2: Deformação sagital por fatiamento acoplada dinamicamente ao rig
-  const sliceParameters: WhaleSliceComputationParameters = {
-    spineCurvatureInDegrees,
-    pitchFlexionInDegrees,
-    pitchAngularVelocity,
-    strokeProgress,
-    isMuscularStroke,
-    timeInSeconds,
-    horizontalSpeed,
-    idleBlendFactor,
-    isFacingRight,
-    puppetRig,
-    isReducedMotion,
-  };
-  const slices = calculateWhaleSliceTransforms(sliceParameters, reusableSliceBuffer);
+  const slices = calculateWhaleSliceTransforms(parameters, reusableSliceBuffer, puppetRig);
 
   // 3. Passo 3: Cinemática dos hidroplanos peitorais ancorados ao tórax
-  const pectoralFinParameters: PectoralFinComputationParameters = {
-    bodyAngleInDegrees,
-    pitchAngularVelocity,
-    spineCurvatureInDegrees,
-    currentRoll,
-    horizontalSpeed,
-    strokeProgress,
-    isMuscularStroke,
-    idleBlendFactor,
-    timeInSeconds,
-    isFacingRight,
-    isReducedMotion,
-  };
-  const pectoralFins = calculatePectoralFinTransforms(pectoralFinParameters);
+  const pectoralFins = calculatePectoralFinTransforms(parameters);
 
   // 4. Passo 4: Paleta cromática centralizada por estado respiratório
-  const breathParameters: BreathPaletteParameters = {
-    oxygenRatio,
-    isTrapped,
-    isFainting,
-    isHighContrast,
-    timeInSeconds,
-  };
-  const palette = getWhaleBreathColor(breathParameters);
+  const palette = getWhaleBreathColor(parameters);
+
+  if (reusableSnapshotBuffer) {
+    reusableSnapshotBuffer.timestamp = parameters.timeInSeconds;
+    reusableSnapshotBuffer.puppetRig = puppetRig;
+    reusableSnapshotBuffer.slices = slices;
+    reusableSnapshotBuffer.pectoralFins = pectoralFins;
+    reusableSnapshotBuffer.palette = palette;
+    return reusableSnapshotBuffer;
+  }
 
   return {
-    timestamp: timeInSeconds,
+    timestamp: parameters.timeInSeconds,
     puppetRig,
     slices,
     pectoralFins,

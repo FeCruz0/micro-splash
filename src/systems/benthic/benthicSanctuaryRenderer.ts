@@ -2,7 +2,7 @@
  * Renderizador de corais 16-bits e peixes de recife de Arraial do Cabo.
  */
 
-import { calculateBiomeTransitionFactor } from "../biomeTransitionSystem";
+import { calculateAsymmetricTransitionFactor } from "../biomeTransitionSystem";
 import type { IRenderEngine } from "../../engine/contracts/INTERFACE_CONTRACTS";
 import { resolveWorldRenderContainer } from "../../engine/adapters/RenderEngineAdapter";
 import {
@@ -38,7 +38,14 @@ export function setupBenthicSanctuary(
   const reefFishList: ReefFishData[] = [];
 
   CORAL_SPAWN_X.forEach((xPos, cIdx) => {
-    calculateBiomeTransitionFactor(xPos, 19000, 30000, 300);
+    const sanctuaryRecoveryFactor = calculateAsymmetricTransitionFactor(
+      xPos,
+      24000,
+      26000,
+      Infinity,
+      Infinity
+    );
+    const coralScale = 0.72 + 0.28 * sanctuaryRecoveryFactor;
     const coralType = cIdx % 3 === 0 ? "brain" : cIdx % 3 === 1 ? "fan" : "anemone";
 
     if (sanctuary16Bit.available) {
@@ -47,6 +54,7 @@ export function setupBenthicSanctuary(
         const brainSprite = realEngine.createSprite(brainTex, "coral_brain_16bit");
         brainSprite.setAnchor(0.5, 1.0);
         brainSprite.setPosition(xPos, floorY);
+        brainSprite.setScale(coralScale, coralScale);
         brainSprite.setZIndex(-3);
         worldContainer.addChild(brainSprite);
         corals.push({
@@ -60,6 +68,7 @@ export function setupBenthicSanctuary(
         const fanSprite = realEngine.createSprite(fanTex, "coral_fan_16bit");
         fanSprite.setAnchor(0.5, 1.0);
         fanSprite.setPosition(xPos, floorY);
+        fanSprite.setScale(coralScale, coralScale);
         fanSprite.setZIndex(-3);
         worldContainer.addChild(fanSprite);
         corals.push({
@@ -77,6 +86,7 @@ export function setupBenthicSanctuary(
         const anemoneSprite = realEngine.createSprite(anemoneTex, "coral_anemone_16bit");
         anemoneSprite.setAnchor(0.5, 1.0);
         anemoneSprite.setPosition(xPos, floorY);
+        anemoneSprite.setScale(coralScale, coralScale);
         anemoneSprite.setZIndex(-3);
         worldContainer.addChild(anemoneSprite);
 
@@ -200,7 +210,7 @@ export function setupBenthicSanctuary(
       }
     }
 
-    if (cIdx % 2 === 0) {
+    if (cIdx % 2 === 0 || (xPos >= 25000 && cIdx % 3 === 0)) {
       const fishBasePos: MutableVec2 = { x: xPos + 15, y: floorY - 45 - (cIdx % 3) * 15 };
       let fishNode: BenthicRenderNode;
 

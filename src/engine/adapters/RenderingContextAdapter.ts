@@ -502,6 +502,8 @@ export function createRenderingContext(
   const globalCollisionUpdateListenersList: GlobalCollisionListenerRegistration[] = [];
   const globalCollisionEndListenersList: GlobalCollisionListenerRegistration[] = [];
   const taggedEntitiesMap = new Map<string, Set<unknown>>();
+  const taggedArrayCache = new Map<string, readonly unknown[]>();
+  const EMPTY_TAGGED_ARRAY: readonly unknown[] = Object.freeze([]);
 
   const flushActiveSceneResources = (): void => {
     while (sceneLeaveCallbacksList.length > 0) {
@@ -525,6 +527,7 @@ export function createRenderingContext(
     globalCollisionUpdateListenersList.length = 0;
     globalCollisionEndListenersList.length = 0;
     taggedEntitiesMap.clear();
+    taggedArrayCache.clear();
   };
 
   const matchesTag = (entity: unknown, expectedTag: string, providedTag?: string): boolean => {
@@ -1643,8 +1646,10 @@ export function createRenderingContext(
               entityVisualNode.destroy();
               entityVisualNode = null;
             }
-            for (const entitySet of taggedEntitiesMap.values()) {
-              entitySet.delete(entityInstance);
+            for (const [tagKey, entitySet] of taggedEntitiesMap.entries()) {
+              if (entitySet.delete(entityInstance)) {
+                taggedArrayCache.delete(tagKey);
+              }
             }
           },
         };
@@ -1666,6 +1671,7 @@ export function createRenderingContext(
                 taggedEntitiesMap.set(updatedTagIdentifier, targetTaggedBucket);
               }
               targetTaggedBucket.add(entityInstance);
+              taggedArrayCache.delete(updatedTagIdentifier);
             } else {
               primaryEntityTagIdentifier = undefined;
             }
@@ -1692,6 +1698,7 @@ export function createRenderingContext(
               taggedEntitiesMap.set(rawComponent, taggedBucket);
             }
             taggedBucket.add(entityInstance);
+            taggedArrayCache.delete(rawComponent);
           } else if (rawComponent && typeof rawComponent === "object") {
             const componentRecord = rawComponent as Record<string, unknown>;
             if (
@@ -1820,6 +1827,8 @@ export function createRenderingContext(
                   taggedEntitiesMap.set(componentRecord.tag, taggedBucket);
                 }
                 taggedBucket.add(entityInstance);
+                taggedArrayCache.delete(componentRecord.tag);
+                taggedArrayCache.delete(rawComponent);
               }
               if (
                 "onDestroy" in componentRecord &&
@@ -2291,6 +2300,7 @@ export function createRenderingContext(
           taggedEntitiesMap.set("*", universalTaggedBucket);
         }
         universalTaggedBucket.add(entityInstance);
+        taggedArrayCache.delete("*");
 
         if (entityVisualNode && !parentEntityVisualNode) {
           sceneCleanupCallbacksList.push(() => {
@@ -2314,8 +2324,10 @@ export function createRenderingContext(
           destroyAction.call(targetEntity);
         }
       }
-      for (const taggedSet of taggedEntitiesMap.values()) {
-        taggedSet.delete(targetEntity);
+      for (const [tagKey, taggedSet] of taggedEntitiesMap.entries()) {
+        if (taggedSet.delete(targetEntity)) {
+          taggedArrayCache.delete(tagKey);
+        }
       }
     },
 
@@ -2630,7 +2642,15 @@ export function createRenderingContext(
 
     get(tagIdentifier: string): unknown[] {
       const taggedBucket = taggedEntitiesMap.get(tagIdentifier);
-      return taggedBucket ? Array.from(taggedBucket) : [];
+      if (!taggedBucket || taggedBucket.size === 0) {
+        return EMPTY_TAGGED_ARRAY as unknown[];
+      }
+      let cachedArray = taggedArrayCache.get(tagIdentifier);
+      if (!cachedArray) {
+        cachedArray = Object.freeze(Array.from(taggedBucket));
+        taggedArrayCache.set(tagIdentifier, cachedArray);
+      }
+      return cachedArray as unknown[];
     },
 
     onCollide(

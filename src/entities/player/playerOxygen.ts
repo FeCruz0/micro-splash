@@ -137,7 +137,8 @@ export class PlayerOxygenManager {
     }
 
     const isAtSurface = pos.y <= GAME_CONFIG.SEA_LEVEL + 40;
-    const canBreathe = isAtSurface && isPositionInIceGap(pos.x);
+    const blowholeX = pos.x + (facingRight ? 22 : -22);
+    const canBreathe = isAtSurface && isPositionInIceGap(blowholeX);
 
     // Enseada final de Arraial do Cabo (>= 29.600m): refúgio seguro da vitória
     if (pos.x >= GAME_CONFIG.ROUTE_TOTAL_DISTANCE - 400) {
@@ -180,12 +181,11 @@ export class PlayerOxygenManager {
     } else {
       const currentMaxOx = this.getMaxOxygen();
       if (this.oxygen < currentMaxOx) {
-        const hadLowOxygen = this.oxygen < GAME_CONFIG.BLOWHOLE_OXYGEN_THRESHOLD;
         this.oxygen = currentMaxOx;
         this.blackoutTimer = GAME_CONFIG.BLACKOUT_GRACE_TIME;
         safeShake(this.k, 2);
 
-        if (hadLowOxygen && this.spoutCooldown <= 0) {
+        if (this.spoutCooldown <= 0) {
           this.spoutCooldown = 2.0;
           spawnBlowholeSpout(this.k, pos, facingRight, currentSpeedX);
         }

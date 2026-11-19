@@ -29,7 +29,7 @@ export interface CameraShakeContext {
  * @param shakeIntensityInPixels Intensidade do tremor em pixels.
  */
 export function safeShake(
-  engineOrContext: CameraShakeContext | IRenderEngine | unknown,
+  engineOrContext: CameraShakeContext | IRenderEngine | null | undefined,
   shakeIntensityInPixels: number
 ): void {
   if (!engineOrContext) return;

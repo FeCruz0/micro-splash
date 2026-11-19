@@ -95,11 +95,13 @@ export function renderVisibleFacetedGlacierCliff(
   const cliffFrontGraphics = engine.createGraphics("iceberg_cliff_front");
   const cliffLayers = createSubmergedGlacierCliffLayers(screenHeight, seaLevelY, snowCrestHeight);
   for (const cliffLayer of cliffLayers) {
+    if (cliffLayer.alpha <= 0) continue;
     cliffFrontGraphics.drawPolygon(cliffLayer.points, {
       fill: { color: cliffLayer.color, alpha: cliffLayer.alpha },
       ...(cliffLayer.stroke ? { stroke: cliffLayer.stroke } : {}),
     });
   }
+  cliffFrontGraphics.freeze?.(true);
   createdNodes.push(
     attachWallToWorldContainer(
       worldContainer,
@@ -110,18 +112,29 @@ export function renderVisibleFacetedGlacierCliff(
     )
   );
 
-  // 2. Cornija superior de neve alinhada exatamente ao topo da geleira (zIndex = 15)
-  const cliffSnowGraphics = engine.createGraphics("iceberg_cliff_snow");
-  const snowLayers = createAlpineSnowCrestLayers(snowCrestHeight);
-  for (const snowLayer of snowLayers) {
-    cliffSnowGraphics.drawPolygon(snowLayer.points, {
-      fill: { color: snowLayer.color, alpha: snowLayer.alpha },
-      ...(snowLayer.stroke ? { stroke: snowLayer.stroke } : {}),
-    });
-  }
-  createdNodes.push(
-    attachWallToWorldContainer(worldContainer, cliffSnowGraphics, 0, 0, GLACIER_CLIFF_SNOW_Z_INDEX)
+  // 2. Cornija superior de neve (somente instancia nó se houver camadas visíveis com alpha > 0)
+  const visibleSnowLayers = createAlpineSnowCrestLayers(snowCrestHeight).filter(
+    (snowLayer) => snowLayer.alpha > 0
   );
+  if (visibleSnowLayers.length > 0) {
+    const cliffSnowGraphics = engine.createGraphics("iceberg_cliff_snow");
+    for (const snowLayer of visibleSnowLayers) {
+      cliffSnowGraphics.drawPolygon(snowLayer.points, {
+        fill: { color: snowLayer.color, alpha: snowLayer.alpha },
+        ...(snowLayer.stroke ? { stroke: snowLayer.stroke } : {}),
+      });
+    }
+    cliffSnowGraphics.freeze?.(true);
+    createdNodes.push(
+      attachWallToWorldContainer(
+        worldContainer,
+        cliffSnowGraphics,
+        0,
+        0,
+        GLACIER_CLIFF_SNOW_Z_INDEX
+      )
+    );
+  }
 
   const polarIceSpatialGrid = getSpatialGrid();
   if (polarIceSpatialGrid) {

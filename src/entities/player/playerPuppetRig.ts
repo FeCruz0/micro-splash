@@ -127,7 +127,10 @@ export function calculateFlukeAngleOfAttackInDegrees(parameters: PuppetRigParame
  * @param parameters - Parâmetros biomecânicos e hidrodinâmicos da baleia.
  * @returns Árvore hierárquica e posições absolutas de cada nó esquelético.
  */
-export function calculateWhalePuppetRig(parameters: PuppetRigParameters): PuppetRigTransforms {
+export function calculateWhalePuppetRig(
+  parameters: PuppetRigParameters,
+  targetBuffer?: PuppetRigTransforms
+): PuppetRigTransforms {
   const {
     bodyAngleInDegrees,
     spineCurvatureInDegrees,
@@ -186,7 +189,8 @@ export function calculateWhalePuppetRig(parameters: PuppetRigParameters): Puppet
   const cranialRootBaseX = isFacingRight ? 20 : -20;
   const cranialRootBaseY = 0;
 
-  function computeBoneSegment(
+  function writeBoneSegment(
+    targetBone: PuppetBoneNode | undefined,
     name: "cranialThorax" | "abdominalSpine" | "caudalPeduncle" | "flukeBlade",
     baseX: number,
     baseY: number,
@@ -201,21 +205,36 @@ export function calculateWhalePuppetRig(parameters: PuppetRigParameters): Puppet
 
     const tipX = baseX + deltaX;
     const tipY = baseY + deltaY;
+    const dirRelativeAngle = isFacingRight ? relativeAngle : -relativeAngle;
+    const dirBodyAngle = isFacingRight
+      ? bodyAngleInDegrees + accumulatedBodyAngle
+      : bodyAngleInDegrees - accumulatedBodyAngle;
+
+    if (targetBone) {
+      targetBone.name = name;
+      targetBone.lengthInPixels = boneLengthInPixels;
+      targetBone.baseLocalOffset.x = baseX;
+      targetBone.baseLocalOffset.y = baseY;
+      targetBone.tipLocalOffset.x = tipX;
+      targetBone.tipLocalOffset.y = tipY;
+      targetBone.relativeAngleInDegrees = dirRelativeAngle;
+      targetBone.bodyAngleInDegrees = dirBodyAngle;
+      return targetBone;
+    }
 
     return {
       name,
       lengthInPixels: boneLengthInPixels,
       baseLocalOffset: { x: baseX, y: baseY },
       tipLocalOffset: { x: tipX, y: tipY },
-      relativeAngleInDegrees: isFacingRight ? relativeAngle : -relativeAngle,
-      bodyAngleInDegrees: isFacingRight
-        ? bodyAngleInDegrees + accumulatedBodyAngle
-        : bodyAngleInDegrees - accumulatedBodyAngle,
+      relativeAngleInDegrees: dirRelativeAngle,
+      bodyAngleInDegrees: dirBodyAngle,
     };
   }
 
   // Resolução sequencial dos nós na cadeia cinemática
-  const cranialThorax = computeBoneSegment(
+  const cranialThorax = writeBoneSegment(
+    targetBuffer?.cranialThorax,
     "cranialThorax",
     cranialRootBaseX,
     cranialRootBaseY,
@@ -224,7 +243,8 @@ export function calculateWhalePuppetRig(parameters: PuppetRigParameters): Puppet
     accumulatedAngleCranialInDegrees
   );
 
-  const abdominalSpine = computeBoneSegment(
+  const abdominalSpine = writeBoneSegment(
+    targetBuffer?.abdominalSpine,
     "abdominalSpine",
     cranialThorax.tipLocalOffset.x,
     cranialThorax.tipLocalOffset.y,
@@ -233,7 +253,8 @@ export function calculateWhalePuppetRig(parameters: PuppetRigParameters): Puppet
     accumulatedAngleAbdominalInDegrees
   );
 
-  const caudalPeduncle = computeBoneSegment(
+  const caudalPeduncle = writeBoneSegment(
+    targetBuffer?.caudalPeduncle,
     "caudalPeduncle",
     abdominalSpine.tipLocalOffset.x,
     abdominalSpine.tipLocalOffset.y,
@@ -242,7 +263,8 @@ export function calculateWhalePuppetRig(parameters: PuppetRigParameters): Puppet
     accumulatedAnglePeduncleInDegrees
   );
 
-  const flukeBlade = computeBoneSegment(
+  const flukeBlade = writeBoneSegment(
+    targetBuffer?.flukeBlade,
     "flukeBlade",
     caudalPeduncle.tipLocalOffset.x,
     caudalPeduncle.tipLocalOffset.y,
@@ -250,6 +272,15 @@ export function calculateWhalePuppetRig(parameters: PuppetRigParameters): Puppet
     relativeAngleFlukeInDegrees,
     accumulatedAngleFlukeInDegrees
   );
+
+  if (targetBuffer) {
+    targetBuffer.flukeAngleOfAttackInDegrees = flukeAngleOfAttackInDegrees;
+    targetBuffer.bones[0] = cranialThorax;
+    targetBuffer.bones[1] = abdominalSpine;
+    targetBuffer.bones[2] = caudalPeduncle;
+    targetBuffer.bones[3] = flukeBlade;
+    return targetBuffer;
+  }
 
   return {
     cranialThorax,

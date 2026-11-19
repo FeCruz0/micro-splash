@@ -1,12 +1,24 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { PlayerOxygenManager } from "../../src/entities/player/playerOxygen";
+import * as playerParticles from "../../src/entities/player/playerParticles";
 import { GAME_CONFIG } from "../../src/config";
+import { setActiveIceGaps, resetActiveIceGaps } from "../../src/systems/ice/iceGaps";
 
 function createMockKaboom() {
+  const vec2 = (x: number, y: number): any => ({
+    x,
+    y,
+    len: () => Math.sqrt(x * x + y * y),
+    scale: (s: number) => vec2(x * s, y * s),
+    add: (other: { x: number; y: number }) => vec2(x + other.x, y + other.y),
+  });
   return {
     shake: () => {},
-    vec2: (x: number, y: number) => ({ x, y, len: () => Math.sqrt(x * x + y * y) }),
-    add: () => ({ onUpdate: () => {} }),
+    vec2,
+    rand: (min: number, max: number) => (min + max) * 0.5,
+    deg2rad: (deg: number) => (deg * Math.PI) / 180,
+    rgb: (r: number, g: number, b: number) => ({ r, g, b }),
+    add: () => ({ onUpdate: () => {}, pos: { x: 0, y: 0 }, opacity: 1 }),
     circle: () => {},
     pos: () => {},
     color: () => {},
@@ -73,5 +85,71 @@ describe("PlayerOxygenManager: Sistema de Fôlego Inteligente", () => {
     expect(oxygenAfterRest).toBeCloseTo(98, 1);
     // Dreno em velocidade máxima: 100 - (1.0 * 5 * 1.6) = 92
     expect(oxygenAfterFast).toBeCloseTo(92, 1);
+  });
+
+  it("verifica respiração direcional pelo espiráculo nas bordas da fenda de gelo", () => {
+    setActiveIceGaps([{ start: 600, end: 750 }]);
+    try {
+      const k = createMockKaboom();
+      k.shake = vi.fn();
+
+      // Drena um pouco de oxigênio primeiro
+      const oxLeft = new PlayerOxygenManager(k);
+      oxLeft.update(1.0, k.vec2(500, 200), k.vec2(0, 0), true, false, false);
+      expect(oxLeft.getOxygen()).toBeLessThan(100);
+
+      // Aproximando pela esquerda (x = 590): virada para direita (espiráculo em 612) DEVE respirar
+      oxLeft.update(0.1, k.vec2(590, GAME_CONFIG.SEA_LEVEL + 10), k.vec2(0, 0), true, false, false);
+      expect(oxLeft.getOxygen()).toBe(100);
+
+      // Mesma posição (x = 590), porém virada para a esquerda (espiráculo em 568, sob o gelo) NÃO deve respirar
+      const oxLeftOpposite = new PlayerOxygenManager(k);
+      oxLeftOpposite.update(1.0, k.vec2(500, 200), k.vec2(0, 0), false, false, false);
+      const drainedBefore = oxLeftOpposite.getOxygen();
+      oxLeftOpposite.update(
+        0.1,
+        k.vec2(590, GAME_CONFIG.SEA_LEVEL + 10),
+        k.vec2(0, 0),
+        false,
+        false,
+        false
+      );
+      expect(oxLeftOpposite.getOxygen()).toBeLessThan(drainedBefore);
+
+      // Aproximando pela direita (x = 762): virada para esquerda (espiráculo em 740) DEVE respirar
+      const oxRight = new PlayerOxygenManager(k);
+      oxRight.update(1.0, k.vec2(500, 200), k.vec2(0, 0), false, false, false);
+      oxRight.update(
+        0.1,
+        k.vec2(762, GAME_CONFIG.SEA_LEVEL + 10),
+        k.vec2(0, 0),
+        false,
+        false,
+        false
+      );
+      expect(oxRight.getOxygen()).toBe(100);
+
+      // Limite máximo (101 após 1 krill) e cooldown de 2s no borrifo
+      const spoutSpy = vi.spyOn(playerParticles, "spawnBlowholeSpout");
+      const oxCap = new PlayerOxygenManager(k);
+      oxCap.consumeKrill();
+      expect(oxCap.getMaxOxygen()).toBe(101);
+      oxCap.update(1.0, k.vec2(500, 200), k.vec2(0, 0), true, false, false);
+      expect(oxCap.getOxygen()).toBeLessThan(101);
+
+      // Primeira respiração na fenda: restaura exatamente até getMaxOxygen() (101) e emite borrifo
+      oxCap.update(0.1, k.vec2(650, GAME_CONFIG.SEA_LEVEL + 10), k.vec2(0, 0), true, false, false);
+      expect(oxCap.getOxygen()).toBe(101);
+      expect(spoutSpy).toHaveBeenCalledTimes(1);
+
+      // Segunda respiração dentro de 2.0s: restaura oxigênio sem emitir novo borrifo (cooldown ativo)
+      oxCap.update(0.5, k.vec2(500, 200), k.vec2(0, 0), true, false, false);
+      oxCap.update(0.1, k.vec2(650, GAME_CONFIG.SEA_LEVEL + 10), k.vec2(0, 0), true, false, false);
+      expect(oxCap.getOxygen()).toBe(101);
+      expect(spoutSpy).toHaveBeenCalledTimes(1);
+      spoutSpy.mockRestore();
+    } finally {
+      resetActiveIceGaps();
+    }
   });
 });

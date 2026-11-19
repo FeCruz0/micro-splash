@@ -3,6 +3,7 @@ import { accessibilitySystem } from "../systems/accessibilitySystem";
 import { getRandomFloat, getRandomInteger } from "../utils/random";
 import { getActivePlayerObject } from "./player";
 import { getParticlePool } from "../systems/particlePool";
+import { getSpatialGrid, type SpatialAABB } from "../systems/spatialHashGrid";
 import { getEntityFamilyTicker } from "../systems/entityFamilyTicker";
 import {
   registerSonarTarget,
@@ -12,10 +13,25 @@ import {
 import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { resolveWorldRenderContainer } from "../engine/adapters/RenderEngineAdapter";
 import {
-  createNativeCircleNode,
+  createNativePolygonNode,
   createNativeRectNode,
   type NativeVisualObjectAdapter,
 } from "../engine/adapters/NativeRenderNodeFactory";
+
+function createOctagonPoints(
+  radius: number,
+  rotationOffsetRadians: number = 0
+): Array<{ x: number; y: number }> {
+  const points: Array<{ x: number; y: number }> = [];
+  for (let i = 0; i < 8; i++) {
+    const angle = (i / 8) * Math.PI * 2 + rotationOffsetRadians;
+    points.push({
+      x: Math.round(Math.cos(angle) * radius),
+      y: Math.round(Math.sin(angle) * radius),
+    });
+  }
+  return points;
+}
 
 export interface KrillVector2D {
   x: number;
@@ -27,6 +43,20 @@ export interface KrillColor {
   g: number;
   b: number;
   lerp?: (other: KrillColor, t: number) => KrillColor;
+}
+
+function isKrillColor(value: unknown): value is KrillColor {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Partial<Record<"r" | "g" | "b" | "lerp", unknown>>;
+  return (
+    typeof candidate.r === "number" &&
+    Number.isFinite(candidate.r) &&
+    typeof candidate.g === "number" &&
+    Number.isFinite(candidate.g) &&
+    typeof candidate.b === "number" &&
+    Number.isFinite(candidate.b) &&
+    (candidate.lerp === undefined || typeof candidate.lerp === "function")
+  );
 }
 
 export interface KrillGameObject {
@@ -52,9 +82,9 @@ export interface KrillClusterObject extends KrillGameObject {
   setVisible?: (visible: boolean) => void;
 }
 
-export interface KrillEngineContext<TDestroyable = unknown, TColor = unknown> {
+export interface KrillEngineContext<TColor = unknown> {
   add: (components: unknown[]) => unknown;
-  destroy: (obj: TDestroyable) => void;
+  destroy: (obj: KrillGameObject) => void;
   dt: () => number;
   rect: (w: number, h: number, opt?: { radius?: number }) => unknown;
   circle: (r: number) => unknown;
@@ -89,8 +119,8 @@ interface BoidMember<TColor = unknown> {
  * dispersão assustada na proximidade da baleia e destaque vibrante (halo e cintilação)
  * ao ser iluminado pelo Biosonar 360°.
  */
-export function createKrill<TDestroyable = unknown, TColor = unknown>(
-  k: KrillEngineContext<TDestroyable, TColor>,
+export function createKrill<TColor = unknown>(
+  k: KrillEngineContext<TColor>,
   position: KrillVector2D
 ): KrillClusterObject {
   let revealTimer = 0;
@@ -244,19 +274,19 @@ export function createKrill<TDestroyable = unknown, TColor = unknown>(
   const spawnSonarAura = () => {
     if (resolvedNativeRenderEngine && worldRenderContainer) {
       if (!nativeHaloCircle) {
-        nativeHaloCircle = createNativeCircleNode(
+        nativeHaloCircle = createNativePolygonNode(
           k,
           resolvedNativeRenderEngine,
           worldRenderContainer,
           {
             identifier: "krill_sonar_halo_outer",
-            radius: 30,
+            points: createOctagonPoints(28, 0),
             positionX: krillCluster.pos.x,
             positionY: krillCluster.pos.y,
             fillColor: [255, 215, 80],
             outlineColor: [100, 255, 220],
-            outlineWidth: 2.5,
-            opacity: 0.4,
+            outlineWidth: 2,
+            opacity: 0.34,
             anchor: "center",
             zIndex: 9,
           }
@@ -264,17 +294,17 @@ export function createKrill<TDestroyable = unknown, TColor = unknown>(
         haloCircle = nativeHaloCircle as unknown as KrillGameObject;
       }
       if (!nativeHaloInner) {
-        nativeHaloInner = createNativeCircleNode(
+        nativeHaloInner = createNativePolygonNode(
           k,
           resolvedNativeRenderEngine,
           worldRenderContainer,
           {
             identifier: "krill_sonar_halo_inner",
-            radius: 18,
+            points: createOctagonPoints(16, Math.PI / 8),
             positionX: krillCluster.pos.x,
             positionY: krillCluster.pos.y,
             fillColor: [255, 235, 120],
-            opacity: 0.3,
+            opacity: 0.28,
             anchor: "center",
             zIndex: 10,
           }
@@ -328,17 +358,20 @@ export function createKrill<TDestroyable = unknown, TColor = unknown>(
       }
     } else if (resolvedNativeRenderEngine && worldRenderContainer) {
       for (let i = 0; i < 6; i++) {
-        const sparkNode = createNativeCircleNode(
+        const sparkSize = Math.round(getRandomFloat(2, 4));
+        const sparkNode = createNativeRectNode(
           k,
           resolvedNativeRenderEngine,
           worldRenderContainer,
           {
             identifier: "krill_sonar_spark",
-            radius: getRandomFloat(1.5, 2.5),
+            width: sparkSize,
+            height: sparkSize,
             positionX: krillCluster.pos.x + getRandomFloat(-14, 14),
             positionY: krillCluster.pos.y + getRandomFloat(-14, 14),
             fillColor: i % 2 === 0 ? [255, 235, 120] : [100, 255, 220],
             opacity: 0.9,
+            anchor: "center",
             zIndex: 13,
           }
         );
@@ -365,7 +398,7 @@ export function createKrill<TDestroyable = unknown, TColor = unknown>(
           spark.pos.x += dir.x * k.dt();
           spark.pos.y += dir.y * k.dt();
           spark.opacity -= k.dt() * 2.2;
-          if (spark.opacity <= 0) k.destroy(spark as unknown as TDestroyable);
+          if (spark.opacity <= 0) k.destroy(spark);
         });
       }
     }
@@ -373,6 +406,12 @@ export function createKrill<TDestroyable = unknown, TColor = unknown>(
 
   let time = getRandomFloat(0, 10);
   const baseY = position.y;
+  const reusableKrillBounds: SpatialAABB = {
+    minX: position.x - 10,
+    minY: position.y - 10,
+    maxX: position.x + 10,
+    maxY: position.y + 10,
+  };
 
   const updateKrillSwarm = (dt: number) => {
     if (krillCluster.hidden) {
@@ -394,6 +433,23 @@ export function createKrill<TDestroyable = unknown, TColor = unknown>(
     const currentY = baseY + Math.sin(time * 2.2) * 5;
     krillCluster.pos.y = currentY;
     krillCluster.pos.x = position.x;
+
+    let krillId = (krillCluster as { id?: string }).id;
+    const spatialGrid = getSpatialGrid();
+    if (spatialGrid) {
+      if (!krillId) {
+        krillId = `krill_dyn_${Math.round(position.x)}_${Math.round(position.y)}_${Math.round(getRandomFloat(0, 100000))}`;
+        (krillCluster as { id?: string }).id = krillId;
+        (krillCluster as { tag?: string }).tag = TAGS.KRILL;
+      }
+      reusableKrillBounds.minX = position.x - 10;
+      reusableKrillBounds.minY = currentY - 10;
+      reusableKrillBounds.maxX = position.x + 10;
+      reusableKrillBounds.maxY = currentY + 10;
+      if (!spatialGrid.update(krillId, reusableKrillBounds)) {
+        spatialGrid.insert(krillId, krillCluster, reusableKrillBounds, false);
+      }
+    }
 
     // Detecção de proximidade com a baleia para dispersão reativa com matemática escalar (Fase 53)
     const player = getActivePlayerObject();
@@ -422,22 +478,31 @@ export function createKrill<TDestroyable = unknown, TColor = unknown>(
       if (haloCircle) {
         haloCircle.pos.x = krillCluster.pos.x;
         haloCircle.pos.y = krillCluster.pos.y;
-        haloCircle.radius = (28 + Math.sin(time * 4) * 4) * pulseBreathe;
-        haloCircle.opacity = 0.45 * revealProgress * pulseBreathe;
+        const outerScale = ((28 + Math.sin(time * 4) * 4) / 28) * pulseBreathe;
+        if (nativeHaloCircle) {
+          nativeHaloCircle.getRenderNode().setScale(outerScale, outerScale);
+        } else {
+          haloCircle.radius = 28 * outerScale;
+        }
+        haloCircle.opacity = 0.36 * revealProgress * pulseBreathe;
       }
       if (haloInner) {
         haloInner.pos.x = krillCluster.pos.x;
         haloInner.pos.y = krillCluster.pos.y;
-        haloInner.radius = 16 * pulseBreathe;
-        haloInner.opacity = 0.35 * revealProgress;
+        if (nativeHaloInner) {
+          nativeHaloInner.getRenderNode().setScale(pulseBreathe, pulseBreathe);
+        } else {
+          haloInner.radius = 16 * pulseBreathe;
+        }
+        haloInner.opacity = 0.28 * revealProgress;
       }
     } else {
       if (haloCircle) {
-        k.destroy(haloCircle as unknown as TDestroyable);
+        k.destroy(haloCircle);
         haloCircle = null;
       }
       if (haloInner) {
-        k.destroy(haloInner as unknown as TDestroyable);
+        k.destroy(haloInner);
         haloInner = null;
       }
     }
@@ -471,15 +536,19 @@ export function createKrill<TDestroyable = unknown, TColor = unknown>(
         // Iluminação de alta intensidade, dourado-esmeralda com brilho cintilante
         const revealFactor = Math.min(1, revealTimer / 1.2);
         const targetColor = createColorSafe(255, 240, 130);
-        const baseCol = b.baseColor as unknown as KrillColor;
-        const targetCol = targetColor as unknown as KrillColor;
-        b.obj.color = baseCol.lerp
-          ? baseCol.lerp(targetCol, revealFactor)
-          : createColorSafe(
-              baseCol.r + (targetCol.r - baseCol.r) * revealFactor,
-              baseCol.g + (targetCol.g - baseCol.g) * revealFactor,
-              baseCol.b + (targetCol.b - baseCol.b) * revealFactor
-            );
+        if (isKrillColor(b.baseColor) && isKrillColor(targetColor)) {
+          const baseCol = b.baseColor;
+          const targetCol = targetColor;
+          b.obj.color = baseCol.lerp
+            ? baseCol.lerp(targetCol, revealFactor)
+            : createColorSafe(
+                baseCol.r + (targetCol.r - baseCol.r) * revealFactor,
+                baseCol.g + (targetCol.g - baseCol.g) * revealFactor,
+                baseCol.b + (targetCol.b - baseCol.b) * revealFactor
+              );
+        } else {
+          b.obj.color = targetColor;
+        }
         if (typeof b.obj.scale === "object" && b.obj.scale !== null && "x" in b.obj.scale) {
           (b.obj.scale as { x: number; y: number }).x = 1.35;
           (b.obj.scale as { x: number; y: number }).y = 1.35;
@@ -552,6 +621,10 @@ export function createKrill<TDestroyable = unknown, TColor = unknown>(
   }
 
   krillCluster.onDestroy(() => {
+    const krillId = (krillCluster as { id?: string }).id;
+    if (krillId) {
+      getSpatialGrid()?.remove(krillId);
+    }
     if (resolvedNativeRenderEngine) {
       unregisterSonarTarget(krillCluster as unknown as RevealableTarget);
     }
@@ -560,14 +633,14 @@ export function createKrill<TDestroyable = unknown, TColor = unknown>(
       nativeHaloCircle.destroy();
     } else if (haloCircle) {
       try {
-        k.destroy(haloCircle as unknown as TDestroyable);
+        k.destroy(haloCircle);
       } catch {}
     }
     if (nativeHaloInner) {
       nativeHaloInner.destroy();
     } else if (haloInner) {
       try {
-        k.destroy(haloInner as unknown as TDestroyable);
+        k.destroy(haloInner);
       } catch {}
     }
 
@@ -576,7 +649,7 @@ export function createKrill<TDestroyable = unknown, TColor = unknown>(
       if (b.nativeAdapter) {
         b.nativeAdapter.destroy();
       } else if (b.obj.exists()) {
-        k.destroy(b.obj as unknown as TDestroyable);
+        k.destroy(b.obj);
       }
     }
 
@@ -600,17 +673,19 @@ export function createKrill<TDestroyable = unknown, TColor = unknown>(
       }
     } else if (resolvedNativeRenderEngine && worldRenderContainer) {
       for (let i = 0; i < 6; i++) {
-        const gulpParticle = createNativeCircleNode(
+        const gulpParticle = createNativeRectNode(
           k,
           resolvedNativeRenderEngine,
           worldRenderContainer,
           {
             identifier: "krill_gulp_particle",
-            radius: 1.8,
+            width: 3,
+            height: 3,
             positionX: krillCluster.pos.x + getRandomFloat(-7, 7),
             positionY: krillCluster.pos.y + getRandomFloat(-7, 7),
             fillColor: [255, 215, 120],
             opacity: 0.85,
+            anchor: "center",
             zIndex: 12,
           }
         );
@@ -640,7 +715,7 @@ export function createKrill<TDestroyable = unknown, TColor = unknown>(
           p.pos.x += dir.x * k.dt();
           p.pos.y += dir.y * k.dt();
           p.opacity -= k.dt() * 3.2;
-          if (p.opacity <= 0) k.destroy(p as unknown as TDestroyable);
+          if (p.opacity <= 0) k.destroy(p);
         });
       }
     }

@@ -146,4 +146,26 @@ describe("Fase 57: Física e Arrasto Hidrodinâmico Independentes de Frame Rate"
     expect(speed.x).toBeGreaterThan(0);
     expect(speed.x).toBeLessThan(GAME_CONFIG.MAX_SPEED);
   });
+
+  it("aplica impulso escalar equivalente em ângulos positivos/negativos, esquerda/direita e clamp no limite", () => {
+    const k = createMockKaboom();
+
+    // Ângulo negativo (-35°) virado para a direita: vx > 0, vy < 0
+    const pRightUp = new PlayerPhysicsManager(k);
+    pRightUp.applyThrust(1 / 60, true, -35, false, 240, 1.0);
+    expect(pRightUp.getSpeed().x).toBeGreaterThan(0);
+    expect(pRightUp.getSpeed().y).toBeLessThan(0);
+
+    // Ângulo positivo (+35°) virado para a esquerda: vx < 0, vy > 0
+    const pLeftDown = new PlayerPhysicsManager(k);
+    pLeftDown.applyThrust(1 / 60, false, 35, false, 240, 1.0);
+    expect(pLeftDown.getSpeed().x).toBeCloseTo(-pRightUp.getSpeed().x, 6);
+    expect(pLeftDown.getSpeed().y).toBeCloseTo(-pRightUp.getSpeed().y, 6);
+
+    // Clamp estrito quando ultrapassa maxSpeed
+    const pClamp = new PlayerPhysicsManager(k);
+    pClamp.setSpeed(k.vec2(238, 0));
+    pClamp.applyThrust(0.1, true, 0, false, 240, 1.0);
+    expect(pClamp.getSpeed().len()).toBeCloseTo(240, 5);
+  });
 });

@@ -204,5 +204,6 @@ export function createProceduralIcebergNode(
   drawProceduralIcebergLayers(graphicsNode, spec);
   graphicsNode.setPosition(spec.x, seaLevelY);
   graphicsNode.setZIndex(10);
+  graphicsNode.freeze?.(true);
   return graphicsNode;
 }

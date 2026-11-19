@@ -97,7 +97,7 @@ export function setupIceSurfaceSystem(
       id: "ice_surface",
       name: "Camada de Gelo (Antartica)",
       minX: -1440,
-      maxX: 5400,
+      maxX: 5600,
       activate,
       deactivate,
       isActive: () => isSystemActive,
