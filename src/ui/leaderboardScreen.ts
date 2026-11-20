@@ -90,15 +90,15 @@ export function showLeaderboardScreen(k: ShowLeaderboardEngineContext, onClose: 
     ])
   );
 
-  // Card do Modal Principal com contorno dourado de prestígio ampliado
+  // Card do Modal Principal com borda oceânica discreta
   elements.push(
     engine.add([
-      engine.rect(cardW, cardH, { radius: UI_RADII.xl }),
+      engine.rect(cardW, cardH, { radius: UI_RADII.md }),
       engine.pos(centerX, centerY),
       engine.color(UI_COLORS.panel[0], UI_COLORS.panel[1], UI_COLORS.panel[2]),
       engine.outline(
-        2.5,
-        engine.rgb(UI_COLORS.borderGold[0], UI_COLORS.borderGold[1], UI_COLORS.borderGold[2])
+        1.5,
+        engine.rgb(UI_COLORS.border[0], UI_COLORS.border[1], UI_COLORS.border[2])
       ),
       engine.anchor("center"),
       engine.fixed(),
@@ -106,15 +106,15 @@ export function showLeaderboardScreen(k: ShowLeaderboardEngineContext, onClose: 
     ])
   );
 
-  // Título Principal
+  // Título Principal em ciano oceânico (reservando dourado para o 1º lugar)
   elements.push(
     engine.add([
-      engine.text("🏆 RANKING TOP 10 — QUADRO DE RECORDES", {
-        size: accessibilitySystem.scaleFont(27),
+      engine.text("RANKING TOP 10 — QUADRO DE RECORDES", {
+        size: accessibilitySystem.scaleFont(25),
         font: "Outfit",
       }),
       engine.pos(centerX, centerY - cardH / 2 + 32),
-      engine.color(255, 225, 100),
+      engine.color(166, 236, 255),
       engine.anchor("center"),
       engine.fixed(),
       engine.z(302),

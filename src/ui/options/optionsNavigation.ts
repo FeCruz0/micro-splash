@@ -29,10 +29,10 @@ export function renderOptionsHeader(
   canInteract: () => boolean
 ): OptionsHeaderResult {
   const card = k.add([
-    k.rect(cardW, cardH, { radius: 16 }),
+    k.rect(cardW, cardH, { radius: 8 }),
     k.pos(cX, cardTop + cardH / 2),
-    k.color(10, 28, 56),
-    k.outline(2.5, k.rgb(56, 189, 248)),
+    k.color(8, 22, 46),
+    k.outline(1.5, k.rgb(52, 128, 178)),
     k.anchor("center"),
     k.scale(1),
     k.fixed(),
@@ -40,15 +40,15 @@ export function renderOptionsHeader(
   ]);
   elements.push(card);
 
-  // Título Principal com destaque dourado
+  // Título Principal em ciano oceânico sereno
   elements.push(
     k.add([
-      k.text("OPÇÕES & ACESSIBILIDADE ⚙️", {
-        size: accessibilitySystem.scaleFont(27),
+      k.text("OPÇÕES & ACESSIBILIDADE", {
+        size: accessibilitySystem.scaleFont(25),
         font: "Outfit",
       }),
       k.pos(cX, cardTop + 30),
-      k.color(255, 225, 100),
+      k.color(166, 236, 255),
       k.anchor("center"),
       k.fixed(),
       k.z(302),
@@ -101,14 +101,15 @@ export function renderOptionsHeader(
     ])
   );
 
-  attachButtonHoverEffect(
+  const btnXState = attachButtonHoverEffect(
     k as unknown as AnimationEngineContext,
     btnX as unknown as AnimationUiObject,
     {
       baseColor: [22, 50, 90],
       hoverColor: [180, 50, 50],
+      focusColor: [26, 98, 146],
       baseScale: 1.0,
-      hoverScale: 1.06,
+      hoverScale: 1.04,
       canInteract,
     }
   );
@@ -126,6 +127,8 @@ export function renderOptionsHeader(
     width: 32,
     height: 32,
     onActivate: onClose,
+    onFocus: () => btnXState.onFocus(),
+    onBlur: () => btnXState.onBlur(),
   };
 
   return { card: card as unknown as AnimationUiObject, closeBtnFocusItem };

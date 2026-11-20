@@ -79,6 +79,7 @@ export interface OptionsScreenContext<
   getCurrentLetterboxColor: () => LetterboxColor;
   setCurrentLetterboxColor: (color: LetterboxColor) => void;
   updateReloadHint: () => void;
+  setOptionHint?: (hintText: string) => void;
   isClosed: () => boolean;
   isModalOpen: () => boolean;
   setIsModalOpen: (open: boolean) => void;

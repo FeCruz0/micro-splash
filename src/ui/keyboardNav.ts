@@ -6,11 +6,7 @@
  */
 
 import { audioSystem } from "../systems/audioSystem";
-import type {
-  IRenderEngine,
-  IGraphicsNode,
-  Vector2D,
-} from "../engine/contracts/INTERFACE_CONTRACTS";
+import type { IRenderEngine, Vector2D } from "../engine/contracts/INTERFACE_CONTRACTS";
 import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 
 export interface FocusableItem {
@@ -106,79 +102,12 @@ export function createFocusGroup(
   options: FocusGroupOptions
 ): FocusGroup {
   let items = options.items;
-  const { onEscape, initialIndex = -1, ringZ = 350 } = options;
+  const { onEscape, initialIndex = -1 } = options;
   let currentIndex = initialIndex;
   const eventCleanups: Array<() => void> = [];
 
-  const updateItemPosition = (
-    item: FocusableItem,
-    setPositionCallback: (centerX: number, centerY: number, width: number, height: number) => void
-  ) => {
-    const itemWidth = (item.width || 180) + 12;
-    const itemHeight = (item.height || 36) + 10;
-    const posX = item.pos.x;
-    const posY = item.pos.y;
-
-    if (item.anchor === "topleft") {
-      const centerX = posX + (item.width || 180) / 2;
-      const centerY = posY + (item.height || 36) / 2;
-      setPositionCallback(centerX, centerY, itemWidth, itemHeight);
-    } else {
-      setPositionCallback(posX, posY, itemWidth, itemHeight);
-    }
-  };
-
   const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrContext);
   if (resolvedRenderEngine) {
-    const screenContainer =
-      typeof resolvedRenderEngine.getScreenContainer === "function"
-        ? resolvedRenderEngine.getScreenContainer()
-        : resolvedRenderEngine.getStageRoot();
-    const focusRingNode: IGraphicsNode = resolvedRenderEngine.createGraphics("keyboard_focus_ring");
-    focusRingNode.setZIndex(ringZ);
-    focusRingNode.setOpacity(0);
-    screenContainer.addChild(focusRingNode);
-
-    let ringWidth = 40;
-    let ringHeight = 40;
-    let ringCenterX = -9999;
-    let ringCenterY = -9999;
-
-    const redrawRing = () => {
-      focusRingNode.clear();
-      focusRingNode.drawRoundedRect(-ringWidth / 2, -ringHeight / 2, ringWidth, ringHeight, 8, {
-        fill: { color: [255, 230, 80], alpha: 0.15 },
-        stroke: { width: 3, color: [255, 230, 80], alpha: 1 },
-      });
-    };
-    redrawRing();
-
-    let ringAnimTime = 0;
-    const tickerCleanup = resolvedRenderEngine.getTicker().add((deltaTime: number) => {
-      if (options.isEnabled && !options.isEnabled()) {
-        focusRingNode.setOpacity(0);
-        return;
-      }
-      if (currentIndex >= 0 && currentIndex < items.length) {
-        ringAnimTime += deltaTime;
-        const pulse = 0.4 + Math.sin(ringAnimTime * 8) * 0.2;
-        focusRingNode.setOpacity(pulse);
-      } else {
-        focusRingNode.setOpacity(0);
-      }
-    });
-
-    const updateRingPosition = (item: FocusableItem) => {
-      updateItemPosition(item, (centerX, centerY, width, height) => {
-        ringWidth = width;
-        ringHeight = height;
-        ringCenterX = centerX;
-        ringCenterY = centerY;
-        focusRingNode.setPosition(ringCenterX, ringCenterY);
-        redrawRing();
-      });
-    };
-
     const setFocus = (newIndex: number) => {
       if (items.length === 0) return;
 
@@ -190,7 +119,6 @@ export function createFocusGroup(
 
       currentIndex = (newIndex + items.length) % items.length;
       const item = items[currentIndex];
-      updateRingPosition(item);
 
       try {
         item.onFocus?.();
@@ -249,16 +177,16 @@ export function createFocusGroup(
     }
 
     const destroy = () => {
+      if (currentIndex >= 0 && currentIndex < items.length) {
+        try {
+          items[currentIndex].onBlur?.();
+        } catch {}
+      }
       eventCleanups.forEach((cleanup) => {
         try {
           cleanup();
         } catch {}
       });
-      try {
-        tickerCleanup();
-        screenContainer.removeChild(focusRingNode);
-        focusRingNode.destroy();
-      } catch {}
 
       if (options.restoreFocusOnDestroy) {
         const snapshot = popFocusSnapshot();
@@ -270,7 +198,6 @@ export function createFocusGroup(
       items = newItems;
       if (items.length === 0) {
         currentIndex = -1;
-        focusRingNode.setOpacity(0);
         return;
       }
       const targetIndex =
@@ -293,63 +220,8 @@ export function createFocusGroup(
     };
   }
 
-  // Fallback e interoperabilidade para contexto legado (Kaboom / Mocks de Teste)
+  // Fallback e interoperabilidade para contexto legado (sem moldura amarela externa)
   const legacyContext = engineOrContext as LegacyKeyboardNavContext;
-
-  const createVector2 = (x: number, y: number): { x: number; y: number } => {
-    return typeof legacyContext.vec2 === "function" ? legacyContext.vec2(x, y) : { x, y };
-  };
-
-  const resolveRgb = (red: number, green: number, blue: number): unknown => {
-    if (typeof legacyContext.rgb === "function") {
-      return legacyContext.rgb(red, green, blue);
-    }
-    return typeof legacyContext.color === "function"
-      ? legacyContext.color(red, green, blue)
-      : undefined;
-  };
-
-  const focusRing = legacyContext.add([
-    typeof legacyContext.rect === "function"
-      ? legacyContext.rect(40, 40, { radius: 8 })
-      : undefined,
-    typeof legacyContext.pos === "function" ? legacyContext.pos(-9999, -9999) : undefined,
-    typeof legacyContext.outline === "function"
-      ? legacyContext.outline(3, resolveRgb(255, 230, 80))
-      : undefined,
-    typeof legacyContext.color === "function" ? legacyContext.color(255, 230, 80) : undefined,
-    typeof legacyContext.opacity === "function" ? legacyContext.opacity(0) : undefined,
-    typeof legacyContext.anchor === "function" ? legacyContext.anchor("center") : undefined,
-    typeof legacyContext.fixed === "function" ? legacyContext.fixed() : undefined,
-    typeof legacyContext.z === "function" ? legacyContext.z(ringZ) : undefined,
-  ]) as LegacyKeyboardNavObject;
-
-  let ringAnimTime = 0;
-  let updateCancelHandle: { cancel?: () => void } | void = undefined;
-  if (typeof focusRing.onUpdate === "function") {
-    updateCancelHandle = focusRing.onUpdate(() => {
-      if (options.isEnabled && !options.isEnabled()) {
-        focusRing.opacity = 0;
-        return;
-      }
-      if (currentIndex >= 0 && currentIndex < items.length) {
-        const deltaTime = typeof legacyContext.dt === "function" ? legacyContext.dt() : 0.016;
-        ringAnimTime += deltaTime;
-        const pulse = 0.25 + Math.sin(ringAnimTime * 8) * 0.12;
-        focusRing.opacity = pulse;
-      } else {
-        focusRing.opacity = 0;
-      }
-    });
-  }
-
-  const updateRingPosition = (item: FocusableItem) => {
-    updateItemPosition(item, (centerX, centerY, width, height) => {
-      focusRing.width = width;
-      focusRing.height = height;
-      focusRing.pos = createVector2(centerX, centerY);
-    });
-  };
 
   const setFocus = (newIndex: number) => {
     if (items.length === 0) return;
@@ -362,7 +234,6 @@ export function createFocusGroup(
 
     currentIndex = (newIndex + items.length) % items.length;
     const item = items[currentIndex];
-    updateRingPosition(item);
 
     try {
       item.onFocus?.();
@@ -426,19 +297,16 @@ export function createFocusGroup(
   }
 
   const destroy = () => {
+    if (currentIndex >= 0 && currentIndex < items.length) {
+      try {
+        items[currentIndex].onBlur?.();
+      } catch {}
+    }
     eventCleanups.forEach((cleanup) => {
       try {
         cleanup();
       } catch {}
     });
-    try {
-      if (updateCancelHandle && typeof updateCancelHandle.cancel === "function") {
-        updateCancelHandle.cancel();
-      }
-      if (typeof legacyContext.destroy === "function") {
-        legacyContext.destroy(focusRing);
-      }
-    } catch {}
 
     if (options.restoreFocusOnDestroy) {
       const snapshot = popFocusSnapshot();
@@ -450,7 +318,6 @@ export function createFocusGroup(
     items = newItems;
     if (items.length === 0) {
       currentIndex = -1;
-      focusRing.opacity = 0;
       return;
     }
     const targetIndex =

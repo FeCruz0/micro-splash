@@ -4,7 +4,7 @@ import { hapticsSystem } from "../../systems/hapticsSystem";
 import type { OptionsScreenContext } from "./optionsTypes";
 
 export function renderAudioOptions(context: OptionsScreenContext): void {
-  const { k, elements, focusItems, col0X, colW, btnH, rowGap, rowStartY } = context;
+  const { k, elements, focusItems, col0X, colW, btnH, rowGap, rowStartY, setOptionHint } = context;
 
   // --- Linha 0: Volume Geral ---
   const row0Y = rowStartY + 0 * (btnH + rowGap);
@@ -176,15 +176,19 @@ export function renderAudioOptions(context: OptionsScreenContext): void {
   ]);
   elements.push(soundtrackText);
 
+  const soundtrackHint =
+    "Trilha Sonora: alterna entre Chiptune 16-bit dinâmica, Ambiente Contemplativo ou Modo Foco.";
   const handleSoundtrack = () => {
     audioSystem.cycleNextSoundtrackMode();
     audioSystem.playUiClick();
     soundtrackText.text = audioSystem.getSoundtrackModeLabel();
+    setOptionHint?.(soundtrackHint);
   };
 
   btnSoundtrack.onHoverUpdate(() => {
     btnSoundtrack.color = k.rgb(28, 100, 175);
-    btnSoundtrack.scale = k.vec2(1.02, 1.02);
+    btnSoundtrack.scale = k.vec2(1.015, 1.015);
+    setOptionHint?.(soundtrackHint);
   });
   btnSoundtrack.onHoverEnd(() => {
     btnSoundtrack.color = k.rgb(20, 75, 135);
@@ -196,6 +200,13 @@ export function renderAudioOptions(context: OptionsScreenContext): void {
     width: colW,
     height: btnH,
     onActivate: handleSoundtrack,
+    onFocus: () => {
+      btnSoundtrack.color = k.rgb(26, 98, 146);
+      setOptionHint?.(soundtrackHint);
+    },
+    onBlur: () => {
+      btnSoundtrack.color = k.rgb(20, 75, 135);
+    },
   });
 
   // --- Linha 2: Efeitos Sonoros (SFX) ---
@@ -278,15 +289,19 @@ export function renderAudioOptions(context: OptionsScreenContext): void {
   ]);
   elements.push(hapticsText);
 
+  const hapticsHint =
+    "Vibração (Haptics): ativa retorno tátil em colisões e quebras de gelo em dispositivos compatíveis.";
   const handleHaptics = () => {
     const newState = hapticsSystem.toggle();
     audioSystem.playUiClick();
     btnHaptics.color = newState ? k.rgb(20, 85, 145) : k.rgb(45, 55, 75);
     hapticsText.text = getHapticsLabel();
+    setOptionHint?.(hapticsHint);
   };
 
   btnHaptics.onHoverUpdate(() => {
-    btnHaptics.scale = k.vec2(1.02, 1.02);
+    btnHaptics.scale = k.vec2(1.015, 1.015);
+    setOptionHint?.(hapticsHint);
   });
   btnHaptics.onHoverEnd(() => {
     btnHaptics.scale = k.vec2(1, 1);
@@ -297,5 +312,12 @@ export function renderAudioOptions(context: OptionsScreenContext): void {
     width: colW,
     height: btnH,
     onActivate: handleHaptics,
+    onFocus: () => {
+      btnHaptics.color = k.rgb(26, 98, 146);
+      setOptionHint?.(hapticsHint);
+    },
+    onBlur: () => {
+      btnHaptics.color = hapticsSystem.isEnabled() ? k.rgb(20, 85, 145) : k.rgb(45, 55, 75);
+    },
   });
 }

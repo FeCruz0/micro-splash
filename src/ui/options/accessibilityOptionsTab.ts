@@ -1,16 +1,34 @@
 import { audioSystem } from "../../systems/audioSystem";
-import { accessibilitySystem } from "../../systems/accessibilitySystem";
+import { accessibilitySystem, type ReducedMotionMode } from "../../systems/accessibilitySystem";
 import { i18n } from "../../i18n/i18n";
 import type { OptionsScreenContext } from "./optionsTypes";
 
+const REDUCED_MOTION_DESCRIPTIONS: Record<ReducedMotionMode, string> = {
+  auto: "Movimento Automático: segue a preferência do sistema operacional (prefers-reduced-motion).",
+  reduced:
+    "Movimento Reduzido: desativa tremores de tela, flashes intensos e animações ambientais não essenciais.",
+  full: "Movimento Completo: mantém todos os efeitos de câmera, tremores de impacto e animações ambientais.",
+};
+
 export function renderAccessibilityOptions(context: OptionsScreenContext): void {
-  const { k, elements, focusItems, col1X, colW, btnH, rowGap, rowStartY, updateReloadHint } =
-    context;
+  const {
+    k,
+    elements,
+    focusItems,
+    col1X,
+    colW,
+    btnH,
+    rowGap,
+    rowStartY,
+    updateReloadHint,
+    setOptionHint,
+  } = context;
 
   const row0Y = rowStartY + 0 * (btnH + rowGap);
   const row1Y = rowStartY + 1 * (btnH + rowGap);
   const row2Y = rowStartY + 2 * (btnH + rowGap);
   const row3Y = rowStartY + 3 * (btnH + rowGap);
+  const row4Y = rowStartY + 4 * (btnH + rowGap);
 
   // --- Linha 0: Filtro de Cores / Daltonismo ---
   const btnAccessibilityPos = k.vec2(col1X, row0Y);
@@ -39,6 +57,8 @@ export function renderAccessibilityOptions(context: OptionsScreenContext): void 
   ]);
   elements.push(accessibilityText);
 
+  const colorHint =
+    "Cores: filtros compensatórios para daltonismo (Protanopia/Deuteranopia) ou Alto Contraste.";
   const handleAccessibility = () => {
     accessibilitySystem.cycleNextColorMode();
     audioSystem.playUiClick();
@@ -46,10 +66,12 @@ export function renderAccessibilityOptions(context: OptionsScreenContext): void 
     btnAccessibility.color = accessibilitySystem.isHighContrast()
       ? k.rgb(30, 110, 150)
       : k.rgb(22, 75, 125);
+    setOptionHint?.(colorHint);
   };
 
   btnAccessibility.onHoverUpdate(() => {
-    btnAccessibility.scale = k.vec2(1.02, 1.02);
+    btnAccessibility.scale = k.vec2(1.015, 1.015);
+    setOptionHint?.(colorHint);
   });
   btnAccessibility.onHoverEnd(() => {
     btnAccessibility.scale = k.vec2(1, 1);
@@ -60,6 +82,15 @@ export function renderAccessibilityOptions(context: OptionsScreenContext): void 
     width: colW,
     height: btnH,
     onActivate: handleAccessibility,
+    onFocus: () => {
+      btnAccessibility.color = k.rgb(26, 98, 146);
+      setOptionHint?.(colorHint);
+    },
+    onBlur: () => {
+      btnAccessibility.color = accessibilitySystem.isHighContrast()
+        ? k.rgb(30, 110, 150)
+        : k.rgb(22, 75, 125);
+    },
   });
 
   // --- Linha 1: Movimento de Câmera Reduzido ---
@@ -89,6 +120,10 @@ export function renderAccessibilityOptions(context: OptionsScreenContext): void 
   ]);
   elements.push(motionText);
 
+  const showMotionHint = () => {
+    setOptionHint?.(REDUCED_MOTION_DESCRIPTIONS[accessibilitySystem.getReducedMotionMode()]);
+  };
+
   const handleMotion = () => {
     accessibilitySystem.cycleReducedMotion();
     audioSystem.playUiClick();
@@ -96,10 +131,12 @@ export function renderAccessibilityOptions(context: OptionsScreenContext): void 
     btnMotion.color = accessibilitySystem.isReducedMotion()
       ? k.rgb(30, 110, 140)
       : k.rgb(20, 75, 120);
+    showMotionHint();
   };
 
   btnMotion.onHoverUpdate(() => {
-    btnMotion.scale = k.vec2(1.02, 1.02);
+    btnMotion.scale = k.vec2(1.015, 1.015);
+    showMotionHint();
   });
   btnMotion.onHoverEnd(() => {
     btnMotion.scale = k.vec2(1, 1);
@@ -110,6 +147,15 @@ export function renderAccessibilityOptions(context: OptionsScreenContext): void 
     width: colW,
     height: btnH,
     onActivate: handleMotion,
+    onFocus: () => {
+      btnMotion.color = k.rgb(26, 98, 146);
+      showMotionHint();
+    },
+    onBlur: () => {
+      btnMotion.color = accessibilitySystem.isReducedMotion()
+        ? k.rgb(30, 110, 140)
+        : k.rgb(20, 75, 120);
+    },
   });
 
   // --- Linha 2: Tamanho da Fonte ---
@@ -139,15 +185,19 @@ export function renderAccessibilityOptions(context: OptionsScreenContext): void 
   ]);
   elements.push(fontText);
 
+  const fontHint =
+    "Tamanho da Fonte: ajusta a legibilidade dos textos (Pequena 0.85x, Normal 1.0x, Grande 1.2x).";
   const handleFont = () => {
     accessibilitySystem.cycleFontScale();
     audioSystem.playUiClick();
     fontText.text = accessibilitySystem.getFontScaleLabel();
     updateReloadHint();
+    setOptionHint?.(fontHint);
   };
 
   btnFont.onHoverUpdate(() => {
-    btnFont.scale = k.vec2(1.02, 1.02);
+    btnFont.scale = k.vec2(1.015, 1.015);
+    setOptionHint?.(fontHint);
   });
   btnFont.onHoverEnd(() => {
     btnFont.scale = k.vec2(1, 1);
@@ -158,6 +208,13 @@ export function renderAccessibilityOptions(context: OptionsScreenContext): void 
     width: colW,
     height: btnH,
     onActivate: handleFont,
+    onFocus: () => {
+      btnFont.color = k.rgb(26, 98, 146);
+      setOptionHint?.(fontHint);
+    },
+    onBlur: () => {
+      btnFont.color = k.rgb(20, 75, 120);
+    },
   });
 
   // --- Linha 3: Idioma / Language ---
@@ -187,15 +244,18 @@ export function renderAccessibilityOptions(context: OptionsScreenContext): void 
   ]);
   elements.push(langText);
 
+  const langHint = "Idioma: alterna entre Português, English e Español (recarrega ao salvar).";
   const handleLang = () => {
     i18n.cycleNextLocale();
     audioSystem.playUiClick();
     langText.text = i18n.getLocaleLabel();
     updateReloadHint();
+    setOptionHint?.(langHint);
   };
 
   btnLang.onHoverUpdate(() => {
-    btnLang.scale = k.vec2(1.02, 1.02);
+    btnLang.scale = k.vec2(1.015, 1.015);
+    setOptionHint?.(langHint);
   });
   btnLang.onHoverEnd(() => {
     btnLang.scale = k.vec2(1, 1);
@@ -206,5 +266,45 @@ export function renderAccessibilityOptions(context: OptionsScreenContext): void 
     width: colW,
     height: btnH,
     onActivate: handleLang,
+    onFocus: () => {
+      btnLang.color = k.rgb(26, 98, 146);
+      setOptionHint?.(langHint);
+    },
+    onBlur: () => {
+      btnLang.color = k.rgb(24, 85, 140);
+    },
   });
+
+  // --- Linha 4 (Direita): Breve descrição dos 3 modos de movimento ---
+  elements.push(
+    k.add([
+      k.rect(colW, btnH, { radius: 8 }),
+      k.pos(col1X, row4Y),
+      k.color(10, 28, 56),
+      k.outline(1, k.rgb(38, 78, 130)),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(302),
+    ])
+  );
+
+  elements.push(
+    k.add([
+      k.text(
+        "Movimento — Automático: segue o sistema • Reduzido: sem tremores/flashes\nCompleto: mantém todos os efeitos de câmera e animações ambientais",
+        {
+          size: accessibilitySystem.scaleFont(10.5),
+          font: "Inter",
+          width: colW - 18,
+          align: "center",
+          lineSpacing: 3,
+        }
+      ),
+      k.pos(col1X, row4Y),
+      k.color(176, 214, 242),
+      k.anchor("center"),
+      k.fixed(),
+      k.z(303),
+    ])
+  );
 }

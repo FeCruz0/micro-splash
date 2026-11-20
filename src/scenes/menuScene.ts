@@ -16,14 +16,32 @@ export interface MenuSceneEngineContext
   go(id: string, ...args: unknown[]): unknown;
 }
 
+function preloadMenuModalModules(): void {
+  const schedule =
+    typeof setTimeout === "function"
+      ? (fn: () => void) => setTimeout(fn, 40)
+      : (fn: () => void) => fn();
+  schedule(() => {
+    void import("../ui/modeSelectScreen");
+    void import("../ui/optionsScreen");
+    void import("../ui/codexScreen");
+    void import("../ui/leaderboardScreen");
+    void import("../ui/statsModal");
+  });
+}
+
 export function createMenuScene(
   engineContext: MenuSceneEngineContext,
   sceneManager: ISceneManager
 ): IScene {
+  let cleanupMenu: (() => void) | null = null;
+
   return {
     name: "menu",
     enter: () => {
-      createMainMenu(
+      cleanupMenu?.();
+      preloadMenuModalModules();
+      cleanupMenu = createMainMenu(
         engineContext,
         // Iniciar Migração -> Abre Seletor de Modo de Jogo
         async (onClose) => {
@@ -54,7 +72,10 @@ export function createMenuScene(
       );
     },
     update: () => {},
-    exit: () => {},
+    exit: () => {
+      cleanupMenu?.();
+      cleanupMenu = null;
+    },
   };
 }
 

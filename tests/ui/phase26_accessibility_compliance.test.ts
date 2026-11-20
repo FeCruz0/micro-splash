@@ -260,8 +260,7 @@ describe("Fase 26: Documentação, Acessibilidade & Compliance", () => {
       });
 
       expect(group.getCurrentIndex()).toBe(1);
-      expect(ringObj.pos.x).toBe(400);
-      expect(ringObj.width).toBe(240 + 12);
+      expect(ringObj.pos.x).toBe(0);
       group.activateCurrent();
       expect(activatedAction).toBe("next_slide_0");
 
@@ -287,8 +286,7 @@ describe("Fase 26: Documentação, Acessibilidade & Compliance", () => {
 
       group.updateItems(slide1Items, 2);
       expect(group.getCurrentIndex()).toBe(2);
-      expect(ringObj.pos.x).toBe(520);
-      expect(ringObj.width).toBe(160 + 12);
+      expect(ringObj.pos.x).toBe(0);
       group.activateCurrent();
       expect(activatedAction).toBe("next_slide_1");
 

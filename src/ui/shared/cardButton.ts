@@ -6,7 +6,7 @@
  */
 
 import { UI_COLORS, UI_RADII, UI_Z_INDEX } from "../theme";
-import { attachButtonHoverEffect } from "../animationUtils";
+import { attachInteractiveButtonStates } from "../animationUtils";
 import { accessibilitySystem } from "../../systems/accessibilitySystem";
 import { audioSystem } from "../../systems/audioSystem";
 import type { FocusableItem } from "../keyboardNav";
@@ -111,17 +111,21 @@ export function createCardButton<
   if (options.customHoverColor) hoverColor = [...options.customHoverColor];
   if (options.customOutlineColor) outlineColor = [...options.customOutlineColor];
 
+  const focusColor: [number, number, number] = [
+    Math.min(255, Math.max(baseColor[0] + 12, 22)),
+    Math.min(255, Math.max(baseColor[1] + 44, 118)),
+    Math.min(255, Math.max(baseColor[2] + 52, 156)),
+  ];
+  const pressedColor: [number, number, number] = [
+    Math.max(4, baseColor[0] - 8),
+    Math.max(12, baseColor[1] - 18),
+    Math.max(24, baseColor[2] - 24),
+  ];
+
   const trigger = () => {
     if (!canInteract()) return;
     audioSystem.playUiClick();
     options.onClick();
-  };
-
-  const focusItem: FocusableItem = {
-    pos: { x: options.pos.x, y: options.pos.y },
-    width: options.width,
-    height: options.height,
-    onActivate: trigger,
   };
 
   const resolvedRenderEngine = resolveInitializedRenderEngine(engineOrContext);
@@ -132,8 +136,18 @@ export function createCardButton<
         : resolvedRenderEngine.getStageRoot();
     const btnNode: IGraphicsNode = resolvedRenderEngine.createGraphics("card_button_bg");
     const radius = options.radius ?? UI_RADII.md;
+    let isHovered = false;
+    let isFocused = false;
+    let isPressed = false;
 
-    const drawButton = (isHover: boolean) => {
+    const drawButton = () => {
+      const fillCol = isPressed
+        ? pressedColor
+        : isFocused
+          ? focusColor
+          : isHovered
+            ? hoverColor
+            : baseColor;
       btnNode.clear();
       btnNode.drawRoundedRect(
         -options.width / 2,
@@ -142,12 +156,12 @@ export function createCardButton<
         options.height,
         radius,
         {
-          fill: { color: isHover ? hoverColor : baseColor, alpha: 1 },
-          stroke: { width: 1.5, color: outlineColor, alpha: 1 },
+          fill: { color: fillCol, alpha: 1 },
+          stroke: { width: isFocused ? 2 : 1.5, color: outlineColor, alpha: 1 },
         }
       );
     };
-    drawButton(false);
+    drawButton();
     btnNode.setPosition(options.pos.x, options.pos.y);
     btnNode.setZIndex(zBase);
     screenContainer.addChild(btnNode);
@@ -167,13 +181,40 @@ export function createCardButton<
     txtNode.setZIndex(zBase + 1);
     screenContainer.addChild(txtNode);
 
+    const handleTrigger = () => {
+      isPressed = true;
+      drawButton();
+      btnNode.setScale(0.985, 0.985);
+      trigger();
+    };
+
+    const focusItem: FocusableItem = {
+      pos: { x: options.pos.x, y: options.pos.y },
+      width: options.width,
+      height: options.height,
+      onActivate: handleTrigger,
+      onFocus: () => {
+        isFocused = true;
+        drawButton();
+      },
+      onBlur: () => {
+        isFocused = false;
+        isPressed = false;
+        drawButton();
+        btnNode.setScale(1.0, 1.0);
+      },
+    };
+
     const handlePointerEnter = () => {
       if (!canInteract()) return;
-      drawButton(true);
-      btnNode.setScale(1.025, 1.025);
+      isHovered = true;
+      drawButton();
+      btnNode.setScale(1.015, 1.015);
     };
     const handlePointerLeave = () => {
-      drawButton(false);
+      isHovered = false;
+      isPressed = false;
+      drawButton();
       btnNode.setScale(1.0, 1.0);
     };
 
@@ -186,7 +227,7 @@ export function createCardButton<
         height: options.height,
       },
       zIndex: zBase,
-      onClick: trigger,
+      onClick: handleTrigger,
       onPointerEnter: handlePointerEnter,
       onPointerLeave: handlePointerLeave,
     });
@@ -202,7 +243,7 @@ export function createCardButton<
       nativeBtn.cursor = "pointer";
       nativeBtn.on("pointerover", handlePointerEnter);
       nativeBtn.on("pointerout", handlePointerLeave);
-      nativeBtn.on("pointertap", trigger);
+      nativeBtn.on("pointertap", handleTrigger);
     }
 
     const elements = [btnNode, txtNode];
@@ -286,28 +327,37 @@ export function createCardButton<
   ]);
   elements.push(txt);
 
-  attachButtonHoverEffect(
-    legacyContext as unknown as Parameters<typeof attachButtonHoverEffect>[0],
-    btn as unknown as Parameters<typeof attachButtonHoverEffect>[1],
+  const stateController = attachInteractiveButtonStates(
+    legacyContext as unknown as Parameters<typeof attachInteractiveButtonStates>[0],
+    btn as unknown as Parameters<typeof attachInteractiveButtonStates>[1],
     {
       baseColor,
       hoverColor,
+      focusColor,
+      pressedColor,
       baseScale: 1.0,
-      hoverScale: 1.025,
+      hoverScale: 1.015,
       canInteract,
     }
   );
 
+  const handleLegacyTrigger = () => {
+    stateController.onPress();
+    trigger();
+  };
+
   const btnObj = btn as { onClick?: (cb: () => void) => void };
   if (typeof btnObj.onClick === "function") {
-    btnObj.onClick(trigger);
+    btnObj.onClick(handleLegacyTrigger);
   }
 
   const legacyFocusItem: FocusableItem = {
     pos: createVector2(options.pos.x, options.pos.y),
     width: options.width,
     height: options.height,
-    onActivate: trigger,
+    onActivate: handleLegacyTrigger,
+    onFocus: () => stateController.onFocus(),
+    onBlur: () => stateController.onBlur(),
   };
 
   return {

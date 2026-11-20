@@ -9,7 +9,7 @@ import {
 import type { OptionsScreenContext } from "./optionsTypes";
 
 export function renderControlsOptions(context: OptionsScreenContext): void {
-  const { k, elements, focusItems, col1X, colW, btnH, rowGap, rowStartY } = context;
+  const { k, elements, focusItems, col1X, colW, btnH, rowGap, rowStartY, setOptionHint } = context;
 
   const row5Y = rowStartY + 5 * (btnH + rowGap);
   const gapBetweenButtons = 10;
@@ -54,6 +54,8 @@ export function renderControlsOptions(context: OptionsScreenContext): void {
   ]);
   elements.push(touchText);
 
+  const touchHint =
+    "Controles Touch: AUTO detecta tela sensível ao toque; ON força botões virtuais; OFF oculta.";
   const handleTouch = () => {
     if (touchMode === "auto") touchMode = "on";
     else if (touchMode === "on") touchMode = "off";
@@ -63,10 +65,12 @@ export function renderControlsOptions(context: OptionsScreenContext): void {
     audioSystem.playUiClick();
     buttonTouch.color = touchMode === "off" ? k.rgb(45, 55, 75) : k.rgb(20, 90, 140);
     touchText.text = getTouchLabel(touchMode);
+    setOptionHint?.(touchHint);
   };
 
   buttonTouch.onHoverUpdate(() => {
-    buttonTouch.scale = k.vec2(1.02, 1.02);
+    buttonTouch.scale = k.vec2(1.015, 1.015);
+    setOptionHint?.(touchHint);
   });
   buttonTouch.onHoverEnd(() => {
     buttonTouch.scale = k.vec2(1, 1);
@@ -77,6 +81,13 @@ export function renderControlsOptions(context: OptionsScreenContext): void {
     width: touchControlsWidth,
     height: btnH,
     onActivate: handleTouch,
+    onFocus: () => {
+      buttonTouch.color = k.rgb(26, 98, 146);
+      setOptionHint?.(touchHint);
+    },
+    onBlur: () => {
+      buttonTouch.color = touchMode === "off" ? k.rgb(45, 55, 75) : k.rgb(20, 90, 140);
+    },
   });
 
   // --- Linha 5 (Direita): Baleia-Guia (Tutorial Intuitivo) ---
@@ -111,16 +122,20 @@ export function renderControlsOptions(context: OptionsScreenContext): void {
   ]);
   elements.push(companionText);
 
+  const companionHint =
+    "Mãe-Guia: exibe a baleia matriarca nos primeiros 3.200m para guiar o ritmo de respiração e nado.";
   const handleCompanionToggle = () => {
     isCompanionEnabled = !isCompanionEnabled;
     setCompanionTutorialEnabled(isCompanionEnabled);
     audioSystem.playUiClick();
     buttonCompanion.color = isCompanionEnabled ? k.rgb(20, 95, 145) : k.rgb(45, 55, 75);
     companionText.text = getCompanionLabel(isCompanionEnabled);
+    setOptionHint?.(companionHint);
   };
 
   buttonCompanion.onHoverUpdate(() => {
-    buttonCompanion.scale = k.vec2(1.02, 1.02);
+    buttonCompanion.scale = k.vec2(1.015, 1.015);
+    setOptionHint?.(companionHint);
   });
   buttonCompanion.onHoverEnd(() => {
     buttonCompanion.scale = k.vec2(1, 1);
@@ -131,6 +146,13 @@ export function renderControlsOptions(context: OptionsScreenContext): void {
     width: companionToggleWidth,
     height: btnH,
     onActivate: handleCompanionToggle,
+    onFocus: () => {
+      buttonCompanion.color = k.rgb(26, 98, 146);
+      setOptionHint?.(companionHint);
+    },
+    onBlur: () => {
+      buttonCompanion.color = isCompanionEnabled ? k.rgb(20, 95, 145) : k.rgb(45, 55, 75);
+    },
   });
 }
 

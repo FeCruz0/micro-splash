@@ -16,7 +16,6 @@ import {
   UI_Z_INDEX,
   getModalDimensions,
   staggerElementsEntrance,
-  attachPulseEffect,
   type MotionTargetObject,
 } from "./shared";
 import type { LegacyShadowedTextContext } from "./textUtils";
@@ -90,16 +89,13 @@ export function showModeSelectScreen(
   const elements: Array<{ destroy?: () => void } | object> = [];
   let isClosed = false;
 
-  let canInteract = false;
-  engine.wait(0.15, () => {
-    canInteract = true;
-  });
+  const canInteract = true;
 
   const screenW = engine.width();
   const screenH = engine.height();
   const { cardW, cardH, cX, cY } = getModalDimensions(screenW, screenH, "standard");
 
-  // Fundo escuro semitransparente
+  // Escurecimento translúcido discreto preservando o oceano contemplativo ao fundo
   const backdrop = engine.add([
     engine.rect(screenW, screenH),
     engine.pos(0, 0),
@@ -110,12 +106,12 @@ export function showModeSelectScreen(
   ]);
   elements.push(backdrop);
 
-  // Modal Card Principal com geometria ampla expandida (Fase 34.1 e 64)
+  // Modal Card Principal com borda oceânica discreta
   const card = engine.add([
-    engine.rect(cardW, cardH, { radius: UI_RADII.xl }),
+    engine.rect(cardW, cardH, { radius: UI_RADII.md }),
     engine.pos(cX, cY),
     engine.color(UI_COLORS.panel[0], UI_COLORS.panel[1], UI_COLORS.panel[2]),
-    engine.outline(2.5, engine.rgb(UI_COLORS.border[0], UI_COLORS.border[1], UI_COLORS.border[2])),
+    engine.outline(1.5, engine.rgb(UI_COLORS.border[0], UI_COLORS.border[1], UI_COLORS.border[2])),
     engine.anchor("center"),
     engine.scale(1),
     engine.fixed(),
@@ -127,15 +123,15 @@ export function showModeSelectScreen(
     card as unknown as AnimationUiObject
   );
 
-  // Título do Modal com Sombra de Legibilidade (Fase 32.3)
+  // Título do Modal em ciano oceânico sereno
   const titleShadowHandle = addShadowedText(
     engine as unknown as LegacyShadowedTextContext,
-    "ESCOLHA SEU ESTILO DE MIGRAÇÃO 🐋",
+    "ESCOLHA SEU ESTILO DE MIGRAÇÃO",
     {
       pos: engine.vec2(cX, cY - cardH / 2 + 32),
       size: accessibilitySystem.scaleFont(TEXT_SIZE_H1 + 2),
       font: FONT_TITLE,
-      color: engine.rgb(255, 225, 100),
+      color: engine.rgb(166, 236, 255),
       shadowColor: engine.rgb(4, 12, 28),
       anchor: "center",
       z: 303,
@@ -220,12 +216,13 @@ export function showModeSelectScreen(
     ])
   );
 
-  attachButtonHoverEffect(
+  const btnXState = attachButtonHoverEffect(
     engine as unknown as AnimationEngineContext,
     btnX as unknown as AnimationUiObject,
     {
       baseColor: [22, 50, 90],
       hoverColor: [180, 50, 50],
+      focusColor: [34, 118, 168],
       baseScale: 1.0,
       hoverScale: 1.05,
       canInteract: () => canInteract,
@@ -239,6 +236,8 @@ export function showModeSelectScreen(
       width: 34,
       height: 34,
       onActivate: close,
+      onFocus: () => btnXState.onFocus(),
+      onBlur: () => btnXState.onBlur(),
     },
   ];
 
@@ -341,20 +340,23 @@ export function showModeSelectScreen(
     ])
   );
 
-  attachButtonHoverEffect(
+  const card1State = attachButtonHoverEffect(
     engine as unknown as AnimationEngineContext,
     card1 as unknown as AnimationUiObject,
     {
       baseColor: [14, 36, 72],
-      hoverColor: [18, 55, 65],
+      hoverColor: [18, 62, 82],
+      focusColor: [20, 88, 108],
+      pressedColor: [10, 28, 56],
       baseScale: 1.0,
-      hoverScale: 1.015,
+      hoverScale: 1.01,
       canInteract: () => canInteract,
     }
   );
 
   const selectSerene = () => {
     if (!canInteract) return;
+    card1State.onPress();
     audioSystem.playUiClick();
     destroyAll();
     onSelectMode({ mode: "serene" });
@@ -365,6 +367,8 @@ export function showModeSelectScreen(
     width: contentBoxW,
     height: card1H,
     onActivate: selectSerene,
+    onFocus: () => card1State.onFocus(),
+    onBlur: () => card1State.onBlur(),
   });
 
   // ==========================================
@@ -461,20 +465,23 @@ export function showModeSelectScreen(
     ])
   );
 
-  attachButtonHoverEffect(
+  const card2State = attachButtonHoverEffect(
     engine as unknown as AnimationEngineContext,
     card2 as unknown as AnimationUiObject,
     {
       baseColor: [14, 36, 72],
-      hoverColor: [45, 25, 45],
+      hoverColor: [42, 34, 64],
+      focusColor: [58, 42, 76],
+      pressedColor: [10, 26, 52],
       baseScale: 1.0,
-      hoverScale: 1.015,
+      hoverScale: 1.01,
       canInteract: () => canInteract,
     }
   );
 
   const selectDifficult = () => {
     if (!canInteract) return;
+    card2State.onPress();
     audioSystem.playUiClick();
     destroyAll();
     onSelectMode({ mode: "standard" });
@@ -485,6 +492,8 @@ export function showModeSelectScreen(
     width: contentBoxW,
     height: card2H,
     onActivate: selectDifficult,
+    onFocus: () => card2State.onFocus(),
+    onBlur: () => card2State.onBlur(),
   });
 
   // ==========================================
@@ -657,16 +666,26 @@ export function showModeSelectScreen(
           }
         });
       },
+      onFocus: () => {
+        if (selectedBiomeIndex !== b.index) {
+          bBtn.color = engine.rgb(26, 98, 146);
+        }
+      },
+      onBlur: () => {
+        if (selectedBiomeIndex !== b.index) {
+          bBtn.color = engine.rgb(20, 48, 85);
+        }
+      },
     });
   });
 
   // Botão Iniciar Trecho Rápido
   const btnStartQuickPos = engine.vec2(cX, card4Y + 52);
   const btnStartQuick = engine.add([
-    engine.rect(380, 38, { radius: 8 }),
+    engine.rect(380, 38, { radius: 6 }),
     engine.pos(btnStartQuickPos),
-    engine.color(200, 95, 15),
-    engine.outline(1.5, engine.rgb(255, 210, 100)),
+    engine.color(18, 118, 152),
+    engine.outline(1.5, engine.rgb(102, 228, 245)),
     engine.scale(1),
     engine.anchor("center"),
     engine.fixed(),
@@ -688,23 +707,23 @@ export function showModeSelectScreen(
     ])
   );
 
-  attachButtonHoverEffect(
+  const btnStartQuickState = attachButtonHoverEffect(
     engine as unknown as AnimationEngineContext,
     btnStartQuick as unknown as AnimationUiObject,
     {
-      baseColor: [200, 95, 15],
-      hoverColor: [230, 120, 25],
+      baseColor: [18, 118, 152],
+      hoverColor: [26, 146, 184],
+      focusColor: [30, 162, 198],
+      pressedColor: [12, 84, 112],
       baseScale: 1.0,
-      hoverScale: 1.025,
+      hoverScale: 1.015,
       canInteract: () => canInteract,
     }
   );
-  quickPulseHandle = attachPulseEffect(engine, btnStartQuick as unknown as MotionTargetObject, {
-    canInteract: () => canInteract,
-  });
 
   const startQuick = () => {
     if (!canInteract) return;
+    btnStartQuickState.onPress();
     audioSystem.playUiClick();
     destroyAll();
     onSelectMode({
@@ -719,6 +738,8 @@ export function showModeSelectScreen(
     width: 380,
     height: 38,
     onActivate: startQuick,
+    onFocus: () => btnStartQuickState.onFocus(),
+    onBlur: () => btnStartQuickState.onBlur(),
   });
 
   // ==========================================
@@ -726,10 +747,10 @@ export function showModeSelectScreen(
   // ==========================================
   const btnBackPos = engine.vec2(cX, cY + cardH / 2 - 34);
   const btnBack = engine.add([
-    engine.rect(280, 46, { radius: 10 }),
+    engine.rect(280, 46, { radius: 8 }),
     engine.pos(btnBackPos),
-    engine.color(20, 80, 140),
-    engine.outline(2, engine.rgb(56, 189, 248)),
+    engine.color(14, 44, 82),
+    engine.outline(1.5, engine.rgb(66, 156, 206)),
     engine.scale(1),
     engine.anchor("center"),
     engine.fixed(),
@@ -739,33 +760,39 @@ export function showModeSelectScreen(
 
   elements.push(
     engine.add([
-      engine.text("Voltar ao Menu ↩", {
+      engine.text("Voltar ao Menu", {
         size: accessibilitySystem.scaleFont(16),
         font: "Outfit",
       }),
       engine.pos(btnBackPos),
-      engine.color(255, 255, 255),
+      engine.color(238, 248, 255),
       engine.anchor("center"),
       engine.fixed(),
       engine.z(305),
     ])
   );
 
-  btnBack.onHoverUpdate(() => {
-    if (!canInteract) return;
-    btnBack.color = engine.rgb(28, 110, 185);
-    btnBack.scale = engine.vec2(1.02, 1.02);
-  });
-  btnBack.onHoverEnd(() => {
-    btnBack.color = engine.rgb(20, 80, 140);
-    btnBack.scale = engine.vec2(1, 1);
-  });
+  const btnBackState = attachButtonHoverEffect(
+    engine as unknown as AnimationEngineContext,
+    btnBack as unknown as AnimationUiObject,
+    {
+      baseColor: [14, 44, 82],
+      hoverColor: [22, 66, 116],
+      focusColor: [26, 98, 146],
+      pressedColor: [10, 30, 62],
+      baseScale: 1.0,
+      hoverScale: 1.015,
+      canInteract: () => canInteract,
+    }
+  );
   btnBack.onClick(close);
   focusItems.push({
     pos: btnBackPos,
     width: 280,
     height: 46,
     onActivate: close,
+    onFocus: () => btnBackState.onFocus(),
+    onBlur: () => btnBackState.onBlur(),
   });
 
   // Grupo de foco por teclado acessível

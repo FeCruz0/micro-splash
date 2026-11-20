@@ -30,6 +30,7 @@ export function renderGraphicsOptions(context: OptionsScreenContext): void {
     getCurrentLetterboxColor,
     setCurrentLetterboxColor,
     updateReloadHint,
+    setOptionHint,
   } = context;
 
   // --- Linha 4: Resolução do Jogo (Fase 33: Presets 16:9 Cristalinos & Auto) ---
@@ -72,6 +73,8 @@ export function renderGraphicsOptions(context: OptionsScreenContext): void {
   ]);
   elements.push(resText);
 
+  const resHint =
+    "Resolução: define a resolução interna de renderização (Auto, 4K, 1440p ou 1080p Full HD).";
   const handleRes = () => {
     const currentKey = getCurrentResKey();
     const currentIdx = resKeys.indexOf(currentKey);
@@ -82,10 +85,12 @@ export function renderGraphicsOptions(context: OptionsScreenContext): void {
     audioSystem.playUiClick();
     resText.text = getResLabel(nextKey);
     updateReloadHint();
+    setOptionHint?.(resHint);
   };
 
   btnRes.onHoverUpdate(() => {
-    btnRes.scale = k.vec2(1.02, 1.02);
+    btnRes.scale = k.vec2(1.015, 1.015);
+    setOptionHint?.(resHint);
   });
   btnRes.onHoverEnd(() => {
     btnRes.scale = k.vec2(1, 1);
@@ -96,6 +101,13 @@ export function renderGraphicsOptions(context: OptionsScreenContext): void {
     width: colW,
     height: btnH,
     onActivate: handleRes,
+    onFocus: () => {
+      btnRes.color = k.rgb(26, 98, 146);
+      setOptionHint?.(resHint);
+    },
+    onBlur: () => {
+      btnRes.color = k.rgb(24, 75, 135);
+    },
   });
 
   // --- Linha 5: Bordas & Tela Cheia (Fase 33.4) ---
@@ -143,6 +155,8 @@ export function renderGraphicsOptions(context: OptionsScreenContext): void {
   ]);
   elements.push(displayText);
 
+  const displayHint =
+    "Bordas: preenche a tela ou exibe faixas laterais (Oceano/Preto) quando a proporção da janela difere.";
   const handleDisplay = () => {
     let mode = getCurrentDisplayMode();
     let color = getCurrentLetterboxColor();
@@ -167,10 +181,12 @@ export function renderGraphicsOptions(context: OptionsScreenContext): void {
           ? k.rgb(14, 52, 98)
           : k.rgb(40, 48, 60);
     updateReloadHint();
+    setOptionHint?.(displayHint);
   };
 
   btnDisplay.onHoverUpdate(() => {
-    btnDisplay.scale = k.vec2(1.02, 1.02);
+    btnDisplay.scale = k.vec2(1.015, 1.015);
+    setOptionHint?.(displayHint);
   });
   btnDisplay.onHoverEnd(() => {
     btnDisplay.scale = k.vec2(1, 1);
@@ -181,6 +197,20 @@ export function renderGraphicsOptions(context: OptionsScreenContext): void {
     width: displayW,
     height: btnH,
     onActivate: handleDisplay,
+    onFocus: () => {
+      btnDisplay.color = k.rgb(26, 98, 146);
+      setOptionHint?.(displayHint);
+    },
+    onBlur: () => {
+      const mode = getCurrentDisplayMode();
+      const color = getCurrentLetterboxColor();
+      btnDisplay.color =
+        mode === "stretch"
+          ? k.rgb(18, 105, 80)
+          : color === "ocean"
+            ? k.rgb(14, 52, 98)
+            : k.rgb(40, 48, 60);
+    },
   });
 
   const btnFsPos = k.vec2(col0X + colW / 2 - fsW / 2, row5Y);

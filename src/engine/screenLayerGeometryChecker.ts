@@ -171,10 +171,41 @@ export class ScreenLayerGeometryChecker {
     if (canvasBoundingRectangle.width === 0 || canvasBoundingRectangle.height === 0) {
       return { x: clientX, y: clientY };
     }
-    const relativeX = clientX - canvasBoundingRectangle.left;
-    const relativeY = clientY - canvasBoundingRectangle.top;
-    const scaleX = this.virtualWidth / canvasBoundingRectangle.width;
-    const scaleY = this.virtualHeight / canvasBoundingRectangle.height;
+
+    let contentLeft = canvasBoundingRectangle.left;
+    let contentTop = canvasBoundingRectangle.top;
+    let contentWidth = canvasBoundingRectangle.width;
+    let contentHeight = canvasBoundingRectangle.height;
+
+    const computedObjectFit =
+      this.canvasElement.style?.objectFit ||
+      (typeof window !== "undefined" && typeof window.getComputedStyle === "function"
+        ? window.getComputedStyle(this.canvasElement).objectFit
+        : "");
+
+    if (
+      (computedObjectFit === "contain" || computedObjectFit === "scale-down") &&
+      this.virtualWidth > 0 &&
+      this.virtualHeight > 0
+    ) {
+      const virtualAspect = this.virtualWidth / this.virtualHeight;
+      const boxAspect = canvasBoundingRectangle.width / canvasBoundingRectangle.height;
+
+      if (boxAspect > virtualAspect) {
+        contentWidth = canvasBoundingRectangle.height * virtualAspect;
+        contentLeft =
+          canvasBoundingRectangle.left + (canvasBoundingRectangle.width - contentWidth) / 2;
+      } else if (boxAspect < virtualAspect) {
+        contentHeight = canvasBoundingRectangle.width / virtualAspect;
+        contentTop =
+          canvasBoundingRectangle.top + (canvasBoundingRectangle.height - contentHeight) / 2;
+      }
+    }
+
+    const relativeX = clientX - contentLeft;
+    const relativeY = clientY - contentTop;
+    const scaleX = this.virtualWidth / contentWidth;
+    const scaleY = this.virtualHeight / contentHeight;
     return {
       x: relativeX * scaleX,
       y: relativeY * scaleY,

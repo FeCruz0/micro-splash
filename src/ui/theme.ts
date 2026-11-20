@@ -5,21 +5,21 @@
 
 export const UI_COLORS = {
   background: [4, 14, 32] as const,
-  backdrop: [4, 14, 32] as const,
-  backdropOpacity: 0.95,
-  panel: [10, 28, 56] as const,
-  panelSurface: [14, 36, 72] as const,
-  panelDeep: [8, 22, 46] as const,
-  panelHeader: [18, 48, 95] as const,
+  backdrop: [3, 10, 26] as const,
+  backdropOpacity: 0.62,
+  panel: [8, 22, 46] as const,
+  panelSurface: [12, 32, 64] as const,
+  panelDeep: [6, 18, 38] as const,
+  panelHeader: [16, 42, 82] as const,
 
-  border: [56, 189, 248] as const,
-  borderSubtle: [45, 75, 115] as const,
-  borderGold: [250, 204, 21] as const,
+  border: [52, 128, 178] as const,
+  borderSubtle: [36, 72, 112] as const,
+  borderGold: [218, 178, 72] as const,
 
-  textPrimary: [255, 255, 255] as const,
-  textSecondary: [180, 225, 255] as const,
-  textMuted: [140, 175, 215] as const,
-  textGold: [255, 225, 100] as const,
+  textPrimary: [238, 248, 255] as const,
+  textSecondary: [176, 214, 242] as const,
+  textMuted: [132, 166, 202] as const,
+  textGold: [248, 218, 118] as const,
 
   modes: {
     serene: {

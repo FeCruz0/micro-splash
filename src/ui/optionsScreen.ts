@@ -48,12 +48,12 @@ export function showOptionsScreen(k: ShowOptionsEngineContext, onBack: () => voi
   const initialFontScale = accessibilitySystem.getFontScaleKey();
   const initialLocale = i18n.getLocale();
 
-  // Fundo escuro semitransparente (absorve cliques e bloqueia o menu)
+  // Escurecimento translúcido discreto preservando o oceano contemplativo ao fundo
   const backdrop = engine.add([
     engine.rect(engine.width(), engine.height()),
     engine.pos(0, 0),
-    engine.color(6, 16, 36),
-    engine.opacity(0.95),
+    engine.color(3, 10, 26),
+    engine.opacity(0.62),
     engine.fixed(),
     engine.z(300),
   ]);
@@ -138,15 +138,35 @@ export function showOptionsScreen(k: ShowOptionsEngineContext, onBack: () => voi
   const btnH = 41;
   const rowGap = 10;
 
-  // Dica informativa de reload ao salvar
-  const reloadHintY = cardTop + 424;
+  // Descrição contextual da opção em foco/hover + dica de reload ao salvar
+  const optionHintY = cardTop + 412;
+  const optionHintText = engine.add([
+    engine.text("Passe o mouse ou navegue com Tab/Setas para ver a descrição de cada opção.", {
+      size: accessibilitySystem.scaleFont(12.5),
+      font: "Inter",
+      width: cardW - 56,
+      align: "center",
+    }),
+    engine.pos(cX, optionHintY),
+    engine.color(176, 214, 242),
+    engine.anchor("center"),
+    engine.fixed(),
+    engine.z(303),
+  ]);
+  elements.push(optionHintText);
+
+  const setOptionHint = (hintText: string) => {
+    optionHintText.text = hintText;
+  };
+
+  const reloadHintY = cardTop + 430;
   const resHintText = engine.add([
     engine.text("", {
-      size: accessibilitySystem.scaleFont(13.5),
+      size: accessibilitySystem.scaleFont(12),
       font: "Inter",
     }),
     engine.pos(cX, reloadHintY),
-    engine.color(255, 220, 100),
+    engine.color(248, 218, 118),
     engine.anchor("center"),
     engine.fixed(),
     engine.z(303),
@@ -195,6 +215,7 @@ export function showOptionsScreen(k: ShowOptionsEngineContext, onBack: () => voi
       currentLetterboxColor = color;
     },
     updateReloadHint,
+    setOptionHint,
     isClosed: () => isClosed,
     isModalOpen: () => isModalOpen,
     setIsModalOpen: (open: boolean) => {

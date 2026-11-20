@@ -186,10 +186,10 @@ export function showOnboardingModal(
       onDone();
     };
 
-    // Backdrop escuro
+    // Backdrop translúcido preservando o oceano contemplativo ao fundo
     const backdrop = resolvedRenderEngine.createGraphics("onboarding-backdrop");
     backdrop.drawRect(0, 0, screenW, screenH, {
-      fill: { color: [5, 15, 32], alpha: 0.95 },
+      fill: { color: [3, 10, 26], alpha: 0.62 },
     });
     backdrop.setZIndex(550);
     screenContainer.addChild(backdrop);
@@ -669,8 +669,8 @@ export function showOnboardingModal(
   const backdrop = engineOrContext.add([
     engineOrContext.rect(screenW, screenH),
     engineOrContext.pos(0, 0),
-    engineOrContext.color(5, 15, 32),
-    typeof engineOrContext.opacity === "function" ? engineOrContext.opacity(0.95) : undefined,
+    engineOrContext.color(3, 10, 26),
+    typeof engineOrContext.opacity === "function" ? engineOrContext.opacity(0.62) : undefined,
     typeof engineOrContext.fixed === "function" ? engineOrContext.fixed() : undefined,
     typeof engineOrContext.z === "function" ? engineOrContext.z(550) : undefined,
   ]);

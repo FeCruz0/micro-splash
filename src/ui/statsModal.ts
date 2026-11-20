@@ -58,7 +58,7 @@ export function showStatsModal(
   audioSystem.playUiClick();
 
   let isClosed = false;
-  let canInteract = false;
+  let canInteract = true;
 
   const stats = getCumulativeStats();
   const successRate = formatSuccessRate(
@@ -73,42 +73,42 @@ export function showStatsModal(
       title: "MIGRAÇÕES CONCLUÍDAS",
       mainVal: `${stats.totalMigrationsCompleted} / ${stats.totalMigrationsAttempted}`,
       subVal: `Taxa de Sucesso: ${successRate}`,
-      color: [100, 240, 255] as [number, number, number],
+      color: [118, 232, 252] as [number, number, number],
     },
     {
       icon: "🌊",
       title: "DISTÂNCIA NAVEGADA",
       mainVal: formatDistanceKm(stats.totalDistanceMeters),
       subVal: "Oceano Antártico até Arraial",
-      color: [120, 255, 210] as [number, number, number],
+      color: [110, 224, 210] as [number, number, number],
     },
     {
       icon: "🦐",
       title: "KRILL & BIOMASSA",
       mainVal: `${stats.totalKrillCollected} Cardumes`,
       subVal: `~${totalBiomassTons} t de biomassa ecológica`,
-      color: [255, 215, 80] as [number, number, number],
+      color: [166, 228, 248] as [number, number, number],
     },
     {
       icon: "🛡️",
       title: "RESÍDUOS ENFRENTADOS",
       mainVal: `${stats.totalTrashAvoided} Detritos`,
       subVal: "Redes fantasmas e plásticos",
-      color: [255, 140, 120] as [number, number, number],
+      color: [236, 146, 138] as [number, number, number],
     },
     {
       icon: "⏱️",
       title: "TEMPO EM ALTO MAR",
       mainVal: formatPlayTime(stats.totalPlayTimeSeconds),
       subVal: "Exploração e conscientização",
-      color: [195, 195, 255] as [number, number, number],
+      color: [176, 214, 242] as [number, number, number],
     },
     {
       icon: "🎓",
       title: "QUIZ & CONSCIENTIZAÇÃO",
       mainVal: `${stats.quizCorrectAnswers} Acertos`,
       subVal: `Impacto: ${telemetrySystem.calculateEducationalImpactScore()} pts (${stats.quizzesTaken} quizzes)`,
-      color: [140, 255, 180] as [number, number, number],
+      color: [130, 224, 194] as [number, number, number],
     },
   ];
 
@@ -163,10 +163,10 @@ export function showStatsModal(
       onClose();
     };
 
-    // Backdrop
+    // Backdrop translúcido preservando a atmosfera oceânica
     const backdrop = resolvedRenderEngine.createGraphics("stats-backdrop");
     backdrop.drawRect(0, 0, screenW, screenH, {
-      fill: { color: [4, 12, 28], alpha: 0.94 },
+      fill: { color: [3, 10, 26], alpha: 0.62 },
     });
     backdrop.setZIndex(290);
     screenContainer.addChild(backdrop);
@@ -174,9 +174,9 @@ export function showStatsModal(
 
     // Card principal
     const card = resolvedRenderEngine.createGraphics("stats-card");
-    card.drawRoundedRect(cX - cardW / 2, cY - cardH / 2, cardW, cardH, 16, {
-      fill: { color: [10, 28, 56], alpha: 1 },
-      stroke: { color: [56, 189, 248], width: 2.5 },
+    card.drawRoundedRect(cX - cardW / 2, cY - cardH / 2, cardW, cardH, 8, {
+      fill: { color: [8, 22, 46], alpha: 0.96 },
+      stroke: { color: [52, 128, 178], width: 1.5 },
     });
     card.setZIndex(291);
     screenContainer.addChild(card);
@@ -185,14 +185,21 @@ export function showStatsModal(
     // Botão Fechar [✕]
     const btnXPos: Vector2D = { x: cX + cardW / 2 - 32, y: cY - cardH / 2 + 32 };
     const btnX = resolvedRenderEngine.createGraphics("stats-btn-x");
-    const drawBtnX = (hovered: boolean) => {
+    let isBtnXHover = false;
+    let isBtnXFocus = false;
+    const drawBtnX = () => {
+      const fill: [number, number, number] = isBtnXHover
+        ? [160, 48, 56]
+        : isBtnXFocus
+          ? [26, 98, 146]
+          : [14, 44, 82];
       btnX.clear();
-      btnX.drawRoundedRect(btnXPos.x - 19, btnXPos.y - 19, 38, 38, 8, {
-        fill: { color: hovered ? [35, 75, 130] : [22, 50, 90], alpha: 1 },
-        stroke: { color: [100, 200, 255], width: 1 },
+      btnX.drawRoundedRect(btnXPos.x - 19, btnXPos.y - 19, 38, 38, 6, {
+        fill: { color: fill, alpha: 1 },
+        stroke: { color: [66, 156, 206], width: 1.5 },
       });
     };
-    drawBtnX(false);
+    drawBtnX();
     btnX.setZIndex(293);
     screenContainer.addChild(btnX);
     createdNodes.push(btnX);
@@ -202,7 +209,7 @@ export function showStatsModal(
       {
         fontSize: accessibilitySystem.scaleFont(20),
         fontFamily: "Outfit",
-        color: [255, 255, 255],
+        color: [238, 248, 255],
         align: "center",
       },
       "stats-x-label"
@@ -223,8 +230,14 @@ export function showStatsModal(
     if (nativeBtnX?.on) {
       nativeBtnX.eventMode = "static";
       nativeBtnX.cursor = "pointer";
-      nativeBtnX.on("pointerover", () => drawBtnX(true));
-      nativeBtnX.on("pointerout", () => drawBtnX(false));
+      nativeBtnX.on("pointerover", () => {
+        isBtnXHover = true;
+        drawBtnX();
+      });
+      nativeBtnX.on("pointerout", () => {
+        isBtnXHover = false;
+        drawBtnX();
+      });
       nativeBtnX.on("pointerdown", () => {
         if (canInteract) close();
       });
@@ -239,21 +252,27 @@ export function showStatsModal(
           height: 38,
         },
         zIndex: 293,
-        onPointerEnter: () => drawBtnX(true),
-        onPointerLeave: () => drawBtnX(false),
+        onPointerEnter: () => {
+          isBtnXHover = true;
+          drawBtnX();
+        },
+        onPointerLeave: () => {
+          isBtnXHover = false;
+          drawBtnX();
+        },
         onClick: () => {
           if (canInteract) close();
         },
       })
     );
 
-    // Título Principal
+    // Título Principal em ciano oceânico sereno
     const title = resolvedRenderEngine.createText(
-      "📊 IMPACTO ECOLÓGICO COLETIVO",
+      "IMPACTO ECOLÓGICO COLETIVO",
       {
-        fontSize: accessibilitySystem.scaleFont(28),
+        fontSize: accessibilitySystem.scaleFont(26),
         fontFamily: "Outfit",
-        color: [255, 230, 100],
+        color: [166, 236, 255],
         align: "center",
       },
       "stats-title"
@@ -433,24 +452,34 @@ export function showStatsModal(
     // Botão Voltar ao Menu
     const btnClosePos: Vector2D = { x: cX, y: cY + cardH / 2 - 46 };
     const btnClose = resolvedRenderEngine.createGraphics("stats-btn-back");
-    const drawBackBtn = (hovered: boolean) => {
+    let isBackHover = false;
+    let isBackFocus = false;
+    let isBackPressed = false;
+    const drawBackBtn = () => {
+      const fill: [number, number, number] = isBackPressed
+        ? [10, 30, 62]
+        : isBackFocus
+          ? [26, 98, 146]
+          : isBackHover
+            ? [22, 66, 116]
+            : [14, 44, 82];
       btnClose.clear();
-      btnClose.drawRoundedRect(btnClosePos.x - 150, btnClosePos.y - 25, 300, 50, 10, {
-        fill: { color: hovered ? [35, 115, 200] : [24, 85, 150], alpha: 1 },
-        stroke: { color: [56, 189, 248], width: 2 },
+      btnClose.drawRoundedRect(btnClosePos.x - 150, btnClosePos.y - 25, 300, 50, 6, {
+        fill: { color: fill, alpha: 1 },
+        stroke: { color: [66, 156, 206], width: 1.5 },
       });
     };
-    drawBackBtn(false);
+    drawBackBtn();
     btnClose.setZIndex(294);
     screenContainer.addChild(btnClose);
     createdNodes.push(btnClose);
 
     const btnText = resolvedRenderEngine.createText(
-      "VOLTAR AO MENU ↩",
+      "VOLTAR AO MENU",
       {
         fontSize: accessibilitySystem.scaleFont(16.5),
         fontFamily: "Outfit",
-        color: [255, 255, 255],
+        color: [238, 248, 255],
         align: "center",
       },
       "stats-btn-back-text"
@@ -471,9 +500,18 @@ export function showStatsModal(
     if (nativeCloseBtn?.on) {
       nativeCloseBtn.eventMode = "static";
       nativeCloseBtn.cursor = "pointer";
-      nativeCloseBtn.on("pointerover", () => drawBackBtn(true));
-      nativeCloseBtn.on("pointerout", () => drawBackBtn(false));
+      nativeCloseBtn.on("pointerover", () => {
+        isBackHover = true;
+        drawBackBtn();
+      });
+      nativeCloseBtn.on("pointerout", () => {
+        isBackHover = false;
+        isBackPressed = false;
+        drawBackBtn();
+      });
       nativeCloseBtn.on("pointerdown", () => {
+        isBackPressed = true;
+        drawBackBtn();
         if (canInteract) close();
       });
     }
@@ -487,9 +525,18 @@ export function showStatsModal(
           height: 50,
         },
         zIndex: 294,
-        onPointerEnter: () => drawBackBtn(true),
-        onPointerLeave: () => drawBackBtn(false),
+        onPointerEnter: () => {
+          isBackHover = true;
+          drawBackBtn();
+        },
+        onPointerLeave: () => {
+          isBackHover = false;
+          isBackPressed = false;
+          drawBackBtn();
+        },
         onClick: () => {
+          isBackPressed = true;
+          drawBackBtn();
           if (canInteract) close();
         },
       })
@@ -503,13 +550,32 @@ export function showStatsModal(
         onActivate: () => {
           if (canInteract) close();
         },
+        onFocus: () => {
+          isBtnXFocus = true;
+          drawBtnX();
+        },
+        onBlur: () => {
+          isBtnXFocus = false;
+          drawBtnX();
+        },
       },
       {
         pos: btnClosePos,
         width: 300,
         height: 50,
         onActivate: () => {
+          isBackPressed = true;
+          drawBackBtn();
           if (canInteract) close();
+        },
+        onFocus: () => {
+          isBackFocus = true;
+          drawBackBtn();
+        },
+        onBlur: () => {
+          isBackFocus = false;
+          isBackPressed = false;
+          drawBackBtn();
         },
       },
     ];

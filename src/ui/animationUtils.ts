@@ -8,10 +8,10 @@ import { createTween, Easings } from "../engine/utils/Tween";
 import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
 
 export const UI_TRANSITIONS = {
-  MODAL_ENTER_DURATION: 0.25,
-  MODAL_EXIT_DURATION: 0.18,
-  FADE_SCENE_DURATION: 0.35,
-  BUTTON_HOVER_SCALE: 1.04,
+  MODAL_ENTER_DURATION: 0.08,
+  MODAL_EXIT_DURATION: 0.07,
+  FADE_SCENE_DURATION: 0.25,
+  BUTTON_HOVER_SCALE: 1.015,
   TOAST_DURATION: 2.5,
 } as const;
 
@@ -80,7 +80,7 @@ export function animateModalEntrance(
   options: ModalEntranceOptions = {}
 ): void {
   const duration = options.duration ?? UI_TRANSITIONS.MODAL_ENTER_DURATION;
-  const startScale = options.startScale ?? 0.85;
+  const startScale = options.startScale ?? 0.96;
 
   if (!cardObj) return;
 
@@ -88,10 +88,10 @@ export function animateModalEntrance(
     return typeof engineContext.vec2 === "function" ? engineContext.vec2(x, y) : { x, y };
   };
 
-  // Define escala e opacidade iniciais
+  // Resposta visual imediata ao abrir modal (sem espera longa)
   cardObj.scale = createVector2(startScale, startScale);
   if ("opacity" in cardObj) {
-    cardObj.opacity = 0;
+    cardObj.opacity = 0.78;
   }
 
   const resolvedRenderEngineForEntrance = resolveInitializedRenderEngine(engineContext);
@@ -226,6 +226,9 @@ export function animateModalExit(
 export interface ButtonHoverOptions {
   baseColor: [number, number, number];
   hoverColor?: [number, number, number];
+  focusColor?: [number, number, number];
+  pressedColor?: [number, number, number];
+  disabledColor?: [number, number, number];
   baseScale?: number;
   hoverScale?: number;
   textObj?: AnimationUiObject;
@@ -234,22 +237,52 @@ export interface ButtonHoverOptions {
   canInteract?: () => boolean;
 }
 
+export interface InteractiveButtonStateController {
+  onFocus(): void;
+  onBlur(): void;
+  onPress(): void;
+  onRelease(): void;
+  setDisabled(disabled: boolean): void;
+  refresh(): void;
+}
+
 /**
- * Anexa feedback tátil consistente de hover aos botões de UI com iluminação e expansão elástica suave (Fase 34.5).
+ * Gerencia estados determinísticos de botão (Normal, Hover, Foco, Pressionado, Desabilitado)
+ * alterando o próprio preenchimento sem molduras externas amarelas.
  */
-export function attachButtonHoverEffect(
+export function attachInteractiveButtonStates(
   engineContext: AnimationEngineContext,
   btnObj: AnimationUiObject,
   options: ButtonHoverOptions
-): void {
+): InteractiveButtonStateController {
   const baseScale = options.baseScale ?? 1.0;
   const hoverScale = options.hoverScale ?? UI_TRANSITIONS.BUTTON_HOVER_SCALE;
 
-  const defaultHoverColor: [number, number, number] = options.hoverColor ?? [
-    Math.min(255, Math.round(options.baseColor[0] * 1.25 + 18)),
-    Math.min(255, Math.round(options.baseColor[1] * 1.25 + 18)),
-    Math.min(255, Math.round(options.baseColor[2] * 1.25 + 18)),
+  const hoverColor: [number, number, number] = options.hoverColor ?? [
+    Math.min(255, options.baseColor[0] + 14),
+    Math.min(255, options.baseColor[1] + 22),
+    Math.min(255, options.baseColor[2] + 30),
   ];
+  const focusColor: [number, number, number] = options.focusColor ?? [
+    Math.min(255, Math.max(options.baseColor[0] + 10, 22)),
+    Math.min(255, Math.max(options.baseColor[1] + 46, 124)),
+    Math.min(255, Math.max(options.baseColor[2] + 54, 162)),
+  ];
+  const pressedColor: [number, number, number] = options.pressedColor ?? [
+    Math.max(4, options.baseColor[0] - 8),
+    Math.max(12, options.baseColor[1] - 18),
+    Math.max(24, options.baseColor[2] - 24),
+  ];
+  const disabledColor: [number, number, number] = options.disabledColor ?? [
+    Math.round(options.baseColor[0] * 0.6),
+    Math.round(options.baseColor[1] * 0.6),
+    Math.round(options.baseColor[2] * 0.65),
+  ];
+
+  let isHovered = false;
+  let isFocused = false;
+  let isPressed = false;
+  let isDisabled = false;
 
   const createVector2 = (x: number, y: number): { x: number; y: number } => {
     return typeof engineContext.vec2 === "function" ? engineContext.vec2(x, y) : { x, y };
@@ -262,36 +295,105 @@ export function attachButtonHoverEffect(
     return engineContext.color(rgbValues[0], rgbValues[1], rgbValues[2]);
   };
 
+  const applyVisualState = () => {
+    try {
+      if (isDisabled) {
+        btnObj.color = resolveColor(disabledColor);
+        btnObj.scale = createVector2(baseScale, baseScale);
+        if ("opacity" in btnObj) btnObj.opacity = 0.65;
+        return;
+      }
+      if ("opacity" in btnObj && btnObj.opacity !== 1) btnObj.opacity = 1;
+
+      if (isPressed) {
+        btnObj.color = resolveColor(pressedColor);
+        btnObj.scale = createVector2(baseScale * 0.985, baseScale * 0.985);
+      } else if (isFocused) {
+        btnObj.color = resolveColor(focusColor);
+        btnObj.scale = createVector2(
+          isHovered ? hoverScale : baseScale,
+          isHovered ? hoverScale : baseScale
+        );
+      } else if (isHovered) {
+        btnObj.color = resolveColor(hoverColor);
+        btnObj.scale = createVector2(hoverScale, hoverScale);
+      } else {
+        btnObj.color = resolveColor(options.baseColor);
+        btnObj.scale = createVector2(baseScale, baseScale);
+      }
+
+      if (options.textObj) {
+        if ((isHovered || isFocused) && options.hoverTextColor) {
+          options.textObj.color = resolveColor(options.hoverTextColor);
+        } else if (options.baseTextColor) {
+          options.textObj.color = resolveColor(options.baseTextColor);
+        }
+      }
+    } catch {}
+  };
+
   if (typeof btnObj.onHoverUpdate === "function") {
     btnObj.onHoverUpdate(() => {
-      if (options.canInteract && !options.canInteract()) return;
-      try {
+      if (isDisabled || (options.canInteract && !options.canInteract())) return;
+      if (!isHovered) {
+        isHovered = true;
         if (typeof document !== "undefined" && document.body) {
           document.body.style.cursor = "pointer";
         }
-        btnObj.scale = createVector2(hoverScale, hoverScale);
-        btnObj.color = resolveColor(defaultHoverColor);
-        if (options.textObj && options.hoverTextColor) {
-          options.textObj.color = resolveColor(options.hoverTextColor);
-        }
-      } catch {}
+        applyVisualState();
+      }
     });
   }
 
   if (typeof btnObj.onHoverEnd === "function") {
     btnObj.onHoverEnd(() => {
-      try {
+      if (isHovered || isPressed) {
+        isHovered = false;
+        isPressed = false;
         if (typeof document !== "undefined" && document.body) {
           document.body.style.cursor = "default";
         }
-        btnObj.scale = createVector2(baseScale, baseScale);
-        btnObj.color = resolveColor(options.baseColor);
-        if (options.textObj && options.baseTextColor) {
-          options.textObj.color = resolveColor(options.baseTextColor);
-        }
-      } catch {}
+        applyVisualState();
+      }
     });
   }
+
+  return {
+    onFocus() {
+      isFocused = true;
+      applyVisualState();
+    },
+    onBlur() {
+      isFocused = false;
+      isPressed = false;
+      applyVisualState();
+    },
+    onPress() {
+      if (isDisabled) return;
+      isPressed = true;
+      applyVisualState();
+    },
+    onRelease() {
+      isPressed = false;
+      applyVisualState();
+    },
+    setDisabled(disabled: boolean) {
+      isDisabled = disabled;
+      applyVisualState();
+    },
+    refresh: applyVisualState,
+  };
+}
+
+/**
+ * Anexa feedback tátil consistente de hover e estados de foco/pressionamento aos botões de UI.
+ */
+export function attachButtonHoverEffect(
+  engineContext: AnimationEngineContext,
+  btnObj: AnimationUiObject,
+  options: ButtonHoverOptions
+): InteractiveButtonStateController {
+  return attachInteractiveButtonStates(engineContext, btnObj, options);
 }
 
 export const OCEAN_CONFETTI_PALETTE: [number, number, number][] = [

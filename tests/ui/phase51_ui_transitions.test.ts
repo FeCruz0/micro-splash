@@ -10,10 +10,10 @@ import swRawContent from "../../public/sw.js?raw";
 describe("Fase 51: Transições Padronizadas & Otimização de Fontes (phase51_ui_transitions.test.ts)", () => {
   describe("51.3: Padronização de Transições de UI (animationUtils.ts)", () => {
     it("expõe constantes de transição UI_TRANSITIONS estritamente tipadas", () => {
-      expect(UI_TRANSITIONS.MODAL_ENTER_DURATION).toBe(0.25);
-      expect(UI_TRANSITIONS.MODAL_EXIT_DURATION).toBe(0.18);
-      expect(UI_TRANSITIONS.FADE_SCENE_DURATION).toBe(0.35);
-      expect(UI_TRANSITIONS.BUTTON_HOVER_SCALE).toBe(1.04);
+      expect(UI_TRANSITIONS.MODAL_ENTER_DURATION).toBe(0.08);
+      expect(UI_TRANSITIONS.MODAL_EXIT_DURATION).toBe(0.07);
+      expect(UI_TRANSITIONS.FADE_SCENE_DURATION).toBe(0.25);
+      expect(UI_TRANSITIONS.BUTTON_HOVER_SCALE).toBe(1.015);
       expect(UI_TRANSITIONS.TOAST_DURATION).toBe(2.5);
     });
 
@@ -38,7 +38,7 @@ describe("Fase 51: Transições Padronizadas & Otimização de Fontes (phase51_u
       animateModalEntrance(mockKaboom, mockCard, { onComplete });
 
       expect(tweenSpy).toHaveBeenCalledWith(
-        0.85,
+        0.96,
         1.0,
         UI_TRANSITIONS.MODAL_ENTER_DURATION,
         expect.any(Function),

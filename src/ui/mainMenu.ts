@@ -5,15 +5,20 @@ import { createFocusGroup, type FocusableItem, type LegacyKeyboardNavContext } f
 import { hasSeenOnboarding, showOnboardingModal } from "./onboardingModal";
 import { t } from "../i18n/i18n";
 import {
-  attachButtonHoverEffect,
+  attachInteractiveButtonStates,
   type AnimationEngineContext,
   type AnimationUiObject,
 } from "./animationUtils";
-import { attachPulseEffect, type MotionTargetObject } from "./shared";
-import { getKioskIdleTimeoutSeconds } from "../systems/kioskMode";
-import { getRandomFloat } from "../utils/random";
 import { readLocalStorageWithSchema } from "../utils/storage";
 import { HighscoreSchema } from "../schemas/storageSchemas";
+import { resolveInitializedRenderEngine } from "../engine/contracts/INTERFACE_CONTRACTS";
+import { resolveScreenRenderContainer } from "../engine/adapters/RenderEngineAdapter";
+import { createMenuOceanBackdrop, type MenuBackdropWhaleAdapter } from "./menuOceanBackdrop";
+import {
+  createMenuPixelIconNode,
+  createMenuPixelTitleNode,
+  type MenuPixelIconKind,
+} from "./menuPixelIcons";
 
 export interface ShowMainMenuEngineContext {
   width(): number;
@@ -70,7 +75,19 @@ export interface LegacyMainMenuEngineContext {
   onMousePress?(callback: () => void): { cancel?: () => void };
   onMouseMove?(callback: () => void): { cancel?: () => void };
   onUpdate(callback: () => void): { cancel: () => void };
+  onSceneLeave?(callback: () => void): unknown;
   go(sceneName: string): void;
+}
+
+interface MenuButtonDefinition {
+  readonly label: string;
+  readonly icon: MenuPixelIconKind;
+  readonly y: number;
+  readonly bg: readonly [number, number, number];
+  readonly hover: readonly [number, number, number];
+  readonly outline: unknown;
+  readonly isPrimary: boolean;
+  readonly action: (onClose: () => void) => void;
 }
 
 export function createMainMenu(
@@ -79,310 +96,227 @@ export function createMainMenu(
   onOptions: (onClose: () => void) => void,
   onCodex: (onClose: () => void) => void,
   onLeaderboard?: (onClose: () => void) => void
-) {
+): () => void {
   const engine = k as unknown as LegacyMainMenuEngineContext;
-  // Inicializa contexto de áudio para cliques da interface, mas sem disparar a trilha de migração
   audioSystem.init();
   audioSystem.stopMigrationAudio();
 
   let isModalOpen = false;
+  const cleanupCallbacks: Array<() => void> = [];
+  const screenW = typeof engine.width === "function" ? engine.width() : 1280;
+  const screenH = typeof engine.height === "function" ? engine.height() : 720;
+  const resolvedRenderEngine = resolveInitializedRenderEngine(k);
 
-  // Fundo oceânico profundo
-  engine.add([
-    engine.rect(engine.width(), engine.height()),
-    engine.pos(0, 0),
-    engine.color(6, 18, 42),
-    engine.fixed(),
-    engine.z(0),
-  ]);
-
-  // Partículas oceânicas temáticas de ambientação (Fase 31.6)
-  const particles: LegacyMainMenuUiObject[] = [];
-  const screenW = typeof engine.width === "function" ? engine.width() : 640;
-  const screenH = typeof engine.height === "function" ? engine.height() : 360;
-
-  // 1. Bolhas translúcidas ascendentes com contorno leve
-  for (let i = 0; i < 12; i++) {
-    const radius = typeof engine.rand === "function" ? engine.rand(2, 4.5) : 3;
-    const p = engine.add([
-      engine.circle(radius),
-      engine.pos(
-        typeof engine.rand === "function" ? engine.rand(0, screenW) : getRandomFloat(0, screenW),
-        typeof engine.rand === "function" ? engine.rand(0, screenH) : getRandomFloat(0, screenH)
-      ),
-      engine.color(70, 205, 255),
-      engine.opacity(typeof engine.rand === "function" ? engine.rand(0.25, 0.55) : 0.4),
-      engine.fixed(),
-      engine.z(1),
-      ...(typeof engine.outline === "function"
-        ? [engine.outline(1, engine.rgb(180, 240, 255))]
-        : []),
-    ]);
-    const speed = typeof engine.rand === "function" ? engine.rand(14, 28) : 20;
-    let time = typeof engine.rand === "function" ? engine.rand(0, 10) : i;
-
-    if (typeof p.onUpdate === "function") {
-      p.onUpdate(() => {
-        const dt = typeof engine.dt === "function" ? engine.dt() : 0.016;
-        time += dt;
-        if (p.pos) {
-          p.pos.y -= dt * speed;
-          p.pos.x += Math.sin(time * 2.2) * 0.4;
-          if (p.pos.y < -12) {
-            p.pos.y = screenH + 10;
-            p.pos.x =
-              typeof engine.rand === "function"
-                ? engine.rand(0, screenW)
-                : getRandomFloat(0, screenW);
-          }
-        }
-      });
-    }
-    particles.push(p);
-  }
-
-  // 2. Plâncton brilhante em ângulo de 45°
-  for (let i = 0; i < 12; i++) {
-    const pColor = i % 2 === 0 ? engine.rgb(80, 250, 220) : engine.rgb(170, 255, 230);
-    const baseOpacity = typeof engine.rand === "function" ? engine.rand(0.2, 0.5) : 0.35;
-    const p = engine.add([
-      engine.rect(2, 6, { radius: 1 }),
-      engine.pos(
-        typeof engine.rand === "function" ? engine.rand(0, screenW) : getRandomFloat(0, screenW),
-        typeof engine.rand === "function" ? engine.rand(0, screenH) : getRandomFloat(0, screenH)
-      ),
-      engine.color(pColor),
-      engine.opacity(baseOpacity),
-      engine.fixed(),
-      engine.z(1),
-      ...(typeof engine.rotate === "function" ? [engine.rotate(45)] : []),
-    ]);
-    const speed = typeof engine.rand === "function" ? engine.rand(8, 18) : 12;
-    let time = typeof engine.rand === "function" ? engine.rand(0, 10) : i;
-
-    if (typeof p.onUpdate === "function") {
-      p.onUpdate(() => {
-        const dt = typeof engine.dt === "function" ? engine.dt() : 0.016;
-        time += dt;
-        if (p.pos) {
-          p.pos.y -= dt * speed;
-          p.pos.x += Math.cos(time * 1.5) * 0.3;
-          p.opacity = Math.max(0.1, Math.min(0.8, baseOpacity + Math.sin(time * 3) * 0.15));
-          if (p.pos.y < -12) {
-            p.pos.y = screenH + 10;
-            p.pos.x =
-              typeof engine.rand === "function"
-                ? engine.rand(0, screenW)
-                : getRandomFloat(0, screenW);
-          }
-        }
-      });
-    }
-    particles.push(p);
-  }
-
-  // 3. Mini-águas-vivas / medusas estilizadas
-  for (let i = 0; i < 6; i++) {
-    const baseOpacity = typeof engine.rand === "function" ? engine.rand(0.28, 0.55) : 0.4;
-    const p = engine.add([
-      engine.rect(9, 6, { radius: 3 }),
-      engine.pos(
-        typeof engine.rand === "function" ? engine.rand(20, screenW - 20) : 50 + i * 90,
-        typeof engine.rand === "function" ? engine.rand(50, screenH) : 100 + i * 40
-      ),
-      engine.color(140, 220, 255),
-      engine.opacity(baseOpacity),
-      engine.scale(1, 1),
-      engine.anchor("center"),
-      engine.fixed(),
-      engine.z(1),
-    ]);
-    const speed = typeof engine.rand === "function" ? engine.rand(6, 14) : 10;
-    let time = typeof engine.rand === "function" ? engine.rand(0, 10) : i * 1.5;
-
-    if (typeof p.onUpdate === "function") {
-      p.onUpdate(() => {
-        const dt = typeof engine.dt === "function" ? engine.dt() : 0.016;
-        time += dt;
-        if (p.pos) {
-          p.pos.y -= dt * speed;
-          p.pos.x += Math.sin(time * 0.8) * 0.25;
-          const pulse = Math.sin(time * 2.8);
-          if (typeof engine.scale === "function" && p.scale) {
-            p.scale.x = 1 - pulse * 0.12;
-            p.scale.y = 1 + pulse * 0.22;
-          }
-          if (p.pos.y < -16) {
-            p.pos.y = screenH + 15;
-            p.pos.x =
-              typeof engine.rand === "function"
-                ? engine.rand(20, screenW - 20)
-                : getRandomFloat(0, screenW);
-          }
-        }
-      });
-    }
-    particles.push(p);
-  }
-
-  // Jubarte cenográfica de fundo navegando no menu principal com nado orgânico
+  // Silhueta distante da jubarte (reutilizando sprite oficial "baleia")
+  let distantWhaleNode: MenuBackdropWhaleAdapter | null = null;
   try {
     if (typeof engine.sprite === "function") {
-      const menuWhale = engine.add([
+      distantWhaleNode = engine.add([
         engine.sprite("baleia", { anim: "idle_swim" }),
-        engine.pos(engine.width() / 2, engine.height() / 2 + 10),
-        engine.scale(1.15),
-        ...(typeof engine.rotate === "function" ? [engine.rotate(0)] : []),
+        engine.pos(Math.round(screenW * 0.22), Math.round(screenH * 0.22)),
+        engine.scale(1.25),
+        ...(typeof engine.rotate === "function" ? [engine.rotate(-2.5)] : []),
         engine.anchor("center"),
-        engine.color(140, 210, 245),
-        engine.opacity(0.18),
+        engine.color(92, 178, 228),
+        engine.opacity(0.32),
         engine.fixed(),
         engine.z(2),
-      ]);
-
-      let menuWhaleTime = 0;
-      if (typeof menuWhale.onUpdate === "function") {
-        menuWhale.onUpdate(() => {
-          const dt = typeof engine.dt === "function" ? engine.dt() : 0.016;
-          menuWhaleTime += dt;
-          const idleBreath = Math.sin(menuWhaleTime * 1.4) * 0.016;
-          const targetScaleX = 1.15 * (1 - idleBreath * 0.35);
-          const targetScaleY = 1.15 * (1 + idleBreath);
-          if (menuWhale.scale) {
-            menuWhale.scale.x = targetScaleX;
-            menuWhale.scale.y = targetScaleY;
-          } else {
-            menuWhale.scale = engine.vec2(targetScaleX, targetScaleY);
-          }
-          if (menuWhale.pos) {
-            menuWhale.pos.y = engine.height() / 2 + 10 + Math.sin(menuWhaleTime * 0.9) * 8;
-            menuWhale.pos.x = engine.width() / 2 + Math.sin(menuWhaleTime * 0.35) * 22;
-          }
-          const swell = Math.sin(menuWhaleTime * 0.8) * 2.2;
-          const ripple = Math.sin(menuWhaleTime * 2.1) * 0.6;
-          menuWhale.angle = swell + ripple;
-        });
-      }
+      ]) as MenuBackdropWhaleAdapter;
     }
   } catch {
-    // Ignora silenciosamente caso mock de teste não forneça sprite baleia
+    distantWhaleNode = null;
   }
 
-  const cX = engine.width() / 2;
-  const cY = engine.height() / 2;
-
-  // Sombra do Título
-  engine.add([
-    engine.text("MICRO SPLASH", { size: 58, font: "Outfit" }),
-    engine.pos(cX + 3, cY - 225 + 3),
-    engine.color(2, 8, 20),
-    engine.anchor("center"),
-    engine.fixed(),
-    engine.z(10),
-  ]);
-
-  // Título Principal
-  engine.add([
-    engine.text("MICRO SPLASH", { size: 58, font: "Outfit" }),
-    engine.pos(cX, cY - 225),
-    engine.color(100, 240, 255),
-    engine.anchor("center"),
-    engine.fixed(),
-    engine.z(11),
-  ]);
-
-  // Subtítulo
-  engine.add([
-    engine.text(`${t("menu.subtitle")} 🐋`, {
-      size: accessibilitySystem.scaleFont(19),
-      font: "Outfit",
-    }),
-    engine.pos(cX, cY - 170),
-    engine.color(195, 235, 255),
-    engine.anchor("center"),
-    engine.fixed(),
-    engine.z(11),
-  ]);
-
-  // Placar Recorde com badge elegante e respiro
-  const highScore = readLocalStorageWithSchema("micro_splash_highscore", HighscoreSchema, 0);
-  if (highScore > 0) {
-    const formattedScore = highScore.toLocaleString("pt-BR");
+  // Fundo oceânico contemplativo e minimalista
+  if (resolvedRenderEngine) {
+    const backdrop = createMenuOceanBackdrop(
+      resolvedRenderEngine,
+      screenW,
+      screenH,
+      distantWhaleNode
+    );
+    cleanupCallbacks.push(() => backdrop.destroy());
+  } else {
     engine.add([
-      engine.rect(340, 26, { radius: 13 }),
-      engine.pos(cX, cY - 122),
-      engine.color(14, 30, 54),
-      engine.outline(1.5, engine.rgb(250, 204, 21)),
+      engine.rect(screenW, screenH),
+      engine.pos(0, 0),
+      engine.color(6, 18, 42),
+      engine.fixed(),
+      engine.z(0),
+    ]);
+  }
+
+  const cX = screenW / 2;
+  const cY = screenH / 2;
+  const isCompactHeight = screenH < 640;
+  const titleOffsetY = isCompactHeight ? -195 : -220;
+  const subtitleOffsetY = isCompactHeight ? -145 : -168;
+  const recordOffsetY = isCompactHeight ? -105 : -122;
+  const startBtnY = cY + (isCompactHeight ? -46 : -56);
+
+  // Título Principal em pixel art 5x7 nativa (sem aspecto sci-fi de Orbitron)
+  if (resolvedRenderEngine) {
+    const screenContainer = resolveScreenRenderContainer(resolvedRenderEngine);
+    const titleNode = createMenuPixelTitleNode(
+      resolvedRenderEngine,
+      "MICRO SPLASH",
+      cX,
+      cY + titleOffsetY,
+      isCompactHeight ? 4.4 : 5.2,
+      11
+    );
+    screenContainer.addChild(titleNode);
+    cleanupCallbacks.push(() => titleNode.destroy());
+  } else {
+    engine.add([
+      engine.text("MICRO SPLASH", { size: isCompactHeight ? 48 : 56, font: "Outfit" }),
+      engine.pos(cX + 3, cY + titleOffsetY + 3),
+      engine.color(2, 8, 20),
       engine.anchor("center"),
       engine.fixed(),
       engine.z(10),
     ]);
+
     engine.add([
-      engine.text(`🏆 Recorde Histórico: ${formattedScore} Eco-Pontos`, {
-        size: accessibilitySystem.scaleFont(13.5),
-        font: "Outfit",
-      }),
-      engine.pos(cX, cY - 122),
-      engine.color(255, 225, 95),
+      engine.text("MICRO SPLASH", { size: isCompactHeight ? 48 : 56, font: "Outfit" }),
+      engine.pos(cX, cY + titleOffsetY),
+      engine.color(118, 240, 255),
       engine.anchor("center"),
       engine.fixed(),
       engine.z(11),
     ]);
   }
 
-  // ==========================================
-  // BOTÕES PRINCIPAIS DO MENU COM ESPAÇAMENTO GENEROSO
-  // ==========================================
-  const btnW = 430;
-  const btnH = 48;
-  const btnGap = 14;
-  const startBtnY = cY - 58;
+  // Subtítulo com ícone pixel art da jubarte (sem emoji de SO)
+  const subtitleText = resolvedRenderEngine ? t("menu.subtitle") : `${t("menu.subtitle")} 🐋`;
+  engine.add([
+    engine.text(subtitleText, {
+      size: accessibilitySystem.scaleFont(isCompactHeight ? 16 : 18),
+      font: "Outfit",
+    }),
+    engine.pos(resolvedRenderEngine ? cX - 12 : cX, cY + subtitleOffsetY),
+    engine.color(184, 224, 248),
+    engine.anchor("center"),
+    engine.fixed(),
+    engine.z(11),
+  ]);
 
-  const menuButtons = [
+  if (resolvedRenderEngine) {
+    const screenContainer = resolveScreenRenderContainer(resolvedRenderEngine);
+    const whaleIcon = createMenuPixelIconNode(
+      resolvedRenderEngine,
+      "whale",
+      cX + 148,
+      cY + subtitleOffsetY,
+      1.5,
+      11
+    );
+    screenContainer.addChild(whaleIcon);
+    cleanupCallbacks.push(() => whaleIcon.destroy());
+  }
+
+  // Recorde histórico discreto com filete dourado e ícone pixel art
+  const highScore = readLocalStorageWithSchema("micro_splash_highscore", HighscoreSchema, 0);
+  if (highScore > 0) {
+    const formattedScore = highScore.toLocaleString("pt-BR");
+    engine.add([
+      engine.rect(340, 26, { radius: 6 }),
+      engine.pos(cX, cY + recordOffsetY),
+      engine.color(10, 26, 52),
+      engine.outline(1.5, engine.rgb(218, 178, 72)),
+      engine.anchor("center"),
+      engine.fixed(),
+      engine.z(10),
+    ]);
+    engine.add([
+      engine.text(`Recorde Histórico: ${formattedScore} Eco-Pontos`, {
+        size: accessibilitySystem.scaleFont(13),
+        font: "Inter",
+      }),
+      engine.pos(resolvedRenderEngine ? cX + 10 : cX, cY + recordOffsetY),
+      engine.color(248, 218, 118),
+      engine.anchor("center"),
+      engine.fixed(),
+      engine.z(11),
+    ]);
+
+    if (resolvedRenderEngine) {
+      const screenContainer = resolveScreenRenderContainer(resolvedRenderEngine);
+      const trophyBadgeIcon = createMenuPixelIconNode(
+        resolvedRenderEngine,
+        "trophy",
+        cX - 148,
+        cY + recordOffsetY,
+        1.25,
+        12
+      );
+      screenContainer.addChild(trophyBadgeIcon);
+      cleanupCallbacks.push(() => trophyBadgeIcon.destroy());
+    }
+  }
+
+  // ==========================================
+  // BOTÕES PRINCIPAIS EM PIXEL ART MINIMALISTA
+  // ==========================================
+  const btnW = Math.min(430, Math.max(300, screenW - 48));
+  const btnH = 48;
+  const btnGap = isCompactHeight ? 10 : 14;
+
+  const menuButtons: readonly MenuButtonDefinition[] = [
     {
-      label: `🌊 ${t("menu.play")}`,
+      label: t("menu.play"),
+      icon: "wave",
       y: startBtnY,
-      bg: [20, 140, 200] as [number, number, number],
-      hover: [35, 175, 240] as [number, number, number],
-      outline: engine.rgb(100, 250, 255),
+      bg: [18, 118, 152],
+      hover: [26, 146, 184],
+      outline: engine.rgb(102, 228, 245),
+      isPrimary: true,
       action: onStartMigration,
     },
     {
-      label: "🏆 RANKING TOP 10",
+      label: "RANKING TOP 10",
+      icon: "trophy",
       y: startBtnY + (btnH + btnGap),
-      bg: [26, 85, 150] as [number, number, number],
-      hover: [40, 120, 200] as [number, number, number],
-      outline: engine.rgb(255, 215, 80),
-      action: (onClose: () => void) => {
+      bg: [14, 44, 82],
+      hover: [22, 66, 116],
+      outline: engine.rgb(66, 156, 206),
+      isPrimary: false,
+      action: (onClose) => {
         if (onLeaderboard) onLeaderboard(onClose);
         else onClose();
       },
     },
     {
-      label: "📊 IMPACTO COLETIVO",
+      label: "IMPACTO COLETIVO",
+      icon: "chart",
       y: startBtnY + (btnH + btnGap) * 2,
-      bg: [18, 95, 130] as [number, number, number],
-      hover: [28, 135, 180] as [number, number, number],
-      outline: engine.rgb(0, 230, 255),
-      action: async (onClose: () => void) => {
+      bg: [14, 52, 86],
+      hover: [22, 76, 120],
+      outline: engine.rgb(66, 174, 212),
+      isPrimary: false,
+      action: async (onClose) => {
         const { showStatsModal } = await import("./statsModal");
         showStatsModal(engine as unknown as Parameters<typeof showStatsModal>[0], onClose);
       },
     },
     {
-      label: `📖 ${t("menu.codex")}`,
+      label: t("menu.codex"),
+      icon: "book",
       y: startBtnY + (btnH + btnGap) * 3,
-      bg: [20, 50, 100] as [number, number, number],
-      hover: [30, 80, 145] as [number, number, number],
-      outline: engine.rgb(180, 220, 255),
+      bg: [14, 40, 74],
+      hover: [22, 62, 108],
+      outline: engine.rgb(92, 168, 218),
+      isPrimary: false,
       action: onCodex,
     },
     {
-      label: `⚙️ ${t("menu.options")}`,
+      label: t("menu.options"),
+      icon: "gear",
       y: startBtnY + (btnH + btnGap) * 4,
-      bg: [24, 65, 120] as [number, number, number],
-      hover: [35, 95, 165] as [number, number, number],
-      outline: engine.rgb(80, 180, 240),
+      bg: [16, 46, 84],
+      hover: [24, 68, 118],
+      outline: engine.rgb(74, 156, 204),
+      isPrimary: false,
       action: onOptions,
     },
   ];
@@ -392,10 +326,10 @@ export function createMainMenu(
   menuButtons.forEach((btnData) => {
     const btnPos = engine.vec2(cX, btnData.y);
     const btn = engine.add([
-      engine.rect(btnW, btnH, { radius: 11 }),
+      engine.rect(btnW, btnH, { radius: 6 }),
       engine.pos(btnPos),
       engine.color(btnData.bg[0], btnData.bg[1], btnData.bg[2]),
-      engine.outline(2, btnData.outline),
+      engine.outline(btnData.isPrimary ? 2 : 1.5, btnData.outline),
       engine.scale(1),
       engine.anchor("center"),
       engine.fixed(),
@@ -404,44 +338,69 @@ export function createMainMenu(
 
     engine.add([
       engine.text(btnData.label, {
-        size: accessibilitySystem.scaleFont(17.5),
+        size: accessibilitySystem.scaleFont(16.5),
         font: "Outfit",
       }),
-      engine.pos(btnPos),
-      engine.color(255, 255, 255),
+      engine.pos(resolvedRenderEngine ? cX + 12 : cX, btnData.y),
+      engine.color(btnData.isPrimary ? 245 : 226, btnData.isPrimary ? 253 : 242, 255),
       engine.anchor("center"),
       engine.fixed(),
       engine.z(13),
     ]);
 
-    const activate = () => {
-      resetIdle();
-      if (isModalOpen) return;
-      audioSystem.playUiClick();
-      isModalOpen = true;
-      btnData.action(() => {
-        isModalOpen = false;
-        resetIdle();
-      });
-    };
+    if (resolvedRenderEngine) {
+      const screenContainer = resolveScreenRenderContainer(resolvedRenderEngine);
+      const iconNode = createMenuPixelIconNode(
+        resolvedRenderEngine,
+        btnData.icon,
+        cX - btnW * 0.5 + 30,
+        btnData.y,
+        1.55,
+        13
+      );
+      screenContainer.addChild(iconNode);
+      cleanupCallbacks.push(() => iconNode.destroy());
+    }
 
-    attachButtonHoverEffect(
+    const buttonStates = attachInteractiveButtonStates(
       engine as unknown as AnimationEngineContext,
       btn as unknown as AnimationUiObject,
       {
-        baseColor: btnData.bg,
-        hoverColor: btnData.hover,
+        baseColor: [...btnData.bg] as [number, number, number],
+        hoverColor: [...btnData.hover] as [number, number, number],
+        focusColor: btnData.isPrimary ? [30, 162, 198] : [26, 98, 146],
+        pressedColor: btnData.isPrimary ? [12, 84, 112] : [10, 30, 62],
         baseScale: 1.0,
-        hoverScale: 1.035,
+        hoverScale: 1.015,
         canInteract: () => !isModalOpen,
       }
     );
 
-    if (menuButtons.indexOf(btnData) === 0) {
-      attachPulseEffect(engine, btn as unknown as MotionTargetObject, {
-        canInteract: () => !isModalOpen,
+    const activate = () => {
+      if (isModalOpen) return;
+      const interactionStart = typeof performance !== "undefined" ? performance.now() : 0;
+      buttonStates.onPress();
+      const visualFeedbackMs =
+        typeof performance !== "undefined" ? performance.now() - interactionStart : 0;
+      audioSystem.playUiClick();
+      isModalOpen = true;
+      void Promise.resolve(
+        btnData.action(() => {
+          isModalOpen = false;
+          buttonStates.onRelease();
+        })
+      ).then(() => {
+        if (typeof window !== "undefined") {
+          const modalOpenMs =
+            typeof performance !== "undefined" ? performance.now() - interactionStart : 0;
+          (window as unknown as Record<string, unknown>).__MICRO_SPLASH_MENU_METRICS = {
+            lastLabel: btnData.label,
+            visualFeedbackMs: Number(visualFeedbackMs.toFixed(2)),
+            modalOpenMs: Number(modalOpenMs.toFixed(2)),
+          };
+        }
       });
-    }
+    };
 
     if (typeof btn.onClick === "function") {
       btn.onClick(activate);
@@ -452,82 +411,68 @@ export function createMainMenu(
       width: btnW,
       height: btnH,
       onActivate: activate,
+      onFocus: () => buttonStates.onFocus(),
+      onBlur: () => buttonStates.onBlur(),
     });
   });
 
-  createFocusGroup(engine as unknown as LegacyKeyboardNavContext, {
+  const focusGroup = createFocusGroup(engine as unknown as LegacyKeyboardNavContext, {
     items: focusItems,
     initialIndex: 0,
     ringZ: 14,
     isEnabled: () => !isModalOpen,
   });
+  cleanupCallbacks.push(() => focusGroup.destroy());
 
-  // Rodapé Educativo e Institucional
+  // Rodapé discreto
   engine.add([
     engine.text(
       "Inspirado nas pesquisas de conservação do Instituto Baleia Jubarte\nTrilha: 'Aquatic Ambience' (David Wise) & 16-Bit Lofi Ocean",
       {
-        size: accessibilitySystem.scaleFont(13.5),
+        size: accessibilitySystem.scaleFont(12.5),
         font: "Inter",
         align: "center",
-        lineSpacing: 4.5,
+        lineSpacing: 4,
       }
     ),
-    engine.pos(engine.width() / 2, engine.height() - 34),
-    engine.color(140, 180, 220),
+    engine.pos(cX, screenH - 30),
+    engine.color(130, 172, 212),
+    engine.opacity(0.86),
     engine.anchor("center"),
     engine.fixed(),
     engine.z(11),
   ]);
 
-  // Versão da aplicação (Fase 25 - Diagnóstico de Totem & PWA)
   engine.add([
     engine.text(`v${APP_VERSION}`, {
-      size: accessibilitySystem.scaleFont(12),
+      size: accessibilitySystem.scaleFont(11.5),
       font: "Inter",
     }),
-    engine.pos(engine.width() - 14, engine.height() - 12),
+    engine.pos(screenW - 14, screenH - 12),
     engine.anchor("botright"),
-    engine.color(120, 160, 210),
-    engine.opacity(0.65),
+    engine.color(115, 155, 200),
+    engine.opacity(0.6),
     engine.fixed(),
     engine.z(11),
   ]);
 
-  // =========================================================================
-  // FASE 10: TIMER DE INATIVIDADE PARA MODO KIOSK (45 SEGUNDOS)
-  // =========================================================================
-  let idleTime = 0;
-  const resetIdle = () => {
-    idleTime = 0;
+  const destroyMenu = () => {
+    for (const cleanup of cleanupCallbacks) {
+      cleanup();
+    }
+    cleanupCallbacks.length = 0;
   };
 
-  if (typeof engine.onKeyPress === "function") engine.onKeyPress(resetIdle);
-  if (typeof engine.onMousePress === "function") engine.onMousePress(resetIdle);
-  if (typeof engine.onMouseMove === "function") engine.onMouseMove(resetIdle);
+  if (typeof engine.onSceneLeave === "function") {
+    engine.onSceneLeave(destroyMenu);
+  }
 
-  const idleTimeout = getKioskIdleTimeoutSeconds();
-  const idleLoop = engine.onUpdate(() => {
-    if (!isModalOpen && idleTimeout > 0) {
-      const dt = typeof engine.dt === "function" ? engine.dt() : 0.016;
-      idleTime += dt;
-      if (idleTime >= idleTimeout) {
-        if (idleLoop && typeof idleLoop.cancel === "function") {
-          idleLoop.cancel();
-        }
-        engine.go("kiosk");
-      }
-    } else {
-      idleTime = 0;
-    }
-  });
-
-  // Fase 21: Se for a primeira inicialização do jogo (totens ou novos jogadores), exibe o onboarding contextual protegido
   if (!hasSeenOnboarding()) {
     isModalOpen = true;
     showOnboardingModal(engine as unknown as Parameters<typeof showOnboardingModal>[0], () => {
       isModalOpen = false;
-      resetIdle();
     });
   }
+
+  return destroyMenu;
 }

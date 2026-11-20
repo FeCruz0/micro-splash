@@ -259,6 +259,33 @@ describe("Etapa 3.3: Fullscreen API nativa (F11), stage eventMode none e ScreenL
       expect(virtualPosition.y).toBeCloseTo(360);
     });
 
+    it("deve mapear coordenadas corretamente quando objectFit='contain' gera faixas letterbox laterais", () => {
+      const checker = new ScreenLayerGeometryChecker({
+        virtualWidth: 1920,
+        virtualHeight: 1080,
+      });
+
+      const mockCanvas = {
+        style: { objectFit: "contain" },
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        getBoundingClientRect: () => ({
+          left: 0,
+          top: 0,
+          width: 1920,
+          height: 960,
+        }),
+      };
+
+      checker.attachCanvasListeners(mockCanvas as unknown as HTMLCanvasElement);
+
+      // Para 16:9 dentro de 1920x960, o conteúdo renderizado ocupa 1706.67x960 com offsetX = 106.67px
+      // O ponto virtual x=1430 (botão [X] de Opções) está em clientX = 106.67 + (1430/1920)*1706.67 ≈ 1377.78
+      const virtualPos = checker.convertWindowCoordinatesToScreenCoordinates(1377.78, 200);
+      expect(virtualPos.x).toBeCloseTo(1430, 0);
+      expect(virtualPos.y).toBeCloseTo(225, 0);
+    });
+
     it("deve gerenciar eventos de hover (onPointerEnter e onPointerLeave)", () => {
       const checker = new ScreenLayerGeometryChecker();
       const enterSpy = vi.fn();
@@ -292,7 +319,10 @@ describe("Etapa 3.3: Fullscreen API nativa (F11), stage eventMode none e ScreenL
       const globalChecker = getScreenLayerGeometryChecker();
       expect(globalChecker).toBeInstanceOf(ScreenLayerGeometryChecker);
 
-      const initializedChecker = initScreenLayerGeometryChecker({ virtualWidth: 1024, virtualHeight: 768 });
+      const initializedChecker = initScreenLayerGeometryChecker({
+        virtualWidth: 1024,
+        virtualHeight: 768,
+      });
       expect(initializedChecker).toBeInstanceOf(ScreenLayerGeometryChecker);
 
       const adapter = new RenderEngineAdapter();

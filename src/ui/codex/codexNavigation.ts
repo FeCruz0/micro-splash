@@ -36,10 +36,10 @@ export function renderCodexHeader(
   elements: Array<{ destroy?: () => void } | object>
 ): LegacyCodexUiObject {
   const card = k.add([
-    k.rect(cardW, cardH, { radius: 16 }),
+    k.rect(cardW, cardH, { radius: 8 }),
     k.pos(cX, cY),
-    k.color(10, 28, 56),
-    k.outline(2.5, k.rgb(250, 204, 21)),
+    k.color(8, 22, 46),
+    k.outline(1.5, k.rgb(52, 128, 178)),
     k.anchor("center"),
     k.scale(1),
     k.fixed(),
@@ -49,12 +49,12 @@ export function renderCodexHeader(
 
   elements.push(
     k.add([
-      k.text("DIÁRIO DE BORDO DA EXPEDIÇÃO 📖", {
-        size: accessibilitySystem.scaleFont(27),
+      k.text("DIÁRIO DE BORDO DA EXPEDIÇÃO", {
+        size: accessibilitySystem.scaleFont(25),
         font: "Outfit",
       }),
       k.pos(cX, cY - cardH / 2 + 34),
-      k.color(255, 225, 100),
+      k.color(166, 236, 255),
       k.anchor("center"),
       k.fixed(),
       k.z(302),

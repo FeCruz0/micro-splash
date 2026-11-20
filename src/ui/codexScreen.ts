@@ -38,13 +38,13 @@ export function showCodexScreen(k: ShowCodexEngineContext, onBack: () => void) {
   let isClosed = false;
   let isModalOpen = false;
 
-  // Fundo escuro semitransparente bloqueando cliques fora do modal
+  // Escurecimento translúcido discreto preservando o oceano contemplativo ao fundo
   elements.push(
     engine.add([
       engine.rect(engine.width(), engine.height()),
       engine.pos(0, 0),
-      engine.color(4, 14, 32),
-      engine.opacity(0.95),
+      engine.color(3, 10, 26),
+      engine.opacity(0.62),
       engine.fixed(),
       engine.z(300),
     ])
